@@ -285,6 +285,42 @@ YAML が日付として解釈することがあるので、書式を固定した
 （`{{title}}` など）は文字のまま残す必要がある。
 :::
 
+##### Word で作った表紙を SVG にする {#sec-cover-from-word}
+
+すでに Word で表紙（外枠・承認欄・記入欄）がある場合は、描き直さずに取り込める。
+
+1. **Word → PDF**。「名前を付けて保存」で PDF を選ぶ。ページ罫線・表・テキスト
+   ボックスは、そのままベクターとして PDF に入る。
+2. **PDF → SVG**。Inkscape で PDF を開く。インポートの方式で扱いが変わる。
+
+   ::: {.tbl caption="Inkscape の PDF 取り込み方式" label="tbl-pdf-import" widths="30,34,36"}
+   | 方式                     | 文字の扱い     | 向いているもの                       |
+   |--------------------------|----------------|--------------------------------------|
+   | Poppler/Cairo でインポート | すべてパスになる | **推奨**。フォント非依存で崩れない。差し込み口は使えない |
+   | 内部インポート           | 文字は文字のまま | `{{title}}` を Word 側に書いておきたいとき。書体はビルド環境に依存する |
+   :::
+
+3. 不要な白い矩形などを消し、**「プレーン SVG」で保存**して `cover.svg` にする。
+4. `cover.typ` から `svg-cover("cover.svg")` で読む。
+
+::: {.callout-note}
+**確実なのは「絵はパス、文字は Typst」の分担である。** 枠・罫線・固定ラベルは
+パス化した SVG に任せ、表題・資料番号のように差し替わる値は SVG に入れず、
+`#place(dx: …mm, dy: …mm)` で上に重ねる。こうすると書体は本文と同じ（`JP-SANS`）に
+そろい、ビルド環境のフォントにも左右されない。座標は Inkscape のツールバーに出る
+X / Y（mm 表示にしておく）をそのまま `dx` / `dy` に書けばよい。
+:::
+
+```typst
+#let front-matter(meta, front) = {
+  bare-page(margin: 0mm)[
+    #place(top + left, svg-cover("cover.svg"))                       // 枠・罫線（パス）
+    #place(top + left, dx: 130mm, dy: 30mm, text(size: 12pt)[#meta.doc-id])
+    #place(top + left, dx: 30mm,  dy: 90mm, text(size: 22pt, weight: "bold")[#meta.title])
+  ]
+}
+```
+
 ::: {.callout-note}
 影・グラデーション・ブレンドなどは、PDF 側の SVG 描画が再現しないことがある。
 罫線・文字・単色塗りで作ること。差し込み口を使わず、`#place(top + left, dx: 120mm,
