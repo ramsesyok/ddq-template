@@ -635,6 +635,16 @@ function Div(el)
     return out
   end
 
+  if el.classes:includes('pre-toc') then
+    -- 目次より前の前書きセクション。内部の見出しを outlined: false にして目次から除外する。
+    -- HTML は目次との位置関係が無いのでそのまま通す。
+    if IS_HTML then return el end
+    local out = pandoc.Blocks({ pandoc.RawBlock('typst', '#pre-toc-section[') })
+    out:extend(el.content)
+    out:insert(pandoc.RawBlock('typst', ']'))
+    return out
+  end
+
   if el.classes:includes('ipo') then
     -- 記法（div 属性で指定。機能名/処理名/タイトルを別々に扱う）:
     --   ::: {.ipo module="受注管理" caption="受注処理の流れ" label="tbl-x"}
