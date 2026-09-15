@@ -642,16 +642,54 @@
   }
 
   // 目次（toc: true のとき）。章番号・ページ番号・リーダー線は outline が自動生成する。
+  // タイトルを block で描画し outline(title: none) を使う。
+  // outline(title: content) は内部で heading を生成し採番ルールを消費するため、
+  // そのままだと目次タイトルが「1. 目 次」になり以降の章番号が1つずれる。
   if toc {
     show outline.entry.where(level: 1): set block(above: 1.2em)
-    outline(
-      title: text(size: 16pt, weight: "bold", toc-title),
-      depth: toc-depth, indent: 2em,
-    )
+    block(above: 1.4em, below: 0.8em,
+      text(font: JP-SANS, size: 16pt, weight: "bold")[#toc-title])
+    outline(title: none, depth: toc-depth, indent: 2em)
     pagebreak()
   }
 
   body
+}
+
+// ============================================================
+//  【3.5】手動目次・前書きセクション（toc: false 時のユーティリティ）
+//
+//  toc: false として目次を手動配置する場合に使う。
+//  ① ::: {.pre-toc} div（design-doc.lua が変換）か #pre-toc-section[…] で
+//     目次より前の内容を囲む。ブロック内の見出しは outlined: false になり、
+//     #design-toc() / #outline() に収集されない。
+//  ② 目次を出したい位置に #design-toc() を置く。
+//     #outline() をそのまま書くと title 見出しが採番ルールを消費し
+//     「1. 目 次」のようになって以降の章番号が1つずれるため、こちらを使う。
+// ============================================================
+
+// ---- 目次に表れない前書きセクション ----
+// このブロック内の見出しは outlined: false かつ numbering: none となる。
+//   outlined: false  → #outline() に収集されない（目次に出ない）
+//   numbering: none  → 採番カウンタを消費しない（後続の章番号が1.から始まる）
+// qmd では ::: {.pre-toc} … ::: と書くと design-doc.lua が変換する。
+// 直接 Typst ブロックに書く場合は #pre-toc-section[…] を使う。
+#let pre-toc-section(body) = {
+  show heading: set heading(outlined: false, numbering: none)
+  body
+}
+
+// ---- 手動目次（toc: false で #outline() の代わりに使う）----
+// #outline() を直接書くと title 見出しが採番ルールを消費して章番号がずれる。
+// この関数はタイトルを block で描画し採番を消費しない。目次の後に改ページも挿入する。
+//   title  目次タイトル（既定「目 次」）
+//   depth  目次に収録する見出しの最大レベル（既定 3）
+#let design-toc(title: "目 次", depth: 3) = {
+  show outline.entry.where(level: 1): set block(above: 1.2em)
+  block(above: 1.4em, below: 0.8em,
+    text(font: JP-SANS, size: 16pt, weight: "bold")[#title])
+  outline(title: none, depth: depth, indent: 2em)
+  pagebreak()
 }
 
 // ---- 図ヘルパー（相互参照用ラベルは呼び出し側で <fig-xxx> を付ける） ----
