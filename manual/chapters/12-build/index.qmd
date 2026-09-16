@@ -5,7 +5,7 @@
 出力は**リリースを展開したフォルダ**から、**執筆フォルダのパスを渡して**実行する。
 
 ```bat
-cd C:\tools\quarto-template-1.2.0
+cd C:\tools\quarto-template-1.2.1
 
 :: PDF（発行版・中間版）→ <執筆フォルダ>\design-doc.pdf
 .\template\build-qmd.bat C:\work\order-design\docs

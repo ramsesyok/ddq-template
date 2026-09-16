@@ -5,7 +5,7 @@
 
    ::: {.callout-important}
    **版を上げたら、本書と `README.md` / `ADVANCED.md` の実行例に埋め込まれた
-   版番号も揃える。** 展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-1.2.0`
+   版番号も揃える。** 展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-1.2.1`
    のような例が全体で30箇所ほどある。ずれていると、発行者が手元のフォルダ名と
    合わない手順を読むことになる。
 

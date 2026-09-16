@@ -10,6 +10,6 @@
 | スペック様式にする     | `spec: true`                             | 4章  |
 | 表紙を出す             | `cover: true`                            | 4章  |
 | 途中のページから始める | `page-start: 5`                          | 4章  |
-| 目次位置を手動制御する | `toc: false` ＋ `.pre-toc` ＋ `#design-toc()` | 7章  |
+| 目次の前にページを置く | `toc: false` ＋ `#design-toc()`          | 7章  |
 | 章を増減・並べ替える   | `book: chapters:` の一覧                 | 4章  |
 :::
