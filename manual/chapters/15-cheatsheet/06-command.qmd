@@ -14,7 +14,7 @@
 上の4つは発行者の作業であり、**リリースを展開したフォルダ**から実行する。
 
 ```bat
-cd C:\tools\quarto-template-1.2.0
+cd C:\tools\quarto-template-1.2.1
 ```
 
 `C:\work\order-design\docs` は執筆フォルダのパスである。相対パスは「いま開いている

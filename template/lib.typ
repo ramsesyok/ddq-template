@@ -231,6 +231,15 @@
 // スペック様式フッターの会社名（日/英）。横ページ/IPO の様式描画が読む。
 #let _company-ja = state("design-company-ja", "")
 #let _company-en = state("design-company-en", "")
+// 開始ページ番号（page-start）。design-doc() が設定し、各ページ様式の背景が読む。
+#let _page-start = state("design-page-start", 1)
+// 開始ページ番号を物理1ページ目に適用する。本文側で counter(page).update() しても、
+// 背景層は本文より先に評価されるため1ページ目の番号に反映されず、2ページ目から
+// 急に page-start+1 になる。そこで背景層の先頭（番号表示より前）で更新する。
+// 縦・横どちらの様式の背景でも最初に呼ぶこと。
+#let _apply-page-start() = context {
+  if here().page() == 1 { counter(page).update(_page-start.final()) }
+}
 // 直前の見出しレベルに応じた本文の字下げ段数（L1=0, L2=1, L3=2 …）。
 // 各 show heading が更新し、show par が本文段落の左字下げに使う。
 #let _sec-indent = state("design-sec-indent", 0)
@@ -362,6 +371,7 @@
 // 資料番号の枠は外枠の右辺に接する（原紙準拠）ため、x は
 // 「外枠の左端 + 外枠の幅」で求める。外枠を動かせば資料番号も追従する。
 #let _side-furniture = context {
+  _apply-page-start()
   // 外枠はどちらの様式でも描く。
   place(top + left, dx: FRAME-L-POS.x, dy: FRAME-L-POS.y,
     rect(width: FRAME-L-SIZE.width, height: FRAME-L-SIZE.height, stroke: FRAME))
@@ -422,6 +432,11 @@
   _company-ja.update(company-ja)
   _company-en.update(company-en)
   _spec.update(spec)
+  // 開始ページ番号。表紙・前付けを別文書で作り、その続きとして綴じるときに使う
+  // （前付けが4ページなら page-start: 5）。適用は背景層の _apply-page-start() が行う。
+  // フッターの "n / N" の N は counter(page).final()＝最終ページの番号だから、
+  // ずらせば N は綴じ上がり全体の総ページ数と一致する。
+  _page-start.update(page-start)
   set page(
     paper: "a4",
     // スペック様式は表題欄（2行）のぶん本文の上マージンを下げる。
@@ -435,6 +450,7 @@
     // 影響させないため。通常様式の資料番号は枠の下辺が外枠の上辺に接地するよう
     // measure() で高さを測って引く（文字サイズや inset を変えても接地が保たれる）。
     background: context {
+      _apply-page-start()
       // 外枠はどちらの様式でも描く。
       place(top + left, dx: FRAME-P-POS.x, dy: FRAME-P-POS.y,
         rect(width: FRAME-P-SIZE.width, height: FRAME-P-SIZE.height,
@@ -619,13 +635,6 @@
     } else { it }
   }
 
-  // ---- 開始ページ番号（page-start）----
-  // design-doc() が出す最初の「内容」なので、1ページ目からこの番号が振られる。
-  // 表紙・前書きを別文書で作り、その続きとして綴じるときに使う（前付けが4ページなら
-  // page-start: 5）。フッターの "n / N" の N は counter(page).final()＝最終ページの
-  // 番号だから、ずらせば N は綴じ上がり全体の総ページ数と一致する。
-  counter(page).update(page-start)
-
   // ---- タイトルページ（cover: true のときだけ出す。既定は出さない）----
   // 見出し（heading）にはしない。h1 にすると章カウンタを消費し、
   // 目次にも項目として載ってしまう。
@@ -657,38 +666,34 @@
 }
 
 // ============================================================
-//  【3.5】手動目次・前書きセクション（toc: false 時のユーティリティ）
+//  【3.5】手動目次（toc: false のとき、任意の位置に目次を置く）
 //
-//  toc: false として目次を手動配置する場合に使う。
-//  ① ::: {.pre-toc} div（design-doc.lua が変換）か #pre-toc-section[…] で
-//     目次より前の内容を囲む。ブロック内の見出しは outlined: false になり、
-//     #design-toc() / #outline() に収集されない。
-//  ② 目次を出したい位置に #design-toc() を置く。
-//     #outline() をそのまま書くと title 見出しが採番ルールを消費し
-//     「1. 目 次」のようになって以降の章番号が1つずれるため、こちらを使う。
+//  改訂履歴など「目次より前のページ」を作りたいときに使う。
+//  _quarto.yml で toc: false にし、目次を出したい位置に
+//    ```{=typst}
+//    #design-toc()
+//    ```
+//  を書く。この位置より前にある見出しは目次に載らない（後述の after(here())）。
+//  前のページの見出しには {.unnumbered} を付ける（前付けと同じ。付けないと
+//  章番号を消費して「1. 本書について」になり、以降の章番号がずれる）。
+//
+//  #outline() をそのまま書かない理由: title 見出しが採番ルールを消費して
+//  「1. 目 次」となり、以降の章番号が1つずれる。この関数はタイトルを block で
+//  描画して採番を消費しない。
+//
+//  ::: {.pre-toc} div で囲む方式は採らない。Quarto の book は章ファイル先頭の
+//  h1 を div の外へ持ち上げるため、Lua フィルタでは章見出しを捕まえられない。
 // ============================================================
-
-// ---- 目次に表れない前書きセクション ----
-// このブロック内の見出しは outlined: false かつ numbering: none となる。
-//   outlined: false  → #outline() に収集されない（目次に出ない）
-//   numbering: none  → 採番カウンタを消費しない（後続の章番号が1.から始まる）
-// qmd では ::: {.pre-toc} … ::: と書くと design-doc.lua が変換する。
-// 直接 Typst ブロックに書く場合は #pre-toc-section[…] を使う。
-#let pre-toc-section(body) = {
-  show heading: set heading(outlined: false, numbering: none)
-  body
-}
-
-// ---- 手動目次（toc: false で #outline() の代わりに使う）----
-// #outline() を直接書くと title 見出しが採番ルールを消費して章番号がずれる。
-// この関数はタイトルを block で描画し採番を消費しない。目次の後に改ページも挿入する。
 //   title  目次タイトル（既定「目 次」）
 //   depth  目次に収録する見出しの最大レベル（既定 3）
-#let design-toc(title: "目 次", depth: 3) = {
+#let design-toc(title: "目 次", depth: 3) = context {
   show outline.entry.where(level: 1): set block(above: 1.2em)
   block(above: 1.4em, below: 0.8em,
     text(font: JP-SANS, size: 16pt, weight: "bold")[#title])
-  outline(title: none, depth: depth, indent: 2em)
+  // after(here()) で「この目次より後ろ」の見出しだけを収集する。
+  // 目次より前（改訂履歴など）の見出しは自動的に載らない。
+  outline(title: none, depth: depth, indent: 2em,
+    target: heading.where(outlined: true).after(here()))
   pagebreak()
 }
 
