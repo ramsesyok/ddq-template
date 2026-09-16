@@ -45,6 +45,8 @@
 toc: false
 ```
 
+（`toc: true` のまま `#design-toc()` を書くと、先頭の自動目次と手動目次の**2つ**が出る。）
+
 **② 前付け（`index.qmd`）の、目次を出したい位置に `#design-toc()` を書く**
 
 `````markdown
