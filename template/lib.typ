@@ -103,6 +103,7 @@
 #let PARA-INDENT = 1em         // 段落先頭の字下げ（1文字ぶん）
 #let LIST-INDENT = 1em         // 箇条書きの追加字下げ（見出しレベルぶんに加えて1文字ぶん）
 #let FURNITURE-SIZE = 9pt      // 様式の文字（ページ番号）
+#let TBL-CAP-GAP = 0.45em      // .tbl のキャプション行と列見出しの間隔（_tbl-auto）
 
 // 番号付きリスト（enum）の採番。規格 表Ｂ.４ の細別番号に合わせ、入れ子の深さで
 //   (1) → ① → (ア) → a) → (a)
@@ -257,6 +258,14 @@
 // を抜いて左端から詰める（定型枠を広く使う。記号は残す）。_list-pad が読み、ipo() が
 // 入出力描画区間で立てる。
 #let _ipo-tight = state("design-ipo-tight", false)
+// 表（.tbl / 素の table）や IPO 図の中を描いている間だけ真。真のとき show par /
+// _list-pad は見出しレベルの字下げ（_sec-indent）を 0 とみなす。
+// _sec-indent 自体を 0 にして後で戻す方式は「get した値で update する」自己参照になり、
+// Typst のレイアウトが収束しない（layout did not converge）ことがあるため、
+// 定数（true/false）しか update しないフラグで代用する。
+#let _in-tbl = state("design-in-tbl", false)
+// 現在の見出しレベル字下げ段数。表・IPO の中では 0。
+#let _indent-level() = if _in-tbl.get() { 0 } else { _sec-indent.get() }
 
 // 数字の後ろに数字幅の空白（U+2007）を足して指定桁ぶんの幅に揃える（右空白詰め）。
 // ASCII 空白と違い Typst で連続空白が畳まれず、tabular 数字と組めば
@@ -497,7 +506,7 @@
   // リスト項目の本文（子リストを持つ項目は本文が Para 化する）には掛けない。
   // リスト側で位置決め済みなので、掛けるとマーカーと本文の間に隙間が空く。
   show par: it => context {
-    if _in-list.get() { it } else { pad(left: _sec-indent.get() * HEAD-INDENT-STEP, it) }
+    if _in-list.get() { it } else { pad(left: _indent-level() * HEAD-INDENT-STEP, it) }
   }
   // コードブロック（```…```）には本文の体裁を持ち込まない。
   // 本文は justify: true（両端揃え）なので、そのままだと**長い行が折り返されたときに
@@ -531,7 +540,7 @@
       _in-list.update(false)
     } else {
       _in-list.update(true)
-      pad(left: _sec-indent.get() * HEAD-INDENT-STEP + LIST-INDENT, it)
+      pad(left: _indent-level() * HEAD-INDENT-STEP + LIST-INDENT, it)
       _in-list.update(false)
     }
   }
@@ -542,18 +551,19 @@
   // 考え方）。追加字下げ（LIST-INDENT = 1文字ぶん）だけ残し、HTML 側の
   // 「td/th の中の ul/ol は padding-left: 1.2em」（design-doc.css）と見た目を揃える。
   // 段落（show par）は元から top-level だけに掛かるのでセル内は影響を受けない。
-  // ipo() は自前で _sec-indent を 0 にしてから table を組むので、ここは素通りになる。
+  // ipo() も自前で _in-tbl を立ててから table を組む。
+  // 字下げの無効化は _in-tbl フラグで行う（_sec-indent を 0 にして戻す方式は
+  // 自己参照になりレイアウトが収束しないことがある。_in-tbl の定義を参照）。
   // あわせて**セル内は両端揃えにしない**。セルは幅が狭く、ファイル名・コマンドなど
   // 途中で折り返せない語が入ると、その行だけ字間が大きく開いて読みにくくなる
   //（例「<執 筆 フ ォ ル ダ>/chapters/…」）。列の揃え指定（`:---`）は最終行の寄せを
   // 決めるだけで両端揃えは止まらないため、ここで par 側を切る（実測で確認）。
   // 本文の段落は justify: true のまま（和文の作法）。
-  show table: it => context {
-    let prev = _sec-indent.get()
-    _sec-indent.update(0)
+  show table: it => {
+    _in-tbl.update(true)
     set par(justify: false)
     it
-    _sec-indent.update(prev)
+    _in-tbl.update(false)
   }
   // 番号付きリストの採番を規格 表Ｂ.４ の細別番号（深さ連動）にする。
   set enum(full: true, numbering: ENUM-NUMBERING)
@@ -746,6 +756,102 @@
 }
 
 // ============================================================
+//  【4.5】_tbl-auto() : .tbl の表（PDF）。改ページで割れたら「（i／n）」を自動付与
+//
+//  design-doc.lua が .tbl の表を  #_tbl-auto(cap: "…", …)[ #table(…) ]  で包んで呼ぶ。
+//  Pandoc が出す #table(…) には列見出し行が table.header(…) として入っていて、
+//  Typst はこれを改ページのたびに繰り返す。その性質を使い、
+//
+//    1) 表を show ルールで組み直し、「表 章.節-連番　キャプション（i／n）」を
+//       全列 colspan・罫線なしの1行として table.header の先頭に差し込む
+//       → キャプションも列見出しと一緒に各ページへ繰り返される
+//    2) その行の中の context で、いま何ページ目か（i）と全部で何ページか（n）を
+//       計算する。繰り返しヘッダ内の here() は繰り返し先のページを返す（実測）。
+//         i = here().page() − 始点ページ + 1、 n = 終点ページ − 始点ページ + 1
+//       始点/終点は本体の先頭セル／末尾セルに埋めた <dd-ts> / <dd-te> の位置。
+//       n == 1（1ページに収まった）なら「（i／n）」は付けない。
+//    3) 各セルを block(breakable: false) で包み、行の途中で改ページしないようにする
+//       （割れると読みにくいうえ、終点ラベルが割れる前のページを指して n がずれる）。
+//       breakable-rows: true でこれを外せる（1ページに収まらない巨大セルの逃げ道）。
+//
+//  副次効果: キャプションが表の一部になるので、キャプションだけ前ページに
+//  取り残されることが無くなる。
+//
+//  手動分割（.tbl の中に表を複数書いたとき）は各パートが別々の #table になる。
+//  始点ラベルを先頭パート（first: true）、終点ラベルを末尾パート（last: true）
+//  だけに置けば、i／n はパートをまたいだページ通番になる。
+//
+//  numbered: false は .unnumbered（番号なし・キャプションだけ）。カウンタは読まない。
+//  カウンタの step と <sn-tbl-x> 参照ラベルは design-doc.lua が表の直前に置く
+//  （_xref はその位置で番号を読むので、キャプションが表の中へ移っても影響しない）。
+//
+//  ラベル <dd-ts>/<dd-te>/<dd-cap> は文書内で重複する（query にしか使わず ref しない
+//  ので Typst 的に問題ない）。
+// ============================================================
+#let _tbl-auto(cap: "", numbered: true, first: true, last: true, breakable-rows: false, body) = {
+  show table: it => {
+    let ncol = if type(it.columns) == int { it.columns } else { it.columns.len() }
+    let kids = it.children
+    let header = kids.find(k => k.func() == table.header)
+    // 再帰ガード: 組み直した表にもこの show ルールが掛かる。先頭ヘッダ行が
+    // キャプション行（<dd-cap> 付き）ならもう処理済みなので素通しする。
+    let done = (header != none and header.children.len() > 0
+      and header.children.first().has("label")
+      and header.children.first().label == <dd-cap>)
+    if done { return it }
+    let hkids = if header == none { () } else { header.children }
+    let rest = kids.filter(k => k.func() != table.header)
+    // 本体の先頭セル／末尾セル（hline/vline は飛ばす）
+    let is-cell(k) = k.func() != table.hline and k.func() != table.vline
+    let fi = rest.position(is-cell)
+    let li = if fi == none { none } else { rest.len() - 1 - rest.rev().position(is-cell) }
+    // セルを包む: breakable: false（既定）＋ 始点／終点ラベル。
+    // 終点ラベルは内容の「後ろ」に置く（行が割れる設定でも最終ページを指すように）。
+    let wrap(k, pre: none, post: none) = {
+      if not is-cell(k) { return k }
+      let body(b) = if breakable-rows [#pre#b#post] else { block(breakable: false, [#pre#b#post]) }
+      if k.func() == table.cell {
+        let f = k.fields()
+        let b = f.remove("body")
+        table.cell(..f, body(b))
+      } else { body(k) }
+    }
+    rest = rest.enumerate().map(((j, k)) => wrap(k,
+      pre: if first and j == fi [#metadata(none)<dd-ts>],
+      post: if last and j == li [#metadata(none)<dd-te>]))
+    // キャプション行（全列 colspan・罫線なし）。各ページの繰り返しごとに i を計算する。
+    let tblc = counter(figure.where(kind: "quarto-float-tbl"))
+    // inset の top は表の既定（5pt）のまま触らない。既定より小さくすると Typst 0.14 の
+    // レイアウトが収束しなくなる（layout did not converge。マニュアルの表で再現）。
+    let cap-cell = [#table.cell(
+      colspan: ncol, stroke: none, align: center,
+      inset: (x: 0pt, bottom: TBL-CAP-GAP),
+      text(font: JP-SANS, size: BODY-SIZE, context {
+        // 終点 = ここより後の最初の <dd-te>、始点 = その終点より前の最後の <dd-ts>。
+        // （ここ＝繰り返しヘッダの位置は、2ページ目以降では始点より後ろにある）
+        // 1回目のレイアウトでは query が空なので、空なら「（i／n）」を出さない。
+        let es = query(selector(<dd-te>).after(here()))
+        let suffix = if es.len() > 0 {
+          let e-loc = es.first().location()
+          let ss = query(selector(<dd-ts>).before(e-loc))
+          if ss.len() > 0 {
+            let s = ss.last().location().page()
+            let n = e-loc.page() - s + 1
+            let i = here().page() - s + 1
+            if n > 1 [（#i／#n）]
+          }
+        }
+        if numbered [表 #_section-prefix(here())-#tblc.get().first()#if cap != "" [　]]
+        [#cap#suffix]
+      }))<dd-cap>]
+    let f = it.fields()
+    let _ = f.remove("children")
+    table(..f, table.header(cap-cell, ..hkids), ..rest)
+  }
+  body
+}
+
+// ============================================================
 //  【5】IPO図（横向き様式ページ + 機能名/処理名 + 入力/処理/出力）
 //
 //  構造は table 2つを縦に積んだだけ:
@@ -785,8 +891,7 @@
   let M = parts.len()
   // IPO 内の入力/処理/出力欄は横向き定型枠であり、本文の見出しレベル字下げ
   // （_sec-indent に基づく show par/list/enum の左パディング）を持ち込まない。
-  // IPO 本体を描く間だけ _sec-indent を 0 に落とし、描画後に元の値へ戻す。
-  let prev-sec-indent = _sec-indent.get()
+  // IPO 本体を描く間だけ _in-tbl を立てる（show par / _list-pad が字下げを 0 とみなす）。
   // スペック様式では右側に表題欄の帯（幅 2*SPEC-ROW）が入るので IPO 表の右余白を広げる。
   let extra-right = if _spec.get() { 2 * SPEC-ROW } else { 0mm }
   set page(
@@ -837,7 +942,7 @@
   // 左端から詰める（_ipo-tight を立てると _list-pad が字下げを抜く）。ただし記号は残す
   // （複数行に折り返したとき項目の区切りが分かるように。折り返し本文は body-indent の
   //  ぶんだけぶら下がる）。
-  _sec-indent.update(0)
+  _in-tbl.update(true)
   _ipo-tight.update(true)
   // 各パートを1ページずつ描画。2枚目以降は改ページで新しい横向きページに載せる。
   for (i, p) in parts.enumerate() {
@@ -846,7 +951,7 @@
   }
   // IPO 本体を抜けたので、周囲の見出しレベル字下げ・箇条書き設定を元に戻す。
   _ipo-tight.update(false)
-  _sec-indent.update(prev-sec-indent)
+  _in-tbl.update(false)
   set page(flipped: false)
 }
 

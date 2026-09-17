@@ -433,9 +433,14 @@ function Div(el)
     --   ・表が複数（空行区切り）… 分割表（同じ番号＋「（i／M）」）
     --   ・merge-cols="2,3"（or "all"）… セル結合
     --   ・widths="…" … 列幅の明示指定
+    --   ・breakable-rows="true" … PDF で行の途中の改ページを許す（既定は割らない）
     --
-    -- 大きな表を複数パートに割り、同じ表番号を共有しつつキャプションに「（i／M）」を
-    -- 付ける。列幅は全パート横断で統一する。M（分割総数）= 内包する表の数。
+    -- PDF では表が改ページで割れたとき、typst 側（lib.typ の _tbl-auto）が自動で
+    -- 「（i／n）」（i=何ページ目, n=総ページ数）を付ける。執筆者が分割位置を決める
+    -- 必要はない。手動分割（表を複数書く）は改ページ位置の指定として残しており、
+    -- そのときも PDF の i／n はパート横断のページ通番になる。
+    -- HTML は改ページが無いので、手動分割のパート数 M で「（i／M）」を付ける。
+    -- 列幅は全パート横断で統一する。
     --
     -- なぜクラス div（#tbl- を付けない）か:
     --   Quarto は #tbl- 付きの表を、ユーザ Lua フィルタより前に独自ノード
@@ -551,16 +556,16 @@ function Div(el)
       end
     end
 
-    -- キャプション後ろに付く「（i／M）」。M==1 のときは付けない（通常の1枚表として扱う）。
+    -- HTML のキャプション後ろに付く「（i／M）」。M==1 のときは付けない（通常の1枚表）。
     -- 表番号の後ろは「キャプション（i／M）」の順（例: 表 2.1-1　ユーザ属性一覧（1／3））。
+    -- PDF では付けない: 何ページ目かは組んでみないと分からないので、typst 側の
+    -- _tbl-auto がページ数から「（i／n）」を付ける（手動分割もページ通番になる）。
     local function suffix(i)
       if M < 2 then return '' end
       return '（' .. i .. '／' .. M .. '）'
     end
     -- typst 文字列（"…"）へ入れるキャプションのエスケープ。
-    local function tcap(i)
-      return (caption .. suffix(i)):gsub('\\', '\\\\'):gsub('"', '\\"')
-    end
+    local tcap = caption:gsub('\\', '\\\\'):gsub('"', '\\"')
 
     -- caption も label も無い1枚表は採番しない（幅・結合だけ適用した素の表にする）。
     -- 分割（M>1）や caption/label があるものは採番する。
@@ -569,58 +574,70 @@ function Div(el)
       return pandoc.Blocks(parts)
     end
 
+    -- breakable-rows="true": PDF で行の途中の改ページを許す（既定は行を割らない）。
+    -- 1ページに収まらないほど高いセルがあるときの逃げ道（割らないと紙面から溢れる）。
+    local br_attr = el.attributes['breakable-rows']
+    local breakable_rows = (br_attr == 'true' or br_attr == 'yes')
+    if br_attr and not breakable_rows and br_attr ~= 'false' and br_attr ~= 'no' then
+      io.stderr:write('[design-doc] 警告: .tbl（' .. hint .. '）の breakable-rows="' .. br_attr ..
+        '" は true/false で指定してください。false 扱いにします。\n')
+    end
+
     local out = pandoc.Blocks({})
     local TBLC = 'counter(figure.where(kind: "quarto-float-tbl"))'
     for i = 1, M do
-      if no_number then
-        -- 番号なし: 「表 章-連番」を付けず、キャプション（＋分割なら（i／M））だけを
-        -- 中央寄せで出す。カウンタは進めない。キャプションが空なら表だけ出す。
-        local shown = caption .. suffix(i)
-        if IS_HTML then
+      if IS_HTML then
+        if no_number then
+          -- 番号なし: 「表 章-連番」を付けず、キャプション（＋分割なら（i／M））だけを出す。
           -- postprocess は data-unnumbered="true" を見て前置・連番消費をスキップする。
+          -- キャプションが空なら表だけ出す。
+          local shown = caption .. suffix(i)
           if shown ~= '' then
             local body = shown:gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
             out:insert(pandoc.RawBlock('html',
               '<div class="split-caption" data-unnumbered="true">' .. body .. '</div>'))
           end
         else
-          if i > 1 then out:insert(pandoc.RawBlock('typst', '#pagebreak(weak: true)')) end
-          if shown ~= '' then
-            out:insert(pandoc.RawBlock('typst',
-              '#context align(center, text(font: JP-SANS, size: BODY-SIZE)[#("' .. tcap(i) .. '")])'))
+          -- HTML: 採番用キャプション div を各パートの上に置く。番号は
+          -- postprocess-html.mjs が本文の表と同じ連番で採番し、先頭に前置する。
+          -- 先頭パートに data-split-first を付け、そこで1つの表番号を確定させる。
+          -- ref があれば data-ref（postprocess が numberOf 登録）と id（HTML の参照リンクの
+          -- 飛び先。自前採番の表は Quarto フロートでないため自分で id を出す）を付ける。
+          local first = (i == 1) and ' data-split-first="true"' or ''
+          local dref = (i == 1 and ref) and (' data-ref="' .. ref .. '"') or ''
+          local idattr = (i == 1 and ref) and (' id="' .. ref .. '"') or ''
+          local body = (caption .. suffix(i)):gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
+          out:insert(pandoc.RawBlock('html', '<div class="split-caption"' .. first .. idattr .. dref ..
+            ' data-part="' .. i .. '" data-total="' .. M .. '">' .. body .. '</div>'))
+        end
+        out:insert(parts[i])
+      else
+        -- PDF: 表を #_tbl-auto[…] で包む（lib.typ）。キャプションは表のヘッダ行として
+        -- 表の中に入り、改ページのたびに列見出しと一緒に繰り返される。何ページに
+        -- またがったかは typst 側がページ位置から求め、2ページ以上なら「（i／n）」を付ける。
+        -- 手動分割（M>1）は各パートの間に改ページを置き、始点ラベルを先頭パート・
+        -- 終点ラベルを末尾パートだけに持たせてパート横断のページ通番にする。
+        if i > 1 then out:insert(pandoc.RawBlock('typst', '#pagebreak(weak: true)')) end
+        if not no_number and i == 1 then
+          -- 先頭で採番カウンタを1つ進め、全パート（全ページ）が同じ番号を表示する。
+          -- 採番位置（step 済み・以降このグループでは step しない）に参照ラベルを置く。
+          -- _xref がこの location で図表カウンタを読み、キャプションと同じ番号を解決する。
+          out:insert(pandoc.RawBlock('typst', '#' .. TBLC .. '.step()'))
+          if ref then
+            out:insert(pandoc.RawBlock('typst', '#metadata(none)#label("sn-' .. ref .. '")'))
           end
         end
-      elseif IS_HTML then
-        -- HTML: 採番用キャプション div を各パートの上に置く。番号は
-        -- postprocess-html.mjs が本文の表と同じ連番で採番し、先頭に前置する。
-        -- 先頭パートに data-split-first を付け、そこで1つの表番号を確定させる。
-        -- ref があれば data-ref（postprocess が numberOf 登録）と id（HTML の参照リンクの
-        -- 飛び先。自前採番の表は Quarto フロートでないため自分で id を出す）を付ける。
-        local first = (i == 1) and ' data-split-first="true"' or ''
-        local dref = (i == 1 and ref) and (' data-ref="' .. ref .. '"') or ''
-        local idattr = (i == 1 and ref) and (' id="' .. ref .. '"') or ''
-        local body = (caption .. suffix(i)):gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
-        out:insert(pandoc.RawBlock('html', '<div class="split-caption"' .. first .. idattr .. dref ..
-          ' data-part="' .. i .. '" data-total="' .. M .. '">' .. body .. '</div>'))
-      elseif i == 1 then
-        -- PDF: 先頭で採番カウンタを1つ進め、全パートが同じ番号を表示する（ipo と同じ手法）。
-        -- step はカウンタ更新、番号表示は別 context の get で行う（同一 context 内で
-        -- step 直後に get すると値が確定しないため、位置的に後段の context で読む）。
-        out:insert(pandoc.RawBlock('typst', '#{\n  ' .. TBLC .. '.step()\n  ' ..
-          'context align(center, text(font: JP-SANS, size: BODY-SIZE)[表 ' ..
-          '#_section-prefix(here())-#' .. TBLC .. '.get().first()　#("' .. tcap(i) .. '")])\n}'))
-        -- 採番位置（step 済み・以降このグループでは step しない）に参照ラベルを置く。
-        -- _xref がこの location で図表カウンタを読み、キャプションと同じ番号を解決する。
-        if ref then
-          out:insert(pandoc.RawBlock('typst', '#metadata(none)#label("sn-' .. ref .. '")'))
+        if no_number and caption == '' then
+          -- 番号なし・キャプションなし: 付けるものが無いので表だけ出す。
+          out:insert(parts[i])
+        else
+          out:insert(pandoc.RawBlock('typst', '#_tbl-auto(cap: "' .. tcap .. '", numbered: ' ..
+            tostring(not no_number) .. ', first: ' .. tostring(i == 1) .. ', last: ' ..
+            tostring(i == M) .. ', breakable-rows: ' .. tostring(breakable_rows) .. ')['))
+          out:insert(parts[i])
+          out:insert(pandoc.RawBlock('typst', ']'))
         end
-      else
-        out:insert(pandoc.RawBlock('typst', '#pagebreak(weak: true)'))
-        out:insert(pandoc.RawBlock('typst',
-          '#context align(center, text(font: JP-SANS, size: BODY-SIZE)[表 ' ..
-          '#_section-prefix(here())-#' .. TBLC .. '.get().first()　#("' .. tcap(i) .. '")])'))
       end
-      out:insert(parts[i])
     end
     return out
   end
