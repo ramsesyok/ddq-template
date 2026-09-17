@@ -42,7 +42,7 @@ HTML を出すのに要る機構ファイル（`design-doc.lua` など5点）だ
 
 ```text
 発行者の手元                              執筆者の手元
-quarto-template-1.2.1/  ←（共有しない）
+quarto-template-1.2.2/  ←（共有しない）
 └── template/
 order-design/           ──── git ────→   order-design/
 └── docs/                                └── docs/  … 機構ファイル込みで clone される
