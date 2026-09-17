@@ -5,7 +5,7 @@
 リリースを展開したフォルダで次を実行する。
 
 ```bat
-cd C:\tools\quarto-template-1.2.2
+cd C:\tools\quarto-template-1.2.3
 .\template\build-html.bat C:\work\order-design\docs
 ```
 

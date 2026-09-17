@@ -14,7 +14,7 @@ mermaid 図を含む文書の PDF・配布 HTML を作るには、**mermaid-cli 
 操作で、**ここでだけ Node.js と npm が要る**（出力時には使わない）。
 
 ```bat
-cd C:\tools\quarto-template-1.2.2\template
+cd C:\tools\quarto-template-1.2.3\template
 set "PUPPETEER_SKIP_DOWNLOAD=true"
 npm ci
 ```
@@ -27,7 +27,7 @@ npm ci
 bash（macOS / Linux / Git Bash）では次のとおりである。
 
 ```bash
-cd ~/tools/quarto-template-1.2.2/template
+cd ~/tools/quarto-template-1.2.3/template
 PUPPETEER_SKIP_DOWNLOAD=true npm ci
 ```
 
@@ -39,7 +39,7 @@ PUPPETEER_SKIP_DOWNLOAD=true npm ci
 ビルドを待たずにこの時点で確かめたい場合は、`setup` だけを単独で実行できる。
 
 ```bat
-cd C:\tools\quarto-template-1.2.2
+cd C:\tools\quarto-template-1.2.3
 .\template\setup.bat C:\work\order-design\docs
 ```
 
