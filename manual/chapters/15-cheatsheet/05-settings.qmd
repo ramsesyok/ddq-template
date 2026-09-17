@@ -10,6 +10,8 @@
 | スペック様式にする     | `spec: true`                             | 4章  |
 | 表紙を出す             | `cover: true`                            | 4章  |
 | 途中のページから始める | `page-start: 5`                          | 4章  |
+| 節ごとに改ページする   | `pagebreak-level: 2`                     | 4章  |
+| 章で改ページしない     | `pagebreak-level: 0`                     | 4章  |
 | 目次の前にページを置く | `toc: false` ＋ `#design-toc()`          | 7章  |
 | 章を増減・並べ替える   | `book: chapters:` の一覧                 | 4章  |
 :::

@@ -243,6 +243,12 @@
 // 直前の見出しレベルに応じた本文の字下げ段数（L1=0, L2=1, L3=2 …）。
 // 各 show heading が更新し、show par が本文段落の左字下げに使う。
 #let _sec-indent = state("design-sec-indent", 0)
+// 現在の章（レベル1）の中で何個目のレベル2見出しかを数える（1 から）。
+// show heading(level 1) が 0 に戻し、show heading(level 2) が +1 する。
+// pagebreak-level: 2 のとき「章内で2つ目以降の節」の先頭だけ改ページするために使う。
+// counter(heading) ではなく自前で数えるのは、{.unnumbered} 見出しがカウンタを進めない
+// ため（番号なし見出しでも改ページの規則は同じに扱いたい）。
+#let _h2-index = state("design-h2-index", 0)
 // リスト（list/enum）の入れ子ガード。最上位のリストにだけ見出しレベルの字下げを
 // 与え、入れ子は Typst 標準のネスト字下げに任せる（見出しレベルぶんを段ごとに
 // 重ね掛けして右へ流れるのを防ぐ）。list/enum 共通の1つの状態で管理する。
@@ -418,6 +424,9 @@
   page-start: 1,                       // 開始ページ番号。表紙・前書きを別文書で作り、その
                                        // 続きとして綴じるときに使う。既定 1（＝1から振る）
   toc: false, toc-title: "目 次", toc-depth: 3,
+  pagebreak-level: 1,                  // 見出しの先頭で自動改ページする最深レベル。
+                                       // 0=しない、1=章(h1)、2=章と節(h2。ただし各章で
+                                       // 2つ目以降の節のみ)。既定 1
   body,
 ) = {
   set document(title: title, author: author)
@@ -578,16 +587,27 @@
   // 図表カウンタは各レベル（h1〜h5）の先頭でリセットする。図表番号の接頭辞
   // （_section-prefix）がその見出しの深さ「章.節.項…」を出すので、連番も
   // その見出しごとに 1 から振り直す。
+  //
+  // 見出し先頭の自動改ページは pagebreak-level で制御する（PDF のみ）。
+  //   0: 自動改ページしない（手書きの {{< pagebreak >}} だけが効く）
+  //   1: 章（レベル1）の先頭で改ページ（既定）
+  //   2: 1 に加え、各章で2つ目以降の節（レベル2）の先頭でも改ページ。章直下の最初の節は
+  //      章見出しと同じページに残す（章の本文が短い文書向け）。
+  // どちらも weak: true なので、ページ先頭（目次直後など）では空白ページを作らない。
   show heading.where(level: 1): it => {
-    // 見出しレベル1（章）は常に新しいページから始める。weak: true でページ先頭では
-    // 改ページせず、先頭章・目次直後などに空白ページが入らない（PDF のみ）。
-    pagebreak(weak: true)
+    if pagebreak-level >= 1 { pagebreak(weak: true) }
     if it.numbering != none { reset-floats() }
     _sec-indent.update(0)
+    _h2-index.update(0)
     set text(size: HEAD-SIZES.at(0), weight: "bold")
     block(above: 1.4em, below: 0.8em, inset: (left: 0 * HEAD-INDENT-STEP), it)
   }
   show heading.where(level: 2): it => {
+    _h2-index.update(n => n + 1)
+    if pagebreak-level >= 2 {
+      // update 直後の get() は更新後の値（同じ位置で順に評価される）。
+      context { if _h2-index.get() >= 2 { pagebreak(weak: true) } }
+    }
     if it.numbering != none { reset-floats() }
     _sec-indent.update(1)
     set text(size: HEAD-SIZES.at(1), weight: "bold")
