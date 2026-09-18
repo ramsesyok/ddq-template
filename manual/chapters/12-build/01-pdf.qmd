@@ -5,8 +5,8 @@
 リリースを展開したフォルダで次を実行する。
 
 ```bat
-cd C:\tools\quarto-template-1.3.0
-.\template\build-qmd.bat C:\work\order-design\docs
+cd C:\tools\quarto-template-1.4.0
+.\ddq pdf C:\work\order-design\docs
 ```
 
 次のように表示されれば成功である。
@@ -32,7 +32,7 @@ OK -> C:\work\order-design\docs\design-doc.pdf
 :::
 
 ::: {.callout-note}
-ビルドスクリプトは先頭で `setup` を呼ぶため、単体で実行すれば初期化も済む。
+`ddq pdf` は先頭で `setup` を呼ぶため、単体で実行すれば初期化も済む。
 `setup` を明示的に実行する必要はない。
 :::
 
@@ -47,7 +47,7 @@ OK -> C:\work\order-design\docs\design-doc.pdf
 OS にインストールされているフォントではない。
 :::
 
-ビルドは必ず `template/build-qmd.bat`（内部で `quarto render` を呼ぶ）か、
+ビルドは必ず `ddq pdf`（内部で `quarto render` を呼ぶ）か、
 VSCode の Quarto 拡張から行うこと。
 
 どうしても `typst compile` を直接使って様式を試したいときは、フォントの場所を

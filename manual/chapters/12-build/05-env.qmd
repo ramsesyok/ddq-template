@@ -1,26 +1,34 @@
 ## 環境変数
 
 ビルドの挙動は環境変数で調整できる。**通常は何も設定する必要はない**
-（ビルドスクリプトが必要なものを自動で設定する）。
+（`ddq` が必要なものを自動で設定する）。
 
 ::: {.tbl caption="ビルドに関わる環境変数" label="tbl-env" widths="24,50,26"}
 | 変数                      | 効果                                                                 | 既定・設定者                         |
 |---------------------------|----------------------------------------------------------------------|--------------------------------------|
-| `MERMAID_SVG`             | `1` のとき HTML でも mermaid をベクター SVG に焼く                    | `build-html` が内部で `1` を設定      |
-| `EXECUTABLE_BROWSER`      | mermaid の SVG 化に使う Chrome / Edge を明示する                      | 未設定（`setup` が自動記録）          |
-| `PUPPETEER_SKIP_DOWNLOAD` | `true` で `npm ci` 時に Chromium をダウンロードしない                 | 手動（依存導入時のみ）                |
-| `TEMPLATE_ROOT`           | `template/` の場所。設計書リポジトリの外に置く構成では必須             | `build-qmd` / `build-html` が設定      |
+| `MERMAID_SVG`             | `1` のとき HTML でも mermaid をベクター SVG に焼く                    | `ddq html` が内部で `1` を設定        |
+| `DDQ_BIN`                 | mermaid の SVG 化に使う `ddq.exe` の場所（変換フィルタが読む）        | `ddq pdf` / `ddq html` が自分を設定   |
+| `EXECUTABLE_BROWSER`      | mermaid の SVG 化に使う Edge / Chrome を明示する                      | 未設定（自動検出）                    |
+| `DDQ_MERMAID_ENGINE`      | `browser` / `merman` で描画エンジンを固定する（@sec-mermaid-setup）   | 未設定（自動選択）                    |
 | `DOC_ROOT`                | （上級）執筆フォルダの場所を明示的に上書きする                        | 未設定（自己解決）                    |
 :::
 
 ### `MERMAID_SVG` について
 
-未設定なら Quarto 同梱の mermaid でクライアント描画になり、**node は要らない**。
+未設定なら Quarto 同梱の mermaid でクライアント描画になり、**`ddq` は要らない**。
 執筆者の `quarto preview` や `quarto render` はこの状態である。
 
 `1` を設定すると mermaid を SVG に焼き込み、PDF と図を一致させたうえで
-図表採番の対象に載せる。`build-html` が内部で設定するため、発行者が手で設定する
+図表採番の対象に載せる。`ddq html` が内部で設定するため、発行者が手で設定する
 必要はない。
+
+### `DDQ_BIN` について
+
+`ddq pdf` / `ddq html` は `quarto render` を起動するとき、自分の実行ファイルの
+場所をこの変数で変換フィルタ（`design-doc.lua`）に渡す。フィルタはこれで見つけた
+`ddq` を mermaid の変換に使い、無ければ `PATH` 上の `ddq` を探す。
+素の `quarto render` で SVG 化したい場合（`MERMAID_SVG=1` を手で設定するとき）は、
+`ddq` を `PATH` に置いておく。
 
 ::: {.callout-note}
 **執筆者は環境変数に無関係である。** ここに挙げたものはすべてビルド係向けであり、

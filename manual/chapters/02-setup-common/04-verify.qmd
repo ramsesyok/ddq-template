@@ -40,14 +40,13 @@ cd ..\..
 PDF が出せるかどうかは、原稿を入れたあとに確認する（@sec-build）。
 
 ```bat
-cd C:\tools\quarto-template-1.3.0
-.\template\build-qmd.bat C:\work\order-design\docs
+cd C:\tools\quarto-template-1.4.0
+.\ddq pdf C:\work\order-design\docs
 ```
 
-::: {.callout-warning}
-mermaid 図を含む文書では、**PDF 出力に mermaid-cli と Chrome / Edge が必要**である。
-未導入の環境ではここで失敗するが、Quarto 自体の導入に問題があるわけではない。
-準備の手順は @sec-publisher-env に示す。
+::: {.callout-note}
+mermaid 図の焼き込みには Windows 標準の Edge（または Chrome）が使われ、無ければ
+`ddq` 内蔵のレンダラで描く。どちらで描かれたかの見分け方は @sec-publisher-env に示す。
 :::
 
 ### 確認結果と次に読む章
@@ -56,5 +55,5 @@ mermaid 図を含む文書では、**PDF 出力に mermaid-cli と Chrome / Edge
 |------|------------|
 | HTML が表示された（執筆者） | @sec-author-env 「執筆者の環境構築」 |
 | Quarto が動いた（発行者） | @sec-publisher-env 「発行者の環境構築」→ @sec-newdoc 「新しい文書を作る・増やす」 |
-| PDF の mermaid 図だけが出ない・失敗する | @sec-publisher-env 「発行者の環境構築」 |
+| PDF の mermaid 図だけが出ない・見た目が違う | @sec-publisher-env 「発行者の環境構築」 |
 | そのほかのエラーで止まった | @sec-trouble 「困ったときは」 |

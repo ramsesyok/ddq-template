@@ -1,11 +1,11 @@
 ## 変更したときの手順
 
-1. `template/` のファイルを直す。
+1. `template/` のファイル（または `cli/src/`）を直す。
 2. 配布される機構ファイルを直したら `template/VERSION` を上げる。
 
    ::: {.callout-important}
    **版を上げたら、本書と `README.md` / `ADVANCED.md` の実行例に埋め込まれた
-   版番号も揃える。** 展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-1.3.0`
+   版番号も揃える。** 展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-1.4.0`
    のような例が全体で30箇所ほどある。ずれていると、発行者が手元のフォルダ名と
    合わない手順を読むことになる。
 
@@ -17,32 +17,47 @@
    「新しい版を受け取ったとき」の説明で使う版番号（現行＋1）も併せてずらす。
    :::
 
-3. サンプル文書（`docs/`）で PDF・HTML の両方を出し、体裁を確認する。ビルドスクリプト
-   が先頭で `setup` を呼ぶため、`template/` の変更はこの時点で執筆フォルダへ反映される。
-4. 本書（`manual/`）でも出力を確認する（記法の網羅度が高いため、退行を見つけやすい）。
-5. リリースを作る。発行者はこれを受け取り、`update-doc` で利用中の設計書リポジトリへ
+3. `ddq` をビルドする。`template/` の内容は exe に埋め込まれるため、**直すたびに
+   ビルドし直す**（`cargo build` は `template/` の変更を検知して再ビルドする）。
+
+   ```bat
+   cd cli
+   cargo build --release
+   ```
+
+4. サンプル文書（`docs/`）で PDF・HTML の両方を出し、体裁を確認する。`ddq pdf` /
+   `ddq html` が先頭で `setup` を呼ぶため、`template/` の変更はこの時点で執筆フォルダへ
+   反映される。
+
+   ```bat
+   cli\target\release\ddq.exe pdf docs
+   ```
+
+5. 本書（`manual/`）でも出力を確認する（記法の網羅度が高いため、退行を見つけやすい）。
+   `cli/tests/` のテスト（`cargo test`）も通しておく。
+6. リリースを作る。発行者はこれを受け取り、`ddq update` で利用中の設計書リポジトリへ
    反映する。
 
    ```bat
-   .\template\make-release.bat
+   cli\target\release\ddq.exe release
    ```
 
-   `release\quarto-template-<版>.zip` に、`template/` 一式と本書（PDF / HTML）が
-   まとまる。マニュアルのビルド（PDF → HTML の順）も中で行うため、順序の間違いや
-   入れ忘れが起きない。閉域向けに `template/node_modules` も入れるときは
-   `--with-node-modules` を付ける。
+   `release\quarto-template-<版>.zip` に、`ddq.exe` と本書（PDF / HTML）がまとまる。
+   マニュアルのビルド（PDF → HTML の順）も中で行うため、順序の間違いや入れ忘れが
+   起きない。リポジトリのルートで実行すること。
 
    発行者はこの ZIP を展開し、**展開したフォルダのまま**使う。版がフォルダ名に
    入るので、発行者の手元では新旧のリリースが別フォルダとして並ぶ。
 
 ::: {.callout-warning}
-反映されるのは**ビルドスクリプト経由の場合だけ**である。VSCode の Quarto 拡張や素の
+反映されるのは **`ddq` 経由の場合だけ**である。VSCode の Quarto 拡張や素の
 `quarto render` でプレビューすると `setup` が走らないため、執筆フォルダには古い機構
 ファイルが残ったままになる。この経路で確認するときは先に `setup` を実行すること。
-「直したのに変わらない」ときはまずここを疑う。
+「直したのに変わらない」ときは、まず `setup` を忘れていないか、次に `cargo build` を
+忘れていないかを疑う。
 
 ```bat
-.\template\setup.bat docs
+cli\target\release\ddq.exe setup docs
 ```
 :::
 

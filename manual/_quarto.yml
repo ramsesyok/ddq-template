@@ -3,12 +3,13 @@
 #
 #  本テンプレート自身の使い方を、本テンプレートで書いた文書。
 #  構成の規約は docs/ のサンプルと同じ（1ファイル = 1章、章の中は include で分割）。
-#  様式・変換・ビルドの実体は template/ にある（このフォルダ直下の design-doc.lua 等は
-#  setup が置く写し。詳細は docs/_quarto.yml の先頭コメントと template/PIPELINE.md）。
+#  様式・変換の実体は template/（ddq に埋め込まれる原本）にある（このフォルダ直下の
+#  design-doc.lua 等は setup が置く写し。詳細は docs/_quarto.yml の先頭コメントと
+#  template/PIPELINE.md）。
 #
 #  ビルドはリポジトリのルートから:
-#    .\template\build-qmd.bat manual     … PDF  → manual\design-doc.pdf
-#    .\template\build-html.bat manual    … HTML → manual\_book\index.html
+#    cli\target\release\ddq.exe pdf manual   … PDF  → manual\design-doc.pdf
+#    cli\target\release\ddq.exe html manual  … HTML → manual\_book\index.html
 # ============================================================
 project:
   type: book

@@ -6,12 +6,12 @@
 #  （単一 HTML は図の base64 内包で数十 MB になり実用に耐えないため）。
 #  PDF は従来どおり1ファイルで、章番号・図表番号・相互参照は章をまたいで連続する。
 #
-#  様式・変換・ビルドの実体は template/ にある（執筆者は触らない）。このフォルダに
+#  様式・変換の実体は template/（ddq に埋め込まれる原本）にある（執筆者は触らない）。このフォルダに
 #  置かれる design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json は
 #  その写しで、setup（発行者）または update-doc が配置する。実際の設計書リポジトリでは
-#  これらはコミット対象になり、template/ が無くても執筆者が HTML を出せる。
+#  これらはコミット対象になり、ddq が無くても執筆者が HTML を出せる。
 #  PDF 用の設定は _quarto-publish.yml（setup が配置）にあり、このファイルには無い。
-#  ビルドは `./template/build-qmd.sh <このフォルダのパス>`（詳細は template/PIPELINE.md）。
+#  ビルドは `ddq pdf <このフォルダのパス>`（詳細は template/PIPELINE.md）。
 #
 #  注意（book 特有の落とし穴。詳細は ../template/PIPELINE.md）:
 #   - include のパスは「その章ファイルのあるディレクトリ」基準（入れ子でも同じ）

@@ -5,31 +5,31 @@ quarto-template/
 ├── README.md                … 役割ごとの最短手順（入口）
 ├── ADVANCED.md              … 構成・版の上げ方・リリースの作り方（保守者）
 ├── .gitignore
-├── .gitattributes           … 改行コードの固定（*.sh=LF / *.bat=CRLF / 機構=LF）
+├── .gitattributes           … 改行コードの固定（機構ファイル=LF）
 ├── .vscode/settings.json    … サンプル設定（日本語を等幅にする）
+├── .github/workflows/ci.yml … ddq の CI（fmt / clippy / test / build）
 │
 ├── docs/                     … サンプル（受注管理システム。記法の実例・様式の検証用）
 ├── manual/                   … 本書の原稿（執筆フォルダの一つ）
 │
-└── template/                 … 様式・変換・ビルドの実体
-    ├── PIPELINE.md           … 出力経路と様式調整箇所の解説（保守者向け）
-    ├── VERSION               … テンプレートの版
-    ├── lib.typ               … 様式の単一ソース（外枠・採番・IPO・横向き）
-    ├── typst-template.typ    … Quarto 既定テンプレートの差し替え口
-    ├── typst-show.typ        … _quarto.yml の設定を様式の引数へ渡す
-    ├── quarto-publish.yml    … PDF 用プロファイルの元
-    ├── design-doc.lua        … 独自記法（.tbl / .landscape / .ipo / mermaid）の変換
-    ├── design-doc.css        … HTML の見た目
-    ├── postprocess-html.js   … HTML の図表番号を「章.節-連番」に振り直す後処理
-    ├── mermaid-config.json   … mermaid 設定（htmlLabels:false 必須）
-    ├── package.json          … mermaid-cli（mermaid を使う場合のみ npm ci）
-    ├── scaffold/             … 設計書リポジトリの雛形
-    ├── init-doc.sh / .bat    … 設計書リポジトリを新規作成
-    ├── make-release.sh / .bat … 発行者へ配るリリース一式を作る
-    ├── release-README.md     … リリース直下に置く案内（発行者向け）
-    ├── update-doc.sh / .bat  … 機構ファイルを更新
-    ├── setup.sh / .bat       … ビルド準備（機構＋PDF 用部品＋ブラウザ検出）
-    ├── build-qmd.sh / .bat   … book → PDF
-    ├── build-html.sh / .bat  … book → 静的 HTML（章ごと分割）
-    └── render-diagrams.sh / .bat … diagrams/*.mmd → SVG（静的図を更新したときだけ）
+├── template/                 … 様式・変換の実体（ddq に埋め込まれる原本）
+│   ├── PIPELINE.md           … 出力経路と様式調整箇所の解説（保守者向け）
+│   ├── VERSION               … テンプレートの版（= ddq の版）
+│   ├── lib.typ               … 様式の単一ソース（外枠・採番・IPO・横向き）
+│   ├── typst-template.typ    … Quarto 既定テンプレートの差し替え口
+│   ├── typst-show.typ        … _quarto.yml の設定を様式の引数へ渡す
+│   ├── quarto-publish.yml    … PDF 用プロファイルの元
+│   ├── design-doc.lua        … 独自記法（.tbl / .landscape / .ipo / mermaid）の変換
+│   ├── design-doc.css        … HTML の見た目
+│   ├── postprocess-html.js   … HTML の図表番号を「章.節-連番」に振り直す後処理
+│   ├── mermaid-config.json   … mermaid 設定（htmlLabels:false 必須）
+│   ├── vendor/mermaid.min.js … mermaid 本体（版固定。ブラウザ経路で使う）
+│   ├── scaffold/             … 設計書リポジトリの雛形
+│   └── release-README.md     … リリース直下に置く案内（発行者向け）
+│
+└── cli/                      … ddq（Rust）。上の template/ を埋め込んだ実行ファイルを作る
+    ├── DESIGN.md             … ddq の設計書（決定事項・根拠・検証手順）
+    ├── src/                  … init / add / update / setup / html / pdf / diagrams / release
+    ├── tests/                … golden テスト（mermaid の幾何一致）・コマンドのテスト
+    └── tools/regress.py      … 移行前後で PDF / HTML が変わらないことの確認
 ```

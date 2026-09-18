@@ -7,11 +7,11 @@
 ```mermaid
 flowchart TD
   subgraph 保守者
-    T[template とマニュアルを<br/>リリースとして配る]
+    T[ddq とマニュアルを<br/>リリースとして配る]
   end
   T --> I
   subgraph 発行者
-    I[init-doc で<br/>設計書リポジトリを作る] --> C[章立て・資料番号を整える]
+    I[ddq init で<br/>設計書リポジトリを作る] --> C[章立て・資料番号を整える]
     C --> G[git で共有する]
   end
   G --> W

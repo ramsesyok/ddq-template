@@ -17,7 +17,7 @@ order-design/              … 設計書リポジトリ（clone するのはこ�
     ├── design-doc.pdf     … 中間版 PDF（発行者が更新する）
     ├── design-doc.lua     ┐
     ├── design-doc.css     │ 機構ファイル（触らない）。
-    ├── postprocess-html.js│ 発行者が template から配置する
+    ├── postprocess-html.js│ 発行者が ddq で配置する
     ├── mermaid-config.json│
     ├── .template-version  ┘ 置かれたテンプレートの版
     ├── lib.typ            … 発行者の setup が置く生成物（触らない）
@@ -49,8 +49,8 @@ order-design/              … 設計書リポジトリ（clone するのはこ�
 
 ::: {.callout-warning}
 機構ファイル（`design-doc.lua`・`design-doc.css`・`postprocess-html.js`・
-`mermaid-config.json`）は `template/` からコピーされた**写し**である。
-直接編集しても、発行者がテンプレートを更新（`update-doc`）したときや
+`mermaid-config.json`）は `ddq` に埋め込まれた原本の**写し**である。
+直接編集しても、発行者がテンプレートを更新（`ddq update`）したときや
 ビルドしたときに上書きされる。様式を変えたい場合は 17章を参照すること。
 :::
 
@@ -67,7 +67,7 @@ order-design/              … 設計書リポジトリ（clone するのはこ�
 | `diagrams/mmd-*.svg` | × | mermaid の変換キャッシュ |
 :::
 
-除外の設定は `init-doc` が置いた `.gitignore` に入っているので、執筆者が
+除外の設定は `ddq init` が置いた `.gitignore` に入っているので、執筆者が
 意識する必要はない。
 
 {{< pagebreak >}}

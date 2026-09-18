@@ -9,8 +9,8 @@
 #  （単一 HTML は図の base64 内包で数十 MB になり実用に耐えないため）。
 #  PDF は1ファイルで、章番号・図表番号・相互参照は章をまたいで連続する。
 #
-#  執筆者は Quarto と VSCode 拡張だけで HTML を出せる（node も template/ も不要）。
-#  PDF（発行版）は発行者が template/ を使って出す。PDF 用の設定は
+#  執筆者は Quarto と VSCode 拡張だけで HTML を出せる（ddq は不要）。
+#  PDF（発行版）は発行者が ddq を使って出す。PDF 用の設定は
 #  _quarto-publish.yml（発行者の setup が置く）にあり、このファイルには無い。
 #
 #  注意（book 特有の落とし穴）:
