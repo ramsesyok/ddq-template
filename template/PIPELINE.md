@@ -10,18 +10,23 @@
 
 ## 0. フォルダの分担
 
-**`template/` は設計書リポジトリの中に置かない。** 発行者の手元にだけ置き、執筆フォルダの
-パスを渡して使う。設計書リポジトリには HTML に要る機構ファイルだけが**コミットされる**ので、
-執筆者は Quarto と VSCode 拡張だけで発行版と同じ番号の HTML を出せる。
+**リリース一式（`ddq.exe`）は設計書リポジトリの中に置かない。** 発行者の手元にだけ置き、
+執筆フォルダのパスを渡して使う。設計書リポジトリには HTML に要る機構ファイルだけが
+**コミットされる**ので、執筆者は Quarto と VSCode 拡張だけで発行版と同じ番号の HTML を出せる。
+
+このフォルダ（`template/`）は保守者のリポジトリにある**原本**で、`cli/`（Rust）が
+ビルド時に丸ごと exe に埋め込む。発行者の手元に `template/` は無い（`cli/DESIGN.md` §3）。
 
 ```
 quarto-template-<版>/ ← リリース ZIP を展開したもの（発行者はここで作業する）
-└── template/     ← 様式・変換・ビルドの実体（このフォルダ。git 共有しない）
+├── ddq.exe       ← 様式・変換・ビルドの実体（template/ 一式を内蔵。git 共有しない）
+├── README*.md
+└── manual/
+
+template/         ← 保守者のリポジトリにある原本（ddq に埋め込まれる）
     ├── lib.typ, typst-template.typ, typst-show.typ, quarto-publish.yml,
     ├── design-doc.lua, design-doc.css, postprocess-html.js, mermaid-config.json,
-    ├── package.json, VERSION, scaffold/,
-    ├── init-doc.*, update-doc.*, setup.*, build-qmd.*, build-html.*, render-diagrams.*,
-    └── (setup 実行後: puppeteer.json / node_modules … いずれも .gitignore)
+    ├── vendor/mermaid.min.js, VERSION, scaffold/, release-README.md
 
 order-design/     ← 設計書リポジトリ（git 共有。執筆者はこれだけ clone する）
 └── docs/         ← 執筆フォルダ（名前は自由）
@@ -32,32 +37,31 @@ order-design/     ← 設計書リポジトリ（git 共有。執筆者はこれ
     └── (setup 後: lib.typ, typst-*.typ, _quarto-publish.yml, _book/ … .gitignore)
 ```
 
-保守者のリポジトリでは `template/` がリポジトリ直下にあり、`docs/`（サンプル）と
-`manual/`（本書を含むマニュアル原稿）が兄弟として並ぶ。**どちらの配置でも動く**
-（下記の通りスクリプトは自分の位置を自力で求める）。
+保守者のリポジトリでは `template/` と `cli/` がリポジトリ直下にあり、`docs/`（サンプル）と
+`manual/`（本書を含むマニュアル原稿）が兄弟として並ぶ。保守者は
+`cli/target/release/ddq.exe` を、発行者は展開フォルダの `ddq.exe` を使う。
 
-- ビルドは `./template/build-qmd.sh <執筆フォルダのパス>`（省略時 `docs`）。
-  スクリプトは `TEMPLATE_ROOT` を渡すので、`template/` がどこにあってもよい。
-- **すべてのスクリプトが自分の位置を自力で求める**（`.sh` は
-  `$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)`、`.bat` は `%~dp0`）。したがって
-  スクリプトを相対・絶対どちらで呼んでも `TEMPLATE_ROOT` は正しく決まり、CWD に
-  依存しない。**CWD 基準で解決されるのは引数側だけ**なので、執筆フォルダ／
-  設計書リポジトリのパスは絶対パスで渡すのが安全。
-  `build-*` / `setup` / `update-doc` は `_quarto.yml` の有無を確認してから動くため
-  パス誤りは即エラーになるが、`init-doc` は「無いものを作る」ので検出できない。
+- ビルドは `ddq pdf <執筆フォルダのパス>`（省略時 `docs`）。exe はどこに置いてもよい
+  （機構ファイルは埋め込み。PATH に置いても動く）。
+- **CWD 基準で解決されるのは引数側だけ**なので、執筆フォルダ／設計書リポジトリの
+  パスは絶対パスで渡すのが安全。`pdf` / `html` / `setup` / `update` は `_quarto.yml` の
+  有無を確認してから動くためパス誤りは即エラーになるが、`init` は「無いものを作る」
+  ので検出できない。
 - `_quarto.yml` は filter を**同じフォルダ内の相対名**（`design-doc.lua`）で参照する。
-  `design-doc.lua` は `quarto.project.directory` から執筆フォルダ（ROOT）を自力で特定し、
-  `TEMPLATE_ROOT`（無ければ `ROOT/../template`）を TMPL とする。**TMPL は SVG 化にしか
-  使わない**ので、執筆者の環境に `template/` が無くても HTML は出る。
-- **3つの配置コマンド**（実体は1か所、責務だけ分けてある）:
-  - `update-doc` … 機構ファイル4本＋`.template-version` を執筆フォルダへ置く。
+  `design-doc.lua` は `quarto.project.directory` から執筆フォルダ（ROOT）を自力で特定する。
+  SVG 化に使う `ddq` は `DDQ_BIN` env（`ddq pdf` / `ddq html` が自分のパスを渡す）→
+  PATH の順に探す。**SVG 化以外で ddq を参照しない**ので、執筆者の環境に ddq が
+  無くても HTML は出る。
+- **配置コマンド**（実体は1か所、責務だけ分けてある。`cli/src/commands/`）:
+  - `update` … 機構ファイル4本＋`.template-version` を執筆フォルダへ置く。
     設計書リポジトリでは**コミット対象**。テンプレート更新の伝播はこれ。
-  - `setup` … `update-doc` を呼んだうえで、PDF 用の部品（`lib.typ`／typst partials／
-    `_quarto-publish.yml`）を置き、mermaid 用の Chrome/Edge を検出して
-    `template/puppeteer.json` に記録する。PDF 用部品は `.gitignore`。
-    ビルドスクリプトが先頭で呼ぶ。
-  - `init-doc` … 設計書リポジトリの雛形（`scaffold/`）を展開し、`update-doc` を呼び、
+    `--all <repo>` で配下の全執筆フォルダに適用。
+  - `setup` … `update` を呼んだうえで、PDF 用の部品（`lib.typ`／typst partials／
+    `_quarto-publish.yml`）を置く。PDF 用部品は `.gitignore`。`pdf` / `html` が先頭で呼ぶ。
+    旧 setup の「ブラウザ検出 → puppeteer.json」は無い（ddq が変換のたびに探す）。
+  - `add` … 執筆フォルダの雛形（`scaffold/content`）を展開し、`update` を呼び、
     最後に HTML を1回ビルドして検証する。既存ファイルは上書きしない。
+  - `init` … リポジトリ直下（`scaffold/repo`）を置いてから `add`。
 - なぜ `lib.typ` と typst partials を執筆フォルダへ置くのか: typst の import は
   「プロジェクト外を読めない」制約に掛かるため（PDF）。`design-doc.css` を置くのは
   Quarto がローカル css として `_book/` に取り込み、単体で配信・zip できるようにするため。
@@ -67,7 +71,7 @@ order-design/     ← 設計書リポジトリ（git 共有。執筆者はこれ
   発行側は `quarto render --to typst --profile publish` で読み込ませる。
 - **パスは ASCII のみ。** Windows では、執筆フォルダのパスに日本語が含まれると
   Quarto から Lua フィルタへ渡る時点で U+FFFD に置換されて届き（`quarto.project.directory`・
-  環境変数のいずれも同じ）、mermaid の SVG 化が成立しない。`init-doc` と
+  環境変数のいずれも同じ）、mermaid の SVG 化が成立しない。`ddq`（init / add / pdf / html）と
   `design-doc.lua` の両方で検出して止めている。
 
 ---
@@ -103,16 +107,17 @@ order-design/     ← 設計書リポジトリ（git 共有。執筆者はこれ
 ### ビルドコマンド
 
 ```
-# 発行者が実行する（展開フォルダで cd してから。末尾は執筆フォルダのパス＝絶対推奨）
-cd ~/tools/quarto-template-1.1.3
-./template/init-doc.sh ~/work/order-design        # 設計書リポジトリを新規作成（最初の1回）
-./template/update-doc.sh ~/work/order-design/docs # 機構ファイルを最新の template に更新
-./template/build-qmd.sh ~/work/order-design/docs  # → <執筆フォルダ>/design-doc.pdf
-./template/build-html.sh ~/work/order-design/docs # → <執筆フォルダ>/_book/index.html
+:: 発行者が実行する（展開フォルダで cd してから。末尾は執筆フォルダのパス＝絶対推奨）
+cd C:\tools\quarto-template-1.4.0
+.\ddq init   C:\work\order-design        # 設計書リポジトリを新規作成（最初の1回）
+.\ddq add    C:\work\order-design\docs2  # 2 つ目以降の執筆フォルダ
+.\ddq update C:\work\order-design\docs   # 機構ファイルを ddq の版に更新（--all <repo> で全部）
+.\ddq pdf    C:\work\order-design\docs   # → <執筆フォルダ>/design-doc.pdf
+.\ddq html   C:\work\order-design\docs   # → <執筆フォルダ>/_book/index.html
 ```
 
-`build-*` はどちらも執筆フォルダの `_book/` を出力先に使い、**後から走ったほうが前の
-出力を消す**。そのため `build-qmd.sh` は PDF を `<執筆フォルダ>/design-doc.pdf` に
+`pdf` / `html` はどちらも執筆フォルダの `_book/` を出力先に使い、**後から走ったほうが前の
+出力を消す**。そのため `ddq pdf` は PDF を `<執筆フォルダ>/design-doc.pdf` に
 取り出す。両方を残したいときは PDF → HTML の順に実行する。
 
 執筆者側は何も要らない。`quarto preview` / `quarto render`（フォーマット無指定）で
@@ -142,11 +147,10 @@ HTML が出て、図表番号の振り直しまで `post-render` が自動で行
 | `lib.typ` | tpl→doc | × | **様式の単一ソース**（枠・採番・IPO・横向き） | PDF |
 | `quarto-publish.yml` | tpl→doc | × | typst 用プロファイル（`_quarto-publish.yml` として置かれる） | PDF |
 | `VERSION` | tpl | — | テンプレートの版。更新したら上げる | — |
-| `scaffold/` | tpl | — | 設計書リポジトリの雛形（`init-doc` が展開） | — |
-| `init-doc` / `update-doc` | tpl | — | 雛形の作成 / 機構ファイルの更新 | — |
-| `setup.sh` / `setup.bat` | tpl | — | ビルド準備（update-doc + PDF 用部品 + Chrome/Edge 検出→`puppeteer.json`） | — |
-| `puppeteer.json` | tpl | — | setup 生成の machine ローカル設定（ブラウザパス）。`.gitignore` 済み | mermaid |
-| `build-qmd.sh` / `build-html.sh` | tpl | — | ビルド入口（引数 = 執筆フォルダのパス。先頭で setup を呼ぶ） | — |
+| `scaffold/` | tpl | — | 設計書リポジトリの雛形（`ddq init` / `ddq add` が展開） | — |
+| `vendor/mermaid.min.js` | tpl | — | mermaid 本体（版固定）。`ddq` がブラウザ経路の変換ページに埋め込む | mermaid |
+| `release-README.md` | tpl | — | リリース直下に置く案内 | — |
+| `../cli/` | — | — | `ddq`。上の tpl 一式を埋め込み、init / add / update / setup / html / pdf / diagrams / release / mermaid を提供 | — |
 
 ---
 
@@ -216,12 +220,13 @@ title / subtitle / author / doc-number / company / toc …
 **必ず再ビルドして PDF を目視確認する。** ページ単位で見るなら（ルートから）:
 
 ```
-./template/setup.sh <執筆フォルダのパス>   # lib.typ・partials を配置
+cli\target\release\ddq.exe setup <執筆フォルダのパス>   # lib.typ・partials を配置
 cd <執筆フォルダ>
-# _quarto-publish.yml の typst: に keep-typ: true を一時的に足してから
-quarto render --to typst --profile publish
+quarto render --to typst --profile publish -M keep-typ:true
 typst compile index.typ "chk-{n}.png" --format png --font-path "C:/Windows/Fonts" --ppi 70
 ```
+
+移行前後の PDF / HTML を機械的に比べたいときは `cli/tools/regress.py`（`cli/DESIGN.md` §12）。
 
 見た目を変えないリファクタのときは、**変更前後の PNG を `cmp` で比較**すると
 確実（本ファイル追加時の lib.typ 整理も全10ページ一致を確認している）。
@@ -277,7 +282,7 @@ book にすると、閲覧者が1ページで読むのは **約25KB**、共通�
 に `.html` が1つも無ければ何もせず正常終了する。また、解決できない相互参照があっても
 異常終了しない（post-render の失敗は `quarto preview` 全体の失敗になり、執筆が止まるため）。
 
-**実行系**: `quarto run` / post-render は **Quarto 同梱の Deno** で走る。使うのは
+**実行系**: post-render は **Quarto 同梱の Deno** で走る。使うのは
 `node:fs` / `node:path` だけなので、執筆者の環境に node は要らない。
 
 ### 4.3 見た目の調整箇所
@@ -323,7 +328,7 @@ HTML では div 構造として組み立て直している。
 | `::: {.tbl}` | `#_tbl-auto[…]` で包んだ表（キャプションをヘッダ行として表に入れ、改ページで割れたら「（i／n）」を自動付与。手動分割は `#pagebreak`、`merge-cols=` で rowspan 結合） | `<div class="split-caption">` ＋表（採番は postprocess、結合は同左） |
 | すべての表 | 列幅を本文幅いっぱいに正規化 | CSS の `width: 100%` |
 
-### 5.1 mermaid の2モード（執筆者は node 不要）
+### 5.1 mermaid の2モード（執筆者は ddq 不要）
 
 執筆者は多数・PDF/配布 HTML を作るのは少数、という運用に合わせ、mermaid の変換先を
 **出力とフラグで切り替える**。`WANT_SVG = (FORMAT == 'typst') or (MERMAID_SVG == '1')`。
@@ -331,15 +336,16 @@ HTML では div 構造として組み立て直している。
 | 実行者 | 経路 | mermaid の扱い | 追加で要るもの |
 |---|---|---|---|
 | 執筆者 | `quarto preview`（HTML, env なし） | `<pre class="mermaid mermaid-js">` を出し、Quarto 同梱ランタイムでブラウザ内描画 | **なし** |
-| ビルド係 | `build-html.sh`（`MERMAID_SVG=1`） | mermaid-cli でベクター SVG 化して `image()` | `node_modules` ＋ Chrome/Edge |
-| ビルド係 | `build-qmd.sh`（typst/PDF） | 同上 | 同左 |
+| ビルド係 | `ddq html`（`MERMAID_SVG=1`） | `ddq mermaid` でベクター SVG 化して `image()` | `ddq.exe`（＋端末の Edge/Chrome） |
+| ビルド係 | `ddq pdf`（typst/PDF） | 同上 | 同左 |
 
-- **mermaid-cli を動かすのは Quarto 同梱の Deno**（`quarto run <mermaid-cli>/src/cli.js`）。
-  Node.js の導入は要らず、閉域環境へは `node_modules` を持ち込むだけで足りる
-  （node 実行時とバイト単位で同じ SVG が出ることを実測で確認済み。差が出るのは
-  classDiagram のように mermaid 自身が乱数描画する図で、これは node 同士でも一致しない）。
-  `quarto` が PATH に無い環境のために、失敗したときだけ `node` でも試す
-  （`design-doc.lua` の `render_mermaid`／`render-diagrams.*`）。
+- **SVG 化はフィルタが `ddq mermaid` を呼んで行う**（`pandoc.pipe`。シェルを介さない）。
+  ddq は既存の Edge → Chrome を headless（`--dump-dom`）で起動し、同梱の
+  `vendor/mermaid.min.js`（11.16.0）で描かせる。mermaid-cli と幾何が一致する
+  （`cli/DESIGN.md` §9 実測）。ブラウザが無ければ Rust 製の再実装 merman に落ちる
+  （HTML ラベルを出さない resvg-safe パイプライン。見た目はほぼ同じだが文字幅の推定で
+  配置がわずかに変わり得る）。どちらで焼いたかは SVG 先頭の `<!-- ddq … -->` に残る。
+  `DDQ_MERMAID_ENGINE=browser|merman` / `EXECUTABLE_BROWSER` で明示できる。
 
 - **クライアント描画の仕組み**: Quarto native の ` ```{mermaid} ` は typst では
   フィルタが走る前に PNG へラスタライズされ、自前のベクター SVG に差し替えられない
@@ -359,9 +365,10 @@ HTML では div 構造として組み立て直している。
   描画は window の load で走るため間に合う）。これで `theme` / `htmlLabels:false` /
   フォントが揃う。設定ファイルは執筆フォルダ直下のものを優先し、無ければ `template/` を見る。
 - **残る差**: 描画エンジンの版が違う（プレビュー = Quarto 同梱 mermaid、発行版 =
-  `package.json` の mermaid-cli）。まれに図の形が変わるので、中間版 PDF で確認する。
+  `vendor/mermaid.min.js`）。まれに図の形が変わる（例: subgraph 内 `direction` の解釈）
+  ので、中間版 PDF で確認する。
 - **注意**: プレビューでは mermaid をベクター SVG 化しないため `diagrams/mmd-*.svg` は
-  増えない（＝執筆者は Chrome/Edge も node_modules も要らない）。
+  増えない（＝執筆者は ddq も Edge/Chrome も要らない）。
 
 ### book 特有の注意（パスまわり）
 
@@ -371,12 +378,11 @@ HTML では div 構造として組み立て直している。
   でもそのまま動く）:
   - `ROOT`（執筆フォルダ）= `DOC_ROOT` env → `quarto.project.directory` →
     `QUARTO_PROJECT_DIR` env → `'.'`。図の出力先 `diagrams/` の親。
-  - `TMPL`（`template/`）= `TEMPLATE_ROOT` env → `ROOT/../template`。
-    mermaid-cli（`node_modules`）・`mermaid-config.json`・`puppeteer.json` の場所。
-  env は「明示的に上書きしたいとき」だけ使う。通常は何も export しなくてよい。
-- **mermaid のブラウザ**は env に頼らない。`EXECUTABLE_BROWSER` があればそれを、
-  無ければ setup が書いた `TMPL/puppeteer.json`（Chrome/Edge のパス）を使う。
-  どちらも無ければ `{}`（mmdc 同梱 Chromium を試す）。
+  - `DDQ`（SVG 化に使う exe）= `DDQ_BIN` env → PATH の `ddq`。
+  env は「明示的に上書きしたいとき」だけ使う。通常は何も export しなくてよい
+  （`ddq pdf` / `ddq html` が `DDQ_BIN` を渡す）。
+- **mermaid のブラウザ探索は ddq 側**（`EXECUTABLE_BROWSER` → レジストリ App Paths →
+  既知パス）。フィルタは入出力と `mermaid-config.json` を渡すだけ。
 - mermaid の SVG は `ROOT/diagrams` に内容ハッシュで置くが、AST に載せる
   パスは章ファイルからの相対でなければ Quarto が解決できない（`diag_rel()`）。
 - **画像はプロジェクトルート基準の `/diagrams/...` で書く。** `../` を使うと
@@ -392,14 +398,15 @@ HTML では div 構造として組み立て直している。
 - [ ] IPO の列比を変えたなら、`lib.typ` の `IPO-COLS` と
       `design-doc.css` の `.ipo-frame` の**両方**を直したか
 - [ ] 採番規則を変えたなら、`lib.typ` と `postprocess-html.js` の**両方**か
+- [ ] `template/` を直したら `cli/` で `cargo build --release` し直したか（exe に埋め込まれる）
 - [ ] 機構ファイルを増減したなら、それが `template/` にあるか。執筆フォルダ直下へ
       配置が要るなら、置き先に応じて次を更新したか:
-      - 執筆者に要る（HTML）… `update-doc.sh`/`.bat` のコピー対象、`scaffold/repo/gitignore`
+      - 執筆者に要る（HTML）… `cli/src/assets.rs` の `MECHANISM`、`scaffold/repo/gitignore`
         （**無視しない**）、このリポジトリの `.gitignore`（無視する＋`!/template/...`）
-      - 発行時だけ要る（PDF）… `setup.sh`/`.bat` のコピー対象、`scaffold/repo/gitignore`
+      - 発行時だけ要る（PDF）… `cli/src/assets.rs` の `PDF_SIDE`、`scaffold/repo/gitignore`
         （無視する）、このリポジトリの `.gitignore`
 - [ ] `template/VERSION` を上げたか（設計書リポジトリ側の `.template-version` に反映され、
-      発行者が `update-doc` した差分として見える）
+      発行者が `ddq update` した差分として見える）
 - [ ] `postprocess-html.js` を触ったなら、**同じ `_book/` に2回流しても結果が変わらない**
       ことを確かめたか（`quarto preview` は保存のたびに呼ぶ。§4.2）
 - [ ] 執筆者に見える記法を増やしていないか（増やすなら利用マニュアル `manual/` も更新する）

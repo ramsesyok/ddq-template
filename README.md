@@ -18,9 +18,10 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | 様式の実体 | `template/lib.typ`（Typst テンプレート） |
 | 記法の拡張 | `template/design-doc.lua`（Pandoc Lua フィルタ） |
 | 図 | mermaid（文字で書いた図をベクター SVG に） |
+| ビルド・配置の道具 | `ddq.exe`（Rust 製の単一実行ファイル。様式一式を内蔵） |
 | 執筆者に要るもの | Quarto ＋ VSCode の Quarto 拡張だけ |
 
-> **このリポジトリは「様式の実体（`template/`）」です。**
+> **このリポジトリは「様式の実体（`template/` と、それを内蔵する `cli/`）」です。**
 > 設計書そのものは、ここから作る**別のリポジトリ（設計書リポジトリ）**に置きます。
 > 設計書を書く人がこのリポジトリを持つ必要はありません。
 
@@ -28,20 +29,22 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 
 | 役割 | 持つもの | やること |
 |---|---|---|
-| **保守者** | このリポジトリ | 様式・変換の保守。`template/` と利用マニュアルをリリースとして配る |
+| **保守者** | このリポジトリ | 様式・変換の保守。`ddq.exe` と利用マニュアルをリリースとして配る |
 | **発行者** | リリース展開フォルダ | 設計書リポジトリを作る・機構を更新する・**発行版と中間版の PDF/HTML を作る** |
 | **執筆者** | 設計書リポジトリだけ | 原稿を書く。**Quarto と VSCode 拡張だけ**で HTML を見ながら確認できる |
 
-**`template/` は設計書リポジトリの中に置きません。** 発行者の手元に別途置き、
+発行者と執筆者の違いは役割だけで、`ddq.exe` を持っていれば誰でも PDF を出せます。
+
+**リリース一式は設計書リポジトリの中に置きません。** 発行者の手元に別途置き、
 設計書リポジトリのパスを渡して使います（`git clean` で消える・誤ってコミットする
 といった事故を防ぐため）。
 
 ```
 C:\tools\
-└── quarto-template-1.1.3/   ← リリース ZIP を展開したもの（git 管理外）
+└── quarto-template-1.4.0/   ← リリース ZIP を展開したもの（git 管理外）
+    ├── ddq.exe              ← 様式・変換・ビルドの実体（これを実行する。インストール不要）
     ├── README-release.md    ← 発行者向けのはじめかた
-    ├── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
-    └── template/            ← ここのスクリプトを実行する
+    └── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
 
 C:\work\
 └── order-design/            ← 設計書リポジトリ（git 共有。執筆者はこれだけ clone する）
@@ -50,7 +53,7 @@ C:\work\
 ```
 
 **展開したフォルダはそのまま使います**（中身を取り出して並べ替える必要はありません）。
-展開先に `cd` して、設計書リポジトリのパスを渡してスクリプトを実行します。
+展開先に `cd` して、設計書リポジトリのパスを渡して `ddq` を実行します。
 
 ## できること
 
@@ -73,8 +76,8 @@ C:\work\
 
 ### 1. 保守者がリリースを配る
 
-このリポジトリで `make-release` を実行すると、`quarto-template-<版>.zip`
-（`template/` 一式＋利用マニュアルの PDF / HTML）ができます。
+このリポジトリで `ddq release` を実行すると、`quarto-template-<版>.zip`
+（`ddq.exe` ＋利用マニュアルの PDF / HTML）ができます。
 → [ADVANCED.md](ADVANCED.md)（このリポジトリにあります。リリースには同梱しません）
 
 ### 2. 発行者が設計書リポジトリを作る
@@ -82,8 +85,8 @@ C:\work\
 ZIP を展開し、**展開したフォルダで**実行します。
 
 ```bat
-cd C:\tools\quarto-template-1.1.3
-.\template\init-doc.bat C:\work\order-design
+cd C:\tools\quarto-template-1.4.0
+.\ddq init C:\work\order-design
 ```
 
 できた `docs\_quarto.yml` の表題・資料番号・会社名・章立てを整え、`git init` して
@@ -94,21 +97,22 @@ cd C:\tools\quarto-template-1.1.3
 
 設計書リポジトリを clone し、**Quarto と VSCode の Quarto 拡張だけ**で書きます。
 `Ctrl+Shift+K` のプレビューに、発行版と同じ章番号・図表番号・相互参照が出ます。
-`template/` も node も要りません。
+`ddq` も Node.js も要りません。
 → 利用マニュアル 3章・5章、記法は 6〜10章
 
 ### 4. 発行者が PDF・配布 HTML を出す
 
 ```bat
-cd C:\tools\quarto-template-1.1.3
-.\template\build-qmd.bat  C:\work\order-design\docs
-.\template\build-html.bat C:\work\order-design\docs
+cd C:\tools\quarto-template-1.4.0
+.\ddq pdf  C:\work\order-design\docs
+.\ddq html C:\work\order-design\docs
 ```
 
 PDF は**中間版**としてコミットします。改ページ・横向きページ・紙の様式は HTML では
 確認できないため、執筆者はこの PDF で紙面を見ます。
-mermaid 図を PDF に載せる場合だけ、この環境に mermaid-cli（`template/node_modules`）と
-Chrome/Edge が要ります（mermaid-cli は Quarto 同梱の Deno で動くので Node.js は不要）。
+mermaid 図は Windows 標準の Edge（または Chrome）を headless で使ってベクター SVG に
+焼き込みます。どちらも無い端末では `ddq` 内蔵のレンダラで描きます。
+Node.js も npm も要りません。
 → 利用マニュアル 11章・12章
 
 ### テンプレートを更新するとき
@@ -116,9 +120,12 @@ Chrome/Edge が要ります（mermaid-cli は Quarto 同梱の Deno で動くの
 新しい版は別のフォルダに展開されるので、そちらから機構ファイルを入れ直します。
 
 ```bat
-cd C:\tools\quarto-template-1.3.0
-.\template\update-doc.bat C:\work\order-design\docs
+cd C:\tools\quarto-template-1.4.0
+.\ddq update C:\work\order-design\docs
 ```
+
+1 つのリポジトリに文書を増やすときは `ddq add <新しい執筆フォルダ>`、まとめて
+更新するときは `ddq update --all <リポジトリ>` です。
 
 差分は git に出るのでコミットします。執筆者は pull するだけです。
 → 利用マニュアル 11章
@@ -132,9 +139,10 @@ cd C:\tools\quarto-template-1.3.0
 
 | ドキュメント | 内容 | 読む人 |
 |---|---|---|
-| [manual/](manual/) | **利用マニュアル**（役割別の環境構築・執筆・確認・出力・記法・制限事項・トラブル対処）。本テンプレート自身で書かれており、`.\template\build-qmd.bat manual` で PDF になります | 全員（執筆者にはこの PDF/HTML を配る） |
+| [manual/](manual/) | **利用マニュアル**（役割別の環境構築・執筆・確認・出力・記法・制限事項・トラブル対処）。本テンプレート自身で書かれており、`ddq pdf manual` で PDF になります | 全員（執筆者にはこの PDF/HTML を配る） |
 | [ADVANCED.md](ADVANCED.md) | リポジトリの構成、版の上げ方、リリースの作り方・配り方。**このリポジトリのみ**（リリースには同梱しません） | 保守者 |
 | [template/PIPELINE.md](template/PIPELINE.md) | 変換の内部と様式の調整箇所 | 保守者 |
+| [cli/DESIGN.md](cli/DESIGN.md) | `ddq` の設計（コマンド・mermaid エンジン・ビルド・検証） | 保守者 |
 
 `docs/` はこのリポジトリ同梱の**サンプル**（受注管理システムの基本設計書）です。
 記法の実例と、様式を変更したときの確認用に使います。

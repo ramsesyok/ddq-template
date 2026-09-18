@@ -11,6 +11,7 @@
 | 記法（表・図・IPO図・横向き） | 利用マニュアル 6〜10章、早見表は15章 |
 | うまくいかないとき | 利用マニュアル13章 |
 | 様式（外枠・採番・IPO図）の調整、変換の内部 | [template/PIPELINE.md](template/PIPELINE.md) |
+| `ddq`（CLI）の設計・コマンド・mermaid エンジン・ビルド | [cli/DESIGN.md](cli/DESIGN.md) |
 
 ---
 
@@ -24,11 +25,17 @@ quarto-template/                 … このリポジトリ（保守者が持つ�
 ├── README.md                    … リポジトリの入口（何でできているか・役割・流れ）
 ├── ADVANCED.md                  … このファイル
 ├── .gitignore / .gitattributes / .vscode/settings.json
+├── .github/workflows/ci.yml     … ddq の CI（fmt / clippy / test / build。windows-latest）
 ├── docs/                        … サンプル（受注管理システム。記法の実例＋様式の検証用）
 ├── manual/                      … 利用マニュアルの原稿（執筆フォルダの一つ）
-└── template/                    … 様式・変換・ビルドの実体
+├── cli/                         … ddq（Rust 製 CLI）。template/ を埋め込んだ単一 exe を作る
+│   ├── DESIGN.md                … 設計書（決定事項・根拠・検証手順）
+│   ├── src/                     … init / add / update / setup / html / pdf / diagrams / release / mermaid
+│   ├── tests/                   … golden テスト（mermaid の幾何一致）・コマンドの配置テスト
+│   └── tools/regress.py         … 移行前後で PDF / HTML が変わらないことの確認（開発用）
+└── template/                    … 様式・変換の実体（ddq に埋め込まれる原本）
     ├── PIPELINE.md              … 出力経路と様式調整箇所の解説（最初に読む）
-    ├── VERSION                  … テンプレートの版（init-doc / update-doc が書き込む）
+    ├── VERSION                  … テンプレートの版（= ddq の版。ddq update が .template-version に書く）
     ├── lib.typ                  … 様式の単一ソース（外枠・採番・IPO・横向き）
     ├── typst-template.typ       … Quarto 既定テンプレートの差し替え口（lib.typ を取り込む）
     ├── typst-show.typ           … フロントマター → design-doc() の引数
@@ -37,17 +44,13 @@ quarto-template/                 … このリポジトリ（保守者が持つ�
     ├── design-doc.css           … HTML の見た目
     ├── postprocess-html.js      … HTML の図表番号を「章.節-連番」に振り直す後処理
     ├── mermaid-config.json      … mermaid 設定（htmlLabels:false 必須）
-    ├── package.json             … mermaid-cli（mermaid を使う場合のみ npm ci）
-    ├── scaffold/                … 設計書リポジトリの雛形（init-doc が配る）
-    ├── release-README.md        … リリース直下に置く案内（発行者向けの入口）
-    ├── init-doc.sh / .bat       … 設計書リポジトリを新規作成
-    ├── update-doc.sh / .bat     … 既存の設計書リポジトリの機構ファイルを更新
-    ├── setup.sh / .bat          … ビルド準備（機構＋PDF 用部品の配置、ブラウザ検出）
-    ├── build-qmd.sh / .bat      … book → PDF
-    ├── build-html.sh / .bat     … book → 静的 HTML（章ごと分割）
-    ├── render-diagrams.sh / .bat … diagrams/*.mmd → SVG（静的図を更新したときだけ）
-    └── make-release.sh / .bat   … 発行者へ配るリリース一式を作る
+    ├── vendor/mermaid.min.js    … mermaid 本体（版固定。ddq がブラウザで動かす）
+    ├── scaffold/                … 設計書リポジトリの雛形（ddq init / add が配る）
+    └── release-README.md        … リリース直下に置く案内（発行者向けの入口）
 ```
+
+旧来の `template/*.bat` `*.sh` は 1.4.0 で `ddq` のサブコマンドに置き換わりました。
+`template/` を直したら `cli/` で `cargo build --release` して exe に埋め込み直します。
 
 発行者の手元にはこのリポジトリではなく、**リリース ZIP を展開したフォルダ**が
 置かれます（`quarto-template-<版>/`）。展開したまま使い、中身を取り出しません。
@@ -60,11 +63,11 @@ quarto-template/                 … このリポジトリ（保守者が持つ�
 
 | ファイル | 配布 | 置く人 |
 |---|:---:|---|
-| `design-doc.lua` / `design-doc.css` / `postprocess-html.js` / `mermaid-config.json` | ○ | `init-doc` / `update-doc` / ビルド時の `setup` |
+| `design-doc.lua` / `design-doc.css` / `postprocess-html.js` / `mermaid-config.json` | ○ | `ddq init` / `ddq add` / `ddq update` / ビルド時の `setup` |
 | `.template-version`（`VERSION` の写し） | ○ | 同上 |
 | `lib.typ` / `typst-template.typ` / `typst-show.typ` / `_quarto-publish.yml` | × | `setup`（PDF を出すときだけ。`.gitignore`） |
 
-配置コマンド（`init-doc` / `update-doc` / `setup`）の責務分担と、なぜ PDF 用の設定を
+配置コマンド（`ddq init` / `ddq update` / `ddq setup`）の責務分担と、なぜ PDF 用の設定を
 プロファイル（`_quarto-publish.yml`）に分けるのかは
 [PIPELINE.md](template/PIPELINE.md) の「0. フォルダの分担」にあります。
 HTML の図表番号を後処理で直している理由は利用マニュアル17章です。
@@ -75,9 +78,10 @@ HTML の図表番号を後処理で直している理由は利用マニュアル
 
 `template/VERSION` が版です。**配布される機構ファイル4本を変更したら上げてください。**
 設計書リポジトリ側の `.template-version` と突き合わせて、発行者が更新要否を判断します。
+`ddq --version` もこの値を表示します（`cli/build.rs` がビルド時に埋め込む）。
 
 版を上げたら、**実行例に埋め込まれた版番号も揃えてください。** 展開フォルダ名に版が
-入るため（`cd C:\tools\quarto-template-1.1.3`）、ずれていると発行者が手元のフォルダ名と
+入るため（`cd C:\tools\quarto-template-1.4.0`）、ずれていると発行者が手元のフォルダ名と
 合わない手順を読むことになります。全体で30箇所ほどあります。
 
 ```bat
@@ -91,22 +95,24 @@ findstr /S /C:"quarto-template-1." README.md ADVANCED.md template\PIPELINE.md ma
 
 ## 3. リリースを作る
 
-発行者へ配る一式は `make-release` で作ります。マニュアルのビルドから zip 化までを
+発行者へ配る一式は `ddq release` で作ります。マニュアルのビルドから zip 化までを
 1コマンドで行うので、**ビルド順（PDF → HTML）の間違い**や入れ忘れが起きません。
+`ddq` 自身がリリースに入るので、先に release ビルドしておきます。
 
 ```bat
 :: このリポジトリのルートで実行する
-.\template\make-release.bat
+cd cli
+cargo build --release
+cd ..
+cli\target\release\ddq.exe release
 ```
 
-```bash
-./template/make-release.sh
-```
+ビルドには Rust（stable）と MSVC のリンカ（Visual Studio の「C++ によるデスクトップ開発」
+ワークロード）が要ります。配布先には何も要りません（CRT は静的リンク。`cli/DESIGN.md` §7.1）。
 
 | 引数・オプション | 効果 |
 |---|---|
 | 第1引数 | 出力先フォルダ（既定は `release/`） |
-| `--with-node-modules` | `template/node_modules` も同梱する（閉域向け。約 400MB 増える） |
 | `--with-sample` | サンプル文書（`docs/`）も同梱する（原稿と図だけ。生成物は除く）。発行者へ記法の実例を渡したいときに使う |
 | `--no-build` | マニュアルを再ビルドせず、既にある成果物を使う |
 
@@ -114,22 +120,17 @@ findstr /S /C:"quarto-template-1." README.md ADVANCED.md template\PIPELINE.md ma
 
 ```
 quarto-template-<版>/
+├── ddq.exe             … 様式・変換・ビルドの実体（template/ 一式を内蔵）
 ├── README-release.md   … 発行者向けのはじめかた（展開したらまずこれ）
 ├── README.md           … テンプレートの概要と作業の流れ
-├── manual/利用マニュアル.pdf, manual/html/   … 発行者が読む・執筆者へ配る
-└── template/           … node_modules と puppeteer.json は除く
+└── manual/利用マニュアル.pdf, manual/html/   … 発行者が読む・執筆者へ配る
 ```
 
 ### 閉域（オフライン）環境向けに作る
 
-`--with-node-modules` を付けた一式を渡せば、発行者は **Quarto と Chrome/Edge だけ**で
-PDF・配布 HTML（mermaid の SVG 化を含む）を作れます。Node.js の導入は要りません
-（mermaid-cli は Quarto 同梱の Deno で走る）。ネットワークを遮断し `node` を PATH から
-外した状態で、ZIP の展開 → `init-doc` → PDF・配布 HTML までを通して確認済みです。
+特別な版は要りません。`ddq.exe` は単体で動き、mermaid の SVG 化には端末の Edge / Chrome
+（無ければ内蔵レンダラ）を使うため、発行者は **Quarto だけ**で PDF・配布 HTML を作れます。
 
-- `node_modules` は保守者が**接続できる環境で** `npm ci` して作る（`package-lock.json`
-  による再現性を保つため。Deno の `deno install` でも作れるが、ロックが `deno.lock` に
-  変わり、`node_modules` の形も `.deno` ストア＋リンク方式になる）。
 - typst の `@preview` パッケージ（`lib.typ` が callout アイコンに使う `fontawesome`）は
   **Quarto 本体が同梱**しており、render のたびに `<執筆フォルダ>/.quarto/typst/packages`
   へ展開して `--package-cache-path` で渡す。したがって閉域でも追加作業は要らない。
@@ -142,26 +143,15 @@ PDF・配布 HTML（mermaid の SVG 化を含む）を作れます。Node.js の
 
 ### 作るときの注意
 
-- 配布物の中の `.bat` は CRLF、`.sh` は LF に正規化されます。**LF のままの `.bat` は
-  cmd.exe が `for` / `if` の複数行ブロックを解釈できず壊れます**（実測）。
-- **zip 化ツールは UTF-8 名フラグ（general purpose bit 11）を立てるものを使います。**
-  `manual/利用マニュアル.pdf` が日本語名のためです。**bsdtar（`tar -a`）はローカルの
-  ANSI コードページで名前を書き、このフラグを立てません**。その zip を
-  `Expand-Archive`・7-Zip・macOS・Linux の `unzip` で展開すると**文字化けします**（実測）。
-  - `.bat` … .NET の `ZipFile` → bsdtar（警告つき）
-  - `.sh` … python の `zipfile` → Info-ZIP `zip` → bsdtar（警告つき）
-- **出力先のパスは短く保ってください。** .NET と python はどちらも、メンバーの
-  パスが MAX_PATH（260文字）を超えると失敗します。`.bat` はそのとき bsdtar に
-  切り替わるため、**日本語名が文字化けした zip ができます**（警告は出ます）。
-  既定の出力先 `release/` は問題ありませんが、第1引数で深い場所を指定すると起こります。
-- **`.NET` の `ZipFile` は失敗時に不完全な zip を残します**（実測: 79件中34件で打ち切り）。
-  そのため成否は終了コードで判定し、失敗したら残骸を消しています。さらに zip 作成後に
-  **ファイル数が展開フォルダと一致するか検査**し、欠けていればエラーにして zip を消します。
-  「ファイルがあるかどうか」で成否を判定してはいけません。
-- **GNU tar は zip を作れません**（`tar -a -c -f x.zip` は中身が tar のままになる）。
-  `.sh` 側は `--version` に `bsdtar` / `libarchive` が含まれるかで判定しています。
+- zip は `ddq` が Rust の `zip` クレートで作り、**UTF-8 名フラグ（general purpose bit 11）
+  を立てます**（`manual/利用マニュアル.pdf` が日本語名のため。旧 bat 時代に bsdtar で
+  文字化けした教訓）。作成後に**ファイル数が展開フォルダと一致するか検査**し、
+  欠けていればエラーにして zip を消します。
 - `--no-build` を使うときは、`manual/design-doc.pdf` と `manual/_book/` の**両方**が
   最新であることを確かめてください（片方だけ古いまま同梱される事故を防ぐため）。
+- `template/` を直したあと `cargo build` を忘れると、古い機構ファイルを内蔵した exe が
+  リリースに入ります。`cargo build` は `template/` の変更を検知して再ビルドしますが、
+  実行するのは保守者です。
 
 ---
 
@@ -171,21 +161,21 @@ PDF・配布 HTML（mermaid の SVG 化を含む）を作れます。Node.js の
 （タグの指すコミットと配布物を一致させるため）。
 
 ```bash
-gh release create v1.1.3 "release/quarto-template-1.1.3.zip" \
+gh release create v1.4.0 "release/quarto-template-1.4.0.zip" \
   --target main \
-  --title "v1.1.3 — （変更の要約）" \
+  --title "v1.4.0 — （変更の要約）" \
   --notes-file <リリースノートのファイル>
 ```
 
 - タグは `v<版>`（`template/VERSION` と揃える）。
 - **ZIP を資産として添付します。** 発行者はこれをダウンロードして展開します。
 - リリースノートには次を書きます。
-  - 発行者のはじめかた（展開してそのまま使う・`cd` して絶対パスで `init-doc`）
+  - 発行者のはじめかた（展開してそのまま使う・`cd` して絶対パスで `ddq init`）
   - 主な変更
-  - 既存利用者向けの `update-doc` 手順
+  - 既存利用者向けの `ddq update` 手順
   - 互換性（配布される機構ファイル4本に変更があるか）
 
-機構ファイル4本に変更が無い版では、既存の設計書リポジトリで `update-doc` を実行しても
+機構ファイル4本に変更が無い版では、既存の設計書リポジトリで `ddq update` を実行しても
 実質 `.template-version` の更新だけになります。その旨をノートに書くと、発行者が
 更新の要否を判断できます。
 
@@ -195,11 +185,14 @@ gh release create v1.1.3 "release/quarto-template-1.1.3.zip" \
 
 様式・変換を直したら、次の順で確認します。手順の詳細は利用マニュアル17章にあります。
 
-1. `setup` を再実行して執筆フォルダへ反映する（忘れると古い写しのまま検証してしまう）
+1. `cli/` で `cargo build --release` して exe に埋め込み直し、`ddq setup` を再実行して
+   執筆フォルダへ反映する（忘れると古い写しのまま検証してしまう）
 2. サンプル文書（`docs/`）で PDF・HTML の両方を出し、体裁を確認する
 3. 本書（`manual/`）でも出力を確認する（記法の網羅度が高く、退行を見つけやすい）
 4. `postprocess-html.js` を直したときは、同じ `_book/` に2回続けて流しても結果が
    変わらないこと（冪等性）を必ず確認する
+5. `cli/` を直したときは `cargo test`（golden テストが mermaid の幾何一致を見る）。
+   出力の同一性を厳密に確かめたいときは `cli/tools/regress.py`（`cli/DESIGN.md` §12）
 
 様式のどこを触れば何が変わるかは [PIPELINE.md](template/PIPELINE.md) の
 「3. PDF 側のしくみ」に集約してあります。

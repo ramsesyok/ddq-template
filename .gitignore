@@ -36,16 +36,9 @@ mermaid-config.json
 # 直下フォルダ（docs/ や改名後）のものだけ無視し、ルートの .gitignore は残す。
 /*/.gitignore
 
-# ==== 依存パッケージ ====
-node_modules/
-
 # ==== mermaid 変換キャッシュ（内容ハッシュ名 mmd-xxxx.*） ====
 # diagrams/order-flow.* は同梱するため無視しない。
 **/diagrams/mmd-*
-
-# ==== setup が生成する machine ローカル設定（mermaid のブラウザパス） ====
-# template/puppeteer.json も diagrams/puppeteer.json も対象。
-puppeteer.json
 
 # ==== ページ目視確認用の一時画像（chk-*.png / page-*.png など） ====
 chk-*.png

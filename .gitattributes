@@ -1,14 +1,13 @@
-# シェルスクリプトは必ず LF で保存する（CRLF だと shebang が壊れ Linux/Mac で動かない）。
-*.sh text eol=lf
-# バッチファイルは CRLF（Windows/cmd 前提）。
-*.bat text eol=crlf
-# ビルドに使うテキストも LF に統一しておく。
+# ビルドに使うテキストは LF に統一しておく。
 # 設計書リポジトリへ配布する機構ファイル（css / json を含む）は、両側で改行が
 # 揃っていないと「発行者が setup を走らせるたびに差分が出る」ため、必ず LF にする。
 *.js text eol=lf
 *.lua text eol=lf
-# 移行支援スクリプト。shebang を持つので .sh と同じ理由で LF にする。
+# 開発用スクリプト（cli/tools）。shebang を持つので LF にする。
 *.py text eol=lf
+# Rust のソースと設定（rustfmt / clippy を Linux の CI でも同じ結果にする）。
+*.rs text eol=lf
+*.toml text eol=lf
 *.typ text eol=lf
 *.css text eol=lf
 *.json text eol=lf
