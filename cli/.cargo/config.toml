@@ -1,0 +1,4 @@
+# 配布先に VC++ 再頒布パッケージ（VCRUNTIME140.dll）を要求しないため、CRT を静的リンクする
+# （cli/DESIGN.md §7.1）。既定の動的 CRT だと素の Windows で起動できない。
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

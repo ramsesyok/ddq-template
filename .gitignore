@@ -65,5 +65,9 @@ __pycache__/
 Thumbs.db
 *~
 
+# ==== ddq（cli/）のビルド生成物 ====
+# cli/.gitignore はルートの /*/.gitignore 規則で無視されるので、ここに書く。
+cli/target/
+
 # ==== ddq 移行の回帰確認の採取物（cli/tools/regress.py。作り直せる） ====
 regress/
