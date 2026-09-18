@@ -1,8 +1,8 @@
 //! `ddq init` — 設計書リポジトリを新規作成する（旧 init-doc）。
 //!   1) リポジトリ直下: .gitignore / .gitattributes / .vscode/settings.json / README.md
 //!      （scaffold/repo。ドット始まりの名前は scaffold に置けないのでここで付け替える。
-//!        README の {{CONTENT_DIR}} は執筆フォルダ名に置換。既存ファイルは触らない）
-//!   2) 執筆フォルダ: add と同じ
+//!      README の {{CONTENT_DIR}} は執筆フォルダ名に置換。既存ファイルは触らない）
+//!   2) 執筆フォルダ: add と同じ（再実行しても既存ファイルは触らない）
 
 use std::{fs, path::Path};
 
@@ -41,7 +41,7 @@ pub fn run(repo: &Path, writing_folder_name: &str, no_render: bool) -> Result<()
         .replace("{{CONTENT_DIR}}", writing_folder_name);
     assets::write_if_absent(&repo.join("README.md"), readme.as_bytes())?.report();
 
-    add::run(&content_dir, no_render)?;
+    add::populate(&content_dir, no_render)?;
 
     println!();
     println!("完了。次にすること:");

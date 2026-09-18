@@ -2,8 +2,8 @@
 //!
 //! エンジンは 2 つ。
 //! - browser … 既存の Edge / Chrome を headless で起動し、埋め込みの mermaid.min.js で描かせる。
-//!             mermaid-cli と幾何が一致する。Windows には Edge が標準搭載なので既定はこちら。
-//! - merman  … 純 Rust の再実装。ブラウザが無い環境の保険。
+//!   mermaid-cli と幾何が一致する。Windows には Edge が標準搭載なので既定はこちら。
+//! - merman … 純 Rust の再実装。ブラウザが無い環境の保険。
 //!
 //! どちらで焼いたかは SVG 先頭のコメント `<!-- ddq … -->` で後から分かる。
 

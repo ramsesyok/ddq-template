@@ -2,6 +2,7 @@
 //!   1) 機構ファイル（update）
 //!   2) PDF 側ファイル: lib.typ / typst-template.typ / typst-show.typ / _quarto-publish.yml
 //!      （常に上書き。doc リポジトリでは .gitignore 済み）
+//!
 //! 旧 setup がやっていた「ブラウザ検出 → puppeteer.json」は無い。ブラウザは変換のたびに探す。
 
 use std::path::Path;

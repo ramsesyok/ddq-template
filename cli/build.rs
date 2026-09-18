@@ -1,6 +1,7 @@
 //! ビルド時に版情報を環境変数へ出す（src では env!() で受ける）。
 //! - DDQ_VERSION        … ../template/VERSION（テンプレートの版 = exe の版。cli/DESIGN.md §7.4）
 //! - DDQ_MERMAN_VERSION … Cargo.lock に固定された merman の版（SVG 先頭コメント用）
+//!
 //! 機構ファイル本体の埋め込みは src/assets.rs の include_str! / include_dir! が行う。
 
 use std::{fs, path::Path};

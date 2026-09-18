@@ -61,18 +61,21 @@ fn run_ddq(engine: &str, out_dir: &Path) -> Vec<(PathBuf, PathBuf)> {
         .collect()
 }
 
-/// id を正規化したうえで数値列（幾何）だけを取り出す。直列化の差（自己閉じタグ）は無視される。
+/// 幾何の比較対象となる数値列を取り出す。
+/// - 先頭の `<!-- ddq … -->` は外す。
+/// - `d="…"`（path のデータ）は外す。mermaid は ER / requirement / 一部の flowchart で
+///   roughjs による手描き風の線を乱数で描くため、同じ mermaid-cli 同士でも一致しない
+///   （template/PIPELINE.md §5.1 の注記）。残る viewBox / transform / x / y / width / height で
+///   配置とサイズの一致を見る。
 fn geometry(svg: &str) -> Vec<String> {
-    let mut s = svg.to_string();
-    if let Some(end) = s.find("-->")
-        && s.starts_with("<!-- ddq")
-    {
-        s = s[end + 3..].to_string();
-    }
-    let s = s.replace("my-svg", "ID");
+    let body = match (svg.starts_with("<!-- ddq"), svg.find("-->")) {
+        (true, Some(end)) => &svg[end + 3..],
+        _ => svg,
+    };
+    let without_paths = strip_attribute(body, " d=\"");
     let mut nums = Vec::new();
     let mut cur = String::new();
-    for c in s.chars() {
+    for c in without_paths.chars() {
         if c.is_ascii_digit() || c == '.' || (c == '-' && cur.is_empty()) {
             cur.push(c);
         } else if !cur.is_empty() {
@@ -86,6 +89,24 @@ fn geometry(svg: &str) -> Vec<String> {
     nums
 }
 
+/// `marker`（例 ` d="`）で始まる属性を値ごと取り除く
+fn strip_attribute(s: &str, marker: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(start) = rest.find(marker) {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + marker.len()..];
+        match after.find('"') {
+            Some(end) => rest = &after[end + 1..],
+            None => {
+                rest = "";
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// テストを skip するかの判定だけなので、ddq 本体の探索（レジストリ含む）より粗くてよい
 fn browser_available() -> bool {
     if std::env::var_os("EXECUTABLE_BROWSER").is_some_and(|p| Path::new(&p).is_file()) {
@@ -93,7 +114,7 @@ fn browser_available() -> bool {
     }
     ["ProgramFiles", "ProgramFiles(x86)"]
         .iter()
-        .filter_map(|v| std::env::var_os(v))
+        .filter_map(std::env::var_os)
         .map(PathBuf::from)
         .any(|root| {
             root.join(r"Microsoft\Edge\Application\msedge.exe").is_file()
