@@ -64,3 +64,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 *~
+
+# ==== ddq 移行の回帰確認の採取物（cli/tools/regress.py。作り直せる） ====
+regress/
