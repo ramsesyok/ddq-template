@@ -4,8 +4,8 @@
 mermaid → SVG 変換を内蔵する。保守者向けの最低限の設計書。
 利用手順は利用マニュアル（`manual/`）、様式・変換の内部は [template/PIPELINE.md](../template/PIPELINE.md)。
 
-- 状態: **設計確定・実装前**（2026-09-19）
-- 対象版: テンプレート 1.4.0（予定）
+- 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
+- 対象版: テンプレート 1.4.0
 
 ---
 
@@ -138,13 +138,15 @@ release ──► pdf, html（manual に対して）
 | **add** | 前提: 親フォルダに `.gitignore` がある（無ければ「先に `ddq init`」と案内）。拒否: 対象に `_quarto.yml` が既にある。処理: scaffold の content 一式を無いものだけ置く → `update` → `quarto render --to html` で疎通確認（`--no-render` で省略） | （新規） |
 | **update** | 機構ファイル 4 本と `.template-version` を上書き。`--all <repo>` は配下の `_quarto.yml` を持つフォルダを列挙して全部に適用（`_book/` `.quarto/` `node_modules/` は探索しない） | update-doc |
 | **setup** | `update` → PDF 側 4 ファイルを上書き。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
-| **html** | `setup` → `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN` `TEMPLATE_ROOT`†）。出力 `_book/` | build-html |
-| **pdf** | `setup` → `quarto render --to typst --profile publish`（env: `DDQ_BIN` `TEMPLATE_ROOT`†）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
+| **html** | `setup` → `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN`）。出力 `_book/` | build-html |
+| **pdf** | `setup` → `quarto render --to typst --profile publish`（env: `DDQ_BIN`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
 | **diagrams** | `diagrams/*.mmd` → 同名 `.svg`。設定は執筆フォルダ直下の `mermaid-config.json`（無ければ埋め込み） | render-diagrams |
 | **release** | 1) `--no-build` でなければ `pdf` `html` を `manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、README 2 本、`manual/design-doc.pdf` → `利用マニュアル.pdf`、`manual/_book` → `manual/html` 3) `--with-sample` で `docs/` を同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
 
-† `TEMPLATE_ROOT` は現行フィルタが `mermaid-config.json` のフォールバック探索に使う。埋め込み化後は exe が一時フォルダに設定を展開して渡すか、フィルタ側の参照を外す（実装時に決める。§6）。
+`TEMPLATE_ROOT`（旧フィルタが `mermaid-config.json` のフォールバック探索に使っていた）は廃止した。
+フィルタは執筆フォルダ直下の `mermaid-config.json` があれば `-c` で渡し、無ければ渡さない
+（ddq が埋め込みの同じ既定を使う）。§6 参照。
 
 ### 非 ASCII パス
 
@@ -177,26 +179,39 @@ auto:
 
 ### 5.2 browser 経路
 
-CDP ライブラリは使わず、`--dump-dom` だけで完結させる（§9 PoC）。
+結果は **DevTools プロトコル（CDP）** で取り出す。CDP のライブラリは使わず、WebSocket
+（`tungstenite`）+ JSON だけで puppeteer と同じ手順を踏む。
+
+> 当初は `--dump-dom` の stdout を読む設計だったが（§9 PoC）、**Edge が常駐している
+> （スタートアップ ブースト等で `msedge.exe --win-session-start` がいる）と、起動した
+> msedge.exe が即座に別プロセスへ処理を引き渡して終了し、stdout が届かない**（実測。
+> `--user-data-dir` を分けても同じ）。実運用の Windows では Edge の常駐が普通なので、
+> プロセスの系譜に依存しない CDP に切り替えた。
 
 1. 一時フォルダに HTML を 1 枚書く:
    - `<script>` に埋め込み `mermaid.min.js`
-   - 各入力を `<script type="text/plain" class="src" data-name="…">` に載せる
-     （`</script` は `<\/script` にエスケープ）
    - `mermaid.initialize(Object.assign({startOnLoad:false}, <mermaid-config.json>))`
-   - 順に `mermaid.render()` し、結果（成功: SVG 文字列、失敗: `ERROR: …`）を JSON にして `<pre id="out">` に書く
+   - `window.__ddqRender(source)`: mermaid-cli（src/index.js）と同じ手順で 1 図を SVG 文字列にする
+     Promise。**文書に付いたコンテナ**に描かせてから `XMLSerializer` で直列化する
+     （切り離した div だと `xmlns:xlink` が付かず、mermaid-cli の出力と差が出る）
 2. 起動:
    ```
-   <browser> --headless=new --disable-gpu --no-sandbox
+   <browser> --headless=new --disable-gpu --no-sandbox --no-first-run --disable-extensions
              --user-data-dir=<一時フォルダ>/profile
-             --virtual-time-budget=10000
-             --dump-dom file:///<一時フォルダ>/render.html
+             --remote-debugging-port=0 about:blank
    ```
-   stdout を捕捉。タイムアウト 60 秒で kill してエラー。
-3. `<pre id="out">…</pre>` を取り出し HTML アンエスケープ → JSON 解釈 → 各出力先に書く。
-4. 一時フォルダは成功・失敗にかかわらず削除する。
+   起動した子プロセスの終了は成否に使わない（Edge は即終了する）。
+3. `<profile>/DevToolsActivePort`（ポートと `/devtools/browser/<id>`）が書かれるのを待ち（上限 60 秒）、
+   WebSocket で接続する。
+4. **図ごとに** `Target.createTarget` → `Target.attachToTarget(flatten)` → `Page.enable` →
+   `Page.navigate` → `Page.loadEventFired` を待つ → `Runtime.evaluate("window.__ddqRender(<source>)",
+   awaitPromise)` → `Target.closeTarget`。読み込み中に評価すると
+   「Execution context was destroyed」になるので load を待つ。
+   同じページで続けて描かないのは、mermaid が図をまたいで持つ連番（sequenceDiagram の
+   actor id など）が前の図に依存し、mermaid-cli（1 図 1 ページ）と出力が変わるため。
+5. `Browser.close` で閉じる（閉じないと headless プロセスが残る）。一時フォルダは削除する。
 
-複数入力でも 1 起動。入力 1 つでも同じ経路（1 図 ≒ 1.1 秒、37 図 ≒ 2 秒）。
+複数入力でも起動は 1 回（1 図 ≒ 1.5 秒、22 図 ≒ 3 秒）。
 
 ### 5.3 merman 経路
 
@@ -230,8 +245,9 @@ exe はハッシュ計算に関与しない。
 | 呼び出し | `"<ddq>" mermaid -i "<mmd>" -o "<svg>" -c "<config>" -b transparent` |
 | 成否 | 出力 SVG の存在で判定（現状維持） |
 | `WANT_SVG` | `FORMAT == 'typst' or MERMAID_SVG == '1'`（現状維持）。プレビューは exe を探さない |
-| `mermaid-config.json` | 執筆フォルダ直下を優先。フォールバックの `TMPL/mermaid-config.json` は、exe が `TEMPLATE_ROOT` に一時展開先を渡して維持するか、`update` が必ず置くことを前提に参照を外すか、実装時に決める |
-| 互換 env | `EXECUTABLE_BROWSER` `MERMAID_SVG` `DOC_ROOT` `TEMPLATE_ROOT` は読み続ける |
+| `mermaid-config.json` | 執筆フォルダ直下にあれば `-c` で渡す。無ければ `-c` を付けず、ddq が埋め込みの同じ既定を使う（`TMPL` / `TEMPLATE_ROOT` は廃止） |
+| 呼び出し方 | `pandoc.pipe`（シェルを介さない）。`os.execute` だと cmd.exe の引用符解釈（先頭が `"` のコマンド行）に振り回されるため |
+| 互換 env | `EXECUTABLE_BROWSER` `MERMAID_SVG` `DOC_ROOT` は読み続ける。`TEMPLATE_ROOT` は読まない |
 
 PATH 上の古い `ddq` と release フォルダの新しい `ddq` が共存しても、`DDQ_BIN` が優先されるので `ddq pdf` の結果は起動した exe の版で決まる。
 
@@ -260,6 +276,7 @@ PATH 上の古い `ddq` と release フォルダの新しい `ddq` が共存し�
 | zip | `zip`（UTF-8 名フラグ付き） |
 | Windows | `windows-sys` または `winreg`（App Paths 探索） |
 | 一時領域 | `tempfile` |
+| WebSocket（CDP） | `tungstenite`（`handshake` のみ。TLS なし） |
 
 ### 7.3 zip
 
@@ -306,7 +323,7 @@ cli/src/
 ├── quarto.rs          … quarto の起動（env 付与、終了コード → anyhow::Error）
 ├── mermaid/
 │   ├── mod.rs         … Engine 選択と共通インタフェース（Vec<(input, output)> → Result）
-│   ├── browser.rs     … 探索・HTML 生成・起動・dump-dom 解析
+│   ├── browser.rs     … 探索・HTML 生成・起動・CDP（DevToolsActivePort → WebSocket）
 │   └── merman.rs      … merman クレート呼び出しと foreignObject 抑止
 └── zip.rs             … release 用
 ```
@@ -316,7 +333,7 @@ cli/src/
 - `main.rs` は薄く。各サブコマンドは `pub fn run(args: XxxArgs) -> anyhow::Result<()>` の形に揃える。
 - clap は derive のみ（`#[derive(Parser)]` / `#[derive(Subcommand)]` / `#[derive(Args)]`）。`hide = true` で `mermaid` を隠す。
 - OS 依存（レジストリ・既知パス）は `browser.rs` に閉じ込め `#[cfg(windows)]` で囲む。
-- 「なぜそうしているか」が非自明な箇所（`--virtual-time-budget`、UTF-8 フラグ、foreignObject 抑止、`DDQ_BIN` 優先）はコード内コメントに §番号付きで理由を書く。現行 bat / Lua の実測コメントの流儀を引き継ぐ。
+- 「なぜそうしているか」が非自明な箇所（CDP を使う理由、1 図 1 ページ、文書に付いたコンテナ、UTF-8 フラグ、foreignObject 抑止、`DDQ_BIN` 優先）はコード内コメントに §番号付きで理由を書く。現行 bat / Lua の実測コメントの流儀を引き継ぐ。
 
 ---
 
@@ -327,7 +344,8 @@ docs/manual の `diagrams/*.mmd` 37 本（flowchart 27、stateDiagram-v2 4、seq
 
 | 経路 | 結果 |
 |---|---|
-| **Edge 153 headless `--dump-dom` + mermaid.min.js 11.16.0** | 35/37 成功（失敗 2 本は mermaid-cli でも失敗する図）。37 図 1 起動 **1.8〜2.4 秒**、1 図 1.1 秒。基準 SVG と **viewBox・座標が全 35 図で一致**。差は `<rect/>` vs `<rect></rect>` の直列化と `-b transparent` の style 属性のみ |
+| **Edge 153 headless `--dump-dom` + mermaid.min.js 11.16.0**（PoC。Edge 非常駐時） | 35/37 成功（失敗 2 本は mermaid-cli でも失敗する図）。37 図 1 起動 **1.8〜2.4 秒**、1 図 1.1 秒。基準 SVG と **viewBox・座標が全 35 図で一致**。差は `<rect/>` vs `<rect></rect>` の直列化と `-b transparent` の style 属性のみ |
+| 同上、Edge 常駐時 | `--dump-dom` の stdout が空（起動プロセスが即終了し別プロセスに引き渡す）→ CDP 方式に変更（§5.2）。ddq の実装（CDP、1 図 1 ページ）で 22 図の幾何が基準と一致（golden テスト） |
 | Edge + Quarto 同梱 mermaid 11.12 | ER のリレーション名が灰色矩形になる、mindmap ラベルに下線、subgraph 内 `direction LR` の解釈が 11.16 と逆 → **同梱版の流用は不可**（決定 7） |
 | **merman 0.8.0-alpha.6 `render --svg-pipeline resvg-safe`** | 36/37 成功（xychart の未クォート `/` を parse error）。約 **50ms/図**。Typst 経由の PDF で基準とほぼ見分けがつかない |
 | merman `mmdc` サブコマンド（parity） | mindmap / ER / block-beta / requirement が `foreignObject` を含み **Typst で文字が消える** → resvg-safe 必須（決定 11） |
@@ -415,29 +433,43 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 ### 12.3 ツール
 
 - `cli/tools/regress.py`（開発用、配布しない）。サブコマンド `capture <baseline|candidate> <docs|manual>` と `compare`。
+  `--builder bat --template <dir>` で旧 template のコピー（`git archive <移行前コミット> template`
+  で取り出し、`node_modules` はジャンクション）を使えるので、**移行後でも同じ原稿から基準を採り直せる**。
   Python 3 + Pillow + pypdf（保守者の環境にある前提。CI では走らせない）。ddq 本体は Rust だが、画像・PDF 比較は Python のほうが手数が少ないため（2026-09-19 合意）。
 - 採取は「キャッシュ削除 → keep-typ 付与 → ビルド → 保存 → keep-typ を戻す」を自動化し、手作業を挟まない。
-- 想定される正当な差分（許容リスト）: SVG 先頭の `<!-- ddq … -->` コメント、SVG の直列化差、HTML 内の生成時刻。これ以外は差分＝要調査。
+- 想定される正当な差分（許容リスト）: SVG 先頭の `<!-- ddq … -->` コメント、SVG の直列化差、HTML 内の生成時刻、
+  **roughjs の乱数線**（mermaid は ER / requirement / flowchart の stadium・cylinder 等を手描き風の乱数パスで描く。
+  同じ mermaid-cli 同士でも一致しない）。SVG の幾何比較は `d` 属性を除いて行い、頁画像の差分は
+  該当箇所を目視で確認する。これ以外は差分＝要調査。
 
 ### 12.4 合格条件
 
-- 層 0〜3 が全部一致（画素差分は 0）。
+- 層 0・1・3 が全部一致。層 2 は画素差分 0（roughjs の乱数線による差だけは目視で同一と確認）。
 - 層 4・5 は許容リスト以外の差分なし。
 - 許容できない差分は、原因が ddq 側なら修正、mermaid の版差（§9 既知差異）なら利用マニュアルの「変更点」に記載して合意のうえで基準を更新する。
+
+### 12.5 結果（2026-09-19、ddq 1.4.0 vs 旧 bat 1.3.0）
+
+| 文書 | 結果 |
+|---|---|
+| `manual/`（105 頁・4 図。ddq 向けに書き換えた原稿を、旧 bat と ddq の両方で作って比較） | **157 / 157 一致**（画素差分 0） |
+| `docs/`（49 頁・22 図） | 132 / 136。NG 4 件はすべて層 2 の頁画像で、ER 図の実体枠・flowchart の stadium/cylinder（roughjs の乱数線）の 14〜2630 px。目視で同一 |
+
+層 1（`index.typ`）は両文書とも差分ゼロ = Lua フィルタの出力は変わっていない。
 
 ---
 
 ## 13. 移行時にやること（実装チェックリスト）
 
-- [ ] **移行前に** §12.1 の基準を `docs/` `manual/` について採取する（現行 bat、1.3.0）
+- [x] **移行前に** §12.1 の基準を `docs/` `manual/` について採取する（現行 bat、1.3.0）
 
-- [ ] `cli/` 作成（Cargo、`.cargo/config.toml` に `+crt-static`、`build.rs`）
-- [ ] `template/vendor/mermaid.min.js` を `node_modules/mermaid/dist/mermaid.min.js`（11.16.0）からコミット
-- [ ] `design-doc.lua` の `render_mermaid()` を `DDQ_BIN` / PATH 探索に差し替え、エラーメッセージを更新
-- [ ] `template/*.bat` `*.sh` `package.json` `package-lock.json` `node_modules` `puppeteer.json` を削除、`.gitignore` の `node_modules/` `puppeteer.json` を整理
-- [ ] `template/release-README.md` `README.md` `ADVANCED.md` `template/PIPELINE.md` §1・§5.1 の手順を `ddq` に書き換え
-- [ ] 利用マニュアル（`manual/`）2・4・11・12・13 章を `ddq` に書き換え。「`quarto preview` の図は発行物と微妙に違い得る」を明記。多文書リポジトリの手順（`add` / `update --all`）を追加
-- [ ] scaffold の `.gitignore` から `node_modules/` `puppeteer.json` の項を外す（残しても害はない）
-- [ ] `.github/workflows/ci.yml` 追加
-- [ ] `cli/tools/regress.py` を作り、§12.2 の比較で合格条件を満たすことを確認（報告を `regress/report/` に残す）
-- [ ] `template/VERSION` → 1.4.0
+- [x] `cli/` 作成（Cargo、`.cargo/config.toml` に `+crt-static`、`build.rs`）
+- [x] `template/vendor/mermaid.min.js` を `node_modules/mermaid/dist/mermaid.min.js`（11.16.0）からコミット
+- [x] `design-doc.lua` の `render_mermaid()` を `DDQ_BIN` / PATH 探索に差し替え、エラーメッセージを更新
+- [x] `template/*.bat` `*.sh` `package.json` `package-lock.json` `node_modules` `puppeteer.json` を削除、`.gitignore` の `node_modules/` `puppeteer.json` を整理
+- [x] `template/release-README.md` `README.md` `ADVANCED.md` `template/PIPELINE.md` §1・§5.1 の手順を `ddq` に書き換え
+- [x] 利用マニュアル（`manual/`）2・4・11・12・13 章を `ddq` に書き換え。「`quarto preview` の図は発行物と微妙に違い得る」を明記。多文書リポジトリの手順（`add` / `update --all`）を追加
+- [x] scaffold の `.gitignore` から `node_modules/` `puppeteer.json` の項を外す（残しても害はない）
+- [x] `.github/workflows/ci.yml` 追加
+- [x] `cli/tools/regress.py` を作り、§12.2 の比較で合格条件を満たすことを確認（報告を `regress/report/` に残す）
+- [x] `template/VERSION` → 1.4.0

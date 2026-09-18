@@ -340,7 +340,8 @@ HTML では div 構造として組み立て直している。
 | ビルド係 | `ddq pdf`（typst/PDF） | 同上 | 同左 |
 
 - **SVG 化はフィルタが `ddq mermaid` を呼んで行う**（`pandoc.pipe`。シェルを介さない）。
-  ddq は既存の Edge → Chrome を headless（`--dump-dom`）で起動し、同梱の
+  ddq は既存の Edge → Chrome を headless で起動し（結果は DevTools プロトコルで取り出す。
+  Edge が常駐していると `--dump-dom` の stdout が届かないため）、同梱の
   `vendor/mermaid.min.js`（11.16.0）で描かせる。mermaid-cli と幾何が一致する
   （`cli/DESIGN.md` §9 実測）。ブラウザが無ければ Rust 製の再実装 merman に落ちる
   （HTML ラベルを出さない resvg-safe パイプライン。見た目はほぼ同じだが文字幅の推定で

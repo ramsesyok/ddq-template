@@ -52,15 +52,18 @@ class Builder:
 
     kind: str  # "bat" | "ddq"
     ddq: Path | None = None
+    # bat のときの template/ の場所。移行後に旧 bat で基準を採り直すときは、
+    # `git archive <移行前のコミット> template` で取り出したコピーを指す（node_modules はジャンクションで可）
+    template: Path = TEMPLATE
 
     def pdf(self, doc: Path) -> list[str]:
         if self.kind == "bat":
-            return [str(TEMPLATE / "build-qmd.bat"), str(doc)]
+            return [str(self.template / "build-qmd.bat"), str(doc)]
         return [str(self.ddq), "pdf", str(doc)]
 
     def html(self, doc: Path) -> list[str]:
         if self.kind == "bat":
-            return [str(TEMPLATE / "build-html.bat"), str(doc)]
+            return [str(self.template / "build-html.bat"), str(doc)]
         return [str(self.ddq), "html", str(doc)]
 
     def env_for_typ(self, doc: Path) -> dict[str, str]:
@@ -71,7 +74,7 @@ class Builder:
         """
         env = dict(os.environ)
         if self.kind == "bat":
-            env["TEMPLATE_ROOT"] = str(TEMPLATE)
+            env["TEMPLATE_ROOT"] = str(self.template)
         else:
             env["DDQ_BIN"] = str(self.ddq)
         return env
@@ -184,9 +187,11 @@ def compare(doc_name: str) -> bool:
 
 
 def compare_mechanism(base: Path, cand: Path) -> list[Finding]:
-    b = json.loads((base / "mechanism.json").read_text(encoding="utf-8"))
+    """候補の執筆フォルダに置かれた機構ファイルが template/ の原本と一致するか（§12.2 層 0）。
+    基準（移行前）の写しとは比べない。移行で機構ファイル自体（design-doc.lua）が変わるため。"""
+    del base
     c = json.loads((cand / "mechanism.json").read_text(encoding="utf-8"))
-    return [Finding("0.mechanism", name, b[name] == c[name]) for name in MECHANISM_FILES]
+    return [Finding("0.mechanism", name, c[name] == sha256(TEMPLATE / name)) for name in MECHANISM_FILES]
 
 
 def compare_text(layer: str, b: Path, c: Path, report: Path, normalize=lambda s: s) -> list[Finding]:
@@ -248,7 +253,7 @@ def compare_pdf_text(b: Path, c: Path, report: Path) -> list[Finding]:
 
 def normalize_html(s: str) -> str:
     """許容する差分（§12.3）を取り除く。"""
-    s = re.sub(r"<!-- ddq [^>]*-->", "", s)  # SVG 先頭の ddq コメント
+    s = re.sub(r"<!-- ddq [^>]*-->\n?", "", s)  # SVG 先頭の ddq コメント
     s = re.sub(r"<(\w+)([^<>]*?)/>", r"<\1\2></\1>", s)  # 自己閉じタグの直列化差
     s = re.sub(r'(<meta name="generator" content=")[^"]*', r"\1", s)
     return s
@@ -262,7 +267,13 @@ def compare_html(base: Path, cand: Path, report: Path) -> list[Finding]:
         side = "candidate" if missing in b_files else "baseline"
         findings.append(Finding("4.html", str(missing), False, f"missing in {side}"))
     for rel in sorted(b_files & c_files):
-        if rel.suffix in (".html", ".json", ".svg", ".css", ".js"):
+        if rel.suffix == ".svg" and rel.name.startswith("mmd-"):
+            # mermaid の SVG は roughjs の乱数線を含むので、テキストではなく幾何で比べる（層 5 と同じ規則）
+            same = svg_geometry((base / rel).read_text(encoding="utf-8")) == svg_geometry(
+                (cand / rel).read_text(encoding="utf-8")
+            )
+            findings.append(Finding("4.html", str(rel), same, "" if same else "幾何が違う"))
+        elif rel.suffix in (".html", ".json", ".svg", ".css", ".js"):
             findings += compare_text("4.html", base / rel, cand / rel, report, normalize_html)
         else:
             findings.append(Finding("4.html", str(rel), sha256(base / rel) == sha256(cand / rel)))
@@ -270,9 +281,12 @@ def compare_html(base: Path, cand: Path, report: Path) -> list[Finding]:
 
 
 def svg_geometry(s: str) -> list[str]:
-    """id を正規化したうえで数値列（幾何）だけを取り出す。直列化の差は無視される。"""
+    """数値列（幾何）だけを取り出す。直列化の差は無視される。
+    path の d 属性は除く: mermaid は ER / requirement / 一部の flowchart で roughjs の
+    手描き風の線を乱数で描くため、同じ mermaid-cli 同士でも一致しない
+    （cli/tests/golden.rs と同じ規則）。"""
     s = re.sub(r"<!-- ddq [^>]*-->", "", s)
-    s = re.sub(r"(my-svg|svg-[\w-]+|mermaid-\d+)", "ID", s)
+    s = re.sub(r'\sd="[^"]*"', "", s)
     return re.findall(r"-?\d+\.?\d*", s)
 
 
@@ -323,6 +337,7 @@ def main() -> int:
     cap.add_argument("doc", choices=["docs", "manual"])
     cap.add_argument("--builder", choices=["bat", "ddq"], required=True)
     cap.add_argument("--ddq", type=Path, help="--builder ddq のときの exe パス")
+    cap.add_argument("--template", type=Path, default=TEMPLATE, help="--builder bat のときの template/（既定はリポジトリの template/）")
 
     cmp = sub.add_parser("compare", help="baseline と candidate を比べる")
     cmp.add_argument("doc", choices=["docs", "manual"])
@@ -331,7 +346,7 @@ def main() -> int:
     if args.cmd == "capture":
         if args.builder == "ddq" and not args.ddq:
             ap.error("--builder ddq には --ddq <exe> が要ります")
-        capture(args.label, args.doc, Builder(args.builder, args.ddq and args.ddq.resolve()))
+        capture(args.label, args.doc, Builder(args.builder, args.ddq and args.ddq.resolve(), args.template.resolve()))
         return 0
     return 0 if compare(args.doc) else 1
 
