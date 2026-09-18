@@ -24,7 +24,7 @@ Chrome / Edge は閉域機に既に入っていることが多い（mermaid の 
 閉域環境では `npm ci` が実行できないため、接続可能な環境であらかじめ導入しておく。
 
 ```bat
-cd C:\tools\quarto-template-1.2.3\template
+cd C:\tools\quarto-template-1.3.0\template
 set "PUPPETEER_SKIP_DOWNLOAD=true"
 npm ci
 ```
