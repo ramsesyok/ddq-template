@@ -22,7 +22,7 @@
 
 ```text
 C:\tools\
-└── quarto-template-1.2.3/     … リリース ZIP を展開したもの（git 共有しない）
+└── quarto-template-1.3.0/     … リリース ZIP を展開したもの（git 共有しない）
     ├── README-release.md      … 発行者向けのはじめかた
     ├── manual/                … 本書の PDF / HTML（執筆者へ配る）
     └── template/              … ここのスクリプトを実行する
@@ -66,7 +66,7 @@ C:\work\
 以降のコマンドは、**展開したフォルダを開いた状態**で実行する。
 
 ```bat
-cd C:\tools\quarto-template-1.2.3
+cd C:\tools\quarto-template-1.3.0
 ```
 
 ::: {.callout-warning}

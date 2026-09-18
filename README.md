@@ -116,7 +116,7 @@ Chrome/Edge が要ります（mermaid-cli は Quarto 同梱の Deno で動くの
 新しい版は別のフォルダに展開されるので、そちらから機構ファイルを入れ直します。
 
 ```bat
-cd C:\tools\quarto-template-1.2.3
+cd C:\tools\quarto-template-1.3.0
 .\template\update-doc.bat C:\work\order-design\docs
 ```
 
