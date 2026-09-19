@@ -1,8 +1,9 @@
 //! サブコマンドの実装。1 コマンド = 1 ファイル、入口は `run(...) -> anyhow::Result<()>`。
 //! 呼び出し関係（cli/DESIGN.md §4）:
 //!   init ──► add ──► update
-//!   html / pdf ──► setup ──► update ──► (quarto render) ──► design-doc.lua ──► ddq mermaid
-//!   release ──► pdf, html（manual に対して）
+//!   html ──► 版・機構の検査 ──► quarto render ──► design-doc.lua ──► ddq mermaid
+//!   pdf  ──► setup（版・機構の検査 + PDF 側配置）─► quarto render ──► design-doc.lua ──► ddq mermaid
+//!   release ──► update, pdf, html（manual に対して）
 
 pub mod add;
 pub mod diagrams;

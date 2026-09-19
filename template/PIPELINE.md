@@ -34,7 +34,7 @@ order-design/     ← 設計書リポジトリ（git 共有。執筆者はこれ
     ├── design-doc.lua, design-doc.css, postprocess-html.js,
     │   mermaid-config.json, .template-version           … 機構（コミットする）
     ├── design-doc.pdf                                   … 中間版（コミットする）
-    └── (setup 後: lib.typ, typst-*.typ, _quarto-publish.yml, _book/ … .gitignore)
+    └── (PDF の setup 後: lib.typ, typst-*.typ, _quarto-publish.yml, _book/ … .gitignore)
 ```
 
 保守者のリポジトリでは `template/` と `cli/` がリポジトリ直下にあり、`docs/`（サンプル）と
@@ -56,9 +56,12 @@ order-design/     ← 設計書リポジトリ（git 共有。執筆者はこれ
   - `update` … 機構ファイル4本＋`.template-version` を執筆フォルダへ置く。
     設計書リポジトリでは**コミット対象**。テンプレート更新の伝播はこれ。
     `--all <repo>` で配下の全執筆フォルダに適用。
-  - `setup` … `update` を呼んだうえで、PDF 用の部品（`lib.typ`／typst partials／
-    `_quarto-publish.yml`）を置く。PDF 用部品は `.gitignore`。`pdf` / `html` が先頭で呼ぶ。
-    旧 setup の「ブラウザ検出 → puppeteer.json」は無い（ddq が変換のたびに探す）。
+  - `setup` … `.template-version` と機構ファイル4本が起動中の `ddq` と一致するか検査し、
+    PDF 用の部品（`lib.typ`／typst partials／`_quarto-publish.yml`）を置く。PDF 用部品は
+    `.gitignore`。`pdf` が先頭で呼ぶ。`html` も同じ検査を行うが、PDF 用部品は置かない。
+    版・内容が違う場合は追跡対象を暗黙更新せず停止する。発行者が `update` を明示的に実行し、
+    差分を確認してコミットする。旧 setup の「ブラウザ検出 → puppeteer.json」は無い
+    （ddq が変換のたびに探す）。
   - `add` … 執筆フォルダの雛形（`scaffold/content`）を展開し、`update` を呼び、
     最後に HTML を1回ビルドして検証する。既存ファイルは上書きしない。
   - `init` … リポジトリ直下（`scaffold/repo`）を置いてから `add`。
@@ -115,6 +118,9 @@ cd C:\tools\quarto-template-2.0.0
 .\ddq pdf    C:\work\order-design\docs   # → <執筆フォルダ>/design-doc.pdf
 .\ddq html   C:\work\order-design\docs   # → <執筆フォルダ>/_book/index.html
 ```
+
+`pdf` / `html` は、執筆フォルダの `.template-version` と機構ファイルが `ddq` と一致しなければ
+停止する。別版へ更新するときは、発行者が先に `ddq update` を実行して差分をコミットする。
 
 `pdf` / `html` はどちらも執筆フォルダの `_book/` を出力先に使い、**後から走ったほうが前の
 出力を消す**。そのため `ddq pdf` は PDF を `<執筆フォルダ>/design-doc.pdf` に
@@ -220,7 +226,8 @@ title / subtitle / author / doc-number / company / toc …
 **必ず再ビルドして PDF を目視確認する。** ページ単位で見るなら（ルートから）:
 
 ```
-cli\target\release\ddq.exe setup <執筆フォルダのパス>   # lib.typ・partials を配置
+cli\target\release\ddq.exe update <執筆フォルダのパス>  # 機構を明示的に反映
+cli\target\release\ddq.exe setup <執筆フォルダのパス>   # 検査後、lib.typ・partials を配置
 cd <執筆フォルダ>
 quarto render --to typst --profile publish -M keep-typ:true
 typst compile index.typ "chk-{n}.png" --format png --font-path "C:/Windows/Fonts" --ppi 70
@@ -242,7 +249,8 @@ typst compile index.typ "chk-{n}.png" --format png --font-path "C:/Windows/Fonts
 破綻する（実測: 本文のみ 288ページで 2.1MB、図1枚あたり約110KB）。
 
 book にすると、閲覧者が1ページで読むのは **約25KB**、共通アセットは
-`site_libs/` に1回だけ置かれ、全文検索（`search.json`）も自動で付く。
+`site_libs/` に1回だけ置かれ、全文検索（`search.json`）も自動で付く。ただし、
+ブラウザの制限により全文検索は HTTP サーバから開いたときだけ使える。
 
 ### 4.2 図表番号を後処理で直す理由
 

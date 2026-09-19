@@ -4,7 +4,7 @@
 #  本テンプレート自身の使い方を、本テンプレートで書いた文書。
 #  構成の規約は docs/ のサンプルと同じ（1ファイル = 1章、章の中は include で分割）。
 #  様式・変換の実体は template/（ddq に埋め込まれる原本）にある（このフォルダ直下の
-#  design-doc.lua 等は setup が置く写し。詳細は docs/_quarto.yml の先頭コメントと
+#  design-doc.lua 等は update が置く写し。詳細は docs/_quarto.yml の先頭コメントと
 #  template/PIPELINE.md）。
 #
 #  ビルドはリポジトリのルートから:

@@ -16,7 +16,7 @@ use walkdir::WalkDir;
 
 use crate::{
     assets,
-    commands::{html, pdf},
+    commands::{html, pdf, update},
     quarto, zip_archive,
 };
 
@@ -54,6 +54,9 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     let manual = repo.join("manual");
     if !no_build {
         println!("  利用マニュアルをビルド（PDF → HTML）...");
+        // release は保守者が現在の exe を配る操作なので、同梱マニュアルも同じ版へ
+        // 明示的に更新する。通常の pdf / html は追跡対象を暗黙更新しない。
+        update::run(&manual)?;
         pdf::run(&manual)?;
         html::run(&manual)?;
     }

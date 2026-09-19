@@ -63,7 +63,7 @@ quarto-template/                 … このリポジトリ（保守者が持つ�
 
 | ファイル | 配布 | 置く人 |
 |---|:---:|---|
-| `design-doc.lua` / `design-doc.css` / `postprocess-html.js` / `mermaid-config.json` | ○ | `ddq init` / `ddq add` / `ddq update` / ビルド時の `setup` |
+| `design-doc.lua` / `design-doc.css` / `postprocess-html.js` / `mermaid-config.json` | ○ | `ddq init` / `ddq add` / `ddq update` |
 | `.template-version`（`VERSION` の写し） | ○ | 同上 |
 | `lib.typ` / `typst-template.typ` / `typst-show.typ` / `_quarto-publish.yml` | × | `setup`（PDF を出すときだけ。`.gitignore`） |
 
@@ -185,8 +185,8 @@ gh release create v2.0.0 "release/quarto-template-2.0.0.zip" \
 
 様式・変換を直したら、次の順で確認します。手順の詳細は利用マニュアル17章にあります。
 
-1. `cli/` で `cargo build --release` して exe に埋め込み直し、`ddq setup` を再実行して
-   執筆フォルダへ反映する（忘れると古い写しのまま検証してしまう）
+1. `cli/` で `cargo build --release` して exe に埋め込み直し、`ddq update` を再実行して
+   執筆フォルダへ反映する（忘れると版・内容の不一致としてビルドが停止する）
 2. サンプル文書（`docs/`）で PDF・HTML の両方を出し、体裁を確認する
 3. 本書（`manual/`）でも出力を確認する（記法の網羅度が高く、退行を見つけやすい）
 4. `postprocess-html.js` を直したときは、同じ `_book/` に2回続けて流しても結果が
