@@ -29,12 +29,20 @@ if ROOT == '' then ROOT = _norm(os.getenv('QUARTO_PROJECT_DIR')) end
 if ROOT == '' then ROOT = '.' end
 local DDQ = os.getenv('DDQ_BIN')
 if DDQ == nil or DDQ == '' then DDQ = 'ddq' end
--- **パスに ASCII 以外の文字を使えない（Windows）**
--- 執筆フォルダのパスに日本語が入っていると、Quarto から Lua フィルタへ渡る時点で
--- 文字が U+FFFD に置換されて届く（実測。quarto.project.directory・環境変数のいずれも）。
--- フィルタ側では復元できないため、SVG 化（ddq mermaid）の経路は成立しない。
--- 執筆フォルダ名・その上のフォルダ名は ASCII にすること（例: docs / design-doc）。
-local ROOT_ASCII = (ROOT:find('[\128-\255]') == nil and ROOT:find('\239\191\189') == nil)
+-- **Windows では ROOT が ANSI コードページ（日本語環境なら CP932）のバイト列で届く**
+-- quarto.project.directory も環境変数も Pandoc の Lua（C の getenv）を経由するため、
+-- UTF-8 ではなく ANSI コードページに変換された状態で渡る（実測）。一方 Quarto は
+-- io.open などを「UTF-8 → ANSI」変換つきでラップしているので、そのまま渡すと二重変換
+-- になり `cannot encode character` で失敗する。UTF-8 として不正なら QUARTO_WIN_CODEPAGE
+--（Quarto が渡す）で UTF-8 に戻し、以後は UTF-8 で統一する。
+-- ANSI コードページに無い文字（絵文字・U+301C 波ダッシュ・é など）は getenv の時点で
+-- '?' に潰れて復元できないが、それらは Quarto 自身の io.open ラップも扱えないので
+-- テンプレート側では救わない（利用マニュアル 2 章「パスに使える文字」）。
+if pandoc.system.os == 'mingw32' and utf8.len(ROOT) == nil then
+  local cp = 'CP' .. (os.getenv('QUARTO_WIN_CODEPAGE') or '1252')
+  local ok, decoded = pcall(pandoc.text.fromencoding, ROOT, cp)
+  if ok then ROOT = decoded end
+end
 local DIAG = ROOT .. '/diagrams'
 
 -- SVG の実体は DIAG（絶対パス）に置くが、AST に載せるパスは章ファイルからの
@@ -73,11 +81,6 @@ local function mermaid_conf_path()
 end
 
 local function render_mermaid(code)
-  if not ROOT_ASCII then
-    error('執筆フォルダのパスに ASCII 以外の文字（日本語など）が含まれています:\n  ' ..
-      ROOT .. '\n  Windows では文字が壊れた状態でフィルタに渡るため、mermaid を' ..
-      'SVG 化できません。\n  フォルダ名を ASCII（例 docs / design-doc）にしてください。')
-  end
   local hash = pandoc.utils.sha1(code):sub(1, 8)
   local svg = DIAG .. '/mmd-' .. hash .. '.svg'
   local rel = diag_rel() .. '/mmd-' .. hash .. '.svg'

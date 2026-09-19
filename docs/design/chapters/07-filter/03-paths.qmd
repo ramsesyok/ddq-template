@@ -25,11 +25,22 @@ book プロジェクトでは、フィルタ実行時の CWD が**「いま処�
   `../` を使うと Windows で `chapters\01-overview/../../` とバックスラッシュ結合され、
   Typst 0.15 以降が拒否する（Quarto 同梱の 0.14.2 は通るので気付きにくい）。
 
-### パスは ASCII のみ
+### パスの文字コード（Windows）
 
-Windows では、執筆フォルダのパスに日本語が含まれると、Quarto から Lua フィルタへ渡る時点で
-**文字が U+FFFD に置換されて届く**（実測。`quarto.project.directory`・環境変数のいずれも同じ）。
-フィルタ側では復元できず、mermaid の SVG 化が成立しない。
+Windows では、`quarto.project.directory` も環境変数も Pandoc の Lua（C の `getenv`）を
+経由するため、**UTF-8 ではなく ANSI コードページ（日本語環境なら CP932）のバイト列**で
+フィルタに届く（実測。`pandoc.system.get_working_directory()` だけは UTF-8）。一方 Quarto は
+`io.open` などを「UTF-8 → ANSI」変換つきでラップしているので、届いたバイト列をそのまま
+渡すと二重変換になり `cannot encode character '\65533'` で失敗する。これが「日本語パスで
+mermaid の SVG 化が失敗する」の正体で、Quarto 自体は日本語パスを扱える。
 
-そのため、配置ツール（作成・追加・PDF・HTML）と `design-doc.lua` の**両方**で検出して
-止めている。執筆フォルダ名・その上のフォルダ名は ASCII にすること（例: `docs` / `design-doc`）。
+そこで `design-doc.lua` は `ROOT` が UTF-8 として不正なら
+`pandoc.text.fromencoding(ROOT, 'CP' .. QUARTO_WIN_CODEPAGE)` で UTF-8 に戻し、以後は
+UTF-8 で統一する。`pandoc.pipe` の引数・`make_directory`・Typst の画像解決はいずれも
+UTF-8 のパスをそのまま扱える。
+
+**救えない文字**: ANSI コードページに無い文字（絵文字・波ダッシュ `〜` U+301C・`é` など）は
+`getenv` の時点で `?` に潰れて復元できず、Quarto 自身の `io.open` ラップも同じ文字で失敗する。
+そのため配置ツール（作成・追加・PDF・HTML）が `WideCharToMultiByte(CP_ACP,
+WC_NO_BEST_FIT_CHARS)` で検出し、該当文字を示して止める（`writing_folder::ensure_encodable`）。
+Windows 以外はパスが UTF-8 のまま渡るので制限しない。

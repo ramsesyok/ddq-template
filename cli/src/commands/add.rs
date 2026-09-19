@@ -12,7 +12,7 @@ use crate::{assets, commands::update, quarto, writing_folder};
 
 pub fn run(dir: &Path, no_render: bool) -> Result<()> {
     let dir = writing_folder::absolute(dir)?;
-    writing_folder::ensure_ascii(&dir)?;
+    writing_folder::ensure_encodable(&dir)?;
 
     let repo = dir
         .parent()

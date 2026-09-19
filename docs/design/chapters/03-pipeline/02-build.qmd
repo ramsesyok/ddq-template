@@ -39,7 +39,7 @@ mermaid はブラウザ内で描画され、ベクター SVG 化は行われな�
 - **CWD 基準で解決されるのは引数側だけ**である。執筆フォルダ／設計書リポジトリのパスは
   絶対パスで渡すのが安全。PDF・HTML・準備・更新は `_quarto.yml` の有無を確認してから
   動くためパス誤りは即エラーになるが、作成は「無いものを作る」ので検出できない。
-- **パスは ASCII のみ**（@sec-filter-paths）。
+- **パスは CP932 に無い文字を含まない**（日本語は可。@sec-filter-paths）。
 - Typst の `@preview` パッケージ（`lib.typ` が callout アイコンに使う `fontawesome`）は
   Quarto 本体が同梱しており、render のたびに `<執筆フォルダ>/.quarto/typst/packages` へ
   展開して `--package-cache-path` で渡す。したがって**閉域（オフライン）環境でも追加作業は
