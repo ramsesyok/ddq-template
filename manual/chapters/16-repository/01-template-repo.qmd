@@ -8,6 +8,7 @@ quarto-template/
 ├── .gitattributes           … 改行コードの固定（機構ファイル=LF）
 ├── .vscode/settings.json    … サンプル設定（日本語を等幅にする）
 ├── .github/workflows/ci.yml … ddq の CI（fmt / clippy / test / build）
+├── .github/workflows/extension.yml … VSCode 拡張の CI
 │
 ├── docs/                     … サンプル（受注管理システム。記法の実例・様式の検証用）
 ├── manual/                   … 本書の原稿（執筆フォルダの一つ）
@@ -27,9 +28,14 @@ quarto-template/
 │   ├── scaffold/             … 設計書リポジトリの雛形
 │   └── release-guide.typ     … リリース直下に置く「はじめかた」スライドの原稿（ddq release が PDF にする）
 │
-└── cli/                      … ddq（Rust）。上の template/ を埋め込んだ実行ファイルを作る
-    ├── DESIGN.md             … ddq の設計書（決定事項・根拠・検証手順）
-    ├── src/                  … init / add / update / setup / html / pdf / diagrams / release
-    ├── tests/                … golden テスト（mermaid の幾何一致）・コマンドのテスト
-    └── tools/regress.py      … 移行前後で PDF / HTML が変わらないことの確認
+├── cli/                      … ddq（Rust）。上の template/ を埋め込んだ実行ファイルを作る
+│   ├── DESIGN.md             … ddq の設計書（決定事項・根拠・検証手順）
+│   ├── src/                  … init / add / update / setup / html / pdf / diagrams / release
+│   ├── tests/                … golden テスト（mermaid の幾何一致）・コマンドのテスト
+│   └── tools/regress.py      … 移行前後で PDF / HTML が変わらないことの確認
+│
+└── extension/                … VSCode 拡張 ddq-table-editor（.tbl の視覚編集。TypeScript + React）
+    ├── README.md             … 使い方・開発・デバッグ
+    ├── package.json          … 拡張の定義（version は template/VERSION と揃える）
+    └── src/                  … ddq release が npm でパッケージし、リリース一式に VSIX を同梱する
 ```

@@ -1,0 +1,361 @@
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  padding: 12px;
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.loading {
+  padding: 16px;
+  opacity: 0.7;
+}
+
+/* --- ツールバー --- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbar-group.right {
+  margin-left: auto;
+}
+
+.toolbar-label {
+  opacity: 0.75;
+  font-size: 0.9em;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button:disabled:hover {
+  background: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, 0.2));
+}
+
+button {
+  padding: 4px 10px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 3px;
+  background: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, 0.2));
+  color: var(--vscode-button-secondaryForeground, inherit);
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+button:hover {
+  background: var(--vscode-button-secondaryHoverBackground, rgba(128, 128, 128, 0.35));
+}
+
+button.primary {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+button.primary:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.4));
+  border-radius: 3px;
+  padding: 3px 5px;
+}
+
+input:disabled,
+select:disabled {
+  opacity: 0.5;
+}
+
+input.invalid {
+  border-color: var(--vscode-inputValidation-errorBorder, #d33);
+}
+
+label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  font-size: 0.9em;
+}
+
+.hint {
+  opacity: 0.75;
+  font-size: 0.9em;
+}
+
+.hint.error {
+  color: var(--vscode-inputValidation-errorForeground, #d33);
+  opacity: 1;
+}
+
+.message {
+  padding: 6px 10px;
+  border-left: 3px solid var(--vscode-focusBorder, #4a9);
+  background: var(--vscode-textBlockQuote-background, rgba(128, 128, 128, 0.12));
+  white-space: pre-wrap;
+}
+
+/* --- 属性欄 --- */
+
+.attributes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.attributes input[type='text'] {
+  min-width: 180px;
+}
+
+.attributes .checkbox {
+  gap: 4px;
+}
+
+/* --- 表 --- */
+
+.grid-wrap {
+  /* 編集用 textarea をセルの上に絶対配置する基準 */
+  position: relative;
+  overflow-x: auto;
+}
+
+table.grid {
+  border-collapse: collapse;
+  /* 右下のフィルハンドルがはみ出す分だけ余白を取り、横スクロールバーが出ないようにする */
+  margin: 0 4px 4px 0;
+  min-width: calc(100% - 4px);
+}
+
+table.grid td,
+table.grid th {
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.5));
+  padding: 4px 8px;
+  vertical-align: top;
+  min-width: 80px;
+  cursor: cell;
+}
+
+table.grid td {
+  /* フィルハンドルの配置基準 */
+  position: relative;
+}
+
+/*
+ * Shift+クリックの範囲選択やセルをまたぐドラッグで、ブラウザ標準のテキスト選択が
+ * 青く塗られるのを止める。列幅・揃えのヘッダ行は対象外（入力欄が使いにくくなる）。
+ * 文字を選びたいときは編集モードに入る（textarea は下で選択可に戻している）。
+ */
+table.grid td {
+  user-select: none;
+}
+
+table.grid tr.col-controls th {
+  border: none;
+  padding: 2px 4px;
+  cursor: default;
+}
+
+.width-input {
+  width: 52px;
+}
+
+.align-select {
+  width: 62px;
+  margin-left: 4px;
+}
+
+table.grid td.is-header {
+  background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.15));
+  font-weight: 600;
+}
+
+/* 結合セルの印。右下の小さな三角。％指定の gradient だとセルの大きさで伸びるので固定幅で描く */
+table.grid td.is-merged::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  border-style: solid;
+  border-width: 0 0 6px 6px;
+  border-color: transparent transparent var(--vscode-focusBorder, #4a9) transparent;
+  pointer-events: none;
+}
+
+table.grid td.selected {
+  background-color: var(--vscode-editor-selectionBackground, rgba(80, 140, 220, 0.3));
+}
+
+/* アクティブセル（キー操作の起点）は枠で示す */
+table.grid td.active {
+  outline: 2px solid var(--vscode-focusBorder, #4a9);
+  outline-offset: -2px;
+}
+
+/* 選択の右下の■。ドラッグで範囲を広げる（Excel のフィルハンドルと同じ見た目） */
+.fill-handle {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--vscode-editor-background, #fff);
+  background: var(--vscode-focusBorder, #4a9);
+  cursor: crosshair;
+  z-index: 1;
+}
+
+/*
+ * 編集用の textarea。選択中は 1px の透明な要素としてアクティブセルの位置にあり、
+ * キー入力を受ける。編集中はセルの上に広げて表示する。位置と大きさは GridView が設定する。
+ */
+.cell-editor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin: 0;
+  padding: 4px 8px;
+  border: 2px solid var(--vscode-focusBorder, #4a9);
+  border-radius: 0;
+  box-sizing: border-box;
+  /* 下のセル本文が透けないように、必ず不透明な背景を持たせる */
+  background: var(--vscode-input-background, var(--vscode-editor-background, #fff));
+  /* 高さは行数に合わせて GridView が設定する。手で掴んで変えられると次の入力で戻る */
+  resize: none;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+  line-height: inherit;
+  /* セルの user-select: none を打ち消す（編集中は普通に選択・コピーできる） */
+  user-select: text;
+}
+
+.cell-editor.editing {
+  opacity: 1;
+  pointer-events: auto;
+  min-height: 1.5em;
+}
+
+/* --- 右クリックメニュー --- */
+
+.context-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 180px;
+  padding: 4px 0;
+  border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border, rgba(128, 128, 128, 0.5)));
+  border-radius: 4px;
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background, #fff));
+  color: var(--vscode-menu-foreground, inherit);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.context-menu-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.context-menu-item:hover:not(:disabled) {
+  background: var(--vscode-menu-selectionBackground, rgba(128, 128, 128, 0.25));
+  color: var(--vscode-menu-selectionForeground, inherit);
+}
+
+.context-menu-item:disabled:hover {
+  background: transparent;
+}
+
+.context-menu-shortcut {
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+
+.context-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--vscode-menu-separatorBackground, rgba(128, 128, 128, 0.35));
+}
+
+.cell-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.cell-line {
+  display: block;
+  min-height: 1em;
+  /* 入れ子リストの字下げが見えるように行頭の空白を潰さない */
+  white-space: pre-wrap;
+}
+
+/* --- プレビュー --- */
+
+.preview {
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  border-radius: 3px;
+}
+
+.preview-title {
+  padding: 4px 8px;
+  background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.15));
+  font-size: 0.9em;
+}
+
+.preview pre {
+  margin: 0;
+  padding: 8px;
+  overflow-x: auto;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.status {
+  opacity: 0.7;
+  font-size: 0.9em;
+}

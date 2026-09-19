@@ -38,7 +38,7 @@ enum Command {
     Pdf(FolderArg),
     /// <執筆フォルダ>/diagrams/*.mmd（手書きの静的図）を同名の .svg に変換する
     Diagrams(FolderArg),
-    /// 発行者向けリリース一式（exe + 利用マニュアル + README）を作る（保守者用）
+    /// 発行者向けリリース一式（exe + 利用マニュアル + README + VSCode 拡張）を作る（保守者用）
     Release(ReleaseArgs),
     /// mermaid ソースを SVG に変換する（design-doc.lua が内部で呼ぶ）
     #[command(hide = true)]
@@ -89,7 +89,7 @@ struct ReleaseArgs {
     /// サンプル文書 docs/ も同梱する
     #[arg(long)]
     with_sample: bool,
-    /// 利用マニュアルのビルドを省略する（manual/ に成果物が残っているとき）
+    /// 利用マニュアルと VSCode 拡張のビルドを省略する（manual/ と extension/ に成果物が残っているとき）
     #[arg(long)]
     no_build: bool,
 }

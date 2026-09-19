@@ -64,3 +64,10 @@ cli/target/
 
 # ==== ddq 移行の回帰確認の採取物（cli/tools/regress.py。作り直せる） ====
 regress/
+
+# ==== VSCode 拡張 ddq-table-editor（extension/）のビルド生成物 ====
+# extension/.gitignore は上の /*/.gitignore 規則で無視されるので、ここに書く。
+# *.vsix はリリース時に ddq release が extension/ に作り、展開フォルダへコピーする。
+extension/node_modules/
+extension/out/
+*.vsix

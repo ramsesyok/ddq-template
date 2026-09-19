@@ -26,6 +26,7 @@ quarto-template/                 … このリポジトリ（保守者が持つ�
 ├── ADVANCED.md                  … このファイル
 ├── .gitignore / .gitattributes / .vscode/settings.json
 ├── .github/workflows/ci.yml     … ddq の CI（fmt / clippy / test / build。windows-latest）
+├── .github/workflows/extension.yml … VSCode 拡張の CI（typecheck / test / build / offline / audit / vsix）
 ├── docs/                        … サンプル（受注管理システム。記法の実例＋様式の検証用）
 ├── manual/                      … 利用マニュアルの原稿（執筆フォルダの一つ）
 ├── cli/                         … ddq（Rust 製 CLI）。template/ を埋め込んだ単一 exe を作る
@@ -33,6 +34,11 @@ quarto-template/                 … このリポジトリ（保守者が持つ�
 │   ├── src/                     … init / add / update / setup / html / pdf / diagrams / release / mermaid
 │   ├── tests/                   … golden テスト（mermaid の幾何一致）・コマンドの配置テスト
 │   └── tools/regress.py         … 移行前後で PDF / HTML が変わらないことの確認（開発用）
+├── extension/                   … VSCode 拡張 ddq-table-editor（.tbl の視覚編集。2.1.0 で旧 quarto-table-support を統合）
+│   ├── README.md / AGENTS.md / requirements.md … 使い方・開発の約束事・仕様
+│   ├── package.json             … 拡張の定義。version は template/VERSION と同じ値にする
+│   ├── src/                     … TypeScript（拡張ホスト + React の Webview）
+│   └── sample/tables.qmd        … F5 で開く動作確認用サンプル
 └── template/                    … 様式・変換の実体（ddq に埋め込まれる原本）
     ├── PIPELINE.md              … 出力経路と様式調整箇所の解説（最初に読む）
     ├── VERSION                  … テンプレートの版（= ddq の版。ddq update が .template-version に書く）
@@ -51,6 +57,10 @@ quarto-template/                 … このリポジトリ（保守者が持つ�
 
 旧来の `template/*.bat` `*.sh` は 2.0.0 で `ddq` のサブコマンドに置き換わりました。
 `template/` を直したら `cli/` で `cargo build --release` して exe に埋め込み直します。
+
+`extension/` は 2.1.0 で別リポジトリ（`quarto-table-support`）から取り込んだ VSCode 拡張です。
+`ddq release` が npm でパッケージし、リリース一式に `ddq-table-editor-<版>.vsix` として同梱します。
+拡張の開発（F5 デバッグ・テスト）は `extension/` を VSCode で開いて行います（`extension/README.md`）。
 
 発行者の手元にはこのリポジトリではなく、**リリース ZIP を展開したフォルダ**が
 置かれます（`quarto-template-<版>/`）。展開したまま使い、中身を取り出しません。
@@ -81,22 +91,34 @@ HTML の図表番号を後処理で直している理由は利用マニュアル
 `ddq --version` もこの値を表示します（`cli/build.rs` がビルド時に埋め込む）。
 
 版を上げたら、**実行例に埋め込まれた版番号も揃えてください。** 展開フォルダ名に版が
-入るため（`cd C:\tools\quarto-template-2.0.0`）、ずれていると発行者が手元のフォルダ名と
+入るため（`cd C:\tools\quarto-template-2.1.0`）、ずれていると発行者が手元のフォルダ名と
 合わない手順を読むことになります。全体で30箇所ほどあります。
 
 ```bat
 :: 旧版が残っていないか確認する（VERSION と一致すること）
 findstr /S /C:"quarto-template-1." README.md ADVANCED.md template\PIPELINE.md manual\chapters\*.qmd
+:: VSIX 名の例（README.md・利用マニュアル 2・3 章）も同様
+findstr /S /C:"ddq-table-editor-" README.md manual\chapters\*.qmd
 ```
 
 「新しい版を受け取ったとき」の説明で使う版番号（現行＋1）も併せてずらします。
+
+**VSCode 拡張の版も同じ値にします。** `extension/package.json` の `version` は
+`template/VERSION` と一致していなければ `ddq release` が止まります（同梱する VSIX の版と
+テンプレートの版を 1 つに揃えるため）。
+
+```bat
+cd extension
+npm version 2.1.0 --no-git-tag-version
+cd ..
+```
 
 ---
 
 ## 3. リリースを作る
 
-発行者へ配る一式は `ddq release` で作ります。マニュアルのビルドから zip 化までを
-1コマンドで行うので、**ビルド順（PDF → HTML）の間違い**や入れ忘れが起きません。
+発行者へ配る一式は `ddq release` で作ります。マニュアルのビルド・VSCode 拡張のパッケージから
+zip 化までを 1コマンドで行うので、**ビルド順（PDF → HTML）の間違い**や入れ忘れが起きません。
 `ddq` 自身がリリースに入るので、先に release ビルドしておきます。
 
 ```bat
@@ -108,13 +130,15 @@ cli\target\release\ddq.exe release
 ```
 
 ビルドには Rust（stable）と MSVC のリンカ（Visual Studio の「C++ によるデスクトップ開発」
-ワークロード）が要ります。配布先には何も要りません（CRT は静的リンク。`cli/DESIGN.md` §7.1）。
+ワークロード）、それに VSCode 拡張のパッケージ用に **Node.js（20 以上）と npm** が要ります
+（`ddq release` が `extension/` で `npm ci` → `npm run package` を実行する）。
+配布先には何も要りません（CRT は静的リンク。`cli/DESIGN.md` §7.1）。
 
 | 引数・オプション | 効果 |
 |---|---|
 | 第1引数 | 出力先フォルダ（既定は `release/`） |
 | `--with-sample` | サンプル文書（`docs/`）も同梱する（原稿と図だけ。生成物は除く）。発行者へ記法の実例を渡したいときに使う |
-| `--no-build` | マニュアルを再ビルドせず、既にある成果物を使う |
+| `--no-build` | マニュアルと VSCode 拡張を再ビルドせず、既にある成果物（`manual/design-doc.pdf`・`manual/_book/`・`extension/ddq-table-editor-<版>.vsix`）を使う |
 
 出力は `release/quarto-template-<版>/`（展開済み）と同名の `.zip` です。
 
@@ -123,6 +147,7 @@ quarto-template-<版>/
 ├── ddq.exe             … 様式・変換・ビルドの実体（template/ 一式を内蔵）
 ├── はじめかた.pdf       … 発行者向けの最初の一歩（展開したらまずこれ。template/release-guide.typ から生成）
 ├── README.md           … テンプレートの概要と作業の流れ
+├── ddq-table-editor-<版>.vsix … VSCode 拡張（.tbl の視覚編集。執筆者へ配る。extension/ から生成）
 └── manual/利用マニュアル.pdf, manual/html/   … 発行者が読む・執筆者へ配る
 ```
 
@@ -149,6 +174,7 @@ quarto-template-<版>/
   欠けていればエラーにして zip を消します。
 - `--no-build` を使うときは、`manual/design-doc.pdf` と `manual/_book/` の**両方**が
   最新であることを確かめてください（片方だけ古いまま同梱される事故を防ぐため）。
+  `extension/ddq-table-editor-<版>.vsix` も同様です（版が違えば無いものとして止まる）。
 - `template/` を直したあと `cargo build` を忘れると、古い機構ファイルを内蔵した exe が
   リリースに入ります。`cargo build` は `template/` の変更を検知して再ビルドしますが、
   実行するのは保守者です。
@@ -161,9 +187,9 @@ quarto-template-<版>/
 （タグの指すコミットと配布物を一致させるため）。
 
 ```bash
-gh release create v2.0.0 "release/quarto-template-2.0.0.zip" \
+gh release create v2.1.0 "release/quarto-template-2.1.0.zip" \
   --target main \
-  --title "v2.0.0 — （変更の要約）" \
+  --title "v2.1.0 — （変更の要約）" \
   --notes-file <リリースノートのファイル>
 ```
 
@@ -174,6 +200,7 @@ gh release create v2.0.0 "release/quarto-template-2.0.0.zip" \
   - 主な変更
   - 既存利用者向けの `ddq update` 手順
   - 互換性（配布される機構ファイル4本に変更があるか）
+  - VSCode 拡張（VSIX）に変更があるか。あれば執筆者に入れ直してもらう（VSIX は自動更新されない）
 
 機構ファイル4本に変更が無い版では、既存の設計書リポジトリで `ddq update` を実行しても
 実質 `.template-version` の更新だけになります。その旨をノートに書くと、発行者が

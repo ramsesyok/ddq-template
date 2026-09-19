@@ -24,10 +24,11 @@
 
 ```text
 C:\tools\
-└── quarto-template-2.0.0/     … リリース ZIP を展開したもの（git 共有しない）
+└── quarto-template-2.1.0/     … リリース ZIP を展開したもの（git 共有しない）
     ├── ddq.exe                … 様式・変換・ビルドの実体（これを実行する）
     ├── はじめかた.pdf          … 発行者向けの最初の一歩（スライド）
     ├── README.md              … テンプレートの概要
+    ├── ddq-table-editor-2.1.0.vsix … VSCode 拡張（表の視覚編集。執筆者へ配る）
     └── manual/                … 本書の PDF / HTML（執筆者へ配る）
 
 C:\work\
@@ -42,7 +43,8 @@ C:\work\
 `C:\tools` と `C:\work` は例であり、場所は自由である（同じ親フォルダに置いてもよい）。
 ただし ASCII のパスにすること（@sec-ascii-path）。
 
-執筆者の手元は設計書リポジトリだけである。
+執筆者の手元は設計書リポジトリだけである（表の視覚編集を使うなら、発行者から
+受け取った `ddq-table-editor-<版>.vsix` を VSCode に入れる。@sec-vscode-table-editor）。
 
 ```text
 <任意の作業フォルダ>/
@@ -69,7 +71,7 @@ C:\work\
 以降のコマンドは、**展開したフォルダを開いた状態**で実行する。
 
 ```bat
-cd C:\tools\quarto-template-2.0.0
+cd C:\tools\quarto-template-2.1.0
 ```
 
 ::: {.callout-warning}
