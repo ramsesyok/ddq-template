@@ -366,7 +366,8 @@ docs/manual の `diagrams/*.mmd` 37 本（flowchart 27、stateDiagram-v2 4、seq
 - browser 系: Edge/Chrome が見つからなければ `skip`（`#[ignore]` ではなく実行時判定でメッセージを出して return）。
   sequenceDiagram は mermaid 既定の `"Open Sans", sans-serif` で文字幅を測るため、日本語の fallback フォントが
   OS ロケールで変わり、基準環境（ja-JP Windows）以外では配置がずれる（GitHub の en-US ランナーで実測）。
-  CI は `DDQ_GOLDEN_LOOSE=1` を設定し、一致しない図は「数値の個数が同じ・viewBox が 15% 以内」の緩い比較にする。
+  CI は `DDQ_GOLDEN_LOOSE=1` を設定し、一致しない図は「数値の個数が同じ・viewBox が 25% 以内」の緩い比較にする
+  （実測: 幅は同じで高さが約 17% 低い = fallback フォントの行高の差）。
   保守者の手元（ja-JP）では厳密一致のまま。
 - merman 系: 常時実行。foreignObject を含まないことをアサート。
 - コマンド系: 一時ディレクトリに `init` → `add` → `update --all` を流し、置かれるファイル一覧と `.template-version` を検証。`quarto` の起動はモック（`quarto.rs` を trait 化）か、PATH に `quarto` があるときだけ実施。
