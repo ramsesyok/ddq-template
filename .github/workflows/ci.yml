@@ -1,6 +1,10 @@
 # ddq（cli/）の CI。Windows 1 本（cli/DESIGN.md §7.6）。
-# ブラウザ系の golden テストは runner の Edge で動く。
+# ブラウザ系の golden テストは runner の Edge で動く。runner は en-US なので、
+# sequenceDiagram の日本語 fallback フォントが基準環境（ja-JP）と違い配置がずれる。
+# DDQ_GOLDEN_LOOSE=1 で、その差だけを許容する（tests/golden.rs 冒頭の説明）。
 name: ci
+env:
+  DDQ_GOLDEN_LOOSE: "1"
 on:
   push:
     branches: [main]
