@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ramsesyok/design-doc-quarto-template",
+    "url": "https://github.com/ramsesyok/quarto-template",
     "directory": "extension"
   },
   "engines": {
