@@ -13,14 +13,22 @@
 //! 同じ経路を通る。
 //!
 //! quarto が PATH に無ければ skip する。CI では `DDQ_E2E=1` で skip を失敗にする。
+//!
+//! 2 つのビルドは直列に走らせる（QUARTO_LOCK）。Quarto は初回起動時にユーザーフォルダへ
+//! deno_std を展開するが、それが 2 プロセスで同時に走ると `remove '...\quarto\deno_std':
+//! The directory is not empty` で片方が落ちる（CI の runner で実測）。
 
 use std::{
     fs,
     path::{Path, PathBuf},
     process::Command,
+    sync::Mutex,
 };
 
 const MERMAID_FENCES_IN_EXAMPLE: usize = 22;
+
+/// quarto を起動するテストを直列化する（冒頭の説明）。
+static QUARTO_LOCK: Mutex<()> = Mutex::new(());
 
 fn examples_docs() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../examples/docs")
@@ -128,6 +136,8 @@ fn count_files(dir: &Path, prefix: &str, ext: &str) -> usize {
 
 /// 執筆フォルダ `dir` で update → pdf → html を走らせ、成果物を検査する。
 fn build_and_check(dir: &Path) {
+    // 片方のテストが panic してもロックは使い回す（poison は無視）
+    let _serial = QUARTO_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let d = dir.to_string_lossy().into_owned();
     assert_ok(&ddq(&["update", &d]), "ddq update");
 
