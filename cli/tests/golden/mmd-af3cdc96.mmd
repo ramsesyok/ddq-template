@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant H as 死活監視
+  participant P as 主系AP
+  participant B as 副系AP
+  participant L as ロードバランサ
+  H->>P: ヘルスチェック
+  P--xH: 応答なし
+  H->>H: 障害と判定（3回連続）
+  H->>L: 主系を切離し
+  H->>B: 副系を昇格
+  L->>B: 以降のリクエストを転送

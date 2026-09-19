@@ -13,15 +13,17 @@
 | HTML の図表番号の振り直し        | `postprocess-html.js`       | Quarto の採番より後段で走る必要がある   |
 | mermaid のテーマ・フォント       | `mermaid-config.json`       | SVG 化とプレビューの共通ソース          |
 | `_quarto.yml` の設定項目の追加   | `typst-show.typ` ＋ `lib.typ` | 引数として渡す                        |
-| 設計書リポジトリの雛形           | `template/scaffold/`        | `init-doc` が展開する                   |
-| リリースの中身・手順             | `template/make-release.*`   | 配布物の構成を変えるときはここ          |
-| 発行者向けのはじめかた           | `template/release-README.md`| リリース直下に置かれる案内              |
+| 設計書リポジトリの雛形           | `template/scaffold/`        | `ddq init` / `ddq add` が展開する       |
+| mermaid 本体の版                 | `template/vendor/mermaid.min.js` | 差し替えたら golden テストで幾何を確認 |
+| コマンドの挙動・リリースの中身   | `cli/src/`                  | 設計は `cli/DESIGN.md`                  |
+| 発行者向けのはじめかた           | `template/release-guide.typ`| リリース直下の `はじめかた.pdf`（Typst のスライド） |
 :::
 
 ::: {.callout-important}
 `design-doc.lua`・`design-doc.css`・`postprocess-html.js`・`mermaid-config.json` は
 **設計書リポジトリへ配布される**（コミットされる）。これらを直したら
-`template/VERSION` を上げ、利用側の発行者に `update-doc` の実行を依頼する。
+`template/VERSION` を上げ、利用側の発行者に `ddq update` の実行を依頼する。
+`template/` の変更はすべて `ddq.exe` に埋め込まれるので、**直したら `cargo build` し直す**。
 :::
 
 様式の調整パラメータは `template/lib.typ` の冒頭「【1】調整パラメータ」に

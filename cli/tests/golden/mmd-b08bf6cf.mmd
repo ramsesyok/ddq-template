@@ -1,0 +1,10 @@
+flowchart LR
+  subgraph oms_net[本システム 10.20.0.0/16]
+    oms[受注管理システム]
+  end
+  acc[(会計システム)]
+  wms[(倉庫管理システム)]
+  pur[(購買システム)]
+  oms -- "日次CSV (FTPS)" --> acc
+  oms -- "リアルタイム (AMQP)" --> wms
+  oms -- "補充依頼 (REST)" --> pur

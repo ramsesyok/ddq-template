@@ -9,13 +9,13 @@
 
 ```bat
 :: 正しい順序
-.\template\build-qmd.bat C:\work\order-design\docs
-.\template\build-html.bat C:\work\order-design\docs
+.\ddq pdf C:\work\order-design\docs
+.\ddq html C:\work\order-design\docs
 ```
 
 ### なぜこの順序なのか
 
-`build-qmd`（PDF）は、生成した PDF を `_book` から
+`ddq pdf` は、生成した PDF を `_book` から
 `<執筆フォルダ>\design-doc.pdf` へ**取り出す**。したがって、あとから HTML を
 作って `_book` が上書きされても、**PDF 本体は残る**。
 
@@ -42,10 +42,10 @@ PDF → HTML の順に作り直せばよい。
 
 ```bat
 @echo off
-cd /d C:\tools\quarto-template-1.3.0
+cd /d C:\tools\quarto-template-2.0.0
 set "DOC=C:\work\order-design\docs"
-call .\template\build-qmd.bat  "%DOC%" || exit /b 1
-call .\template\build-html.bat "%DOC%" || exit /b 1
+.\ddq pdf  "%DOC%" || exit /b 1
+.\ddq html "%DOC%" || exit /b 1
 echo DONE: %DOC%\design-doc.pdf and %DOC%\_book\index.html
 ```
 

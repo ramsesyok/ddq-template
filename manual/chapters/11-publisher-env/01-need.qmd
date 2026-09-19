@@ -1,18 +1,18 @@
 ## 必要なものの整理
 
-::: {.tbl caption="発行者に必要な追加ソフトウェア" label="tbl-pub-need" widths="26,26,48"}
-| 追加するもの        | 必要になる条件           | 用途                              |
-|---------------------|--------------------------|-----------------------------------|
-| `template/` 一式    | 常に                     | 様式・変換・ビルドの実体          |
-| mermaid-cli         | mermaid 図を含む文書のとき | mermaid をベクター SVG に焼き込む |
-| Chrome / Edge       | mermaid 図を含む文書のとき | mermaid の SVG 化（描画エンジン） |
+::: {.tbl caption="出力に必要なもの" label="tbl-pub-need" widths="26,26,48"}
+| 必要なもの          | 必要になる条件             | 用途                                          |
+|---------------------|----------------------------|-----------------------------------------------|
+| Quarto              | 常に                       | 原稿の変換と組版（typst 同梱）                |
+| `ddq.exe`           | 常に                       | 様式・変換・ビルドの実体（リリース一式に同梱）|
+| Edge または Chrome  | mermaid 図を含む文書のとき | mermaid の SVG 化（Windows なら Edge が標準） |
 :::
 
 ::: {.callout-note}
-**発行者の端末にも Node.js は要らない。** mermaid-cli も、図表番号の後処理も、
-Quarto に同梱された実行環境（Deno）で動く。したがって mermaid を使わない文書なら
-**Quarto だけで PDF も配布 HTML も出力できる**。mermaid を使う場合に増えるのは
-mermaid-cli の実体（`template/node_modules`）とブラウザだけである（@sec-mermaid-setup）。
+**追加でインストールするものは無い。** `ddq.exe` は展開したフォルダに置いたまま使う
+（インストーラは無い。単体で動く）。mermaid の変換に使う Edge は Windows 10 / 11 に
+標準搭載されており、Edge も Chrome も無い端末では `ddq` 内蔵のレンダラが代わりに描く
+（@sec-mermaid-setup）。
 :::
 
 自分が扱う文書に mermaid が含まれるかは、原稿を検索すれば分かる。
@@ -21,4 +21,22 @@ mermaid-cli の実体（`template/node_modules`）とブラウザだけである
 findstr /S /M "```mermaid" C:\work\order-design\docs\chapters\*.qmd
 ```
 
-何も表示されなければ mermaid は使われていない。
+何も表示されなければ mermaid は使われておらず、Quarto と `ddq.exe` だけで出力できる。
+
+### `ddq` の呼び方
+
+リリースを展開したフォルダに `cd` してから `.\ddq` と打つのが基本である。
+
+```bat
+cd C:\tools\quarto-template-2.0.0
+.\ddq pdf C:\work\order-design\docs
+```
+
+どこからでも `ddq` と打てるようにしたい場合は、展開したフォルダをユーザの環境変数
+`PATH` に加えてよい（任意）。`ddq --version` でテンプレートの版が表示される。
+
+::: {.callout-tip}
+新しい版のリリースは**別のフォルダ**に展開される（フォルダ名に版が入る）。
+古い版を残したまま新しい版を試せるので、問題があれば元の版に戻せる。
+`PATH` に古い版が入っていても、展開フォルダの `.\ddq` を直接実行すればその版が使われる。
+:::

@@ -14,7 +14,7 @@ cd ..
 
 ### 執筆者の環境で完結する
 
-この方法は **Quarto だけで動く**。node も Chrome / Edge も `template/` も要らない
+この方法は **Quarto だけで動く**。`ddq` も Edge / Chrome も要らない
 （mermaid はブラウザ内で描画される）。
 
 図表番号を「図 3.2-1」形式へ振り直す後処理も、`quarto render` / プレビューのたびに
@@ -22,7 +22,7 @@ cd ..
 **執筆者の HTML は、発行版と同じ番号で表示される**。
 
 ::: {.callout-note}
-発行者が実行する `build-html` は、これと同じ HTML に mermaid のベクター SVG を
+発行者が実行する `ddq html` は、これと同じ HTML に mermaid のベクター SVG を
 焼き込んだものである（12章）。番号・表・レイアウトの見え方は変わらない。
 :::
 

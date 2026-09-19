@@ -1,22 +1,23 @@
 # PDF・HTML の出力 {#sec-build}
 
-本章では、成果物の出力手順と配布方法を述べる。発行者の作業である。
+本章では、成果物の出力手順と配布方法を述べる。発行者の作業だが、`ddq.exe` が
+あれば執筆者も同じ手順で出力できる。
 
 出力は**リリースを展開したフォルダ**から、**執筆フォルダのパスを渡して**実行する。
 
 ```bat
-cd C:\tools\quarto-template-1.3.0
+cd C:\tools\quarto-template-2.0.0
 
 :: PDF（発行版・中間版）→ <執筆フォルダ>\design-doc.pdf
-.\template\build-qmd.bat C:\work\order-design\docs
+.\ddq pdf C:\work\order-design\docs
 
 :: HTML（配布用・章ごとのページ）→ <執筆フォルダ>\_book\index.html
-.\template\build-html.bat C:\work\order-design\docs
+.\ddq html C:\work\order-design\docs
 ```
 
 末尾は執筆フォルダのパスである（省略時は `docs`）。相対パスも使えるが、
 「いま開いているフォルダ」からの相対として解釈されるため、**絶対パスを推奨する**。
-パスを間違えた場合は `_quarto.yml not found` で止まるので、何も壊れない。
+パスを間違えた場合は「_quarto.yml がありません」で止まるので、何も壊れない。
 
 {{< include 01-pdf.qmd >}}
 

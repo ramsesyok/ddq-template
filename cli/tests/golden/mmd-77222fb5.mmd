@@ -1,0 +1,36 @@
+erDiagram
+  顧客 ||--o{ 受注 : "発注する"
+  受注 ||--|{ 受注明細 : "含む"
+  商品 ||--o{ 受注明細 : "対象"
+  商品 ||--|| 在庫 : "在庫を持つ"
+  受注 ||--o{ 出荷指示 : "生成する"
+
+  顧客 {
+    string 顧客ID PK
+    string 顧客名
+  }
+  受注 {
+    bigint 受注ID PK
+    string 顧客ID FK
+    date 受注日
+    string 状態
+  }
+  受注明細 {
+    bigint 受注ID FK
+    int 明細番号
+    string 商品コード FK
+    int 数量
+  }
+  商品 {
+    string 商品コード PK
+    string 商品名
+  }
+  在庫 {
+    string 商品コード PK
+    int 引当可能数
+  }
+  出荷指示 {
+    bigint 出荷指示ID PK
+    bigint 受注ID FK
+    string 状態
+  }

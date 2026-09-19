@@ -1,9 +1,0 @@
-{
-  "name": "design-doc-typst",
-  "version": "1.0.0",
-  "private": true,
-  "description": "設計書テンプレート（Quarto book + Typst）の mermaid 変換用依存",
-  "devDependencies": {
-    "@mermaid-js/mermaid-cli": "^11.16.0"
-  }
-}

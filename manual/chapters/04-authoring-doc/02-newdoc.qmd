@@ -3,19 +3,19 @@
 **この節の作業は発行者が行う。** 執筆者は、できあがった設計書リポジトリを
 clone して書き始めればよい（@sec-place）。
 
-### 設計書リポジトリを作る（init-doc） {#sec-init}
+### 設計書リポジトリを作る（ddq init） {#sec-init}
 
 リリースを展開したフォルダを開き、作成先のパスを**絶対パス**で渡して実行する。
 
 ```bat
-cd C:\tools\quarto-template-1.3.0
-.\template\init-doc.bat C:\work\order-design
+cd C:\tools\quarto-template-2.0.0
+.\ddq init C:\work\order-design
 ```
 
 第2引数で執筆フォルダ名を変えられる（省略時は `docs`）。
 
 ```bat
-.\template\init-doc.bat C:\work\order-design design-doc
+.\ddq init C:\work\order-design design-doc
 ```
 
 親フォルダ（`C:\work`）が無くても、まとめて作られる。
@@ -23,16 +23,17 @@ cd C:\tools\quarto-template-1.3.0
 次のように表示されれば成功である。
 
 ```text
-Creating doc repository: C:\work\order-design  (writing folder: docs)
-  created: C:\work\order-design\.gitignore
-  created: C:\work\order-design\.gitattributes
-  created: C:\work\order-design\.vscode\settings.json
-  created: README.md
-  created: C:\work\order-design\docs\_quarto.yml
+設計書リポジトリを作成: C:\work\order-design（執筆フォルダ: docs）
+  作成: .gitignore
+  作成: .gitattributes
+  作成: settings.json
+  作成: README.md
+執筆フォルダを作成: C:\work\order-design\docs
+  作成: _quarto.yml
   ...
-Updated mechanism files in "C:\work\order-design\docs" (template 1.3.0)
-Rendering HTML once to verify...
-OK -> docs\_book\index.html
+機構ファイルを更新しました: C:\work\order-design\docs（テンプレート 2.0.0）
+疎通確認のため HTML を一度 render します...
+OK -> C:\work\order-design\docs\_book\index.html
 ```
 
 最後に HTML を1回ビルドし、**執筆者が確認できる状態になっているか**をその場で検証する
@@ -40,18 +41,18 @@ OK -> docs\_book\index.html
 
 ::: {.callout-warning}
 作成先のパスは**英数字（ASCII）**にすること。日本語を含むパスでは mermaid 図の
-ベクター化（PDF・配布 HTML）が失敗するため、`init-doc` が検出して止める
+ベクター化（PDF・配布 HTML）が失敗するため、`ddq init` が検出して止める
 （@sec-ascii-path）。
 
 また、作成先は**絶対パス**で渡すこと。相対パスは「いま開いているフォルダ」からの
-相対として解釈される。`init-doc` は無いものを作るコマンドなので、パスを間違えても
+相対として解釈される。`ddq init` は無いものを作るコマンドなので、パスを間違えても
 エラーにならず、意図しない場所にリポジトリができてしまう。表示された
-`Creating doc repository:` の行で、作成先が想定どおりか確認するとよい。
+`設計書リポジトリを作成:` の行で、作成先が想定どおりか確認するとよい。
 :::
 
-#### init-doc が作るもの
+#### ddq init が作るもの
 
-::: {.tbl caption="init-doc が置くファイル" label="tbl-init-files" widths="34,66"}
+::: {.tbl caption="ddq init が置くファイル" label="tbl-init-files" widths="34,66"}
 | 置かれるもの | 役割 |
 |:--|---|
 | `.gitignore` | 生成物と PDF 用の一時ファイルを除外する（中間版 PDF は**除外しない**） |
@@ -201,20 +202,33 @@ PDF では章（`#`）の先頭で自動的にページを改める。`pagebreak
 `{{{< pagebreak >}}}` は値に関係なく効く（@sec-pagebreak）。
 :::
 
-### 1つのリポジトリに文書を増やす
+### 1つのリポジトリに文書を増やす（ddq add） {#sec-add}
 
 同じ設計書リポジトリに別の文書を足すときは、執筆フォルダをもう1つ作る。
-既存の執筆フォルダをコピーし、機構ファイルを配置し直せばよい。
+`ddq add` に**新しい執筆フォルダのパス**を渡すと、雛形と機構ファイルが置かれる
+（リポジトリ直下のファイルには触れない）。
 
 ```bat
-xcopy /E /I C:\work\order-design\docs C:\work\order-design\design-doc2
-.\template\update-doc.bat C:\work\order-design\design-doc2
+.\ddq add C:\work\order-design\design-doc2
 ```
+
+`ddq init` と同じく、最後に HTML を1回ビルドして確認する（`--no-render` で省略）。
+既に `_quarto.yml` があるフォルダには実行できない（既存の文書を壊さないため）。
+`ddq init` していないフォルダ（`.gitignore` が無い）の下にも作れない。
+
+既存の文書の章立てを流用したいときは、`ddq add` のあとで `chapters/` を手でコピーする。
 
 ビルドはフォルダのパスを渡すだけである。
 
 ```bat
-.\template\build-qmd.bat C:\work\order-design\design-doc2
+.\ddq pdf C:\work\order-design\design-doc2
+```
+
+テンプレートを更新するときは、リポジトリのパスを渡せば全部の執筆フォルダを
+まとめて更新できる（@sec-update-doc）。
+
+```bat
+.\ddq update --all C:\work\order-design
 ```
 
 ### 執筆フォルダを改名する
@@ -224,11 +238,11 @@ xcopy /E /I C:\work\order-design\docs C:\work\order-design\design-doc2
 ```bat
 :: 設計書リポジトリ側で改名し、展開フォルダに戻ってビルドする
 cd C:\work\order-design && git mv docs design-doc
-cd C:\tools\quarto-template-1.3.0
-.\template\build-qmd.bat C:\work\order-design\design-doc
+cd C:\tools\quarto-template-2.0.0
+.\ddq pdf C:\work\order-design\design-doc
 ```
 
-`_quarto.yml` は機構ファイルを**同じフォルダ内の相対名**で参照し、ビルドスクリプトは
+`_quarto.yml` は機構ファイルを**同じフォルダ内の相対名**で参照し、`ddq` は
 渡されたパスを基準に動くため、**改名しても設定の書き換えは不要**である。
 
 ::: {.callout-warning}

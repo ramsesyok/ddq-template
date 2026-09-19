@@ -3,7 +3,7 @@
 ::: {.tbl caption="配布と管理の対応" label="tbl-repo-dist" widths="34,20,46"}
 | ファイル | 管理 | 置く人・タイミング |
 |---|---|---|
-| `design-doc.lua`・`design-doc.css`・`postprocess-html.js`・`mermaid-config.json` | ○ | `init-doc`／`update-doc`／ビルド時の `setup` |
+| `design-doc.lua`・`design-doc.css`・`postprocess-html.js`・`mermaid-config.json` | ○ | `ddq init` / `ddq add` / `ddq update` / ビルド時の `setup` |
 | `.template-version` | ○ | 同上（`template/VERSION` の写し） |
 | `design-doc.pdf` | ○ | 発行者が中間版・発行版を作ったとき |
 | `lib.typ`・`typst-template.typ`・`typst-show.typ`・`_quarto-publish.yml` | × | 発行者の `setup`（PDF を出すときだけ） |
@@ -12,5 +12,5 @@
 
 ::: {.callout-note}
 機構ファイルは**コミットされる**ので、執筆者は clone するだけで HTML を出せる。
-テンプレートが更新されたら発行者が `update-doc` で入れ直し、差分をコミットする。
+テンプレートが更新されたら発行者が `ddq update` で入れ直し、差分をコミットする。
 :::

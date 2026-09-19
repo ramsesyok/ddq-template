@@ -1,0 +1,30 @@
+[package]
+name = "ddq"
+description = "設計書テンプレート（Quarto book + Typst）の CLI。bat/sh を統合し、mermaid の SVG 化を内蔵する"
+version = "0.0.0"          # 表示する版は ../template/VERSION（build.rs が DDQ_VERSION に出す）
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive", "wrap_help"] }
+include_dir = "0.7"
+merman = { version = "=0.8.0-alpha.6", default-features = false, features = ["complete-svg"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+walkdir = "2"
+zip = { version = "8", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.56"
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1

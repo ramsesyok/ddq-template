@@ -2,11 +2,10 @@
 --  設計書様式用 Quarto/Pandoc フィルタ（typst 出力用）
 --  執筆者が qmd で使える記法を lib.typ の様式機能に対応付ける:
 --   1) ```mermaid フェンス → 出力先で振る舞いを変える:
---        - PDF(typst) と 配布 HTML(MERMAID_SVG=1) … mermaid-cli で SVG 化して画像に
---          置換（diagrams/ に内容ハッシュでキャッシュ。ブラウザは setup 生成の
---          template/puppeteer.json、または EXECUTABLE_BROWSER の Chrome/Edge）。
---          mermaid-cli は **Quarto 同梱の Deno**（`quarto run`）で走らせるので node は要らない
---        - 執筆者プレビュー HTML(既定) … Quarto 同梱 mermaid でクライアント描画（node 不要）
+--        - PDF(typst) と 配布 HTML(MERMAID_SVG=1) … `ddq mermaid` で SVG 化して画像に
+--          置換（diagrams/ に内容ハッシュでキャッシュ）。ddq は既存の Edge/Chrome を
+--          headless で使い、無ければ内蔵レンダラで描く（cli/DESIGN.md §5）。
+--        - 執筆者プレビュー HTML(既定) … Quarto 同梱 mermaid でクライアント描画（ddq 不要）
 --   2) ::: {.landscape} div → #landscape[...]（横向きページ）
 --   3) ::: {.ipo} div → #ipo(...)（IPO図。最初の見出し = 機能名 / 処理名、
 --      入力/処理/出力（Input/Process/Output 可）の見出しで3列に分割）
@@ -19,27 +18,23 @@
 -- 執筆フォルダ（プロジェクトルート）の絶対パスが要る。環境変数に依存せず自力で
 -- 求めるので、VSCode の Quarto 拡張や素の `quarto render` でもそのまま動く。
 --   ROOT  … 執筆フォルダ（プロジェクトルート）。図の出力先 diagrams/ の親。
---   TMPL  … template/。mermaid-cli（node_modules）・ブラウザ設定の置き場。
--- TMPL は SVG 化（発行者）にだけ要る。執筆者の環境には template/ が無いので、
--- HTML プレビューの経路は TMPL を一切参照しない（mermaid の設定だけは執筆フォルダ
--- 直下の mermaid-config.json を読む。mermaid_conf_path() 参照）。
 -- 解決の優先順位:
 --   ROOT: DOC_ROOT env → quarto.project.directory → QUARTO_PROJECT_DIR env → '.'
---   TMPL: TEMPLATE_ROOT env → ROOT/../template
+-- SVG 化に使う ddq の実行ファイルは DDQ_BIN env（`ddq pdf` / `ddq html` が自分の
+-- パスを渡す）→ PATH 上の `ddq` の順に探す（cli/DESIGN.md §6）。
 local function _norm(p) return (p or ''):gsub('\\', '/'):gsub('/+$', '') end
 local ROOT = _norm(os.getenv('DOC_ROOT'))
 if ROOT == '' then ROOT = _norm(quarto and quarto.project and quarto.project.directory) end
 if ROOT == '' then ROOT = _norm(os.getenv('QUARTO_PROJECT_DIR')) end
 if ROOT == '' then ROOT = '.' end
-local TMPL = _norm(os.getenv('TEMPLATE_ROOT'))
-if TMPL == '' then TMPL = ROOT .. '/../template' end
+local DDQ = os.getenv('DDQ_BIN')
+if DDQ == nil or DDQ == '' then DDQ = 'ddq' end
 -- **パスに ASCII 以外の文字を使えない（Windows）**
 -- 執筆フォルダのパスに日本語が入っていると、Quarto から Lua フィルタへ渡る時点で
 -- 文字が U+FFFD に置換されて届く（実測。quarto.project.directory・環境変数のいずれも）。
--- フィルタ側では復元できないため、SVG 化（mermaid-cli）の経路は成立しない。
+-- フィルタ側では復元できないため、SVG 化（ddq mermaid）の経路は成立しない。
 -- 執筆フォルダ名・その上のフォルダ名は ASCII にすること（例: docs / design-doc）。
 local ROOT_ASCII = (ROOT:find('[\128-\255]') == nil and ROOT:find('\239\191\189') == nil)
-local MMDC = TMPL .. '/node_modules/@mermaid-js/mermaid-cli/src/cli.js'
 local DIAG = ROOT .. '/diagrams'
 
 -- SVG の実体は DIAG（絶対パス）に置くが、AST に載せるパスは章ファイルからの
@@ -67,14 +62,14 @@ local function read_file(p)
 end
 
 -- mermaid の設定（テーマ・htmlLabels・フォント）の単一ソース。
--- 執筆フォルダ直下にあればそれを使い（doc リポジトリには template/ が無いため、
--- 機構ファイルとして配布される）、無ければ template/ のものを使う。
--- SVG 化（mermaid-cli）とプレビューのクライアント描画の**両方**がこれを読むので、
--- 執筆者が見る図と発行版の図の設定が食い違わない。
+-- 執筆フォルダ直下の mermaid-config.json（ddq update が機構ファイルとして置く）。
+-- SVG 化（ddq mermaid）とプレビューのクライアント描画の**両方**がこれを読むので、
+-- 執筆者が見る図と発行版の図の設定が食い違わない。無ければ nil を返し、SVG 化は
+-- ddq に埋め込まれた同じ既定を使い、プレビューは Quarto 既定のまま描く。
 local function mermaid_conf_path()
   local here = ROOT .. '/mermaid-config.json'
   if file_exists(here) then return here end
-  return TMPL .. '/mermaid-config.json'
+  return nil
 end
 
 local function render_mermaid(code)
@@ -90,41 +85,23 @@ local function render_mermaid(code)
   pandoc.system.make_directory(DIAG, true)
   local mmd = DIAG .. '/mmd-' .. hash .. '.mmd'
   local f = assert(io.open(mmd, 'w')); f:write(code); f:close()
-  -- puppeteer 設定（既存 Edge/Chrome を流用。Chromium はダウンロードしない）。
-  -- 優先順位:
-  --   1) EXECUTABLE_BROWSER env があれば、その実行ファイルで一時設定を書く（明示指定）
-  --   2) setup が template/ に書いた puppeteer.json があればそれを使う（拡張・env なし）
-  --   3) どちらも無ければ {}（mmdc 同梱 Chromium を試す。無ければ下でエラー）
-  local pp
-  local browser = os.getenv('EXECUTABLE_BROWSER') or ''
-  if browser ~= '' then
-    pp = DIAG .. '/puppeteer.json'
-    local pf = assert(io.open(pp, 'w'))
-    pf:write('{"executablePath": "' .. browser:gsub('\\', '/') .. '"}')
-    pf:close()
-  elseif file_exists(TMPL .. '/puppeteer.json') then
-    pp = TMPL .. '/puppeteer.json'
-  else
-    pp = DIAG .. '/puppeteer.json'
-    local pf = assert(io.open(pp, 'w')); pf:write('{}'); pf:close()
-  end
-  -- mermaid-cli は **Quarto 同梱の Deno**（`quarto run`）で走らせる。node を入れずに
-  -- 済むので、閉域環境へは node_modules を持ち込むだけで SVG 化できる（実測で node
-  -- 実行時と同一の SVG が出る）。quarto が PATH に無い環境のために、失敗したときだけ
-  -- 従来どおり node でも試す（どちらも無ければ下でエラー）。
-  local args = ' -i "' .. mmd .. '" -o "' .. svg ..
-    '" -b transparent -c "' .. mermaid_conf_path() .. '" -p "' .. pp .. '"'
-  os.execute('quarto run "' .. MMDC .. '"' .. args)
-  if not file_exists(svg) then
-    os.execute('node "' .. MMDC .. '"' .. args)
-  end
-  if not file_exists(svg) then
-    error('mermaid の変換に失敗しました: ' .. mmd ..
-      '\n  1) mermaid-cli はありますか（' .. MMDC .. '）。' ..
-      '\n     無ければ閉域向けリリース（node_modules 同梱版）を使うか、template/ で npm ci してください。' ..
-      '\n  2) ブラウザ設定を確認してください（Chrome/Edge が必要）。' ..
-      '\n     `./template/setup.sh <執筆フォルダのパス>` を実行するか、' ..
-      '\n     EXECUTABLE_BROWSER=<chrome/msedge の実行ファイル> を指定してください。')
+  -- `ddq mermaid` を **シェルを介さず** 起動する（pandoc.pipe）。os.execute だと cmd.exe の
+  -- 引用符の解釈（先頭が " で始まるコマンド行の扱い）に振り回されるため。
+  -- ブラウザの探索（EXECUTABLE_BROWSER → Edge → Chrome）と内蔵レンダラへの
+  -- フォールバックは ddq 側で行うので、ここは入出力と設定を渡すだけでよい。
+  local args = { 'mermaid', '-i', mmd, '-o', svg, '-b', 'transparent' }
+  local conf = mermaid_conf_path()
+  if conf then table.insert(args, '-c'); table.insert(args, conf) end
+  local ok, err = pcall(pandoc.pipe, DDQ, args, '')
+  if not ok or not file_exists(svg) then
+    local detail = ''
+    if type(err) == 'table' and err.output then detail = '\n  ' .. tostring(err.output)
+    elseif err then detail = '\n  ' .. tostring(err) end
+    error('mermaid の変換に失敗しました: ' .. mmd .. detail ..
+      '\n  1) `ddq pdf` / `ddq html` から実行してください（ddq が DDQ_BIN でフィルタに渡ります）。' ..
+      '\n     素の quarto render から SVG 化するときは ddq を PATH に置いてください（探した実行ファイル: ' .. DDQ .. '）。' ..
+      '\n  2) ブラウザ（Edge/Chrome）が使えないときは内蔵レンダラで描きます。' ..
+      '\n     明示するなら EXECUTABLE_BROWSER=<msedge/chrome の実行ファイル> または DDQ_MERMAID_ENGINE=merman。')
   end
   return rel, svg
 end
@@ -211,11 +188,12 @@ local function inject_mermaid_runtime()
     scripts = { base .. 'mermaid.min.js', base .. 'mermaid-init.js' },
     stylesheets = { base .. 'mermaid.css' },
   })
-  -- 発行版（mermaid-cli の SVG）と同じ設定でブラウザにも描かせる。
+  -- 発行版（ddq の SVG）と同じ設定でブラウザにも描かせる。
   -- mermaid-init.js は読み込まれた時点で mermaid.initialize() を呼び、Quarto 既定の
   -- テーマ CSS を当ててしまうので、そのあと（after-body）で同じ設定を渡し直す。
   -- 実際の描画は window の load で走るため、上書き後の設定が効く。
-  local conf = read_file(mermaid_conf_path())
+  local conf_path = mermaid_conf_path()
+  local conf = conf_path and read_file(conf_path)
   if conf then
     quarto.doc.include_text('after-body',
       '<script>\n' ..

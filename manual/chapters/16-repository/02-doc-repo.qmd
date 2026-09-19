@@ -5,7 +5,7 @@ order-design/                 … 名前は文書ごとに決める（ASCII）
 ├── .gitignore
 ├── .gitattributes
 ├── .vscode/settings.json
-├── README.md                 … 執筆者向けの入口（init-doc が置く）
+├── README.md                 … 執筆者向けの入口（ddq init が置く）
 └── docs/                     … 執筆フォルダ（名前は自由）
     ├── _quarto.yml           … book 設定（章の並び・doc-number・post-render）
     ├── index.qmd             … 前付け（採番されない）
@@ -13,7 +13,7 @@ order-design/                 … 名前は文書ごとに決める（ASCII）
     ├── diagrams/             … 静的図と mermaid 生成 SVG のキャッシュ置き場
     ├── design-doc.pdf        … 中間版 PDF（発行者が更新・コミット）
     ├── design-doc.lua        ┐
-    ├── design-doc.css        │ 機構ファイル（コミットする。実体は template/）
+    ├── design-doc.css        │ 機構ファイル（コミットする。原本は ddq に埋め込み）
     ├── postprocess-html.js   │
     ├── mermaid-config.json   ┘
     └── .template-version     … 置かれたテンプレートの版

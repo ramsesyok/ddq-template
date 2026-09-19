@@ -1,0 +1,35 @@
+requirementDiagram
+
+requirement "受注受付" {
+  id: R1
+  text: "営業時間中に受注を取りこぼさない"
+  risk: high
+  verifymethod: test
+}
+
+requirement "引当自動化" {
+  id: R2
+  text: "在庫が確保できる受注は自動で引き当てる"
+  risk: medium
+  verifymethod: test
+}
+
+performanceRequirement "応答性能" {
+  id: R3
+  text: "受注登録の応答時間は2秒以内"
+  risk: medium
+  verifymethod: test
+}
+
+element "受注登録機能" {
+  type: function
+}
+
+element "在庫引当機能" {
+  type: function
+}
+
+"受注登録機能" - satisfies -> "受注受付"
+"受注登録機能" - satisfies -> "応答性能"
+"在庫引当機能" - satisfies -> "引当自動化"
+"引当自動化" - derives -> "受注受付"

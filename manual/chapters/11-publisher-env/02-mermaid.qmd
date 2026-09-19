@@ -1,0 +1,79 @@
+## mermaid を PDF に載せる仕組み {#sec-mermaid-setup}
+
+mermaid 図を含む文書の PDF・配布 HTML では、図を**ベクター SVG に焼き込む**。
+PDF と HTML で図を一致させ、図表番号に載せるためである。この変換は `ddq` が行い、
+**事前の準備は要らない。**
+
+### 描画エンジンは自動で選ばれる
+
+`ddq` は変換のたびに次の順で描画エンジンを決める。
+
+::: {.tbl caption="mermaid 描画エンジンの選択順" label="tbl-mmd-engine" widths="8,30,62"}
+| 順 | エンジン                  | 条件・特徴                                                         |
+|----|---------------------------|--------------------------------------------------------------------|
+| 1  | 環境変数 `EXECUTABLE_BROWSER` のブラウザ | 明示指定。`msedge.exe` / `chrome.exe` のフルパス      |
+| 2  | Edge                      | Windows 標準。レジストリ（App Paths）と既定のインストール先を探す   |
+| 3  | Chrome                    | 同上                                                               |
+| 4  | 内蔵レンダラ（merman）    | ブラウザが無いとき。見た目は 1〜3 とほぼ同じだが完全一致ではない   |
+:::
+
+1〜3 は mermaid 本体（`ddq` に同梱の mermaid.js）をブラウザの headless モードで
+動かすため、**旧来の mermaid-cli と同じ図**が出る。4 は Rust で書き直された別実装で、
+文字幅の推定などにより配置がわずかに変わることがある。
+
+::: {.callout-note}
+ブラウザは headless（画面を出さない）モードで、専用の一時プロファイルを使って起動する。
+普段使いの Edge / Chrome が開いていても干渉しない。
+:::
+
+### どのエンジンで描いたか確認する
+
+生成された SVG（`<執筆フォルダ>/diagrams/mmd-*.svg`）の 1 行目に記録される。
+
+```text
+<!-- ddq 2.0.0 engine=browser mermaid=11.16.0 -->
+```
+
+`engine=merman` なら内蔵レンダラで描かれている。ブラウザが見つからなかったときは、
+ビルドの出力にも `内蔵レンダラ（merman）で変換します` と表示される。
+
+### エンジンを固定する
+
+環境変数で明示できる。Windows のコマンドプロンプトでは `set` してから実行する。
+
+```bat
+:: ブラウザを指定する（見つからないときに使う）
+set "EXECUTABLE_BROWSER=C:\Program Files\Google\Chrome\Application\chrome.exe"
+.\ddq pdf C:\work\order-design\docs
+
+:: 内蔵レンダラを強制する（ブラウザの起動が制限されている端末など）
+set "DDQ_MERMAID_ENGINE=merman"
+.\ddq pdf C:\work\order-design\docs
+```
+
+`DDQ_MERMAID_ENGINE=browser` とするとブラウザ必須になり、無ければエラーで止まる
+（内蔵レンダラに落ちてほしくないときに使う）。
+
+### mermaid の設定は 1 か所
+
+テーマ・フォント・ラベルの描き方は `mermaid-config.json` にまとめてある。
+このファイルは**発行版の SVG 化と執筆者のプレビューの両方**が読むため、
+執筆者が見る図と発行版の図の設定が食い違わない。
+
+::: {.callout-note}
+設定ファイルは執筆フォルダに置かれた写しが使われる（`ddq update` が配置する）。
+様式として変更したいときは `template/mermaid-config.json` を直し、`ddq update` で
+配り直す（@sec-maintainer）。
+:::
+
+### SVG はキャッシュされる
+
+生成された SVG は `<執筆フォルダ>/diagrams/` に**内容ハッシュ名でキャッシュ**され、
+同じ図は再変換されない。
+
+::: {.callout-tip}
+このため、**図を新規に書き足さなければブラウザ無しでも同じ図が出る**。
+古い環境で作った SVG を作り直したいときは `diagrams/mmd-*` を消してからビルドする。
+:::
+
+{{< pagebreak >}}

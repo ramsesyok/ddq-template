@@ -11,5 +11,6 @@
 | `design-doc.css`        | HTML          | HTML の見た目                                               |
 | `postprocess-html.js`   | HTML          | 図表番号を「章.節-連番」に振り直す後処理                    |
 | `mermaid-config.json`   | PDF ＋ HTML   | mermaid の設定（`htmlLabels:false` が必須）                 |
-| `scaffold/`             | ―            | 設計書リポジトリの雛形（`init-doc` が展開）                 |
+| `vendor/mermaid.min.js` | PDF ＋ HTML   | mermaid 本体。`ddq` がブラウザで動かして SVG を得る（版固定） |
+| `scaffold/`             | ―            | 設計書リポジトリの雛形（`ddq init` / `ddq add` が展開）      |
 :::

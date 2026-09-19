@@ -1,0 +1,20 @@
+sequenceDiagram
+  actor C as 顧客
+  participant O as 受注登録
+  participant A as 在庫引当
+  participant S as 出荷指示
+  participant W as 倉庫システム
+  C->>O: 受注入力
+  O->>O: 入力・重複チェック
+  O->>A: 引当要求(受注ID)
+  A->>A: 在庫確認・引当
+  alt 在庫あり
+    A-->>O: 引当成功
+    O->>S: 出荷指示要求
+    S->>W: 出荷指示(AMQP)
+    W-->>S: 受領応答
+    S-->>C: 受注確定通知
+  else 在庫なし
+    A-->>O: 引当不可
+    O-->>C: 取り寄せ案内
+  end

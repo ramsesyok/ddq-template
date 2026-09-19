@@ -1,0 +1,20 @@
+flowchart LR
+  cust([顧客]):::actor
+  ec[ECサイト]:::ext
+  subgraph OMS[受注管理システム 対象範囲]
+    order[受注登録]
+    alloc[在庫引当]
+    ship[出荷指示]
+  end
+  acc[(会計システム)]:::ext
+  wms[(倉庫管理システム)]:::ext
+  pur[(購買システム)]:::ext
+
+  cust --> ec --> order
+  order --> alloc --> ship
+  ship --> wms
+  order -. 売上連携 .-> acc
+  alloc -. 補充依頼 .-> pur
+
+  classDef ext fill:#eef,stroke:#557
+  classDef actor fill:#efe,stroke:#575

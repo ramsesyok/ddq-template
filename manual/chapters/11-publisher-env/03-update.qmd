@@ -1,0 +1,57 @@
+## テンプレートの配置と更新（update / setup） {#sec-update-doc}
+
+設計書リポジトリの中には `template/` が無く、HTML を出すのに要る**機構ファイル**だけが
+置かれている（@sec-doc-repo）。この配置と更新を行うのが発行者である。
+機構ファイルの実体は `ddq.exe` の中に埋め込まれているので、**`ddq` の版がそのまま
+テンプレートの版**である。
+
+### 機構ファイルの更新（update）
+
+保守者から新しいリリースを受け取ったら、設計書リポジトリへ入れ直す。新しいリリースは
+**別のフォルダに展開される**ので、そちらへ移動してから実行する。
+
+```bat
+cd C:\tools\quarto-template-2.0.0
+.\ddq update C:\work\order-design\docs
+```
+
+古い版のフォルダは残しておけるため、問題があれば元の版から `update` を実行し直せば戻せる。
+
+機構ファイル 5 点（`design-doc.lua` / `design-doc.css` / `postprocess-html.js` /
+`mermaid-config.json` / `.template-version`）だけが置き換わる。**原稿には触れない。**
+
+::: {.callout-important}
+**git の差分として出るのでコミットする。** 執筆者は pull するだけで新しい機構になる。
+`<執筆フォルダ>/.template-version` に、どの版で置いたかが記録される。
+:::
+
+リポジトリに執筆フォルダが複数ある場合（@sec-newdoc）は、リポジトリのパスを渡して
+まとめて更新できる。
+
+```bat
+.\ddq update --all C:\work\order-design
+```
+
+### ビルド前の準備（setup）
+
+`setup` は次を行う。**`ddq pdf` / `ddq html` が先頭で自動的に呼ぶ**ので、通常は明示的に
+実行しなくてよい。
+
+1. `update` と同じ機構ファイルの配置
+2. PDF を出すための部品（`lib.typ`・typst の partial・`_quarto-publish.yml`）の配置
+
+```bat
+:: 明示的に実行する場合
+.\ddq setup C:\work\order-design\docs
+```
+
+::: {.callout-note}
+setup が置く PDF 用の部品は生成物であり、設計書リポジトリでは `.gitignore` 済みである。
+**直接編集しても次の setup で上書きされる。**
+様式そのものを変えたい場合は @sec-maintainer を参照すること。
+:::
+
+::: {.callout-tip}
+ビルドが `setup` を呼ぶため、**発行者がビルドした時点で機構ファイルも最新に揃う**。
+そのとき git の差分が出たら、それはテンプレートが更新されていたということである。
+:::

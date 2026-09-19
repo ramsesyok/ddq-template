@@ -1,19 +1,21 @@
 # 発行者の環境構築 {#sec-publisher-env}
 
-本章では、**発行者だけ**に必要な環境設定を述べる。@sec-setup-common （基礎的な環境構築）が
-済んでいることを前提とする。
+本章では、発行版 PDF・配布 HTML・中間版 PDF を出力するために**追加で**必要な準備を
+述べる。@sec-setup-common （基礎的な環境構築）が済んでいることを前提とする。
 
-発行者は、設計書リポジトリを作り、発行版 PDF・配布 HTML・中間版 PDF を出力する
-役割である。**mermaid 図をベクター化する経路にだけ**、Quarto 以外のソフトウェアが
-必要になる。
+出力に要るのは **Quarto と、リリース一式に入っている `ddq.exe`** だけである。
+mermaid 図の SVG 化には Windows に標準搭載の Edge（または Chrome）を使い、
+どちらも無ければ `ddq` に内蔵されたレンダラで描く。**Node.js も npm も要らない。**
+
+::: {.callout-note}
+`ddq.exe` があれば、執筆者も同じ手順で PDF・配布 HTML を出力できる。
+本書で「発行者」と呼ぶのは役割であって、環境の違いではない（@sec-roles）。
+:::
 
 {{< include 01-need.qmd >}}
 
-{{< include 02-node.qmd >}}
+{{< include 02-mermaid.qmd >}}
 
-{{< include 03-mermaid.qmd >}}
+{{< include 03-update.qmd >}}
 
-{{< include 04-update.qmd >}}
-
-{{< include 05-offline.qmd >}}
-
+{{< include 04-offline.qmd >}}

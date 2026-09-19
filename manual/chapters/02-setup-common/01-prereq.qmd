@@ -4,23 +4,24 @@
 
 | 項目 | 内容 |
 |------|------|
-| OS | Windows 10 / 11、macOS、Linux |
+| OS | Windows 10 / 11（執筆だけなら macOS / Linux でも可） |
 | 必須ソフトウェア | Quarto（PDF 生成に使う Typst は同梱） |
 | 推奨エディタ | Visual Studio Code（以下 VSCode） |
 | 権限 | Quarto のインストールに管理者権限が要る場合がある |
 
 本書のコマンド例は Windows のコマンドプロンプト（`cmd`）を基準とする。
-macOS / Linux では拡張子とパス区切りを読み替える。
+出力に使う `ddq.exe` は Windows 用に作られており、発行（PDF・配布 HTML）は Windows で
+行う。執筆（原稿の編集と `quarto preview`）は Quarto さえ動けば macOS / Linux でもできる。
 
-| Windows | macOS / Linux |
-|---------|---------------|
-| `.\template\init-doc.bat C:\work\order-design` | `./template/init-doc.sh ~/work/order-design` |
-| `.\template\update-doc.bat C:\work\order-design\docs` | `./template/update-doc.sh ~/work/order-design/docs` |
-| `.\template\build-qmd.bat C:\work\order-design\docs` | `./template/build-qmd.sh ~/work/order-design/docs` |
-| `.\template\build-html.bat C:\work\order-design\docs` | `./template/build-html.sh ~/work/order-design/docs` |
+| 作業 | コマンド |
+|------|----------|
+| 設計書リポジトリを作る | `.\ddq init C:\work\order-design` |
+| 機構ファイルを更新する | `.\ddq update C:\work\order-design\docs` |
+| PDF を出す | `.\ddq pdf C:\work\order-design\docs` |
+| 配布 HTML を出す | `.\ddq html C:\work\order-design\docs` |
 
 いずれも**リリースを展開したフォルダを開いた状態**で実行する（@sec-place）。
-`.\template\` の部分はそのフォルダからの相対、設計書リポジトリのパスは絶対で書く。
+`.\ddq` はそのフォルダにある実行ファイル、設計書リポジトリのパスは絶対で書く。
 
 ### 共通で入れるものは Quarto だけ
 
@@ -29,12 +30,14 @@ macOS / Linux では拡張子とパス区切りを読み替える。
 同梱されているため、別途インストールする必要はない。TeX / LaTeX も不要である。
 :::
 
-mermaid-cli と Chrome / Edge は**発行者だけ**が必要とする（発行用にmermaid 図を PDF・配布 HTML に焼き込むときに使う）。詳細は  @sec-publisher-env に示す。執筆だけを行う端末には入れなくてよい。mermaid-cli は Quarto 同梱の実行環境で動くため、**Node.js はどの端末にも要らない**（取得の手段としてだけ npm を使う）。
+PDF・配布 HTML の出力にはリリース一式の `ddq.exe` を使う（インストール不要。@sec-publisher-env）。
+mermaid 図の焼き込みには Windows 標準の Edge が使われ、無ければ `ddq` 内蔵のレンダラで描く。
+**Node.js も npm もどの端末にも要らない。**
 
 ### パスに日本語を使わない {#sec-ascii-path}
 
 ::: {.callout-warning}
-設計書リポジトリと `template/` は、**パスに ASCII 以外の文字（日本語など）を含めない
+設計書リポジトリとリリースの展開フォルダは、**パスに ASCII 以外の文字（日本語など）を含めない
 場所**に置くこと。Windows では、パスに日本語が含まれると Quarto から変換フィルタへ
 渡る時点で文字が壊れて届き、mermaid 図のベクター化（PDF・配布 HTML）が失敗する。
 
