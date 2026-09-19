@@ -5,8 +5,7 @@ Word・PowerPoint で書かれた既存の設計書を、このテンプレー�
 
 > **このフォルダはリリース ZIP に同梱しない。**
 > 移行は一回限りの作業であり、配り続ける機構ではないため、`ADVANCED.md` と同じ扱いにする。
-> `template/make-release.sh` は許可リスト方式（`README.md` / `manual/` / `template/`）で
-> 収集するので、追加の除外設定は要らない。
+> `ddq release` は移行支援ツールを収集しないため、追加の除外設定は要らない。
 
 ## 目次
 
@@ -35,7 +34,7 @@ pandoc や Quarto の版が変われば挙動も変わりうる。
 | PyMuPDF (`fitz`) | あり |
 | pdftotext | あり |
 | pdftocairo / mutool / Ghostscript / Inkscape / LibreOffice | **いずれも無し** |
-| テンプレート | 1.1.1 |
+| テンプレート | 2.0.0 |
 
 検証に使った実物は `docs/design-doc.pdf`（本テンプレート製の日本語設計書・48ページ）である。
 
@@ -466,21 +465,23 @@ pandoc も .pptx を読めるが、**発表者ノートを落とし**、図形�
 clone した直後は機構ファイル（`design-doc.lua` ほか）が無いので、先に配る。
 サンプルの `docs/` と同様、本リポジトリでは機構ファイルを追跡していないためである。
 
-```bash
-./template/update-doc.sh migration/docs
+```bat
+.\cli\target\release\ddq.exe update migration\docs
 ```
 
 そのうえで、確認用の HTML（`migration/docs/_book/`）を出す。
 
-```bash
-cd migration/docs && quarto render
+```bat
+cd migration\docs
+quarto render
+cd ..\..
 ```
 
-PDF（`migration/docs/design-doc.pdf`）はテンプレート側から出す。mermaid 図が多いため
-node と Chrome / Edge が要る。
+PDF（`migration/docs/design-doc.pdf`）は `ddq` から出す。mermaid 図は Edge / Chrome で
+SVG 化され、どちらも無ければ内蔵レンダラが使われる。Node.js は要らない。
 
-```bash
-./template/build-qmd.sh migration/docs
+```bat
+.\cli\target\release\ddq.exe pdf migration\docs
 ```
 
 PDF も本リポジトリでは追跡しない（`.gitignore` の方針。サンプルの `docs/` と同じ扱い）。

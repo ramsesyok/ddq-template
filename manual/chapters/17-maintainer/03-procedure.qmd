@@ -25,12 +25,13 @@
    cargo build --release
    ```
 
-4. サンプル文書（`docs/`）で PDF・HTML の両方を出し、体裁を確認する。`ddq pdf` /
-   `ddq html` が先頭で `setup` を呼ぶため、`template/` の変更はこの時点で執筆フォルダへ
-   反映される。
+4. サンプル文書（`docs/`）へ `ddq update` で機構を明示的に反映してから、PDF・HTML の
+   両方を出し、体裁を確認する。
 
    ```bat
+   cli\target\release\ddq.exe update docs
    cli\target\release\ddq.exe pdf docs
+   cli\target\release\ddq.exe html docs
    ```
 
 5. 本書（`manual/`）でも出力を確認する（記法の網羅度が高いため、退行を見つけやすい）。
@@ -50,14 +51,14 @@
    入るので、発行者の手元では新旧のリリースが別フォルダとして並ぶ。
 
 ::: {.callout-warning}
-反映されるのは **`ddq` 経由の場合だけ**である。VSCode の Quarto 拡張や素の
-`quarto render` でプレビューすると `setup` が走らないため、執筆フォルダには古い機構
-ファイルが残ったままになる。この経路で確認するときは先に `setup` を実行すること。
-「直したのに変わらない」ときは、まず `setup` を忘れていないか、次に `cargo build` を
-忘れていないかを疑う。
+`ddq pdf` / `ddq html` は、追跡対象の機構ファイルを暗黙更新しない。版や内容が
+現在の `ddq` と違えば停止するので、テンプレート変更後は先に `update` を実行すること。
+VSCode の Quarto 拡張や素の `quarto render` はこの検査を行わないため、保守時の
+最終確認には使わない。「直したのに変わらない」ときは、まず `update`、次に
+`cargo build` を忘れていないかを疑う。
 
 ```bat
-cli\target\release\ddq.exe setup docs
+cli\target\release\ddq.exe update docs
 ```
 :::
 

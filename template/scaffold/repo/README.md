@@ -44,7 +44,8 @@ quarto preview
 ```
 
 `{{CONTENT_DIR}}/_book/index.html` に静的な HTML 一式が出る（`_book/` は
-生成物なのでコミットしない）。
+生成物なのでコミットしない）。`index.html` を直接開いて本文を読めるが、全文検索は
+HTTP サーバから開いたときだけ使える。
 
 ## 発行版との違い
 

@@ -1,4 +1,4 @@
-//! `ddq pdf` — 発行版 PDF を作る（旧 build-qmd）。
+//! `ddq pdf` — PDF を作る（旧 build-qmd）。
 //!   setup → `quarto render --to typst --profile publish` → `_book/*.pdf` を `design-doc.pdf` に取り出す。
 //! typst の設定は _quarto-publish.yml（setup が置く）にあるので `--profile publish` が要る。
 //! mermaid は design-doc.lua がこの exe（DDQ_BIN）を呼んで SVG に焼く。

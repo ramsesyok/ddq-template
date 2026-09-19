@@ -2,7 +2,7 @@
 #  PDF（発行版）を出すときだけ有効になる設定。
 #
 #  setup が執筆フォルダ直下へ `_quarto-publish.yml` としてコピーし、
-#  build-qmd が `quarto render --to typst --profile publish` で読み込ませる。
+#  ddq pdf が `quarto render --to typst --profile publish` で読み込ませる。
 #
 #  なぜ _quarto.yml に直接書かないのか:
 #    typst の template-partials は「ファイルが実在すること」を render 前に要求する。

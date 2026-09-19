@@ -19,20 +19,21 @@ OK -> C:\work\order-design\docs\design-doc.pdf
 
 ### 何が行われるか
 
-1. `setup` が呼ばれ、機構ファイルと PDF 用の部品（`lib.typ`・typst の partial・
-   `_quarto-publish.yml`）が執筆フォルダへ配置される。
+1. `setup` が呼ばれ、`.template-version` と機構ファイルが `ddq` と一致するか検査される。
+   一致していれば、PDF 用の部品（`lib.typ`・typst の partial・`_quarto-publish.yml`）が
+   執筆フォルダへ配置される。
 2. Quarto が原稿を Typst 形式に変換し、PDF を組版する（`--profile publish`）。
    このとき mermaid 図はベクター SVG に焼き込まれる。
 3. できあがった PDF が `<執筆フォルダ>\design-doc.pdf` に取り出される。
 
 ::: {.callout-important}
-この PDF は**中間版としてリポジトリにコミットする**（`.gitignore` の対象外にしてある）。
-執筆者は改ページ・横向きページ・紙の様式をこの PDF で確認する（5章）。
-発行版も同じ手順で作る。
+同じコマンドで中間版と発行版のどちらも作る。レビュー中にリポジトリへコミットするものを
+**中間版**、承認済みのコミットまたはタグから作って配布するものを**発行版**と呼ぶ。
+ファイル名と内容形式は同じであり、違いは承認状態と配布のタイミングである。
 :::
 
 ::: {.callout-note}
-`ddq pdf` は先頭で `setup` を呼ぶため、単体で実行すれば初期化も済む。
+`ddq pdf` は先頭で `setup` を呼ぶため、単体で実行すれば PDF 用の準備も済む。
 `setup` を明示的に実行する必要はない。
 :::
 
@@ -47,8 +48,8 @@ OK -> C:\work\order-design\docs\design-doc.pdf
 OS にインストールされているフォントではない。
 :::
 
-ビルドは必ず `ddq pdf`（内部で `quarto render` を呼ぶ）か、
-VSCode の Quarto 拡張から行うこと。
+様式付き PDF のビルドは必ず `ddq pdf` を使うこと。VSCode の通常の Render は既定の
+HTML を生成し、PDF 用の `publish` プロファイルを適用しない。
 
 どうしても `typst compile` を直接使って様式を試したいときは、フォントの場所を
 明示する。

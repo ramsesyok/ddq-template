@@ -11,10 +11,10 @@ use crate::{commands::setup, quarto, writing_folder};
 
 pub fn run(dir: &Path) -> Result<()> {
     writing_folder::ensure_ascii(dir)?;
-    setup::run(dir)?;
+    setup::ensure_current(dir)?;
     quarto::render(dir, &["--to", "html"], &[("MERMAID_SVG", "1")])?;
     println!(
-        "OK: {} をブラウザで開いてください",
+        "OK: {}（直接開くと全文検索は使えません）",
         dir.join("_book").join("index.html").display()
     );
     Ok(())

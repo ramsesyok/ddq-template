@@ -30,11 +30,11 @@ enum Command {
     Add(AddArgs),
     /// 執筆フォルダの機構ファイルをこの exe の版に更新する
     Update(UpdateArgs),
-    /// PDF / HTML を作るための機構ファイルと PDF 側ファイルを執筆フォルダに置く（html / pdf が内部で呼ぶ）
+    /// テンプレートの版を検査し、PDF 側ファイルを執筆フォルダに置く（pdf が内部で呼ぶ）
     Setup(FolderArg),
     /// 配布用 HTML を作る（<執筆フォルダ>/_book/。mermaid は SVG に焼く）
     Html(FolderArg),
-    /// 発行版 PDF を作る（<執筆フォルダ>/design-doc.pdf）
+    /// PDF を作る（<執筆フォルダ>/design-doc.pdf）
     Pdf(FolderArg),
     /// <執筆フォルダ>/diagrams/*.mmd（手書きの静的図）を同名の .svg に変換する
     Diagrams(FolderArg),

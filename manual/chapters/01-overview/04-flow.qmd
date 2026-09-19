@@ -19,7 +19,7 @@ flowchart TD
     W[chapters の .qmd を書く] --> P[VSCode でプレビュー<br/>HTML で確認]
     P --> W
   end
-  W --> M[ddq pdf で中間版 PDF を作り<br/>リポジトリにコミット<br/>（発行者、または ddq を持つ執筆者）]
+  W --> M[ddq pdf で中間版 PDF を作り<br/>リポジトリにコミット<br/>（発行者、または同じ版の ddq を持つ執筆者）]
   M --> W
   M --> B[発行者が発行版 PDF・<br/>配布 HTML を出す]
 ```

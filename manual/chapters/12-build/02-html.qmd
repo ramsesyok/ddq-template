@@ -12,12 +12,13 @@ cd C:\tools\quarto-template-2.0.0
 次のように表示されれば成功である。
 
 ```text
-OK: C:\work\order-design\docs\_book\index.html をブラウザで開いてください
+OK: C:\work\order-design\docs\_book\index.html（直接開くと全文検索は使えません）
 ```
 
 ### 何が行われるか
 
-1. `setup` が呼ばれる（PDF と同じ）。
+1. `.template-version` と機構ファイルが、起動した `ddq.exe` と一致するか検査する。
+   一致しなければ、追跡対象を暗黙に書き換えず停止する。
 2. `MERMAID_SVG=1` を設定して Quarto が HTML を生成する。この設定により
    **mermaid が PDF と同じベクター SVG に焼き込まれ**、図が PDF と一致する。
 3. 図表番号を「章.節-連番」形式に振り直す後処理が走る（Quarto の `post-render` に

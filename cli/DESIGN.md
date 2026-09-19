@@ -96,7 +96,7 @@ quarto-template-<版>/
 |---|---|---|
 | `init` / `add` | scaffold（無いものだけ）+ 機構ファイル 4 本 + `.template-version` | コミット |
 | `update` | 機構ファイル 4 本 + `.template-version`（上書き） | コミット |
-| `setup`（`html` / `pdf` が内部で呼ぶ） | `lib.typ` `typst-template.typ` `typst-show.typ` `_quarto-publish.yml`（上書き） | `.gitignore` 済み |
+| `setup`（`pdf` が内部で呼ぶ） | 版・機構ファイルの一致を検査し、`lib.typ` `typst-template.typ` `typst-show.typ` `_quarto-publish.yml` を上書き | `.gitignore` 済み |
 
 `init` 直後の執筆フォルダに `lib.typ` は無い。初めて `ddq pdf` を走らせたときに置かれる。
 
@@ -124,11 +124,11 @@ ddq --version
 
 ```
 init ──► add ──► update
-html ──► setup ──► update
-pdf  ──► setup ──► update
+html ──► 版・機構の一致検査 ──► quarto render
+pdf  ──► setup（版・機構の一致検査 + PDF 側配置）
           └─(quarto render)─► design-doc.lua ──► ddq mermaid
 diagrams ──────────────────────────────────────► mermaid と同じ変換器
-release ──► pdf, html（manual に対して）
+release ──► update, pdf, html（manual に対して）
 ```
 
 ### 各コマンド
@@ -138,11 +138,11 @@ release ──► pdf, html（manual に対して）
 | **init** | 1) リポジトリ直下に `.gitignore` `.gitattributes` `.vscode/settings.json` `README.md`（`{{CONTENT_DIR}}` 置換）を「無いものだけ」置く 2) `add <repo>/<name>` | init-doc |
 | **add** | 前提: 親フォルダに `.gitignore` がある（無ければ「先に `ddq init`」と案内）。拒否: 対象に `_quarto.yml` が既にある。処理: scaffold の content 一式を無いものだけ置く → `update` → `quarto render --to html` で疎通確認（`--no-render` で省略） | （新規） |
 | **update** | 機構ファイル 4 本と `.template-version` を上書き。`--all <repo>` は配下の `_quarto.yml` を持つフォルダを列挙して全部に適用（`_book/` `.quarto/` `node_modules/` は探索しない） | update-doc |
-| **setup** | `update` → PDF 側 4 ファイルを上書き。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
-| **html** | `setup` → `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN`）。出力 `_book/` | build-html |
+| **setup** | `.template-version` と機構ファイル4本が現在の `ddq` と一致するか検査 → PDF 側4ファイルを上書き。不一致時は `update` せず停止。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
+| **html** | 版・機構の一致検査 → `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN`）。出力 `_book/` | build-html |
 | **pdf** | `setup` → `quarto render --to typst --profile publish`（env: `DDQ_BIN`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
 | **diagrams** | `diagrams/*.mmd` → 同名 `.svg`。設定は執筆フォルダ直下の `mermaid-config.json`（無ければ埋め込み） | render-diagrams |
-| **release** | 1) `--no-build` でなければ `pdf` `html` を `manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`README.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`manual/design-doc.pdf` → `利用マニュアル.pdf`、`manual/_book` → `manual/html` 3) `--with-sample` で `docs/` を同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
+| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`README.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`manual/design-doc.pdf` → `利用マニュアル.pdf`、`manual/_book` → `manual/html` 3) `--with-sample` で `docs/` を同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
 
 `TEMPLATE_ROOT`（旧フィルタが `mermaid-config.json` のフォールバック探索に使っていた）は廃止した。

@@ -118,6 +118,39 @@ fn init_then_add_then_update_all() {
     for f in PDF_SIDE {
         assert!(docs.join(f).is_file(), "setup 後に docs/{f} がありません");
     }
+
+    // setup は追跡対象の機構ファイルを暗黙に直さない
+    fs::write(docs.join("design-doc.lua"), "locally modified").unwrap();
+    let out = ddq(&["setup", &docs.to_string_lossy()]);
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("ddq update"));
+    assert_eq!(
+        fs::read_to_string(docs.join("design-doc.lua")).unwrap(),
+        "locally modified"
+    );
+
+    // update を明示すれば再び setup できる
+    assert_ok(&ddq(&["update", &docs.to_string_lossy()]));
+    assert_ok(&ddq(&["setup", &docs.to_string_lossy()]));
+}
+
+#[test]
+fn setup_rejects_different_template_version() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("order-design");
+    assert_ok(&ddq(&["init", &repo.to_string_lossy(), "--no-render"]));
+    let docs = repo.join("docs");
+    fs::write(docs.join(".template-version"), "0.0.0\n").unwrap();
+
+    let out = ddq(&["setup", &docs.to_string_lossy()]);
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("テンプレートの版が一致しません"));
+    assert!(stderr.contains("ddq update"));
+    assert_eq!(
+        fs::read_to_string(docs.join(".template-version")).unwrap(),
+        "0.0.0\n"
+    );
 }
 
 #[test]

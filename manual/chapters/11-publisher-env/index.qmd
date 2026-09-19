@@ -8,7 +8,7 @@ mermaid 図の SVG 化には Windows に標準搭載の Edge（または Chrome�
 どちらも無ければ `ddq` に内蔵されたレンダラで描く。**Node.js も npm も要らない。**
 
 ::: {.callout-note}
-`ddq.exe` があれば、執筆者も同じ手順で PDF・配布 HTML を出力できる。
+設計書と同じ版の `ddq.exe` があれば、執筆者も同じ手順で PDF・配布 HTML を出力できる。
 本書で「発行者」と呼ぶのは役割であって、環境の違いではない（@sec-roles）。
 :::
 
