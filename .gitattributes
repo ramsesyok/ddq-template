@@ -12,3 +12,8 @@
 *.css text eol=lf
 *.json text eol=lf
 VERSION text eol=lf
+# VSCode 拡張（extension/）のソース。CI は Ubuntu でも走るので LF に揃える。
+*.ts text eol=lf
+*.tsx text eol=lf
+*.mts text eol=lf
+*.mjs text eol=lf

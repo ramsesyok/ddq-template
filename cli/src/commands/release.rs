@@ -3,8 +3,11 @@
 //!
 //! 作るもの（cli/DESIGN.md §3.2）:
 //!   <out-dir>/quarto-template-<版>/      ddq.exe / はじめかた.pdf / README.md / manual/
+//!                                        / ddq-table-editor-<版>.vsix（VSCode 拡張）
 //!   <out-dir>/quarto-template-<版>.zip
 //! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
+//! VSCode 拡張は extension/ を npm でパッケージして同梱する（2.1.0 から）。版は
+//! extension/package.json の version で、template/VERSION と一致していなければ止める。
 
 use std::{
     env, fs,
@@ -32,6 +35,10 @@ const SAMPLE_EXCLUDE_FILES: [&str; 6] = [
 ];
 /// 同上。mermaid のキャッシュ（diagrams/mmd-*）。配布 HTML の _book/ 内にある分は必要なので除かない。
 const SAMPLE_EXCLUDE_PREFIXES: [&str; 1] = ["mmd-"];
+
+/// VSCode 拡張（.tbl の視覚編集）。リポジトリ内のフォルダ名と、package.json の name（= VSIX 名の先頭）
+const EXTENSION_DIR: &str = "extension";
+const EXTENSION_NAME: &str = "ddq-table-editor";
 
 pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<()> {
     let repo = env::current_dir().context("カレントディレクトリを取得できません")?;
@@ -68,6 +75,9 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         );
     }
 
+    // 1b) VSCode 拡張（VSIX）。マニュアルと同じく --no-build なら既にあるものを使う
+    let vsix = build_extension(&repo.join(EXTENSION_DIR), no_build)?;
+
     // 2) 集める（毎回作り直す）
     if stage.exists() {
         fs::remove_dir_all(&stage).with_context(|| format!("{} を消せません", stage.display()))?;
@@ -82,6 +92,8 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
     fs::copy(&manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
     copy_tree(&manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
+    let vsix_name = vsix.file_name().context("VSIX のファイル名")?;
+    fs::copy(&vsix, stage.join(vsix_name)).context("VSIX をコピーできません")?;
     if with_sample {
         copy_tree(
             &repo.join("docs"),
@@ -104,8 +116,9 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     println!("  フォルダ: {}", stage.display());
     println!("  zip     : {}（{count} ファイル）", zip_path.display());
     println!(
-        "  内容: {} / はじめかた.pdf / README / manual（PDF + HTML）{}",
+        "  内容: {} / はじめかた.pdf / README / manual（PDF + HTML）/ {}{}",
         exe_name.display(),
+        vsix_name.to_string_lossy(),
         if with_sample {
             " / docs（サンプル）"
         } else {
@@ -113,6 +126,70 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         }
     );
     Ok(())
+}
+
+/// VSCode 拡張（extension/）をパッケージし、できた VSIX のパスを返す。
+///
+/// - `extension/package.json` の version が template/VERSION と違えば止める
+///   （拡張の版はテンプレートの版に揃える。ADVANCED.md §2）
+/// - `no_build` でなければ `npm ci`（node_modules が無いときだけ）→ `npm run package`
+/// - どちらの場合も `extension/<name>-<版>.vsix` が無ければエラー
+fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {
+    let package_json = ext.join("package.json");
+    let text = fs::read_to_string(&package_json)
+        .with_context(|| format!("{} を読めません", package_json.display()))?;
+    let meta: serde_json::Value = serde_json::from_str(&text)
+        .with_context(|| format!("{} を JSON として読めません", package_json.display()))?;
+    let name = meta["name"].as_str().unwrap_or_default();
+    let version = meta["version"].as_str().unwrap_or_default();
+    if name != EXTENSION_NAME {
+        bail!(
+            "{} の name が {EXTENSION_NAME} ではありません: {name}",
+            package_json.display()
+        );
+    }
+    if version != assets::VERSION {
+        bail!(
+            concat!(
+                "VSCode 拡張の版がテンプレートの版と違います: {} の version = {}, template/VERSION = {}\n",
+                "extension/ で `npm version {} --no-git-tag-version` を実行して揃えてください"
+            ),
+            package_json.display(),
+            version,
+            assets::VERSION,
+            assets::VERSION
+        );
+    }
+
+    let vsix = ext.join(format!("{EXTENSION_NAME}-{}.vsix", assets::VERSION));
+    if !no_build {
+        println!("  VSCode 拡張をパッケージ（npm run package）...");
+        if !ext.join("node_modules").is_dir() {
+            quarto::run(npm(ext).arg("ci"), "npm ci（extension/）")?;
+        }
+        quarto::run(npm(ext).args(["run", "package"]), "npm run package（extension/）")?;
+    }
+    if !vsix.is_file() {
+        bail!(
+            "{} がありません（--no-build を外すか、extension/ で npm run package を実行してください）",
+            vsix.display()
+        );
+    }
+    Ok(vsix)
+}
+
+/// `npm` を extension/ で起動するコマンド。Windows の npm は npm.cmd なので cmd 経由で呼ぶ
+/// （`Command::new("npm")` は .cmd を解決しない）。
+fn npm(dir: &Path) -> std::process::Command {
+    let mut cmd = if cfg!(windows) {
+        let mut c = std::process::Command::new("cmd");
+        c.args(["/C", "npm"]);
+        c
+    } else {
+        std::process::Command::new("npm")
+    };
+    cmd.current_dir(dir);
+    cmd
 }
 
 /// 埋め込みの release-guide.typ を Quarto 同梱の Typst で PDF にする（はじめかたスライド）。

@@ -5,7 +5,7 @@ mermaid → SVG 変換を内蔵する。保守者向けの最低限の設計書�
 利用手順は利用マニュアル（`manual/`）、様式・変換の内部は [template/PIPELINE.md](../template/PIPELINE.md)。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
-- 対象版: テンプレート 2.0.0
+- 対象版: テンプレート 2.1.0
 
 ---
 
@@ -70,7 +70,10 @@ quarto-template/
 │   ├── scaffold/{repo,content}/
 │   └── vendor/mermaid.min.js    … 新規（11.16.0）
 ├── docs/ manual/                … 従来どおり
-└── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release
+├── extension/                   … VSCode 拡張 ddq-table-editor（2.1.0 で旧 quarto-table-support を統合。
+│                                   ddq release が npm でパッケージして VSIX を同梱する）
+├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release
+└── .github/workflows/extension.yml … 拡張の CI（Ubuntu / Windows × Node 20 / 22）
 ```
 
 削除: `template/*.bat` `template/*.sh` `template/package.json` `template/package-lock.json` `template/node_modules/` `template/puppeteer.json`。
@@ -83,12 +86,19 @@ quarto-template-<版>/
 ├── README.md            … リポジトリの README
 ├── はじめかた.pdf        … 最初の一歩（template/release-guide.typ を Quarto 同梱の Typst で PDF に。
 │                            Marp は npm 依存なので使わない）
+├── ddq-table-editor-<版>.vsix … VSCode 拡張（2.1.0 から。extension/ を `npm run package` したもの）
 └── manual/
     ├── 利用マニュアル.pdf
     └── html/index.html
 ```
 
 `template/` は release に**含めない**（すべて exe に埋め込まれている）。
+
+VSIX は `ddq release` が `extension/` で `npm ci`（`node_modules/` が無いときだけ）→
+`npm run package` を実行して作る（`--no-build` なら既存の VSIX を使う）。
+`extension/package.json` の `version` が `template/VERSION` と違えば止める（拡張の版＝テンプレートの版）。
+発行者・執筆者の端末に Node.js が要らない点は変わらない（要るのは保守者のリリース作成時だけ）。
+Windows の `npm` は `npm.cmd` なので `cmd /C npm …` で起動する（`Command::new("npm")` は .cmd を解決しない）。
 
 ### 3.3 doc リポジトリへの配置（現状維持）
 
@@ -301,6 +311,7 @@ cargo build --release
 target\release\ddq.exe release            # 既定で ..\release\ に出力
 ```
 
+保守者の端末には Rust に加えて Node.js（20 以上）と npm が要る（VSIX のパッケージ。§3.2）。
 `ADVANCED.md` §3 をこの手順に書き換える。
 
 ### 7.6 CI（GitHub Actions, windows-latest）

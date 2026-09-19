@@ -20,9 +20,10 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | 記法の拡張 | `template/design-doc.lua`（Pandoc Lua フィルタ） |
 | 図 | mermaid（文字で書いた図をベクター SVG に） |
 | ビルド・配置の道具 | `ddq.exe`（Rust 製の単一実行ファイル。様式一式を内蔵） |
-| 執筆者に要るもの | Quarto ＋ VSCode の Quarto 拡張だけ |
+| 表の編集 | VSCode 拡張 `ddq-table-editor`（`.tbl` をセル結合つきで視覚的に編集。リリースに VSIX 同梱） |
+| 執筆者に要るもの | Quarto ＋ VSCode の Quarto 拡張だけ（表の編集拡張は任意） |
 
-> **このリポジトリは「様式の実体（`template/` と、それを内蔵する `cli/`）」です。**
+> **このリポジトリは「様式の実体（`template/` と、それを内蔵する `cli/`）と、表の編集拡張（`extension/`）」です。**
 > 設計書そのものは、ここから作る**別のリポジトリ（設計書リポジトリ）**に置きます。
 > 設計書を書く人がこのリポジトリを持つ必要はありません。
 
@@ -42,10 +43,11 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 
 ```
 C:\tools\
-└── quarto-template-2.0.0/   ← リリース ZIP を展開したもの（git 管理外）
+└── quarto-template-2.1.0/   ← リリース ZIP を展開したもの（git 管理外）
     ├── ddq.exe              ← 様式・変換・ビルドの実体（これを実行する。インストール不要）
     ├── はじめかた.pdf        ← 発行者向けの最初の一歩（8 枚のスライド）
     ├── README.md            ← このファイル
+    ├── ddq-table-editor-2.1.0.vsix ← VSCode 拡張（表の視覚編集。執筆者へ配る）
     └── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
 
 C:\work\
@@ -65,6 +67,8 @@ C:\work\
 - **図表の相互参照** — 本文に `@fig-xxx` と書けば「図 3.2-1」に置き換わります。図を増減して
   番号がずれても、本文側は書き直し不要です
 - **表のセル結合** — 大分類・中分類の縦結合を自動化（HTML タグを書く必要はありません）
+- **表の視覚編集** — VSCode 拡張 `ddq-table-editor` で、Excel のようにセルを結合しながら表を組み、
+  `.tbl` ブロックとして書き出せます（Excel からの貼り付け可。完全オフライン）
 - **大きな表のページ分割** — PDF でページをまたぐと、同じ表番号で「（1／3）」と自動で続きます
 - **横向きページ・IPO図** — 縦横の混在も定型ページも用意ずみ
 - **フローチャート**（mermaid）— 文字で書いた図が、そのまま図版になります
@@ -79,7 +83,7 @@ C:\work\
 ### 1. 保守者がリリースを配る
 
 このリポジトリで `ddq release` を実行すると、`quarto-template-<版>.zip`
-（`ddq.exe` ＋利用マニュアルの PDF / HTML）ができます。
+（`ddq.exe` ＋利用マニュアルの PDF / HTML ＋ VSCode 拡張の VSIX）ができます。
 → [ADVANCED.md](ADVANCED.md)（このリポジトリにあります。リリースには同梱しません）
 
 ### 2. 発行者が設計書リポジトリを作る
@@ -87,25 +91,26 @@ C:\work\
 ZIP を展開し、**展開したフォルダで**実行します。
 
 ```bat
-cd C:\tools\quarto-template-2.0.0
+cd C:\tools\quarto-template-2.1.0
 .\ddq init C:\work\order-design
 ```
 
 できた `docs\_quarto.yml` の表題・資料番号・会社名・章立てを整え、`git init` して
-執筆者に共有します（利用マニュアルの PDF も一緒に配ります）。
+執筆者に共有します（利用マニュアルの PDF と `ddq-table-editor-<版>.vsix` も一緒に配ります）。
 → 利用マニュアル 2章・4章
 
 ### 3. 執筆者が原稿を書く
 
 設計書リポジトリを clone し、**Quarto と VSCode の Quarto 拡張だけ**で書きます。
 `Ctrl+Shift+K` のプレビューに、発行版と同じ章番号・図表番号・相互参照が出ます。
-`ddq` も Node.js も要りません。
+`ddq` も Node.js も要りません。表は同梱の VSCode 拡張（VSIX）を入れると、
+セル結合つきで視覚的に編集できます。
 → 利用マニュアル 3章・5章、記法は 6〜10章
 
 ### 4. 発行者が PDF・配布 HTML を出す
 
 ```bat
-cd C:\tools\quarto-template-2.0.0
+cd C:\tools\quarto-template-2.1.0
 .\ddq pdf  C:\work\order-design\docs
 .\ddq html C:\work\order-design\docs
 ```
@@ -126,7 +131,7 @@ Node.js も npm も要りません。
 新しい版は別のフォルダに展開されるので、そちらから機構ファイルを入れ直します。
 
 ```bat
-cd C:\tools\quarto-template-2.0.0
+cd C:\tools\quarto-template-2.1.0
 .\ddq update C:\work\order-design\docs
 ```
 
@@ -149,6 +154,7 @@ cd C:\tools\quarto-template-2.0.0
 | [ADVANCED.md](ADVANCED.md) | リポジトリの構成、版の上げ方、リリースの作り方・配り方。**このリポジトリのみ**（リリースには同梱しません） | 保守者 |
 | [template/PIPELINE.md](template/PIPELINE.md) | 変換の内部と様式の調整箇所 | 保守者 |
 | [cli/DESIGN.md](cli/DESIGN.md) | `ddq` の設計（コマンド・mermaid エンジン・ビルド・検証） | 保守者 |
+| [extension/README.md](extension/README.md) | VSCode 拡張 `ddq-table-editor` の使い方・開発・デバッグ | 執筆者（使い方）・保守者 |
 
 `docs/` はこのリポジトリ同梱の**サンプル**（受注管理システムの基本設計書）です。
 記法の実例と、様式を変更したときの確認用に使います。

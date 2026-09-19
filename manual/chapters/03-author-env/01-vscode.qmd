@@ -61,6 +61,42 @@ VSIX を用意できない場合でも、ターミナルから `quarto render` �
 HTML は出せる（@sec-review）。
 :::
 
+### 表の編集拡張（DDQ Table Editor）を入れる {#sec-vscode-table-editor}
+
+本テンプレートの統一テーブル `::: {.tbl …}`（@sec-table）を、**Excel のようにセルを
+結合しながら視覚的に編集する** VSCode 拡張 `ddq-table-editor` が、リリース一式に
+`ddq-table-editor-<版>.vsix` として同梱されている（テンプレート 2.1.0 から）。
+Marketplace には公開していないので、**発行者から VSIX を受け取って**入れる。
+任意であり、入れなくても表は手で書ける。
+
+1. 発行者からリリース一式の `ddq-table-editor-<版>.vsix` を受け取る
+   （設計書リポジトリの `.template-version` と同じ版のもの）。
+2. VSCode で拡張機能ビューを開き、右上の **「…」→「VSIX からのインストール…」**
+   を選んで VSIX を指定する。コマンドでも入れられる。
+
+```bat
+code --install-extension ddq-table-editor-2.1.0.vsix
+```
+
+使い方は次のとおり。
+
+| 操作 | 方法 |
+|------|------|
+| 表を開く | `.qmd` の表（`::: {.tbl …}` の中、または素のパイプ表・グリッド表）にカーソルを置き、右クリック → **Open Table Editor**（コマンドパレットでは **DDQ Table Editor: Open Table Editor**） |
+| 新規に作る | 表の無い場所で同じコマンドを実行する。カーソル位置に挿入される |
+| セル結合 | 範囲を選んで右クリック → 結合。結合が無ければパイプ表、あればグリッド表（または `merge-cols`）として書き出される |
+| 属性 | `caption` / `label` / `widths` / `.unnumbered` を画面右の欄で編集する |
+| Excel から | 表をコピーして Ctrl+V（TSV として取り込む） |
+| 反映 | **Apply** でドキュメントへ書き戻す |
+
+::: {.callout-note}
+- ネットワーク接続は不要（完全オフラインで動く）。
+- 分割表（@sec-tbl-split）はカーソルのあるパートだけを編集し、パートの区切りと
+  div の属性は変更しない。IPO 図（@sec-ipo）は対象外。
+- VSIX で入れた拡張は自動更新されない。テンプレートの版が上がったら、新しい
+  `ddq-table-editor-<版>.vsix` を受け取って入れ直す。
+:::
+
 ### フォルダを開く
 
 VSCode では**設計書リポジトリのルートフォルダを開く**こと

@@ -111,7 +111,7 @@ order-design/     ← 設計書リポジトリ（git 共有。執筆者はこれ
 
 ```
 :: 発行者が実行する（展開フォルダで cd してから。末尾は執筆フォルダのパス＝絶対推奨）
-cd C:\tools\quarto-template-2.0.0
+cd C:\tools\quarto-template-2.1.0
 .\ddq init   C:\work\order-design        # 設計書リポジトリを新規作成（最初の1回）
 .\ddq add    C:\work\order-design\docs2  # 2 つ目以降の執筆フォルダ
 .\ddq update C:\work\order-design\docs   # 機構ファイルを ddq の版に更新（--all <repo> で全部）
