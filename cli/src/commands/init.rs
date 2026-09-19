@@ -23,7 +23,7 @@ pub fn run(repo: &Path, writing_folder_name: &str, no_render: bool) -> Result<()
         bail!("執筆フォルダ名が不正です: {writing_folder_name}（フォルダ名だけを指定してください）");
     }
     let content_dir = repo.join(writing_folder_name);
-    writing_folder::ensure_ascii(&content_dir)?;
+    writing_folder::ensure_encodable(&content_dir)?;
 
     println!(
         "設計書リポジトリを作成: {}（執筆フォルダ: {}）",

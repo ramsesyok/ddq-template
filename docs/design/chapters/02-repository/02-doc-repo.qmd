@@ -2,7 +2,7 @@
 
 発行者が雛形（`template/scaffold/`）から作り、執筆者が clone するリポジトリである。
 直下のファイルは `scaffold/repo/` から、執筆フォルダの初期内容は `scaffold/content/`
-から置かれる。執筆フォルダは 1 つのリポジトリに複数置ける（名前は自由。ASCII のみ）。
+から置かれる。執筆フォルダは 1 つのリポジトリに複数置ける（名前は自由。日本語可。@sec-filter-paths）。
 
 ```text
 order-design/                 … 設計書リポジトリ（git 共有。執筆者はこれだけ clone する）

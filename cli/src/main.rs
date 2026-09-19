@@ -49,7 +49,7 @@ enum Command {
 struct InitArgs {
     /// 作成するリポジトリのパス（絶対パス推奨。無ければ作る）
     repo_path: PathBuf,
-    /// 執筆フォルダの名前（ASCII のみ）
+    /// 執筆フォルダの名前（日本語可。Windows の ANSI コードページに無い文字は不可）
     #[arg(default_value = "docs")]
     writing_folder_name: String,
     /// 最後の疎通確認（quarto render --to html）を省略する

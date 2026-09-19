@@ -10,7 +10,7 @@ use anyhow::Result;
 use crate::{commands::setup, quarto, writing_folder};
 
 pub fn run(dir: &Path) -> Result<()> {
-    writing_folder::ensure_ascii(dir)?;
+    writing_folder::ensure_encodable(dir)?;
     setup::ensure_current(dir)?;
     quarto::render(dir, &["--to", "html"], &[("MERMAID_SVG", "1")])?;
     println!(

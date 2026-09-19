@@ -162,9 +162,11 @@ release ──► update, pdf, html（manual に対して）
 
 ### 非 ASCII パス
 
-Quarto → Lua フィルタへ渡るパスの非 ASCII 文字が U+FFFD に化ける既知問題（`design-doc.lua` 冒頭のコメント）は残る。
-`init` / `add` / `html` / `pdf` は `quarto` を起動する前に執筆フォルダの絶対パスを検査し、日本語で理由を説明して停止する。
-フィルタ側の検査もそのまま残す。
+Windows では Quarto → Lua フィルタへ渡るパスが ANSI コードページ（CP932）のバイト列になる。日本語はそこに入っているので
+`design-doc.lua` が `pandoc.text.fromencoding` で UTF-8 に戻す（テンプレート設計書 7 章「パスの文字コード」）。
+コードページに無い文字（絵文字・U+301C・é など）は復元できず Quarto 自身も扱えないため、`init` / `add` / `html` / `pdf` は
+`quarto` を起動する前に `writing_folder::ensure_encodable`（`WideCharToMultiByte` + `WC_NO_BEST_FIT_CHARS`）で検査し、
+該当文字を示して停止する。Windows 以外は検査しない。
 
 ### メッセージ
 
@@ -320,6 +322,14 @@ target\release\ddq.exe release            # 既定で ..\release\ に出力
 `cargo fmt --check` → `cargo clippy -- -D warnings` → `cargo test` → `cargo build --release`。
 ブラウザ系テストは runner に Edge があるので動く（無い環境では skip）。
 
+`tests/e2e.rs` は runner に Quarto（`quarto-dev/quarto-actions/setup`、版は手元の検証環境に固定）を
+入れ、examples/docs を ASCII のパスと非 ASCII のパスの 2 つで `ddq update` → `ddq pdf` → `ddq html`
+まで通し、PDF・mermaid の SVG（22 図）・配布 HTML を検査する。`DDQ_E2E=1` で quarto 不在を skip
+ではなく失敗にする。非 ASCII のフォルダ名は実行環境の ANSI コードページで表せるものを選ぶ
+（CP932 / UTF-8 なら `受注管理/設計書/執筆`、en-US の runner は CP1252 なので `Übung café/docs`）。
+runner のロケールは変えられない（`Set-WinSystemLocale` は再起動が要る）ため、日本語パスそのものの
+検査は CP932 の手元で `cargo test` を走らせて行う。
+
 ---
 
 ## 8. コード構成（案）
@@ -332,7 +342,7 @@ cli/src/
 │   ├── html.rs  pdf.rs  diagrams.rs  release.rs
 │   └── mermaid.rs     … hidden サブコマンド（引数→ renderer 呼び出し）
 ├── assets.rs          … include_dir! の窓口（機構ファイル名の定数、書き出し関数）
-├── writing_folder.rs  … 執筆フォルダの検証・列挙（_quarto.yml の有無、非 ASCII 検査）
+├── writing_folder.rs  … 執筆フォルダの検証・列挙（_quarto.yml の有無、コードページで表せない文字の検査）
 ├── quarto.rs          … quarto の起動（env 付与、終了コード → anyhow::Error）
 ├── mermaid/
 │   ├── mod.rs         … Engine 選択と共通インタフェース（Vec<(input, output)> → Result）

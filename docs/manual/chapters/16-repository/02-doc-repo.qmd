@@ -1,7 +1,7 @@
 ## 設計書リポジトリ（発行者・執筆者） {#sec-doc-repo}
 
 ```text
-order-design/                 … 名前は文書ごとに決める（ASCII）
+order-design/                 … 名前は文書ごとに決める（日本語可）
 ├── .gitignore
 ├── .gitattributes
 ├── .vscode/settings.json

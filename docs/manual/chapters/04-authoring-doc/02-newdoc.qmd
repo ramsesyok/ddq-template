@@ -39,10 +39,9 @@ OK -> C:\work\order-design\docs\_book\index.html
 最後に HTML を1回ビルドし、**執筆者が確認できる状態になっているか**をその場で検証する
 （`--no-render` を付けると省略できる）。
 
-::: {.callout-warning}
-作成先のパスは**英数字（ASCII）**にすること。日本語を含むパスでは mermaid 図の
-ベクター化（PDF・配布 HTML）が失敗するため、`ddq init` が検出して止める
-（@sec-ascii-path）。
+::: {.callout-note}
+作成先のパスとフォルダ名は日本語でもよい。絵文字や波ダッシュ `〜`（U+301C）など
+CP932 に無い文字だけは使えず、`ddq init` が検出して止める（@sec-ascii-path）。
 
 また、作成先は**絶対パス**で渡すこと。相対パスは「いま開いているフォルダ」からの
 相対として解釈される。`ddq init` は無いものを作るコマンドなので、パスを間違えても
@@ -245,8 +244,7 @@ cd C:\tools\quarto-template-2.1.0
 `_quarto.yml` は機構ファイルを**同じフォルダ内の相対名**で参照し、`ddq` は
 渡されたパスを基準に動くため、**改名しても設定の書き換えは不要**である。
 
-::: {.callout-warning}
-フォルダ名・パスは**英数字（ASCII）**にすること。日本語のフォルダ名にすると、
-Windows では mermaid 図のベクター化（PDF・配布 HTML）が失敗する
-（@sec-ascii-path）。
+::: {.callout-note}
+フォルダ名は日本語でもよい。CP932 に無い文字（絵文字・波ダッシュ `〜` など）だけは
+使えない（@sec-ascii-path）。
 :::

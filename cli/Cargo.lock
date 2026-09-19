@@ -330,6 +330,7 @@ dependencies = [
  "tempfile",
  "tungstenite",
  "walkdir",
+ "windows-sys",
  "winreg",
  "zip",
 ]
