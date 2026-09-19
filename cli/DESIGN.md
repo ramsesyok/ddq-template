@@ -322,6 +322,14 @@ target\release\ddq.exe release            # 既定で ..\release\ に出力
 `cargo fmt --check` → `cargo clippy -- -D warnings` → `cargo test` → `cargo build --release`。
 ブラウザ系テストは runner に Edge があるので動く（無い環境では skip）。
 
+`tests/e2e.rs` は runner に Quarto（`quarto-dev/quarto-actions/setup`、版は手元の検証環境に固定）を
+入れ、examples/docs を ASCII のパスと非 ASCII のパスの 2 つで `ddq update` → `ddq pdf` → `ddq html`
+まで通し、PDF・mermaid の SVG（22 図）・配布 HTML を検査する。`DDQ_E2E=1` で quarto 不在を skip
+ではなく失敗にする。非 ASCII のフォルダ名は実行環境の ANSI コードページで表せるものを選ぶ
+（CP932 / UTF-8 なら `受注管理/設計書/執筆`、en-US の runner は CP1252 なので `Übung café/docs`）。
+runner のロケールは変えられない（`Set-WinSystemLocale` は再起動が要る）ため、日本語パスそのものの
+検査は CP932 の手元で `cargo test` を走らせて行う。
+
 ---
 
 ## 8. コード構成（案）

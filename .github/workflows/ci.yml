@@ -2,15 +2,20 @@
 # ブラウザ系の golden テストは runner の Edge で動く。runner は en-US なので、
 # sequenceDiagram の日本語 fallback フォントが基準環境（ja-JP）と違い配置がずれる。
 # DDQ_GOLDEN_LOOSE=1 で、その差だけを許容する（tests/golden.rs 冒頭の説明）。
+# PDF / HTML 生成の end-to-end（tests/e2e.rs）は runner に Quarto を入れて走らせる。
+# DDQ_E2E=1 で「quarto が無ければ skip」を失敗にし、検査が黙って素通りしないようにする。
+# runner は en-US（CP1252）なので日本語のパスはそもそも作れず、非 ASCII パスの検査は
+# CP1252 で表せる文字（Übung café）で行う（日本語の検査は CP932 の手元で走る）。
 name: ci
 env:
   DDQ_GOLDEN_LOOSE: "1"
+  DDQ_E2E: "1"
 on:
   push:
     branches: [main]
-    paths: [cli/**, template/**, .github/workflows/ci.yml]
+    paths: [cli/**, template/**, examples/docs/**, .github/workflows/ci.yml]
   pull_request:
-    paths: [cli/**, template/**, .github/workflows/ci.yml]
+    paths: [cli/**, template/**, examples/docs/**, .github/workflows/ci.yml]
 jobs:
   cli:
     runs-on: windows-latest
@@ -25,6 +30,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: cli
+      # 手元の検証環境と同じ版に固定する（利用マニュアル 2 章・migration/README.md 検証環境）
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.9.38
+      - run: quarto --version
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
