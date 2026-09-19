@@ -26,7 +26,7 @@ quarto-template-<版>/ ← リリース ZIP を展開したもの（発行者は
 template/         ← 保守者のリポジトリにある原本（ddq に埋め込まれる）
     ├── lib.typ, typst-template.typ, typst-show.typ, quarto-publish.yml,
     ├── design-doc.lua, design-doc.css, postprocess-html.js, mermaid-config.json,
-    ├── vendor/mermaid.min.js, VERSION, scaffold/, release-README.md
+    ├── vendor/mermaid.min.js, VERSION, scaffold/, release-guide.typ
 
 order-design/     ← 設計書リポジトリ（git 共有。執筆者はこれだけ clone する）
 └── docs/         ← 執筆フォルダ（名前は自由）
@@ -149,7 +149,7 @@ HTML が出て、図表番号の振り直しまで `post-render` が自動で行
 | `VERSION` | tpl | — | テンプレートの版。更新したら上げる | — |
 | `scaffold/` | tpl | — | 設計書リポジトリの雛形（`ddq init` / `ddq add` が展開） | — |
 | `vendor/mermaid.min.js` | tpl | — | mermaid 本体（版固定）。`ddq` がブラウザ経路の変換ページに埋め込む | mermaid |
-| `release-README.md` | tpl | — | リリース直下に置く案内 | — |
+| `release-guide.typ` | tpl | — | リリース直下に置く「はじめかた」スライド（`ddq release` が Quarto 同梱の Typst で PDF にする） | — |
 | `../cli/` | — | — | `ddq`。上の tpl 一式を埋め込み、init / add / update / setup / html / pdf / diagrams / release / mermaid を提供 | — |
 
 ---

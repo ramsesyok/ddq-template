@@ -25,7 +25,7 @@ quarto-template/
 │   ├── mermaid-config.json   … mermaid 設定（htmlLabels:false 必須）
 │   ├── vendor/mermaid.min.js … mermaid 本体（版固定。ブラウザ経路で使う）
 │   ├── scaffold/             … 設計書リポジトリの雛形
-│   └── release-README.md     … リリース直下に置く案内（発行者向け）
+│   └── release-guide.typ     … リリース直下に置く「はじめかた」スライドの原稿（ddq release が PDF にする）
 │
 └── cli/                      … ddq（Rust）。上の template/ を埋め込んだ実行ファイルを作る
     ├── DESIGN.md             … ddq の設計書（決定事項・根拠・検証手順）

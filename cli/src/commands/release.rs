@@ -2,7 +2,7 @@
 //! テンプレートのリポジトリのルートで実行する（template/VERSION と manual/ があること）。
 //!
 //! 作るもの（cli/DESIGN.md §3.2）:
-//!   <out-dir>/quarto-template-<版>/      ddq.exe / README.md / README-release.md / manual/
+//!   <out-dir>/quarto-template-<版>/      ddq.exe / はじめかた.pdf / README.md / manual/
 //!   <out-dir>/quarto-template-<版>.zip
 //! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
 
@@ -76,7 +76,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         .unwrap_or_else(|| "ddq.exe".into());
     fs::copy(quarto::self_exe()?, stage.join(&exe_name)).context("exe をコピーできません")?;
     fs::copy(repo.join("README.md"), stage.join("README.md")).context("README.md をコピーできません")?;
-    fs::write(stage.join("README-release.md"), assets::RELEASE_README)?;
+    build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
     fs::copy(&manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
     copy_tree(&manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
     if with_sample {
@@ -101,7 +101,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     println!("  フォルダ: {}", stage.display());
     println!("  zip     : {}（{count} ファイル）", zip_path.display());
     println!(
-        "  内容: {} / README / manual（PDF + HTML）{}",
+        "  内容: {} / はじめかた.pdf / README / manual（PDF + HTML）{}",
         exe_name.display(),
         if with_sample {
             " / docs（サンプル）"
@@ -109,6 +109,30 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
             ""
         }
     );
+    Ok(())
+}
+
+/// 埋め込みの release-guide.typ を Quarto 同梱の Typst で PDF にする（はじめかたスライド）。
+/// 版番号は `--input version=` で渡す。一時フォルダに .typ を書いてからコンパイルする
+/// （typst はプロジェクトルート外を読めないので `--root` も一時フォルダにする）。
+fn build_release_guide(pdf: &Path) -> Result<()> {
+    let work = tempfile::Builder::new()
+        .prefix("ddq-release-guide-")
+        .tempdir()
+        .context("一時フォルダを作れません")?;
+    let typ = work.path().join("release-guide.typ");
+    fs::write(&typ, assets::RELEASE_GUIDE_TYP)?;
+    let mut cmd = std::process::Command::new("quarto");
+    cmd.arg("typst")
+        .arg("compile")
+        .arg("--root")
+        .arg(work.path())
+        .arg("--input")
+        .arg(format!("version={}", assets::VERSION))
+        .arg(&typ)
+        .arg(pdf);
+    quarto::run(&mut cmd, "はじめかた.pdf の作成（quarto typst compile）")?;
+    println!("  はじめかた.pdf を作成しました");
     Ok(())
 }
 

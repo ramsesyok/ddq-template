@@ -66,7 +66,7 @@ quarto-template/
 │   ├── VERSION / PIPELINE.md
 │   ├── design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json
 │   ├── lib.typ / typst-template.typ / typst-show.typ / quarto-publish.yml
-│   ├── release-README.md
+│   ├── release-guide.typ        … 「はじめかた」スライド（Typst。ddq release が PDF にする）
 │   ├── scaffold/{repo,content}/
 │   └── vendor/mermaid.min.js    … 新規（11.16.0）
 ├── docs/ manual/                … 従来どおり
@@ -81,7 +81,8 @@ quarto-template/
 quarto-template-<版>/
 ├── ddq.exe
 ├── README.md            … リポジトリの README
-├── README-release.md    … 最初の一歩（template/release-README.md）
+├── はじめかた.pdf        … 最初の一歩（template/release-guide.typ を Quarto 同梱の Typst で PDF に。
+│                            Marp は npm 依存なので使わない）
 └── manual/
     ├── 利用マニュアル.pdf
     └── html/index.html
@@ -141,7 +142,7 @@ release ──► pdf, html（manual に対して）
 | **html** | `setup` → `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN`）。出力 `_book/` | build-html |
 | **pdf** | `setup` → `quarto render --to typst --profile publish`（env: `DDQ_BIN`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
 | **diagrams** | `diagrams/*.mmd` → 同名 `.svg`。設定は執筆フォルダ直下の `mermaid-config.json`（無ければ埋め込み） | render-diagrams |
-| **release** | 1) `--no-build` でなければ `pdf` `html` を `manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、README 2 本、`manual/design-doc.pdf` → `利用マニュアル.pdf`、`manual/_book` → `manual/html` 3) `--with-sample` で `docs/` を同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
+| **release** | 1) `--no-build` でなければ `pdf` `html` を `manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`README.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`manual/design-doc.pdf` → `利用マニュアル.pdf`、`manual/_book` → `manual/html` 3) `--with-sample` で `docs/` を同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
 
 `TEMPLATE_ROOT`（旧フィルタが `mermaid-config.json` のフォールバック探索に使っていた）は廃止した。
@@ -467,7 +468,7 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 - [x] `template/vendor/mermaid.min.js` を `node_modules/mermaid/dist/mermaid.min.js`（11.16.0）からコミット
 - [x] `design-doc.lua` の `render_mermaid()` を `DDQ_BIN` / PATH 探索に差し替え、エラーメッセージを更新
 - [x] `template/*.bat` `*.sh` `package.json` `package-lock.json` `node_modules` `puppeteer.json` を削除、`.gitignore` の `node_modules/` `puppeteer.json` を整理
-- [x] `template/release-README.md` `README.md` `ADVANCED.md` `template/PIPELINE.md` §1・§5.1 の手順を `ddq` に書き換え
+- [x] `template/release-README.md`（→ 後に `release-guide.typ` のスライドに置換）`README.md` `ADVANCED.md` `template/PIPELINE.md` §1・§5.1 の手順を `ddq` に書き換え
 - [x] 利用マニュアル（`manual/`）2・4・11・12・13 章を `ddq` に書き換え。「`quarto preview` の図は発行物と微妙に違い得る」を明記。多文書リポジトリの手順（`add` / `update --all`）を追加
 - [x] scaffold の `.gitignore` から `node_modules/` `puppeteer.json` の項を外す（残しても害はない）
 - [x] `.github/workflows/ci.yml` 追加

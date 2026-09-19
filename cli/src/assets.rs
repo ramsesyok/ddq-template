@@ -70,8 +70,10 @@ pub static SCAFFOLD: Dir = include_dir!("$CARGO_MANIFEST_DIR/../template/scaffol
 /// mermaid 本体（版固定。§2 決定 7）。ブラウザ経路の変換ページに埋め込む。
 pub const MERMAID_JS: &str = include_str!("../../template/vendor/mermaid.min.js");
 
-/// リリース一式に入れる「最初の一歩」
-pub const RELEASE_README: &str = include_str!("../../template/release-README.md");
+/// リリース一式に入れる「はじめかた」スライド（Typst。`ddq release` が PDF にする）
+pub const RELEASE_GUIDE_TYP: &str = include_str!("../../template/release-guide.typ");
+/// 上を PDF にしたときのファイル名（リリース直下）
+pub const RELEASE_GUIDE_PDF: &str = "はじめかた.pdf";
 
 /// 埋め込み mermaid.min.js の版（`version:"11.16.0"` を拾う。SVG 先頭コメントに使う）
 pub fn mermaid_js_version() -> &'static str {

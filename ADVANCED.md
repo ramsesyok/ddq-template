@@ -46,7 +46,7 @@ quarto-template/                 … このリポジトリ（保守者が持つ�
     ├── mermaid-config.json      … mermaid 設定（htmlLabels:false 必須）
     ├── vendor/mermaid.min.js    … mermaid 本体（版固定。ddq がブラウザで動かす）
     ├── scaffold/                … 設計書リポジトリの雛形（ddq init / add が配る）
-    └── release-README.md        … リリース直下に置く案内（発行者向けの入口）
+    └── release-guide.typ        … リリース直下に置く「はじめかた」スライドの原稿（ddq release が PDF にする）
 ```
 
 旧来の `template/*.bat` `*.sh` は 1.4.0 で `ddq` のサブコマンドに置き換わりました。
@@ -121,7 +121,7 @@ cli\target\release\ddq.exe release
 ```
 quarto-template-<版>/
 ├── ddq.exe             … 様式・変換・ビルドの実体（template/ 一式を内蔵）
-├── README-release.md   … 発行者向けのはじめかた（展開したらまずこれ）
+├── はじめかた.pdf       … 発行者向けの最初の一歩（展開したらまずこれ。template/release-guide.typ から生成）
 ├── README.md           … テンプレートの概要と作業の流れ
 └── manual/利用マニュアル.pdf, manual/html/   … 発行者が読む・執筆者へ配る
 ```
@@ -139,7 +139,7 @@ quarto-template-<版>/
   `<Quarto>/share/formats/typst/packages/preview/` で確認できる）。
 
 **このファイル（`ADVANCED.md`）は同梱されません。** 保守者専用であり、発行者は
-`README-release.md`・`README.md`・利用マニュアルで足ります。
+`はじめかた.pdf`・`README.md`・利用マニュアルで足ります。
 
 ### 作るときの注意
 

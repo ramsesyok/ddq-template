@@ -25,7 +25,8 @@
 C:\tools\
 └── quarto-template-1.4.0/     … リリース ZIP を展開したもの（git 共有しない）
     ├── ddq.exe                … 様式・変換・ビルドの実体（これを実行する）
-    ├── README-release.md      … 発行者向けのはじめかた
+    ├── はじめかた.pdf          … 発行者向けの最初の一歩（スライド）
+    ├── README.md              … テンプレートの概要
     └── manual/                … 本書の PDF / HTML（執筆者へ配る）
 
 C:\work\

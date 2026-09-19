@@ -43,7 +43,8 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 C:\tools\
 └── quarto-template-1.4.0/   ← リリース ZIP を展開したもの（git 管理外）
     ├── ddq.exe              ← 様式・変換・ビルドの実体（これを実行する。インストール不要）
-    ├── README-release.md    ← 発行者向けのはじめかた
+    ├── はじめかた.pdf        ← 発行者向けの最初の一歩（8 枚のスライド）
+    ├── README.md            ← このファイル
     └── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
 
 C:\work\
