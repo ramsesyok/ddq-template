@@ -1,6 +1,6 @@
 //! `ddq mermaid` の golden テスト（cli/DESIGN.md §10）。
 //!
-//! fixtures は tests/golden/: docs/ の全 ```mermaid フェンス（mmd-<hash>.mmd）と、
+//! fixtures は tests/golden/: サンプル文書（examples/docs/）の全 ```mermaid フェンス（mmd-<hash>.mmd）と、
 //! 移行前の mermaid-cli 11.16 + Chrome が出した SVG（基準）。
 //! - browser エンジン: 基準と **幾何（数値列）が一致** すること（§9 の実測どおり）。
 //!   Edge / Chrome が無い環境では skip する。
@@ -71,7 +71,7 @@ fn run_ddq(engine: &str, out_dir: &Path) -> Vec<(PathBuf, PathBuf)> {
 /// - 先頭の `<!-- ddq … -->` は外す。
 /// - `d="…"`（path のデータ）は外す。mermaid は ER / requirement / 一部の flowchart で
 ///   roughjs による手描き風の線を乱数で描くため、同じ mermaid-cli 同士でも一致しない
-///   （template/PIPELINE.md §5.1 の注記）。残る viewBox / transform / x / y / width / height で
+///   （テンプレート設計書 docs/design/ 7 章の注記）。残る viewBox / transform / x / y / width / height で
 ///   配置とサイズの一致を見る。
 fn geometry(svg: &str) -> Vec<String> {
     let body = match (svg.starts_with("<!-- ddq"), svg.find("-->")) {

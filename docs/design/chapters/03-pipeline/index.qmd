@@ -1,0 +1,8 @@
+# 出力経路 {#sec-pipeline}
+
+本章では、1 つの原稿一式から PDF と HTML の両方が出るまでの経路と、
+2 系統がどこで分かれるかを述べる。
+
+{{< include 01-overview.qmd >}}
+
+{{< include 02-build.qmd >}}

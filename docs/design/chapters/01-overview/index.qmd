@@ -1,0 +1,10 @@
+# 概要 {#sec-overview}
+
+本章では、テンプレートの目的と、設計の土台になっている方針を述べる。
+以降の章の「なぜそうなっているか」は、ここに挙げる方針に帰着する。
+
+{{< include 01-purpose.qmd >}}
+
+{{< include 02-policy.qmd >}}
+
+{{< include 03-roles.qmd >}}

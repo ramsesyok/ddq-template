@@ -21,7 +21,7 @@ pub struct Asset {
 }
 
 /// 機構ファイル。執筆者の HTML 経路にも要るので **doc リポジトリにコミットされる**。
-/// これを変えたらテンプレートの版を上げること（ADVANCED.md）。
+/// これを変えたらテンプレートの版を上げること（利用マニュアル 17 章・テンプレート設計書）。
 pub const MECHANISM: [Asset; 4] = [
     Asset {
         name: "design-doc.lua",

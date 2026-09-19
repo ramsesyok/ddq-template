@@ -2,7 +2,7 @@
 
 `template/*.bat` `*.sh`（7 種 × 2）を Rust 製のシングルバイナリ **`ddq`** に統合し、
 mermaid → SVG 変換を内蔵する。保守者向けの最低限の設計書。
-利用手順は利用マニュアル（`manual/`）、様式・変換の内部は [template/PIPELINE.md](../template/PIPELINE.md)。
+利用手順は利用マニュアル（`docs/manual/`）、様式・変換の内部はテンプレート設計書（`docs/design/`）。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
 - 対象版: テンプレート 2.1.0
@@ -40,7 +40,7 @@ mermaid → SVG 変換を内蔵する。保守者向けの最低限の設計書�
 | 5 | `quarto preview` | **常にクライアント描画**（現状維持）。SVG を焼くのは `ddq html` / `ddq pdf` だけ | プレビューは Quarto だけで動く速いクイックレビュー。発行物と図が微妙に違い得ることはマニュアルに明記 |
 | 6 | フィルタ⇔exe | フィルタが**図ごとに** `ddq mermaid` を呼ぶ（現行 `quarto run mmdc` の置換のみ）。CLI は複数入力対応にしておく | 正しさ優先。一括事前変換はフェンス抽出と hash の二重実装になるので保留 |
 | 7 | mermaid.min.js | `template/vendor/mermaid.min.js`（11.16.0）をコミットして埋め込む。npm / node_modules 廃止 | 版の固定と再現性。Quarto 同梱 11.12 は見た目が違う（§9） |
-| 8 | リポジトリ構成 | `template/` はソース置き場として残し、`cli/` に Cargo プロジェクトを追加。`build.rs` で `../template` を埋め込む | Lua/CSS/typ の編集体験と `manual/` の導線を壊さない |
+| 8 | リポジトリ構成 | `template/` はソース置き場として残し、`cli/` に Cargo プロジェクトを追加。`build.rs` で `../template` を埋め込む | Lua/CSS/typ の編集体験と利用マニュアルの導線を壊さない |
 | 9 | 対象 OS | **Windows x64 のみ**（msvc, `+crt-static`）。CI も Windows 1 本 | まず簡易に。OS 依存部は `cfg(windows)` で分離し、後から他 OS を足せる形にする |
 | 10 | 名前 | `ddq`（design-doc-quarto）。環境変数は `DDQ_*` | 短く衝突しにくい |
 | 11 | merman の深さ | v1 は決定的計測（既定）+ resvg-safe 相当のみ。実フォント計測（TextMeasurer）は載せない | 例外経路のために本体より重い部品を抱えない |
@@ -63,13 +63,14 @@ quarto-template/
 │   ├── src/…                    … §8 参照
 │   └── tests/                   … golden テスト（§10）
 ├── template/                    … 機構ファイルのソース（従来どおり編集する）
-│   ├── VERSION / PIPELINE.md
+│   ├── VERSION
 │   ├── design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json
 │   ├── lib.typ / typst-template.typ / typst-show.typ / quarto-publish.yml
 │   ├── release-guide.typ        … 「はじめかた」スライド（Typst。ddq release が PDF にする）
 │   ├── scaffold/{repo,content}/
 │   └── vendor/mermaid.min.js    … 新規（11.16.0）
-├── docs/ manual/                … 従来どおり
+├── docs/                        … 設計リポジトリ（執筆フォルダ manual/ = 利用マニュアル、design/ = テンプレート設計書）
+├── examples/                    … サンプルの設計書リポジトリ（docs/ = 受注管理システム基本設計書。--with-sample の同梱元）
 ├── extension/                   … VSCode 拡張 ddq-table-editor（2.1.0 で旧 quarto-table-support を統合。
 │                                   ddq release が npm でパッケージして VSIX を同梱する）
 ├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release
@@ -152,7 +153,7 @@ release ──► update, pdf, html（manual に対して）
 | **html** | 版・機構の一致検査 → `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN`）。出力 `_book/` | build-html |
 | **pdf** | `setup` → `quarto render --to typst --profile publish`（env: `DDQ_BIN`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
 | **diagrams** | `diagrams/*.mmd` → 同名 `.svg`。設定は執筆フォルダ直下の `mermaid-config.json`（無ければ埋め込み） | render-diagrams |
-| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`README.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`manual/design-doc.pdf` → `利用マニュアル.pdf`、`manual/_book` → `manual/html` 3) `--with-sample` で `docs/` を同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
+| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `docs/manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`README.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
 
 `TEMPLATE_ROOT`（旧フィルタが `mermaid-config.json` のフォールバック探索に使っていた）は廃止した。
@@ -312,7 +313,7 @@ target\release\ddq.exe release            # 既定で ..\release\ に出力
 ```
 
 保守者の端末には Rust に加えて Node.js（20 以上）と npm が要る（VSIX のパッケージ。§3.2）。
-`ADVANCED.md` §3 をこの手順に書き換える。
+手順の正は利用マニュアル 17 章（`docs/manual/`）。
 
 ### 7.6 CI（GitHub Actions, windows-latest）
 
@@ -351,7 +352,7 @@ cli/src/
 
 ## 9. 根拠となる実測（2026-09-18）
 
-docs/manual の `diagrams/*.mmd` 37 本（flowchart 27、stateDiagram-v2 4、sequence 2、mindmap、erDiagram、block-beta 3、xychart 2、requirement 2。すべて日本語ラベル、`htmlLabels:false`）を使用。
+サンプル（現 `examples/docs/`）と利用マニュアルの `diagrams/*.mmd` 37 本（flowchart 27、stateDiagram-v2 4、sequence 2、mindmap、erDiagram、block-beta 3、xychart 2、requirement 2。すべて日本語ラベル、`htmlLabels:false`）を使用。
 基準は現行 mermaid-cli 11.16.0 + Chrome の SVG。
 
 | 経路 | 結果 |
@@ -372,7 +373,7 @@ docs/manual の `diagrams/*.mmd` 37 本（flowchart 27、stateDiagram-v2 4、seq
 
 ## 10. テスト方針
 
-- fixtures: `docs/diagrams/*.mmd` と、mermaid-cli で作った golden SVG（`cli/tests/golden/`）。
+- fixtures: サンプル文書（`examples/docs/`）の mermaid フェンスと、mermaid-cli で作った golden SVG（`cli/tests/golden/`）。
 - 比較: id（`my-svg` / `svg-<name>`）を正規化したうえで、**数値列（幾何）の一致**を見る。直列化の差（自己閉じタグ）は無視。
 - browser 系: Edge/Chrome が見つからなければ `skip`（`#[ignore]` ではなく実行時判定でメッセージを出して return）。
   sequenceDiagram は mermaid 既定の `"Open Sans", sans-serif` で文字幅を測るため、日本語の fallback フォントが
@@ -382,7 +383,7 @@ docs/manual の `diagrams/*.mmd` 37 本（flowchart 27、stateDiagram-v2 4、seq
   保守者の手元（ja-JP）では厳密一致のまま。
 - merman 系: 常時実行。foreignObject を含まないことをアサート。
 - コマンド系: 一時ディレクトリに `init` → `add` → `update --all` を流し、置かれるファイル一覧と `.template-version` を検証。`quarto` の起動はモック（`quarto.rs` を trait 化）か、PATH に `quarto` があるときだけ実施。
-- 手動: `ddq release` 後に `manual/` の PDF/HTML を目視。`docs/` の全図を旧 PDF と並べて確認（§9 の比較ページ生成をスクリプト化しておく）。
+- 手動: `ddq release` 後に `docs/manual/` の PDF/HTML を目視。`examples/docs/` の全図を旧 PDF と並べて確認（§9 の比較ページ生成をスクリプト化しておく）。
 
 ---
 
@@ -402,7 +403,7 @@ docs/manual の `diagrams/*.mmd` 37 本（flowchart 27、stateDiagram-v2 4、seq
 ## 12. 移行検証（テンプレート機能の回帰確認）
 
 ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF / 配布 HTML）が変わっていないこと**を確認するフェーズを置く。
-対象は `docs/`（サンプル）と `manual/`（利用マニュアル）。この 2 つで本テンプレートの記法は網羅されている。
+対象は `docs`（サンプル。現 `examples/docs/`）と `manual`（利用マニュアル。現 `docs/manual/`）。この 2 つで本テンプレートの記法は網羅されている。
 
 | 機能 | 実例のある文書 |
 |---|---|
@@ -449,7 +450,7 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 
 ### 12.3 ツール
 
-- `cli/tools/regress.py`（開発用、配布しない）。サブコマンド `capture <baseline|candidate> <docs|manual>` と `compare`。
+- `cli/tools/regress.py`（開発用、配布しない）。サブコマンド `capture <baseline|candidate> <docs|manual>` と `compare`（`docs` = `examples/docs/`、`manual` = `docs/manual/`。対応表は `DOCS`）。
   `--builder bat --template <dir>` で旧 template のコピー（`git archive <移行前コミット> template`
   で取り出し、`node_modules` はジャンクション）を使えるので、**移行後でも同じ原稿から基準を採り直せる**。
   Python 3 + Pillow + pypdf（保守者の環境にある前提。CI では走らせない）。ddq 本体は Rust だが、画像・PDF 比較は Python のほうが手数が少ないため（2026-09-19 合意）。

@@ -1,0 +1,85 @@
+## リリースを作る {#sec-release}
+
+発行者へ配る一式は `ddq release` で作る。マニュアルのビルド・VSCode 拡張のパッケージから
+zip 化までを 1 コマンドで行うので、**ビルド順（PDF → HTML）の間違い**や入れ忘れが起きない。
+`ddq` 自身がリリースに入るので、先に release ビルドしておく。
+
+```bat
+:: このリポジトリのルートで実行する
+cd cli
+cargo build --release
+cd ..
+cli\target\release\ddq.exe release
+```
+
+ビルドには Rust（stable）と MSVC のリンカ（Visual Studio の「C++ によるデスクトップ開発」
+ワークロード）、それに VSCode 拡張のパッケージ用に **Node.js（20 以上）と npm** が要る
+（`ddq release` が `extension/` で `npm ci` → `npm run package` を実行する）。
+配布先には何も要らない（CRT は静的リンク。`cli/DESIGN.md` §7.1）。
+
+::: {.tbl caption="ddq release の引数・オプション" label="tbl-release-opts" widths="24,76"}
+| 引数・オプション | 効果 |
+|---|---|
+| 第1引数 | 出力先フォルダ（既定は `release/`） |
+| `--with-sample` | サンプル文書（`examples/docs/`）を `docs/` として同梱する（原稿と図だけ。生成物は除く）。発行者へ記法の実例を渡したいときに使う |
+| `--no-build` | マニュアルと VSCode 拡張を再ビルドせず、既にある成果物（`docs/manual/design-doc.pdf`・`docs/manual/_book/`・`extension/ddq-table-editor-<版>.vsix`）を使う |
+:::
+
+出力は `release/quarto-template-<版>/`（展開済み）と同名の `.zip` である。
+
+```text
+quarto-template-<版>/
+├── ddq.exe             … 様式・変換・ビルドの実体（template/ 一式を内蔵）
+├── はじめかた.pdf       … 発行者向けの最初の一歩（template/release-guide.typ から生成）
+├── README.md           … テンプレートの概要と作業の流れ
+├── ddq-table-editor-<版>.vsix … VSCode 拡張（.tbl の視覚編集。執筆者へ配る）
+└── manual/利用マニュアル.pdf, manual/html/   … 本書（発行者が読む・執筆者へ配る）
+```
+
+テンプレート設計書（`docs/design/`）は同梱しない。保守者専用であり、発行者は
+`はじめかた.pdf`・`README.md`・本書で足りる。
+
+### 閉域（オフライン）環境向けに作る
+
+特別な版は要らない。`ddq.exe` は単体で動き、mermaid の SVG 化には端末の Edge / Chrome
+（無ければ内蔵レンダラ）を使うため、発行者は **Quarto だけ**で PDF・配布 HTML を作れる
+（@sec-offline）。Typst の `@preview` パッケージも Quarto 本体が同梱している
+（Quarto が同梱していないパッケージを文書側で import すると閉域では失敗する）。
+
+### 作るときの注意
+
+- zip は `ddq` が Rust の `zip` クレートで作り、**UTF-8 名フラグ（general purpose bit 11）
+  を立てる**（`manual/利用マニュアル.pdf` が日本語名のため。旧 bat 時代に bsdtar で
+  文字化けした教訓）。作成後に**ファイル数が展開フォルダと一致するか検査**し、
+  欠けていればエラーにして zip を消す。
+- `--no-build` を使うときは、`docs/manual/design-doc.pdf` と `docs/manual/_book/` の
+  **両方**が最新であることを確かめる（片方だけ古いまま同梱される事故を防ぐため）。
+  `extension/ddq-table-editor-<版>.vsix` も同様（版が違えば無いものとして止まる）。
+- `template/` を直したあと `cargo build` を忘れると、古い機構ファイルを内蔵した exe が
+  リリースに入る。`cargo build` は `template/` の変更を検知して再ビルドするが、
+  実行するのは保守者である。
+
+## リリースを配る {#sec-release-publish}
+
+`main` にマージし、**マージ後の `main` からリリースを作り直してから**タグを打つ
+（タグの指すコミットと配布物を一致させるため）。
+
+```bash
+gh release create v2.1.0 "release/quarto-template-2.1.0.zip" \
+  --target main \
+  --title "v2.1.0 — （変更の要約）" \
+  --notes-file <リリースノートのファイル>
+```
+
+- タグは `v<版>`（`template/VERSION` と揃える）。
+- **ZIP を資産として添付する。** 発行者はこれをダウンロードして展開する。
+- リリースノートには次を書く。
+  - 発行者のはじめかた（展開してそのまま使う・`cd` して絶対パスで `ddq init`）
+  - 主な変更
+  - 既存利用者向けの `ddq update` 手順
+  - 互換性（配布される機構ファイル4本に変更があるか）
+  - VSCode 拡張（VSIX）に変更があるか。あれば執筆者に入れ直してもらう（VSIX は自動更新されない）
+
+機構ファイル4本に変更が無い版では、既存の設計書リポジトリで `ddq update` を実行しても
+実質 `.template-version` の更新だけになる。その旨をノートに書くと、発行者が
+更新の要否を判断できる。

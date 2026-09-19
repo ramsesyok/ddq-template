@@ -1,0 +1,11 @@
+# HTML 側のしくみ {#sec-html}
+
+本章では、HTML の図表番号を PDF に合わせる後処理（`postprocess-html.js`）の設計と、
+HTML の見た目の調整箇所、ブラウザで確認するときの注意を述べる。
+章ごとに分ける理由は @sec-pipeline-overview にある。
+
+{{< include 01-postprocess.qmd >}}
+
+{{< include 02-look.qmd >}}
+
+{{< include 03-browser.qmd >}}

@@ -1,0 +1,21 @@
+## 見た目の調整箇所 {#sec-html-look}
+
+::: {.tbl caption="HTML の見た目と触る場所" label="tbl-html-look" widths="40,60"}
+| 変えたいもの | 触る場所 |
+|---|---|
+| 画面全体の幅・左ペインの幅 | `_quarto.yml` の `format.html.grid` |
+| 章番号を出すか | `_quarto.yml` の `number-sections` |
+| 表・IPO・図・callout の見た目 | `design-doc.css` |
+| 図表番号の書式 | `postprocess-html.js` |
+| mermaid のテーマ・フォント | `mermaid-config.json`（PDF 側と共通） |
+:::
+
+画面幅は **1920px 基準**（左ペイン 300px ＋ 本文 1560px ＋ 右余白 60px）にしてある。
+Quarto 既定は 250 + 800 + 250 ≒ 1280px。左ペインの 300px は「章番号＋見出し 15 文字」と
+ページ内目次（`toc-location: left` で左に移動）が折り返さずに収まる幅である。
+`grid` の値は執筆フォルダの `_quarto.yml`（雛形 `scaffold/content/_quarto.yml`）にあり、
+文書ごとに変えられる。
+
+`design-doc.css` は Quarto がローカル CSS として `_book/` に取り込む。
+`.tbl`・`.ipo`・`.landscape` の HTML 側の構造は `design-doc.lua` が div として組み立てる
+（@sec-filter-syntax）ので、見た目を変えるときは Lua 側の class 名と対で見る。

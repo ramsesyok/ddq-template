@@ -1,6 +1,6 @@
 # 注意: .gitignore ではインライン（行末）コメント不可。コメントは必ず行頭に置く。
-# 執筆フォルダ（既定 docs）は改名可能なので、パターンはフォルダ名に依存させず
-# 「名前」でマッチさせる。実体が template/ にある機構ファイルは末尾で除外解除する。
+# 執筆フォルダ（docs/manual・docs/design・examples/*/docs）は増減・改名するので、
+# パターンはフォルダ名に依存させず「名前」でマッチさせる。実体が template/ にある機構ファイルは末尾で除外解除する。
 
 # ==== ビルド生成物 ====
 _book/
@@ -33,8 +33,11 @@ mermaid-config.json
 .quarto/
 **/*.quarto_ipynb
 # Quarto が執筆フォルダ直下に自動生成する .gitignore（中身は /.quarto/）。
-# 直下フォルダ（docs/ や改名後）のものだけ無視し、ルートの .gitignore は残す。
+# 執筆フォルダは docs/<名前>（設計リポジトリ）と examples/<名前>/docs（サンプル）に
+# あるので、深さ 2〜3 のものを無視し、ルートの .gitignore は残す。
 /*/.gitignore
+/*/*/.gitignore
+/*/*/*/.gitignore
 
 # ==== mermaid 変換キャッシュ（内容ハッシュ名 mmd-xxxx.*） ====
 # diagrams/order-flow.* は同梱するため無視しない。

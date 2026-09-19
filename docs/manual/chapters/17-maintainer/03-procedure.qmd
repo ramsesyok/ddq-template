@@ -1,0 +1,73 @@
+## 変更したときの手順
+
+1. `template/` のファイル（または `cli/src/`）を直す。
+2. 配布される機構ファイル（`design-doc.lua`・`design-doc.css`・`postprocess-html.js`・
+   `mermaid-config.json`）を直したら `template/VERSION` を上げる。いつ上げるかの考え方は
+   テンプレート設計書 8 章にある。
+
+   ::: {.callout-important}
+   **版を上げたら、本書と `README.md` の実行例に埋め込まれた版番号も揃える。**
+   展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-2.1.0` のような例が
+   全体で30箇所ほどある。ずれていると、発行者が手元のフォルダ名と合わない手順を
+   読むことになる。
+
+   ```bat
+   :: 旧版が残っていないか確認する（VERSION と一致すること）
+   findstr /S /C:"quarto-template-1." README.md docs\manual\chapters\*.qmd docs\design\chapters\*.qmd
+   :: VSIX 名の例（README.md・本書 2・3 章）も同様
+   findstr /S /C:"ddq-table-editor-" README.md docs\manual\chapters\*.qmd
+   ```
+
+   「新しい版を受け取ったとき」の説明で使う版番号（現行＋1）も併せてずらす。
+
+   **VSCode 拡張の版も同じ値にする。** `extension/package.json` の `version` は
+   `template/VERSION` と一致していなければ `ddq release` が止まる（同梱する VSIX の版と
+   テンプレートの版を 1 つに揃えるため）。
+
+   ```bat
+   cd extension
+   npm version 2.1.0 --no-git-tag-version
+   cd ..
+   ```
+   :::
+
+3. `ddq` をビルドする。`template/` の内容は exe に埋め込まれるため、**直すたびに
+   ビルドし直す**（`cargo build` は `template/` の変更を検知して再ビルドする）。
+
+   ```bat
+   cd cli
+   cargo build --release
+   ```
+
+4. サンプル文書（`examples\docs`）へ `ddq update` で機構を明示的に反映してから、
+   PDF・HTML の両方を出し、体裁を確認する。
+
+   ```bat
+   cli\target\release\ddq.exe update examples\docs
+   cli\target\release\ddq.exe pdf examples\docs
+   cli\target\release\ddq.exe html examples\docs
+   ```
+
+5. 本書（`docs\manual`）とテンプレート設計書（`docs\design`）でも出力を確認する
+   （記法の網羅度が高いため、退行を見つけやすい）。`cli/tests/` のテスト（`cargo test`）も
+   通しておく。
+6. リリースを作り（@sec-release）、配る（@sec-release-publish）。発行者はこれを受け取り、
+   `ddq update` で利用中の設計書リポジトリへ反映する。
+
+::: {.callout-warning}
+`ddq pdf` / `ddq html` は、追跡対象の機構ファイルを暗黙更新しない。版や内容が
+現在の `ddq` と違えば停止するので、テンプレート変更後は先に `update` を実行すること。
+VSCode の Quarto 拡張や素の `quarto render` はこの検査を行わないため、保守時の
+最終確認には使わない。「直したのに変わらない」ときは、まず `update`、次に
+`cargo build` を忘れていないかを疑う。
+
+```bat
+cli\target\release\ddq.exe update examples\docs
+```
+:::
+
+::: {.callout-important}
+`postprocess-html.js` を直したときは、**同じ `_book/` に2回続けて流しても結果が
+変わらないこと**（冪等性）を必ず確認する。この後処理は `quarto preview` が保存の
+たびに呼ぶため、2回目で番号が積み重なると執筆者の画面が壊れる。
+:::

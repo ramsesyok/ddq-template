@@ -1,0 +1,14 @@
+# PDF 側のしくみ {#sec-pdf}
+
+本章では、Quarto の Typst 出力を自前の様式に載せ替える仕組みと、
+様式の単一ソースである `lib.typ` の構成、変更したときの確認方法を述べる。
+
+{{< include 01-partials.qmd >}}
+
+{{< include 02-params.qmd >}}
+
+{{< include 03-numbering.qmd >}}
+
+{{< include 04-pages.qmd >}}
+
+{{< include 05-verify.qmd >}}

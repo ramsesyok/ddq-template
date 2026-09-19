@@ -1,0 +1,29 @@
+## Quarto から lib.typ へ届くまで {#sec-pdf-partials}
+
+Quarto の typst 出力は既定のテンプレートを持っている。本テンプレートは
+**`template-partials` で 2 つの partial を差し替えて**、自前の様式に載せ替えている。
+差し替えの指定は `_quarto-publish.yml`（原本は `template/quarto-publish.yml`）にある。
+
+::: {.tbl caption="差し替える partial" label="tbl-partials" widths="26,74"}
+| ファイル | 役 |
+|---|---|
+| `typst-template.typ` | Quarto 既定の本体を空にし、`lib.typ` を取り込む。callout のアイコンを HTML 版に寄せる包み直しもここで行う（Quarto 既定の callout は `definitions.typ` 側で定義され `lib.typ` から見えないため） |
+| `typst-show.typ` | フロントマター（`title` / `subtitle` / `author` / `doc-number` / `doc-revision` / `spec` / `company-ja` / `company-en` / `cover` / `page-start` / `toc` / `toc-title` / `toc-depth` / `pagebreak-level`）を `design-doc()` の引数に渡す |
+:::
+
+```text
+title / subtitle / author / doc-number / company / toc …   ← _quarto.yml
+        ↓ typst-show.typ
+#show: design-doc.with(title: …, doc-number: …, toc: true, …)
+        ↓
+lib.typ の design-doc()  … ページ設定・様式の背景・見出しと図表の採番規則
+```
+
+`_quarto.yml` に設定項目を増やすときは、`typst-show.typ` の引き渡しと
+`lib.typ` の `design-doc()` の引数の**両方**を足す。
+
+::: {.callout-note}
+Quarto 既定の目次生成は `typst-template.typ` 側にあり、差し替えた結果として機能しない。
+目次は `lib.typ` の `#outline()` が出している（`toc: false` のときは `design-toc()` で
+任意の位置に置ける）。
+:::

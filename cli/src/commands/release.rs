@@ -1,5 +1,5 @@
 //! `ddq release` — 発行者向けリリース一式を作る（旧 make-release。保守者用）。
-//! テンプレートのリポジトリのルートで実行する（template/VERSION と manual/ があること）。
+//! テンプレートのリポジトリのルートで実行する（template/VERSION と docs/manual/ があること）。
 //!
 //! 作るもの（cli/DESIGN.md §3.2）:
 //!   <out-dir>/quarto-template-<版>/      ddq.exe / はじめかた.pdf / README.md / manual/
@@ -23,7 +23,12 @@ use crate::{
     quarto, zip_archive,
 };
 
-/// `--with-sample` で docs/ を同梱するときに除くもの（ビルド生成物・setup が置くファイル・キャッシュ）
+/// リポジトリ内の利用マニュアルの執筆フォルダ（設計リポジトリ docs/ の下）
+const MANUAL_DIR: &str = "docs/manual";
+/// `--with-sample` で同梱するサンプル文書（設計書リポジトリ examples/ の執筆フォルダ）
+const SAMPLE_DIR: &str = "examples/docs";
+
+/// `--with-sample` でサンプルを同梱するときに除くもの（ビルド生成物・setup が置くファイル・キャッシュ）
 const SAMPLE_EXCLUDE_DIRS: [&str; 2] = ["_book", ".quarto"];
 const SAMPLE_EXCLUDE_FILES: [&str; 6] = [
     "design-doc.pdf",
@@ -42,10 +47,11 @@ const EXTENSION_NAME: &str = "ddq-table-editor";
 
 pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<()> {
     let repo = env::current_dir().context("カレントディレクトリを取得できません")?;
-    if !repo.join("template").join("VERSION").is_file() || !repo.join("manual").join("_quarto.yml").is_file()
+    if !repo.join("template").join("VERSION").is_file()
+        || !repo.join(MANUAL_DIR).join("_quarto.yml").is_file()
     {
         bail!(
-            "テンプレートのリポジトリのルート（template/ と manual/ があるフォルダ）で実行してください: {}",
+            "テンプレートのリポジトリのルート（template/ と {MANUAL_DIR}/ があるフォルダ）で実行してください: {}",
             repo.display()
         );
     }
@@ -58,7 +64,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     println!("リリースを作成: {name}");
 
     // 1) 利用マニュアル。PDF → HTML の順（両方 _book/ を使い、後の方が残る）
-    let manual = repo.join("manual");
+    let manual = repo.join(MANUAL_DIR);
     if !no_build {
         println!("  利用マニュアルをビルド（PDF → HTML）...");
         // release は保守者が現在の exe を配る操作なので、同梱マニュアルも同じ版へ
@@ -71,7 +77,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     let manual_html = manual.join("_book");
     if !manual_pdf.is_file() || !manual_html.join("index.html").is_file() {
         bail!(
-            "manual/design-doc.pdf または manual/_book/index.html がありません（--no-build を外してください）"
+            "{MANUAL_DIR}/design-doc.pdf または {MANUAL_DIR}/_book/index.html がありません（--no-build を外してください）"
         );
     }
 
@@ -96,7 +102,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     fs::copy(&vsix, stage.join(vsix_name)).context("VSIX をコピーできません")?;
     if with_sample {
         copy_tree(
-            &repo.join("docs"),
+            &repo.join(SAMPLE_DIR),
             &stage.join("docs"),
             &SAMPLE_EXCLUDE_DIRS,
             &SAMPLE_EXCLUDE_FILES,
@@ -131,7 +137,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
 /// VSCode 拡張（extension/）をパッケージし、できた VSIX のパスを返す。
 ///
 /// - `extension/package.json` の version が template/VERSION と違えば止める
-///   （拡張の版はテンプレートの版に揃える。ADVANCED.md §2）
+///   （拡張の版はテンプレートの版に揃える。利用マニュアル 17 章）
 /// - `no_build` でなければ `npm ci`（node_modules が無いときだけ）→ `npm run package`
 /// - どちらの場合も `extension/<name>-<版>.vsix` が無ければエラー
 fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {

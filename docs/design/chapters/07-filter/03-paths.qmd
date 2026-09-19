@@ -1,0 +1,35 @@
+## book 特有のパスまわり {#sec-filter-paths}
+
+### 実行時の CWD
+
+book プロジェクトでは、フィルタ実行時の CWD が**「いま処理している章ファイルの
+ディレクトリ」**になる（章の階層ごとに変わる）。そのため相対パスは使えず、
+執筆フォルダの絶対パスが要る。フィルタは**環境変数に依存せず**次の順で自己解決する
+（VSCode の Quarto 拡張や素の `quarto render` でもそのまま動く）。
+
+::: {.tbl caption="フィルタが解決するパス" label="tbl-filter-paths" widths="16,54,30"}
+| 名前 | 解決の優先順位 | 用途 |
+|---|---|---|
+| `ROOT` | `DOC_ROOT` env → `quarto.project.directory` → `QUARTO_PROJECT_DIR` env → `'.'` | 執筆フォルダ。図の出力先 `diagrams/` の親 |
+| `DDQ` | `DDQ_BIN` env → PATH | SVG 化コマンド（@sec-filter-mermaid） |
+:::
+
+環境変数は「明示的に上書きしたいとき」だけ使う。通常は何も設定しなくてよい
+（発行者のビルドが `DDQ_BIN` を渡す）。
+
+### 図のパス
+
+- mermaid の SVG は `ROOT/diagrams` に置くが、AST に載せるパスは章ファイルからの
+  相対でなければ Quarto が解決できない。CWD の深さぶん `../` を積む（`diag_rel()`）。
+- **執筆者が画像を貼るときはプロジェクトルート基準の `/diagrams/...` で書く。**
+  `../` を使うと Windows で `chapters\01-overview/../../` とバックスラッシュ結合され、
+  Typst 0.15 以降が拒否する（Quarto 同梱の 0.14.2 は通るので気付きにくい）。
+
+### パスは ASCII のみ
+
+Windows では、執筆フォルダのパスに日本語が含まれると、Quarto から Lua フィルタへ渡る時点で
+**文字が U+FFFD に置換されて届く**（実測。`quarto.project.directory`・環境変数のいずれも同じ）。
+フィルタ側では復元できず、mermaid の SVG 化が成立しない。
+
+そのため、配置ツール（作成・追加・PDF・HTML）と `design-doc.lua` の**両方**で検出して
+止めている。執筆フォルダ名・その上のフォルダ名は ASCII にすること（例: `docs` / `design-doc`）。

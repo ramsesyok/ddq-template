@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ddq 移行の回帰確認（cli/DESIGN.md §12）。
 
-移行前（現行 bat）と移行後（ddq）で docs/ と manual/ を作り、作成物が変わって
+移行前（現行 bat）と移行後（ddq）で docs（examples/docs/）と manual（docs/manual/）を作り、作成物が変わって
 いないことを 5 層で比べる。開発用。配布しない。
 
     python cli/tools/regress.py capture baseline docs --builder bat
@@ -33,6 +33,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 TEMPLATE = REPO / "template"
 REGRESS = REPO / "regress"
+
+# 採取対象の執筆フォルダ（名前 → リポジトリ内のパス）
+DOCS = {"docs": REPO / "examples" / "docs", "manual": REPO / "docs" / "manual"}
 
 # 執筆フォルダにコミットされる機構ファイル（§12.2 層 0）
 MECHANISM_FILES = ["design-doc.lua", "design-doc.css", "postprocess-html.js", "mermaid-config.json"]
@@ -92,7 +95,7 @@ def clear_mermaid_cache(doc: Path) -> None:
 
 
 def capture(label: str, doc_name: str, builder: Builder) -> None:
-    doc = REPO / doc_name
+    doc = DOCS[doc_name]
     out = REGRESS / label / doc_name
     if out.exists():
         shutil.rmtree(out)
@@ -334,13 +337,13 @@ def main() -> int:
 
     cap = sub.add_parser("capture", help="ビルドして採取する")
     cap.add_argument("label", choices=["baseline", "candidate"])
-    cap.add_argument("doc", choices=["docs", "manual"])
+    cap.add_argument("doc", choices=sorted(DOCS))
     cap.add_argument("--builder", choices=["bat", "ddq"], required=True)
     cap.add_argument("--ddq", type=Path, help="--builder ddq のときの exe パス")
     cap.add_argument("--template", type=Path, default=TEMPLATE, help="--builder bat のときの template/（既定はリポジトリの template/）")
 
     cmp = sub.add_parser("compare", help="baseline と candidate を比べる")
-    cmp.add_argument("doc", choices=["docs", "manual"])
+    cmp.add_argument("doc", choices=sorted(DOCS))
 
     args = ap.parse_args()
     if args.cmd == "capture":
