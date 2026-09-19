@@ -149,22 +149,33 @@ fn browser_engine_matches_mermaid_cli_geometry() {
             eprintln!("loose: {name} は文字幅の差だけ（数値の個数と viewBox は同等）");
             continue;
         }
+        let first_diff = expected.iter().zip(&actual).position(|(e, a)| e != a);
+        eprintln!(
+            "mismatch: {name} numbers {} vs {}, viewBox {:?} vs {:?}, first diff at {:?}",
+            expected.len(),
+            actual.len(),
+            view_box(&expected_svg),
+            view_box(&actual_svg),
+            first_diff.map(|i| (i, &expected[i], &actual[i])),
+        );
         mismatched.push(name);
     }
     assert!(mismatched.is_empty(), "基準と幾何が一致しない図: {mismatched:?}");
 }
 
+/// ルート要素の viewBox の幅・高さ
+fn view_box(svg: &str) -> Option<(f64, f64)> {
+    let start = svg.find("viewBox=\"")? + "viewBox=\"".len();
+    let end = start + svg[start..].find('"')?;
+    let nums: Vec<f64> = svg[start..end]
+        .split_whitespace()
+        .filter_map(|n| n.parse().ok())
+        .collect();
+    (nums.len() == 4).then(|| (nums[2], nums[3]))
+}
+
 /// viewBox の幅・高さが 15% 以内で一致するか（フォント差による配置ずれを許容する緩い比較）
 fn roughly_same_size(a: &str, b: &str) -> bool {
-    fn view_box(svg: &str) -> Option<(f64, f64)> {
-        let start = svg.find("viewBox=\"")? + "viewBox=\"".len();
-        let end = start + svg[start..].find('"')?;
-        let nums: Vec<f64> = svg[start..end]
-            .split_whitespace()
-            .filter_map(|n| n.parse().ok())
-            .collect();
-        (nums.len() == 4).then(|| (nums[2], nums[3]))
-    }
     let (Some((aw, ah)), Some((bw, bh))) = (view_box(a), view_box(b)) else {
         return false;
     };
