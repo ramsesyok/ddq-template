@@ -41,7 +41,7 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 
 ```
 C:\tools\
-└── quarto-template-1.4.0/   ← リリース ZIP を展開したもの（git 管理外）
+└── quarto-template-2.0.0/   ← リリース ZIP を展開したもの（git 管理外）
     ├── ddq.exe              ← 様式・変換・ビルドの実体（これを実行する。インストール不要）
     ├── はじめかた.pdf        ← 発行者向けの最初の一歩（8 枚のスライド）
     ├── README.md            ← このファイル
@@ -86,7 +86,7 @@ C:\work\
 ZIP を展開し、**展開したフォルダで**実行します。
 
 ```bat
-cd C:\tools\quarto-template-1.4.0
+cd C:\tools\quarto-template-2.0.0
 .\ddq init C:\work\order-design
 ```
 
@@ -104,7 +104,7 @@ cd C:\tools\quarto-template-1.4.0
 ### 4. 発行者が PDF・配布 HTML を出す
 
 ```bat
-cd C:\tools\quarto-template-1.4.0
+cd C:\tools\quarto-template-2.0.0
 .\ddq pdf  C:\work\order-design\docs
 .\ddq html C:\work\order-design\docs
 ```
@@ -121,7 +121,7 @@ Node.js も npm も要りません。
 新しい版は別のフォルダに展開されるので、そちらから機構ファイルを入れ直します。
 
 ```bat
-cd C:\tools\quarto-template-1.4.0
+cd C:\tools\quarto-template-2.0.0
 .\ddq update C:\work\order-design\docs
 ```
 

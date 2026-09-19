@@ -28,7 +28,7 @@ findstr /S /M "```mermaid" C:\work\order-design\docs\chapters\*.qmd
 リリースを展開したフォルダに `cd` してから `.\ddq` と打つのが基本である。
 
 ```bat
-cd C:\tools\quarto-template-1.4.0
+cd C:\tools\quarto-template-2.0.0
 .\ddq pdf C:\work\order-design\docs
 ```
 

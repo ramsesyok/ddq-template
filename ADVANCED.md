@@ -49,7 +49,7 @@ quarto-template/                 … このリポジトリ（保守者が持つ�
     └── release-guide.typ        … リリース直下に置く「はじめかた」スライドの原稿（ddq release が PDF にする）
 ```
 
-旧来の `template/*.bat` `*.sh` は 1.4.0 で `ddq` のサブコマンドに置き換わりました。
+旧来の `template/*.bat` `*.sh` は 2.0.0 で `ddq` のサブコマンドに置き換わりました。
 `template/` を直したら `cli/` で `cargo build --release` して exe に埋め込み直します。
 
 発行者の手元にはこのリポジトリではなく、**リリース ZIP を展開したフォルダ**が
@@ -81,7 +81,7 @@ HTML の図表番号を後処理で直している理由は利用マニュアル
 `ddq --version` もこの値を表示します（`cli/build.rs` がビルド時に埋め込む）。
 
 版を上げたら、**実行例に埋め込まれた版番号も揃えてください。** 展開フォルダ名に版が
-入るため（`cd C:\tools\quarto-template-1.4.0`）、ずれていると発行者が手元のフォルダ名と
+入るため（`cd C:\tools\quarto-template-2.0.0`）、ずれていると発行者が手元のフォルダ名と
 合わない手順を読むことになります。全体で30箇所ほどあります。
 
 ```bat
@@ -161,9 +161,9 @@ quarto-template-<版>/
 （タグの指すコミットと配布物を一致させるため）。
 
 ```bash
-gh release create v1.4.0 "release/quarto-template-1.4.0.zip" \
+gh release create v2.0.0 "release/quarto-template-2.0.0.zip" \
   --target main \
-  --title "v1.4.0 — （変更の要約）" \
+  --title "v2.0.0 — （変更の要約）" \
   --notes-file <リリースノートのファイル>
 ```
 

@@ -90,8 +90,37 @@
         様式一式を内蔵した単体の実行ファイルで、
         *インストールも追加ランタイムも不要*
       - *利用マニュアル* が手順の正。執筆者にも配る
-      - `template/` フォルダは無い（exe に埋め込み済み）
       - Node.js・npm は要らない
+    ],
+  )
+]
+
+// ---- 1b ----
+#slide[設計書リポジトリと執筆フォルダ][
+  #grid(columns: (1.15fr, 1fr), gutter: 18pt,
+    [
+      #show raw: set text(size: 11.5pt)
+      ```
+      order-design/          … 設計書リポジトリ
+      ├── .gitignore, README.md …
+      └── docs/              … 執筆フォルダ
+          ├── _quarto.yml    … 表題・章立てなど
+          ├── index.qmd      … 前付け
+          ├── chapters/      … 本文（1 章 1 ファイル）
+          ├── diagrams/      … 図
+          ├── design-doc.pdf … 中間版 PDF
+          └── design-doc.lua … ほか機構ファイル
+      ```
+    ],
+    [
+      #set text(size: 14pt)
+      - *設計書リポジトリ* = 設計書 1 件を git で共有する単位。
+        `ddq init` が作り、執筆者はこれだけを clone する
+      - *執筆フォルダ* = 原稿一式（`_quarto.yml` があるフォルダ）。
+        名前は自由（既定 `docs`）。`ddq` のコマンドにはこのパスを渡す
+      - 文書を増やすときは `ddq add` で執筆フォルダを足す
+      - *機構ファイル*（`design-doc.lua` など 5 点）は `ddq` が置く写し。
+        執筆者は触らないが、コミットはする
     ],
   )
 ]

@@ -42,7 +42,7 @@ PDF → HTML の順に作り直せばよい。
 
 ```bat
 @echo off
-cd /d C:\tools\quarto-template-1.4.0
+cd /d C:\tools\quarto-template-2.0.0
 set "DOC=C:\work\order-design\docs"
 .\ddq pdf  "%DOC%" || exit /b 1
 .\ddq html "%DOC%" || exit /b 1

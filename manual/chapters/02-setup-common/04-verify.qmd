@@ -40,7 +40,7 @@ cd ..\..
 PDF が出せるかどうかは、原稿を入れたあとに確認する（@sec-build）。
 
 ```bat
-cd C:\tools\quarto-template-1.4.0
+cd C:\tools\quarto-template-2.0.0
 .\ddq pdf C:\work\order-design\docs
 ```
 

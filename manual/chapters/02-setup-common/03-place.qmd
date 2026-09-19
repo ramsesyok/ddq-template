@@ -23,7 +23,7 @@
 
 ```text
 C:\tools\
-└── quarto-template-1.4.0/     … リリース ZIP を展開したもの（git 共有しない）
+└── quarto-template-2.0.0/     … リリース ZIP を展開したもの（git 共有しない）
     ├── ddq.exe                … 様式・変換・ビルドの実体（これを実行する）
     ├── はじめかた.pdf          … 発行者向けの最初の一歩（スライド）
     ├── README.md              … テンプレートの概要
@@ -68,7 +68,7 @@ C:\work\
 以降のコマンドは、**展開したフォルダを開いた状態**で実行する。
 
 ```bat
-cd C:\tools\quarto-template-1.4.0
+cd C:\tools\quarto-template-2.0.0
 ```
 
 ::: {.callout-warning}
