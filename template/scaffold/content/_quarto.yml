@@ -32,6 +32,10 @@ book:
   title: ○○システム 基本設計書
   subtitle: ""
   author: ○○チーム
+  # 発行版 PDF のファイル名（拡張子 .pdf は付けない）。_book/ に この名前.pdf ができる。
+  # 省略すると Quarto が title から付ける。資料番号を入れておくと配布物の取り違えが減る。
+  # ddq pdf が取り出す中間版は名前を変えず design-doc.pdf のまま。
+  output-file: XX-2026-001_○○システム基本設計書
   # 章の並び。1ファイル = 1章。増やしたらここに追記する。
   chapters:
     - index.qmd

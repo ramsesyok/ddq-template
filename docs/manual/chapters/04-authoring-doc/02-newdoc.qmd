@@ -94,6 +94,7 @@ book:
   title: 受注管理システム 基本設計書   # 表題
   subtitle: サンプル・ボイラープレート  # 副題（任意）
   author: 設計チーム                    # 作成者（任意）
+  output-file: SD-2026-001_受注管理システム基本設計書   # 発行版 PDF のファイル名（拡張子なし）
   chapters:                             # 章の並び（@sec-chapters 参照）
     - index.qmd
     - chapters/01-overview/index.qmd
@@ -122,6 +123,7 @@ toc-depth: 3              # 目次に載せる見出しの深さ
 | `title`        | ―      | 表題。表紙・目次・ヘッダに使われる                                |
 | `subtitle`     | ―      | 副題。任意                                                        |
 | `author`       | ―      | 作成者。任意                                                      |
+| `output-file`  | ―      | 発行版 PDF のファイル名（拡張子 `.pdf` は付けない）。`_book\<この名前>.pdf` に出る。省略すると Quarto が `title` から付ける。中間版 `design-doc.pdf` の名前は変わらない |
 | `doc-number`   | ―      | 資料番号。全ページの資料番号欄に表示される                        |
 | `doc-revision` | 空      | 改訂記号（`A`〜`Z` / `NC`）。`doc-number` の末尾に結合（`SD-2026-001A`） |
 | `spec`         | `false` | `true` でスペック様式に切り替える                                 |

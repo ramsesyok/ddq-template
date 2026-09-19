@@ -32,6 +32,8 @@ book:
   title: 受注管理システム 基本設計書
   subtitle: サンプル・ボイラープレート
   author: 設計チーム
+  # 発行版 PDF のファイル名（拡張子なし）。_book/ にこの名前で出る。中間版 design-doc.pdf は変わらない。
+  output-file: SD-2026-001_受注管理システム基本設計書
   chapters:
     - index.qmd
     - chapters/01-overview/index.qmd

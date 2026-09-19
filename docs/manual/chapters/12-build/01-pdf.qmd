@@ -26,6 +26,11 @@ OK -> C:\work\order-design\docs\design-doc.pdf
    このとき mermaid 図はベクター SVG に焼き込まれる。
 3. できあがった PDF が `<執筆フォルダ>\design-doc.pdf` に取り出される。
 
+PDF は 2 か所にできる。`_book\<output-file>.pdf` は Quarto が作るもので、名前は
+`_quarto.yml` の `book.output-file`（無ければ `title`）で決まる。**客先へ渡す発行版は
+こちらを使う**（資料番号入りの名前にしておく）。`design-doc.pdf` はそれを `ddq` が固定名で
+コピーした中間版で、リポジトリにコミットしてレビューの基準にする（@sec-quarto-yml）。
+
 ::: {.callout-important}
 同じコマンドで中間版と発行版のどちらも作る。レビュー中にリポジトリへコミットするものを
 **中間版**、承認済みのコミットまたはタグから作って配布するものを**発行版**と呼ぶ。
