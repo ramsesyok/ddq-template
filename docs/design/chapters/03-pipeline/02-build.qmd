@@ -1,0 +1,48 @@
+## ビルドの流れ {#sec-pipeline-build}
+
+### 発行者の経路（PDF・配布 HTML）
+
+発行者は配置ツールに執筆フォルダのパスを渡して PDF・HTML を出す。
+ツールの内部は次の順で動く。
+
+::: {.tbl caption="発行者の経路" label="tbl-publisher-path" widths="12,88"}
+| 出力 | 内部の流れ |
+|---|---|
+| PDF | 検査（`.template-version`・機構ファイルの一致）→ PDF 用部品を置く → `quarto render --to typst --profile publish` → `_book/*.pdf` を `<執筆フォルダ>/design-doc.pdf` へ取り出す |
+| HTML | 検査（同上）→ `quarto render --to html`（環境変数 `MERMAID_SVG=1` で mermaid をベクター SVG 化）→ `_book/` |
+:::
+
+PDF・HTML はどちらも執筆フォルダの `_book/` を出力先に使い、**後から走ったほうが
+前の出力を消す**。そのため PDF は `design-doc.pdf` に取り出し、両方を残したいときは
+PDF → HTML の順に実行する。
+
+**検査で止める**のは、写しが古いまま出力する事故を防ぐためである。版・内容が違う
+場合は暗黙に更新せず停止し、発行者が明示的に更新して差分をコミットする
+（@sec-repo-division）。
+
+### 執筆者の経路（プレビュー）
+
+執筆者は何も要らない。`quarto preview` / `quarto render`（フォーマット無指定）で
+HTML が出て、図表番号の振り直しまで `post-render`（`_quarto.yml` に登録）が自動で行う。
+mermaid はブラウザ内で描画され、ベクター SVG 化は行われない。
+
+```text
+執筆者:  quarto preview ──→ design-doc.lua（html）──→ Quarto HTML ──→ postprocess-html.js ──→ _book/
+                                  └ mermaid は <pre class="mermaid"> のまま（ブラウザで描く）
+
+発行者:  検査 → quarto render --to html（MERMAID_SVG=1）… 同上、ただし mermaid は SVG に焼く
+         検査 → PDF 用部品 → quarto render --to typst --profile publish → design-doc.pdf
+```
+
+### 実行時の前提
+
+- **CWD 基準で解決されるのは引数側だけ**である。執筆フォルダ／設計書リポジトリのパスは
+  絶対パスで渡すのが安全。PDF・HTML・準備・更新は `_quarto.yml` の有無を確認してから
+  動くためパス誤りは即エラーになるが、作成は「無いものを作る」ので検出できない。
+- **パスは ASCII のみ**（@sec-filter-paths）。
+- Typst の `@preview` パッケージ（`lib.typ` が callout アイコンに使う `fontawesome`）は
+  Quarto 本体が同梱しており、render のたびに `<執筆フォルダ>/.quarto/typst/packages` へ
+  展開して `--package-cache-path` で渡す。したがって**閉域（オフライン）環境でも追加作業は
+  要らない**。ただし Quarto が同梱していない `@preview` パッケージを文書側で import すると、
+  閉域ではダウンロードに失敗して PDF が作れない（同梱物は
+  `<Quarto>/share/formats/typst/packages/preview/` で確認できる）。

@@ -1,0 +1,17 @@
+## ブラウザで確認するとき {#sec-html-browser}
+
+**`file://` では確認できない**（プレビューが最初に開いたページに固定され、
+ナビゲートしても古い内容を返し続ける）。HTTP で配信する。
+
+```bat
+cd <執筆フォルダ>\_book
+python -m http.server 8899
+:: → http://localhost:8899/
+```
+
+- **再ビルドの前にサーバーを止める。** `_book/` を掴んだままだと
+  `Device or resource busy` / `os error 32` でビルドが失敗する。
+- CSS だけ直した場合、HTML に `?v=` を付けてもブラウザは `design-doc.css` をキャッシュする。
+  `link` の `href` にクエリを足して読み直させる。
+- 全文検索（`search.json`）は HTTP 配信のときだけ動く。`index.html` の直接表示では
+  本文閲覧のみである。

@@ -1,0 +1,61 @@
+# 保守の手順 {#sec-maintenance}
+
+本章では、様式・変換を直したときに何をどの順で確かめるかを述べる。
+コマンドの具体的な手順（更新・ビルド・リリース）は利用マニュアル 17 章にあり、
+本章は**確認の観点**に絞る。
+
+## 何をどこで直すか {#sec-maint-where}
+
+::: {.tbl caption="調整箇所の対応" label="tbl-maint-where" widths="34,26,40"}
+| 直したいもの | 直す場所 | 備考 |
+|---|---|---|
+| 外枠の寸法・余白 | `lib.typ` | 冒頭の「【1】調整パラメータ」に集約（@sec-pdf-params） |
+| フォント・文字サイズ | `lib.typ` | 同上 |
+| 章番号・図表番号の書式 | `lib.typ` ＋ `postprocess-html.js` | 採番の実装。**両方**を同じ規則にする（@sec-pdf-numbering） |
+| 番号付きリストの記号 | `lib.typ` | `ENUM-NUMBERING` |
+| IPO 図の欄割り・横向きの体裁 | `lib.typ` ＋ `design-doc.css` | 列比は `IPO-COLS` と `.ipo-frame` の**両方** |
+| 独自記法の追加・変更 | `design-doc.lua` | `.tbl` / `.landscape` / `.ipo` / mermaid（@sec-filter） |
+| HTML の見た目 | `design-doc.css` | @sec-html-look |
+| HTML の図表番号の振り直し | `postprocess-html.js` | Quarto の採番より後段で走る必要がある（@sec-html-postprocess） |
+| mermaid のテーマ・フォント | `mermaid-config.json` | SVG 化とプレビューの共通ソース |
+| `_quarto.yml` の設定項目の追加 | `typst-show.typ` ＋ `lib.typ` | 引数として渡す（@sec-pdf-partials） |
+| 設計書リポジトリの雛形 | `template/scaffold/` | 作成・追加が展開する |
+| mermaid 本体の版 | `template/vendor/mermaid.min.js` | 差し替えたら golden テストで幾何を確認 |
+| 発行者向けのはじめかた | `template/release-guide.typ` | リリース直下の `はじめかた.pdf`（Typst のスライド） |
+:::
+
+## 変更したときの検証 {#sec-maint-verify}
+
+様式・変換を直したら、次の順で確認する。
+
+1. `template/` を直したら、配置ツールをビルドし直して原本を埋め込み直し、
+   執筆フォルダへ**明示的に更新**する（忘れると版・内容の不一致としてビルドが停止する）。
+2. サンプル文書（`examples/docs/`）で PDF・HTML の**両方**を出し、体裁を確認する。
+   PDF だけ直すと HTML の採番がずれることがある。
+3. 利用マニュアル（`docs/manual/`）と本書（`docs/design/`）でも出力を確認する。
+   記法の網羅度が高く、退行を見つけやすい。
+4. `postprocess-html.js` を直したときは、同じ `_book/` に 2 回続けて流しても結果が
+   変わらないこと（冪等性）を必ず確認する。
+5. 見た目を変えないリファクタなら、変更前後のページ画像を比較する（@sec-pdf-verify）。
+
+::: {.callout-note}
+確認に使う文書は 3 つある。サンプル文書は「設計書らしい」実例（IPO 図・大きな表・
+横向きページ・ER 図）を持ち、利用マニュアルと本書は「記法の網羅」と「文章主体の
+長い文書」を持つ。どれか 1 つでは見つからない退行がある。
+:::
+
+## 変更するときのチェックリスト {#sec-maint-checklist}
+
+::: {.tbl caption="変更するときのチェックリスト" label="tbl-maint-checklist" widths="30,70"}
+| 変更したもの | 確かめること |
+|---|---|
+| 様式・変換のいずれか | PDF を再ビルドして目視確認したか（見た目を変えない変更なら PNG 比較）。HTML も再ビルドしたか（PDF だけ直すと採番がずれることがある） |
+| IPO の列比 | `lib.typ` の `IPO-COLS` と `design-doc.css` の `.ipo-frame` の**両方**を直したか |
+| 採番規則 | `lib.typ` と `postprocess-html.js` の**両方**を同じ規則にしたか |
+| `template/` 配下 | 配置ツールをビルドし直したか（原本は埋め込まれる）。執筆フォルダへ更新を実行したか |
+| 機構ファイルの増減 | 原本が `template/` にあるか。執筆者に要る（HTML）なら、配置ツールの機構ファイル一覧・`scaffold/repo/gitignore`（**無視しない**）・本リポジトリの `.gitignore`（無視する＋`!/template/...`）を揃えたか。発行時だけ要る（PDF）なら、配置ツールの PDF 用部品一覧・`scaffold/repo/gitignore`（無視する）・本リポジトリの `.gitignore` を揃えたか（@sec-repo-distributed） |
+| 配布される機構ファイル | `template/VERSION` を上げたか（@sec-version-when）。VSCode 拡張の版も揃えたか。実行例に埋め込まれた版番号を揃えたか（@sec-version-examples） |
+| `postprocess-html.js` | **同じ `_book/` に 2 回流しても結果が変わらない**ことを確かめたか（`quarto preview` は保存のたびに呼ぶ） |
+| 執筆者に見える記法 | 増やしたなら利用マニュアル 6〜10 章と 15 章の早見表も更新したか |
+| 構成・調整パラメータ名・経路 | 本書の記述と食い違っていないか |
+:::

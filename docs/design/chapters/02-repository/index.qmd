@@ -1,0 +1,13 @@
+# リポジトリの構成 {#sec-repository}
+
+本章では、**様式のリポジトリ**（保守者が持つ本リポジトリ）と**設計書リポジトリ**
+（発行者が作り、執筆者が clone する）の構成と、両者の間で何がどう配られるかを述べる。
+`template/` は設計書リポジトリに含まれない。
+
+{{< include 01-template-repo.qmd >}}
+
+{{< include 02-doc-repo.qmd >}}
+
+{{< include 03-division.qmd >}}
+
+{{< include 04-distributed.qmd >}}

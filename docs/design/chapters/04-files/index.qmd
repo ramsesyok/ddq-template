@@ -1,0 +1,40 @@
+# ファイルの役割 {#sec-files}
+
+本章では、執筆フォルダと `template/` にあるファイルの役割を一覧にする。
+場所欄の **doc** は執筆フォルダ、**tpl** は `template/`、**tpl→doc** は原本が
+`template/` にあり写しが執筆フォルダに置かれるもの。「配布」欄は設計書リポジトリに
+コミットされるかを示す。
+
+::: {.tbl caption="ファイルの役割（原稿と機構）" label="tbl-files-doc" widths="22,8,6,44,20"}
+| ファイル | 場所 | 配布 | 役割 | 影響する出力 |
+|---|---|---|---|---|
+| `_quarto.yml` | doc | ○ | 章の並び、html 設定、画面幅（`grid:`）、資料番号、`post-render` | 両方 |
+| `index.qmd` | doc | ○ | 前付け（採番なし）。HTML のトップページ | 両方 |
+| `chapters/**.qmd` | doc | ○ | 本文 | 両方 |
+| `diagrams/` | doc | ○ | qmd が直接貼る静的図 ＋ mermaid 生成 SVG の置き場（`mmd-*` は管理外） | 両方 |
+| `design-doc.lua` | tpl→doc | ○ | mermaid / `.landscape` / `.ipo` / `.tbl`（セル結合・表幅・分割）の変換 | 両方 |
+| `design-doc.css` | tpl→doc | ○ | HTML の見た目 | HTML |
+| `postprocess-html.js` | tpl→doc | ○ | 図表番号を「章.節-連番」に振り直す（`post-render` で自動実行） | HTML |
+| `mermaid-config.json` | tpl→doc | ○ | mermaid のテーマ・`htmlLabels: false`（SVG 化とプレビューの共通ソース） | 両方 |
+| `.template-version` | tpl→doc | ○ | 置いた時点のテンプレート版（`template/VERSION` の写し） | ― |
+| `design-doc.pdf` | doc | ○ | 中間版（発行者が定期的に作る） | ― |
+| `typst-show.typ` | tpl→doc | × | フロントマター → `design-doc()` の引数 | PDF |
+| `typst-template.typ` | tpl→doc | × | Quarto 既定テンプレートの差し替え口（`lib.typ` を import） | PDF |
+| `lib.typ` | tpl→doc | × | **様式の単一ソース**（枠・採番・IPO・横向き・`.tbl` の分割） | PDF |
+| `quarto-publish.yml` | tpl→doc | × | typst 用プロファイル（`_quarto-publish.yml` として置かれる） | PDF |
+:::
+
+::: {.tbl caption="ファイルの役割（template/ にだけあるもの）" label="tbl-files-tpl" widths="26,74"}
+| ファイル | 役割 |
+|---|---|
+| `VERSION` | テンプレートの版。配布される機構ファイルを変えたら上げる（@sec-version） |
+| `scaffold/repo/` | 設計書リポジトリ直下の雛形（`gitignore` `gitattributes` `README.md` `vscode/settings.json`）。`README.md` の `{{CONTENT_DIR}}` は執筆フォルダ名に置換される |
+| `scaffold/content/` | 執筆フォルダの雛形（`_quarto.yml` `index.qmd` `chapters/01-overview/index.qmd` `diagrams/`） |
+| `vendor/mermaid.min.js` | mermaid 本体（版固定）。配布 HTML・PDF の SVG 化に使う。差し替えたら図の幾何が変わり得るので golden テストで確認する |
+| `release-guide.typ` | リリース直下に置く「はじめかた」スライドの原稿（Typst。リリース作成時に PDF になる） |
+:::
+
+::: {.callout-note}
+`template/` の内容はすべて配置ツールに埋め込まれる。**`template/` を直しただけでは
+発行者の手元には届かない**。ツールをビルドし直し、リリースとして配る（利用マニュアル 17 章）。
+:::

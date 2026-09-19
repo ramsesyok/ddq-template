@@ -1,0 +1,57 @@
+## mermaid の 2 モード {#sec-filter-mermaid}
+
+執筆者は多数・PDF／配布 HTML を作るのは少数、という運用に合わせ、mermaid の変換先を
+**出力とフラグで切り替える**。判定は `WANT_SVG = (FORMAT == 'typst') or (MERMAID_SVG == '1')`
+の 1 か所である。
+
+::: {.tbl caption="mermaid の変換先" label="tbl-mermaid-modes" widths="14,30,34,22"}
+| 実行者 | 経路 | mermaid の扱い | 追加で要るもの |
+|---|---|---|---|
+| 執筆者 | `quarto preview`（HTML、環境変数なし） | `<pre class="mermaid mermaid-js">` を出し、Quarto 同梱ランタイムでブラウザ内描画 | **なし** |
+| 発行者 | 配布 HTML（`MERMAID_SVG=1`） | 外部の SVG 化コマンドでベクター SVG にして `image()` | SVG 化コマンド（＋端末のブラウザ） |
+| 発行者 | PDF（typst） | 同上 | 同左 |
+:::
+
+### SVG 化の経路
+
+SVG 化はフィルタが外部コマンドを `pandoc.pipe` で呼んで行う（シェルを介さない）。
+コマンドは `DDQ_BIN` 環境変数（発行者のビルドがフィルタに渡す）→ PATH の順に探す。
+**SVG 化以外でこのコマンドを参照しない**ので、執筆者の環境に無くても HTML は出る。
+
+- SVG は `ROOT/diagrams` に内容ハッシュ名（`mmd-<hash>.svg`）で置き、同じ内容なら
+  再変換しない（キャッシュ）。`mmd-*` は `.gitignore` 済みである。
+- どのエンジンで焼いたかは SVG 先頭のコメントに残る。ブラウザ経路は端末の
+  Edge / Chrome を headless で使い、`vendor/mermaid.min.js`（版固定）で描かせる。
+  ブラウザが無いときは内蔵レンダラに落ちる（文字幅の推定で配置がわずかに変わり得る）。
+  探索と実装は `cli/DESIGN.md` にある。
+- mermaid の設定は執筆フォルダ直下の `mermaid-config.json` を使う（`htmlLabels: false`
+  が必須。HTML ラベルは Typst で文字が消えるため）。
+
+### クライアント描画の仕組み
+
+Quarto native の ` ```{mermaid} ` は typst では**フィルタが走る前に PNG へラスタライズ**され、
+自前のベクター SVG に差し替えられない（実測）。そこで執筆者記法は ` ```mermaid `
+（プレーン）に統一し、HTML 既定ではフィルタが `<pre class="mermaid mermaid-js">` を出す。
+
+描画に要る 3 ファイル（`mermaid.min.js` / `mermaid-init.js` / `mermaid.css`）は
+`QUARTO_SHARE_PATH`（Quarto が render 時にフィルタへ渡す）配下 `formats/html/mermaid/`
+から `quarto.doc.add_html_dependency` で一度だけ注入する。`mermaid-init.js` は
+`pre.mermaid-js` を拾って SVG 化するので、native ` ```{mermaid} ` と等価に描ける。
+
+### 設定の単一ソース
+
+`mermaid-config.json` は SVG 化とクライアント描画の**両方**が読む。後者は
+`quarto.doc.include_text('after-body', …)` で `mermaid.initialize(...)` を流し込む。
+`mermaid-init.js` は読み込み時に一度 `initialize()` を呼んで Quarto 既定テーマを当てるので、
+**その後ろで**上書きする（描画は window の load で走るため間に合う）。
+これで `theme` / `htmlLabels: false` / フォントが両経路で揃う。
+
+### なぜフラグで分けるか・残る差
+
+配布 HTML は PDF と図を一致させたい（`htmlLabels: false` の同一 SVG）ので、
+`MERMAID_SVG=1` で SVG 経路に載せ、`postprocess-html.js` の figure 採番にも乗せる。
+
+残る差は描画エンジンの版である（プレビュー = Quarto 同梱 mermaid、発行版 =
+`vendor/mermaid.min.js`）。まれに図の形が変わる（例: subgraph 内 `direction` の解釈）ので、
+執筆者は中間版 PDF で確認する（利用マニュアルに明記）。プレビューでは SVG 化しないため
+`diagrams/mmd-*.svg` は増えない。

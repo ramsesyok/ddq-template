@@ -1,0 +1,26 @@
+## 変更したときの確認 {#sec-pdf-verify}
+
+`lib.typ` や partial を変えたら、**必ず再ビルドして PDF を目視確認する**。
+ページ単位で見るときは、Quarto に `keep-typ` を渡して中間の `.typ` を残し、
+Typst で PNG に出す。
+
+```bat
+:: 1) 写しを最新にし、PDF 用部品を置く（配置ツールの更新・準備）
+:: 2) 執筆フォルダで中間 .typ を残して render し、ページ画像に出す
+cd <執筆フォルダ>
+quarto render --to typst --profile publish -M keep-typ:true
+typst compile index.typ "chk-{n}.png" --format png --font-path "C:/Windows/Fonts" --ppi 70
+```
+
+`chk-*.png` / `page-*.png` は `.gitignore` 済みである。
+
+見た目を変えないリファクタのときは、**変更前後の PNG を `cmp` で比較**すると確実である
+（`lib.typ` の整理でこの方法により全ページ一致を確認した実績がある）。
+移行前後の PDF / HTML を機械的に比べる開発用スクリプト（`cli/tools/regress.py`）もある。
+
+::: {.callout-note}
+PDF を目視するときに見る場所は、外枠と資料番号欄の接地、目次のリーダー線とページ番号、
+図表番号の連番リセット（節が変わったら 1 に戻る）、横向きページと IPO 図の資料番号の
+向き、`.tbl` の「（i／n）」、callout のアイコン、である。サンプル文書
+（`examples/docs/`）と利用マニュアルに、これらの実例がそろっている。
+:::

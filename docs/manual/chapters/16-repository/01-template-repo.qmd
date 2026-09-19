@@ -1,0 +1,49 @@
+## 様式のリポジトリ（保守者）
+
+```text
+design-doc-quarto-template/
+├── README.md                … 役割ごとの最短手順（入口）
+├── .gitignore
+├── .gitattributes           … 改行コードの固定（機構ファイル=LF）
+├── .vscode/settings.json    … サンプル設定（日本語を等幅にする）
+├── .github/workflows/ci.yml … ddq の CI（fmt / clippy / test / build）
+├── .github/workflows/extension.yml … VSCode 拡張の CI
+│
+├── docs/                     … 設計リポジトリ（本テンプレートで書いた文書。執筆フォルダを並べる）
+│   ├── manual/               … 本書（利用マニュアル）の原稿
+│   └── design/               … テンプレート設計書の原稿（様式・変換の仕組み。保守者向け）
+│
+├── examples/                 … サンプルの設計書リポジトリ（記法の実例・様式の検証用）
+│   └── docs/                 … 受注管理システム 基本設計書
+│
+├── template/                 … 様式・変換の実体（ddq に埋め込まれる原本）
+│   ├── VERSION               … テンプレートの版（= ddq の版）
+│   ├── lib.typ               … 様式の単一ソース（外枠・採番・IPO・横向き）
+│   ├── typst-template.typ    … Quarto 既定テンプレートの差し替え口
+│   ├── typst-show.typ        … _quarto.yml の設定を様式の引数へ渡す
+│   ├── quarto-publish.yml    … PDF 用プロファイルの元
+│   ├── design-doc.lua        … 独自記法（.tbl / .landscape / .ipo / mermaid）の変換
+│   ├── design-doc.css        … HTML の見た目
+│   ├── postprocess-html.js   … HTML の図表番号を「章.節-連番」に振り直す後処理
+│   ├── mermaid-config.json   … mermaid 設定（htmlLabels:false 必須）
+│   ├── vendor/mermaid.min.js … mermaid 本体（版固定。ブラウザ経路で使う）
+│   ├── scaffold/             … 設計書リポジトリの雛形
+│   └── release-guide.typ     … リリース直下に置く「はじめかた」スライドの原稿（ddq release が PDF にする）
+│
+├── cli/                      … ddq（Rust）。上の template/ を埋め込んだ実行ファイルを作る
+│   ├── DESIGN.md             … ddq の設計書（決定事項・根拠・検証手順）
+│   ├── src/                  … init / add / update / setup / html / pdf / diagrams / release
+│   ├── tests/                … golden テスト（mermaid の幾何一致）・コマンドのテスト
+│   └── tools/regress.py      … 移行前後で PDF / HTML が変わらないことの確認
+│
+└── extension/                … VSCode 拡張 ddq-table-editor（.tbl の視覚編集。TypeScript + React）
+    ├── README.md             … 使い方・開発・デバッグ
+    ├── package.json          … 拡張の定義（version は template/VERSION と揃える）
+    └── src/                  … ddq release が npm でパッケージし、リリース一式に VSIX を同梱する
+```
+
+`docs/` と `examples/` の執筆フォルダは、設計書リポジトリの執筆フォルダ（@sec-doc-repo）と
+同じ形をしている。違いは、原本が同じリポジトリの `template/` にあるため、
+**機構ファイルの写しと `design-doc.pdf` を git 管理しない**ことだけである
+（`.gitignore` が名前で無視し、`template/` 配下だけを除外解除している）。
+サンプル文書を増やすときは `examples/` に執筆フォルダを足す。

@@ -1,0 +1,38 @@
+## 設計書リポジトリ {#sec-doc-repo}
+
+発行者が雛形（`template/scaffold/`）から作り、執筆者が clone するリポジトリである。
+直下のファイルは `scaffold/repo/` から、執筆フォルダの初期内容は `scaffold/content/`
+から置かれる。執筆フォルダは 1 つのリポジトリに複数置ける（名前は自由。ASCII のみ）。
+
+```text
+order-design/                 … 設計書リポジトリ（git 共有。執筆者はこれだけ clone する）
+├── .gitignore                … scaffold/repo/gitignore（生成物と PDF 用部品を無視する）
+├── .gitattributes            … 機構ファイルを LF に固定
+├── .vscode/settings.json     … 日本語を等幅で表示する設定
+├── README.md                 … 執筆者向けの入口
+└── docs/                     … 執筆フォルダ（名前は自由）
+    ├── _quarto.yml           … book 設定（章の並び・資料番号・post-render）
+    ├── index.qmd             … 前付け（採番されない）
+    ├── chapters/             … 本文（章＝フォルダ／節＝サブフォルダ／項＝ファイル）
+    ├── diagrams/             … 静的図と mermaid 生成 SVG のキャッシュ置き場
+    ├── design-doc.pdf        … 中間版 PDF（発行者が更新・コミット）
+    ├── design-doc.lua        ┐
+    ├── design-doc.css        │ 機構ファイル（コミットする。原本は template/）
+    ├── postprocess-html.js   │
+    ├── mermaid-config.json   ┘
+    ├── .template-version     … 置かれたテンプレートの版（template/VERSION の写し）
+    └── (PDF 出力時のみ: lib.typ, typst-*.typ, _quarto-publish.yml, _book/ … .gitignore)
+```
+
+### 設計書リポジトリに入れないもの
+
+`template/` の原本、配置・ビルドの道具、リリース一式は設計書リポジトリに入れない。
+発行者の手元に別途置き、執筆フォルダのパスを渡して使う。これは次の事故を防ぐためである。
+
+- `git clean` で道具ごと消える
+- 道具や原本を誤ってコミットし、リポジトリが重くなる・版が混在する
+- 執筆者が写しではなく原本を直してしまい、更新時に変更が失われる
+
+執筆者に要るのは HTML を出すための機構ファイルだけであり、それは**コミットされている**。
+したがって執筆者は clone するだけで、Quarto と VSCode 拡張により発行版と同じ番号の
+HTML を出せる。

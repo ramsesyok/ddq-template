@@ -1,0 +1,49 @@
+## 原本と写しの分担 {#sec-repo-division}
+
+`template/` は保守者のリポジトリにある**原本**である。発行者の手元には `template/`
+そのものは無く、原本を内蔵した配置ツールが執筆フォルダへ**写し**を置く。
+執筆フォルダにある機構ファイルは、すべてこの写しである。
+
+### なぜ執筆フォルダに写しを置くのか
+
+機構ファイルを `template/` から直接参照せず、執筆フォルダ直下に置くのには
+それぞれ理由がある。
+
+::: {.tbl caption="執筆フォルダに写しを置く理由" label="tbl-why-copy" widths="30,70"}
+| ファイル | 理由 |
+|---|---|
+| `lib.typ`・`typst-template.typ`・`typst-show.typ` | Typst の `import` は「プロジェクト外を読めない」制約があり、執筆フォルダの外にある原本を取り込めない |
+| `design-doc.css` | Quarto がローカル CSS として `_book/` に取り込むことで、HTML 一式を単体で配信・zip できる |
+| `design-doc.lua`・`postprocess-html.js`・`mermaid-config.json` | `_quarto.yml` が**同じフォルダ内の相対名**で参照する。執筆者の環境に `template/` が無くても `quarto render` が通る |
+| `_quarto-publish.yml` | Quarto のプロファイルは執筆フォルダ直下に無ければ読まれない |
+:::
+
+`_quarto.yml` は filter を相対名（`design-doc.lua`）で参照し、`design-doc.lua` は
+執筆フォルダ（ROOT）を自力で特定する（@sec-filter-paths）。環境変数に依存しないため、
+VSCode の Quarto 拡張や素の `quarto render` でもそのまま動く。
+
+### なぜ PDF 用の設定をプロファイルに分けるのか
+
+Typst 出力の設定（`template-partials` など）は `_quarto.yml` に書かず、
+`_quarto-publish.yml`（Quarto のプロファイル）に分けてある。
+`template-partials` は**実在するファイルを要求する**ため、`_quarto.yml` に書くと
+PDF 用部品を置いていない執筆者の `quarto render`（フォーマット無指定＝全形式）が
+必ず失敗する。発行側だけが `quarto render --to typst --profile publish` で読み込む。
+
+### 配置の操作
+
+写しを置く操作は 4 つに分かれている。実体は配置ツール（`cli/`）にあり、
+本書では責務だけを示す。
+
+::: {.tbl caption="配置の操作と責務" label="tbl-placement" widths="14,50,36"}
+| 操作 | 責務 | 置くもの |
+|---|---|---|
+| 更新（update） | 機構ファイル 4 本と `.template-version` を執筆フォルダへ置く。テンプレート更新の伝播はこれ。設計書リポジトリでは**コミット対象** | `design-doc.lua` `design-doc.css` `postprocess-html.js` `mermaid-config.json` `.template-version` |
+| 準備（setup） | `.template-version` と機構ファイル 4 本が起動中のツールと一致するか**検査**し、PDF 用の部品を置く。版・内容が違えば暗黙に更新せず停止する | `lib.typ` `typst-template.typ` `typst-show.typ` `_quarto-publish.yml`（`.gitignore`） |
+| 追加（add） | 執筆フォルダの雛形（`scaffold/content`）を展開し、更新を呼び、HTML を 1 回ビルドして検証する。既存ファイルは上書きしない | `_quarto.yml` `index.qmd` `chapters/` `diagrams/` |
+| 作成（init） | リポジトリ直下（`scaffold/repo`）を置いてから追加を行う | `.gitignore` `.gitattributes` `README.md` `.vscode/settings.json` |
+:::
+
+PDF・HTML のビルドは、いずれも先頭で準備（setup）と同じ検査を行う。
+**追跡対象の写しを暗黙に更新しない**のは、発行者が差分を確認してコミットする
+機会を残すためである（版が違えば止まり、発行者が明示的に更新する）。

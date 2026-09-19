@@ -1,0 +1,29 @@
+## 設計書リポジトリに配られるもの {#sec-repo-distributed}
+
+リリースを作るとき、また `template/` を直すときに意識すべき区別である。
+**機構ファイル 4 本と `.template-version` は設計書リポジトリにコミットされる**ため、
+これらを変更したら版を上げる必要がある（@sec-version）。
+
+::: {.tbl caption="配布と管理の対応" label="tbl-distributed" widths="40,12,48"}
+| ファイル | 管理 | 置く人・タイミング |
+|---|---|---|
+| `design-doc.lua`・`design-doc.css`・`postprocess-html.js`・`mermaid-config.json` | ○ | 発行者。作成・追加・更新のとき |
+| `.template-version`（`template/VERSION` の写し） | ○ | 同上 |
+| `design-doc.pdf` | ○ | 発行者。中間版・発行版を作ったとき |
+| `lib.typ`・`typst-template.typ`・`typst-show.typ`・`_quarto-publish.yml` | × | 発行者の準備（PDF を出すときだけ。`.gitignore`） |
+| `_book/`・`diagrams/mmd-*`・`.quarto/` | × | ビルドが作る |
+:::
+
+「管理 ○」は設計書リポジトリの `.gitignore`（`scaffold/repo/gitignore`）で無視
+**しない**ものである。`design-doc.pdf` は生成物だが例外で、レビューの基準になる
+「中間版」として管理対象にしてある。
+
+::: {.callout-important}
+機構ファイルを増減したときは、置き先に応じて次の 3 か所を揃える
+（@sec-maint-checklist）。
+
+- 執筆者に要る（HTML）… 配置ツールの機構ファイル一覧、`scaffold/repo/gitignore`
+  （**無視しない**）、本リポジトリの `.gitignore`（無視する＋`!/template/...` で原本を除外解除）
+- 発行時だけ要る（PDF）… 配置ツールの PDF 用部品一覧、`scaffold/repo/gitignore`
+  （無視する）、本リポジトリの `.gitignore`
+:::

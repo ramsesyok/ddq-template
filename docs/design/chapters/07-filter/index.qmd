@@ -1,0 +1,12 @@
+# 記法の変換（design-doc.lua） {#sec-filter}
+
+本章では、執筆者の記法を様式の機能に対応付ける Pandoc フィルタ `design-doc.lua` の
+設計を述べる。フィルタは `FORMAT` で出力先を見て分岐する。
+**Typst の生ブロック（RawBlock）は HTML 出力時に捨てられる**ため、HTML では
+div 構造として組み立て直している。
+
+{{< include 01-syntax.qmd >}}
+
+{{< include 02-mermaid.qmd >}}
+
+{{< include 03-paths.qmd >}}

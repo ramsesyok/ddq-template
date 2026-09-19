@@ -1,0 +1,59 @@
+## 様式のリポジトリ {#sec-template-repo}
+
+本リポジトリは「様式の実体（`template/`）と、それを配る道具、そして本テンプレートで
+書いた文書」からなる。設計書そのものはここに置かず、別の設計書リポジトリに置く。
+
+```text
+design-doc-quarto-template/
+├── README.md                … リポジトリの入口（何でできているか・役割・作業の流れ）
+├── .gitignore               … 機構ファイルの写し・生成物を管理外にする（原本は template/）
+├── .gitattributes           … 改行コードの固定（機構ファイル = LF）
+├── .vscode/settings.json    … 日本語を等幅で表示する設定
+├── .github/workflows/       … CI（配置ツール・VSCode 拡張）
+│
+├── template/                … 様式・変換の実体（原本）。本書の対象
+│   ├── VERSION              … テンプレートの版
+│   ├── lib.typ              … 様式の単一ソース（外枠・採番・IPO・横向き）
+│   ├── typst-template.typ   … Quarto 既定テンプレートの差し替え口（lib.typ を取り込む）
+│   ├── typst-show.typ       … フロントマター → design-doc() の引数
+│   ├── quarto-publish.yml   … PDF 用のプロファイル（→ <執筆>/_quarto-publish.yml）
+│   ├── design-doc.lua       … 執筆記法（mermaid / .landscape / .ipo / .tbl）の変換
+│   ├── design-doc.css       … HTML の見た目
+│   ├── postprocess-html.js  … HTML の図表番号を「章.節-連番」に振り直す後処理
+│   ├── mermaid-config.json  … mermaid 設定（htmlLabels:false 必須）
+│   ├── vendor/mermaid.min.js … mermaid 本体（版固定）
+│   ├── scaffold/            … 設計書リポジトリの雛形（repo/ = 直下、content/ = 執筆フォルダ）
+│   └── release-guide.typ    … リリース直下に置く「はじめかた」スライドの原稿
+│
+├── docs/                    … 設計リポジトリ（本テンプレートで書いた文書の執筆フォルダ群）
+│   ├── manual/              … 利用マニュアル（執筆者・発行者・保守者の手順）
+│   └── design/              … 本書（テンプレートの設計）
+│
+├── examples/                … サンプルの設計書リポジトリ（記法の実例・様式の検証用）
+│   └── docs/                … 受注管理システム 基本設計書
+│
+├── cli/                     … 配置・ビルドの道具（template/ を内蔵する）。設計は cli/DESIGN.md
+└── extension/               … VSCode 拡張（表の視覚編集）。extension/README.md
+```
+
+### 文書の置き場
+
+本テンプレートで書いた文書は 2 か所に分けて置く。
+
+::: {.tbl caption="リポジトリ内の文書の置き場" label="tbl-doc-places" widths="22,40,38"}
+| 置き場 | 中身 | 位置づけ |
+|---|---|---|
+| `docs/<執筆フォルダ>` | 利用マニュアル（`manual/`）・本書（`design/`） | テンプレート自身の文書。**設計リポジトリ**として、執筆フォルダを兄弟に並べる |
+| `examples/<執筆フォルダ>` | 受注管理システム 基本設計書（`docs/`） | サンプル。記法の実物見本であり、様式を変更したときの確認にも使う。サンプルを増やすときはここに執筆フォルダを足す |
+:::
+
+どちらも執筆フォルダの中身は設計書リポジトリの執筆フォルダと同じ形をしている
+（@sec-doc-repo）。違いは**機構ファイルの写しを git 管理しない**ことだけである。
+原本が同じリポジトリの `template/` にあるため、写しをコミットすると二重管理になる。
+`.gitignore` は機構ファイルを名前で無視し、`template/` 配下だけを除外解除している。
+
+::: {.callout-note}
+`.gitignore` の「Quarto が執筆フォルダ直下に自動生成する `.gitignore` を無視する」規則は
+深さで書いてある（`/*/.gitignore`・`/*/*/.gitignore`・`/*/*/*/.gitignore`）。
+執筆フォルダをこれより深い場所に置くときは規則を足す。
+:::

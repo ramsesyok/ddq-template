@@ -86,10 +86,10 @@ struct FolderArg {
 struct ReleaseArgs {
     /// 出力先（省略時 <リポジトリ>/release）
     out_dir: Option<PathBuf>,
-    /// サンプル文書 docs/ も同梱する
+    /// サンプル文書（examples/docs/）も docs/ として同梱する
     #[arg(long)]
     with_sample: bool,
-    /// 利用マニュアルと VSCode 拡張のビルドを省略する（manual/ と extension/ に成果物が残っているとき）
+    /// 利用マニュアルと VSCode 拡張のビルドを省略する（docs/manual/ と extension/ に成果物が残っているとき）
     #[arg(long)]
     no_build: bool,
 }

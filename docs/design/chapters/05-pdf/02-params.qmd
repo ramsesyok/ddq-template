@@ -1,0 +1,59 @@
+## lib.typ の構成 {#sec-pdf-params}
+
+`lib.typ` は次の節に分かれている。冒頭の**【1】調整パラメータ**に寸法・色・文字サイズを
+すべて名前付き定数として集約してあり、以降の関数群はこの定数を参照するだけである。
+様式の微調整は原則ここだけを触ればよい。
+
+::: {.tbl caption="lib.typ の節" label="tbl-lib-sections" widths="10,32,58"}
+| 節 | 内容 | 主な関数 |
+|---|---|---|
+| 【1】 | 調整パラメータ（フォント・色・寸法・IPO の欄割り） | 定数のみ |
+| 【2】 | 様式パーツ（外枠・資料番号・ページ番号・スペック様式の表題欄） | `_docnum-strip()`・`_spec-title-block()`・`_side-furniture` |
+| 【3】 | 文書全体のセットアップ（縦ページ・見出しと図表の採番規則・目次） | `design-doc()` |
+| 【3.5】 | 手動目次（`toc: false` のとき任意の位置に目次を置く） | `design-toc()` |
+| 【4】 | 横向きページ | `landscape(body)` |
+| 【4.5】 | `.tbl` の表。改ページで割れたら「（i／n）」を自動付与 | `_tbl-auto(...)` |
+| 【5】 | IPO 図（横向き様式ページ ＋ 機能名／処理名 ＋ 入力／処理／出力） | `ipo(...)` |
+| 【6】 | callout のアイコンを HTML 版に寄せる | `with-html-callout-icons()` |
+:::
+
+### 調整パラメータ
+
+::: {.tbl caption="変えたいものと触る定数" label="tbl-lib-params" widths="40,60"}
+| 変えたいもの | 触る定数 |
+|---|---|
+| 本文・様式のフォント | `JP-SANS` / `JP-SERIF` / `MONO` / `SPEC-HEAD-FONT` |
+| 外枠の線の太さ／資料番号枠・IPO の罫線 | `FRAME` / `RULE` |
+| 本文・見出しの文字サイズ、行間、字下げ | `BODY-SIZE` / `BODY-LEADING` / `PARA-INDENT` / `LIST-INDENT` / `HEAD-SIZES` / `HEAD-INDENT-STEP` |
+| 番号付きリストの記号 | `ENUM-NUMBERING` |
+| 外枠の位置・大きさ（縦） | `FRAME-P-POS` / `FRAME-P-SIZE` |
+| 本文を書ける領域（縦） | `PAGE-P-MARGIN` |
+| 資料番号の枠の大きさ・位置（縦） | `DOCNUM-INSET` / `DOCNUM-SIZE` / `DOCNUM-P-WIDTH` / `DOCNUM-P-LEFT` |
+| 資料番号とページ番号の間隔・ページ番号欄の幅 | `DOCNUM-PAGE-GAP` / `DOCNUM-PAGE-DIGITS` / `DOCNUM-PAGE-WIDTH` |
+| スペック様式の表題欄・フッター | `SPEC-*`（行の高さ・文字サイズ・会社名の間隔） |
+| 外枠の位置・大きさ（横） | `FRAME-L-POS` / `FRAME-L-SIZE` |
+| 資料番号の位置・幅（横） | `DOCNUM-L-TOP` / `DOCNUM-L-WIDTH` |
+| 本文を書ける領域（横・IPO） | `PAGE-L-MARGIN` / `PAGE-IPO-MARGIN` |
+| IPO の表題欄・列比・欄の高さ | `IPO-TITLE-COLS` / `IPO-TITLE-ROW` / `IPO-COLS` / `IPO-HEAD-ROW` / `IPO-BODY-ROW` ほか |
+| `.tbl` のキャプション行と列見出しの間隔 | `TBL-CAP-GAP` |
+:::
+
+寸法の考え方（A4 縦の外枠と余白、横向きでの回転）は `lib.typ` 冒頭のコメントに
+図解がある。縦・横とも余白は非対称で、横向きは A4 縦の外枠を時計回りに 90° 回転した
+配置に一致させてある。
+
+### 自動で追従する箇所
+
+次は手で計算し直さなくてよい。
+
+- **資料番号の枠が外枠の上辺に接地する**位置は `measure()` で実測している。
+  文字サイズや inset を変えても接地は保たれる。
+- **横ページの資料番号の左右位置**は `FRAME-L-POS.x + FRAME-L-SIZE.width` で求めている。
+  外枠を動かせば資料番号も付いてくる。
+- **開始ページ番号（`page-start`）**は、背景層の先頭で `counter(page)` を更新している。
+  本文側で更新すると背景層が先に評価されるため 1 ページ目に反映されない。
+
+::: {.callout-important}
+IPO の列比を変えたときは、`lib.typ` の `IPO-COLS` と `design-doc.css` の `.ipo-frame` の
+**両方**を直す。PDF と HTML で欄の比率が食い違う。
+:::
