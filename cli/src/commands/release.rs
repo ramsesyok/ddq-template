@@ -2,7 +2,7 @@
 //! テンプレートのリポジトリのルートで実行する（template/VERSION と docs/manual/ があること）。
 //!
 //! 作るもの（cli/DESIGN.md §3.2）:
-//!   <out-dir>/quarto-template-<版>/      ddq.exe / plantuml.jar / はじめかた.pdf / README.md / manual/
+//!   <out-dir>/quarto-template-<版>/      ddq.exe / plantuml.jar / はじめかた.pdf / README.md / AGENT-GUIDE.md / manual/
 //!                                        / ddq-table-editor-<版>.vsix（VSCode 拡張）
 //!   <out-dir>/quarto-template-<版>.zip
 //! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
@@ -46,6 +46,9 @@ const SAMPLE_EXCLUDE_PREFIXES: [&str; 2] = ["mmd-", "puml-"];
 const PLANTUML_JAR_SRC: &str = "cli/vendor/plantuml.jar";
 /// リリース直下での名前（ddq が exe の隣から探す名前。plantuml::find_jar）
 const PLANTUML_JAR_DEST: &str = "plantuml.jar";
+
+/// AI エージェント向け執筆ガイド（リポジトリ直下。リリース直下に同名で置く）
+const AGENT_GUIDE: &str = "AGENT-GUIDE.md";
 
 /// VSCode 拡張（.tbl の視覚編集）。リポジトリ内のフォルダ名と、package.json の name（= VSIX 名の先頭）
 const EXTENSION_DIR: &str = "extension";
@@ -101,6 +104,9 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         .unwrap_or_else(|| "ddq.exe".into());
     fs::copy(quarto::self_exe()?, stage.join(&exe_name)).context("exe をコピーできません")?;
     fs::copy(repo.join("README.md"), stage.join("README.md")).context("README.md をコピーできません")?;
+    // AI エージェント向けの記法要約。発行者が設計書リポジトリの AGENTS.md / スキルに取り込む
+    fs::copy(repo.join(AGENT_GUIDE), stage.join(AGENT_GUIDE))
+        .with_context(|| format!("{AGENT_GUIDE} をコピーできません"))?;
     copy_plantuml_jar(&repo, &stage)?;
     build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
     fs::copy(&manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
@@ -129,7 +135,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     println!("  フォルダ: {}", stage.display());
     println!("  zip     : {}（{count} ファイル）", zip_path.display());
     println!(
-        "  内容: {} / plantuml.jar / はじめかた.pdf / README / manual（PDF + HTML）/ {}{}",
+        "  内容: {} / plantuml.jar / はじめかた.pdf / README / AGENT-GUIDE / manual（PDF + HTML）/ {}{}",
         exe_name.display(),
         vsix_name.to_string_lossy(),
         if with_sample {

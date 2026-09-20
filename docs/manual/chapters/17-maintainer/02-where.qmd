@@ -1,4 +1,4 @@
-## 何をどこで直すか
+## 何をどこで直すか {#sec-where}
 
 ::: {.tbl caption="調整箇所の対応" label="tbl-maint-where" widths="34,26,40"}
 | 直したいもの                     | 直す場所                    | 備考                                   |
@@ -18,6 +18,7 @@
 | mermaid 本体の版                 | `template/vendor/mermaid.min.js` | 差し替えたら golden テストで幾何を確認 |
 | コマンドの挙動・リリースの中身   | `cli/src/`                  | 設計は `cli/DESIGN.md`                  |
 | 発行者向けのはじめかた           | `template/release-guide.typ`| リリース直下の `はじめかた.pdf`（Typst のスライド） |
+| AI エージェント向けの執筆ガイド  | `AGENT-GUIDE.md`（リポジトリ直下） | リリース直下に同名で同梱。記法を変えたら本書 6〜10 章とあわせて直す |
 :::
 
 ::: {.callout-important}

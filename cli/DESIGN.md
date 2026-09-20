@@ -90,6 +90,7 @@ quarto-template-<版>/
 ├── ddq.exe
 ├── plantuml.jar         … PlantUML（MIT 版）。ddq が exe の隣から探す（2.2.0 から。§13）
 ├── README.md            … リポジトリの README
+├── AGENT-GUIDE.md       … AI エージェント向けの執筆ガイド（リポジトリ直下の同名ファイル）
 ├── はじめかた.pdf        … 最初の一歩（template/release-guide.typ を Quarto 同梱の Typst で PDF に。
 │                            Marp は npm 依存なので使わない）
 ├── ddq-table-editor-<版>.vsix … VSCode 拡張（2.1.0 から。extension/ を `npm run package` したもの）
@@ -162,7 +163,7 @@ release ──► update, pdf, html（manual に対して）
 | **pdf** | `setup` → PlantUML サーバの用意 → `quarto render --to typst --profile publish`（env: `DDQ_BIN` `DDQ_PLANTUML_SERVER`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
 | **diagrams** | `diagrams/*.mmd *.puml` → 同名 `.svg`（キャッシュ `mmd-*` `puml-*` は対象外）。設定は執筆フォルダ直下の `mermaid-config.json` / `plantuml-config.puml`（無ければ埋め込み） | render-diagrams |
 | **plantuml serve** | §13.4。Java と jar を探し、PicoWeb を既定ポートに上げて Ctrl-C まで待つ | （新規） |
-| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `docs/manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`cli/vendor/plantuml.jar` を `plantuml.jar` として同梱（無ければ停止）、`README.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
+| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `docs/manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`cli/vendor/plantuml.jar` を `plantuml.jar` として同梱（無ければ停止）、`README.md`、`AGENT-GUIDE.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
 
 `TEMPLATE_ROOT`（旧フィルタが `mermaid-config.json` のフォールバック探索に使っていた）は廃止した。
