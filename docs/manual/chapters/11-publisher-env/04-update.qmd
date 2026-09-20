@@ -11,18 +11,28 @@
 **別のフォルダに展開される**ので、そちらへ移動してから実行する。
 
 ```bat
-cd C:\tools\quarto-template-2.1.0
+cd C:\tools\quarto-template-2.2.0
 .\ddq update C:\work\order-design\docs
 ```
 
 古い版のフォルダは残しておけるため、問題があれば元の版から `update` を実行し直せば戻せる。
 
 機構ファイル 5 点（`design-doc.lua` / `design-doc.css` / `postprocess-html.js` /
-`mermaid-config.json` / `.template-version`）だけが置き換わる。**原稿には触れない。**
+`mermaid-config.json` / `plantuml-config.puml` / `.template-version`）だけが置き換わる。**原稿には触れない。**
 
 ::: {.callout-important}
 **git の差分として出るのでコミットする。** 執筆者は pull するだけで新しい機構になる。
 `<執筆フォルダ>/.template-version` に、どの版で置いたかが記録される。
+:::
+
+::: {.callout-note}
+**2.1.0 以前に作った設計書リポジトリを 2.2.0 に上げるとき**は、リポジトリ直下の `.gitignore` に
+次の 1 行を足す（`ddq init` が置くファイルは `update` では書き換えないため）。PlantUML 図の
+キャッシュ（`diagrams/puml-*`）を誤ってコミットしないためのもので、PlantUML を使わなければ無くてもよい。
+
+```text
+**/diagrams/puml-*
+```
 :::
 
 リポジトリに執筆フォルダが複数ある場合（@sec-newdoc）は、リポジトリのパスを渡して

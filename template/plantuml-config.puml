@@ -1,0 +1,21 @@
+' ============================================================
+'  PlantUML の共通設定（機構ファイル。ddq update が執筆フォルダ直下に置く）
+'
+'  design-doc.lua が ```plantuml フェンスの @startuml 直後にこのファイルの中身を
+'  そのまま連結してから描画するので、書けるのは PlantUML の記法（skinparam /
+'  !pragma / !theme など）である。LAN のサーバで描くときも、ローカルで描くときも
+'  同じものが効く。内容を変えると図のキャッシュ（diagrams/puml-*.svg）は自動で
+'  作り直される（連結後のソースをハッシュしているため）。
+'
+'  layout smetana … Graphviz（dot）の Java 移植を使う。dot の有無や版に依らず、
+'                   Windows のローカル描画と Linux のサーバ描画で同じ配置になる。
+'                   本物の dot に切り替えるならこの行を消す（Windows 版の jar は dot を内蔵）。
+'  defaultFontName … 文字幅の計測に使うフォント。PDF 側（lib.typ）の本文と同じ
+'                   Yu Gothic。SVG の <text> は textLength で幅が固定されるため、
+'                   描く側（Typst / ブラウザ）にこのフォントが無くても箱からはみ出さない。
+'  backgroundColor transparent … 紙面・ページの背景をそのまま見せる（mermaid と同じ）。
+' ============================================================
+!pragma layout smetana
+skinparam defaultFontName "Yu Gothic"
+skinparam backgroundColor transparent
+skinparam shadowing false

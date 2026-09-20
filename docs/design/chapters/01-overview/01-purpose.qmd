@@ -19,6 +19,6 @@ HTML の章番号・図表番号・相互参照は PDF と一致する。
 | 様式の実体 | `template/lib.typ`（Typst テンプレート） |
 | 記法の拡張 | `template/design-doc.lua`（Pandoc Lua フィルタ） |
 | HTML の採番 | `template/postprocess-html.js`（後処理。Quarto 同梱の Deno で走る） |
-| 図 | mermaid（文字で書いた図をベクター SVG に） |
+| 図 | mermaid（文字で書いた図をベクター SVG に）、PlantUML（描画サーバで SVG に） |
 | 執筆者に要るもの | Quarto ＋ VSCode の Quarto 拡張だけ |
 :::

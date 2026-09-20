@@ -6,5 +6,6 @@
 | 画像                   | `![キャプション](/diagrams/x.svg){#fig-id width=55%}`        | 8章  |
 | mermaid（番号なし）    | ` ```mermaid ` フェンスに書く                                | 8章  |
 | mermaid（番号付き）    | `::: {#fig-id}` 〜 フェンス 〜 キャプション 〜 `:::`         | 8章  |
+| PlantUML（UML 図）     | ` ```plantuml ` フェンスに書く（`@startuml` は省略可）。番号付きは mermaid と同じ | 8章  |
 | 図の参照               | `@fig-id`                                                    | 8章  |
 :::

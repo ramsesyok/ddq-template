@@ -1,5 +1,6 @@
 //! `ddq update` — 執筆フォルダの機構ファイルをこの exe の版に更新する（旧 update-doc）。
-//! 置くのは design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json と
+//! 置くのは design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json /
+//! plantuml-config.puml と
 //! `.template-version`。これらは doc リポジトリにコミットされる（cli/DESIGN.md §3.3）。
 
 use std::{fs, path::Path};

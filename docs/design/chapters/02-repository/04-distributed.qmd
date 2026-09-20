@@ -1,13 +1,13 @@
 ## 設計書リポジトリに配られるもの {#sec-repo-distributed}
 
 リリースを作るとき、また `template/` を直すときに意識すべき区別である。
-**機構ファイル 4 本と `.template-version` は設計書リポジトリにコミットされる**ため、
+**機構ファイル 5 本と `.template-version` は設計書リポジトリにコミットされる**ため、
 これらを変更したら版を上げる必要がある（@sec-version）。
 
 ::: {.tbl caption="配布と管理の対応" label="tbl-distributed" widths="40,12,48"}
 | ファイル | 管理 | 置く人・タイミング |
 |---|---|---|
-| `design-doc.lua`・`design-doc.css`・`postprocess-html.js`・`mermaid-config.json` | ○ | 発行者。作成・追加・更新のとき |
+| `design-doc.lua`・`design-doc.css`・`postprocess-html.js`・`mermaid-config.json`・`plantuml-config.puml` | ○ | 発行者。作成・追加・更新のとき |
 | `.template-version`（`template/VERSION` の写し） | ○ | 同上 |
 | `design-doc.pdf` | ○ | 発行者。中間版・発行版を作ったとき |
 | `lib.typ`・`typst-template.typ`・`typst-show.typ`・`_quarto-publish.yml` | × | 発行者の準備（PDF を出すときだけ。`.gitignore`） |

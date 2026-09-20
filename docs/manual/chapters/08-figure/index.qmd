@@ -9,4 +9,6 @@
 
 {{< include 02-mermaid.qmd >}}
 
-{{< include 03-xref.qmd >}}
+{{< include 03-plantuml.qmd >}}
+
+{{< include 04-xref.qmd >}}

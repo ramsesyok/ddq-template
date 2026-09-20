@@ -2,17 +2,20 @@
 //!   setup → `quarto render --to typst --profile publish` → `_book/*.pdf` を `design-doc.pdf` に取り出す。
 //! typst の設定は _quarto-publish.yml（setup が置く）にあるので `--profile publish` が要る。
 //! mermaid は design-doc.lua がこの exe（DDQ_BIN）を呼んで SVG に焼く。
+//! PlantUML は render の間だけサーバを用意し（plantuml::ensure）、URL を DDQ_PLANTUML_SERVER で渡す。
 
 use std::{fs, path::Path};
 
 use anyhow::{Context, Result, bail};
 
-use crate::{commands::setup, quarto, writing_folder};
+use crate::{commands::setup, plantuml, quarto, writing_folder};
 
 pub fn run(dir: &Path) -> Result<()> {
     writing_folder::ensure_encodable(dir)?;
     setup::run(dir)?;
-    quarto::render(dir, &["--to", "typst", "--profile", "publish"], &[])?;
+    let session = plantuml::ensure(dir)?;
+    quarto::render(dir, &["--to", "typst", "--profile", "publish"], &session.env())?;
+    drop(session);
 
     // _book/ は次のビルドで作り直されるので、成果物を執筆フォルダ直下に取り出す。
     // doc リポジトリではこの PDF を「中間版」としてコミットして共有する。

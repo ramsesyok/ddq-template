@@ -1,0 +1,76 @@
+## PlantUML を描く仕組み {#sec-plantuml-setup}
+
+PlantUML 図（@sec-plantuml）はブラウザの中では描けないため、プレビュー・配布 HTML・PDF の
+いずれも **PlantUML サーバ**に HTTP で描かせてベクター SVG を得る。サーバは 2 通りある。
+
+::: {.tbl caption="PlantUML サーバの選び方" label="tbl-puml-server" widths="22,40,38"}
+| サーバ | 用意する人・もの | 向いている場合 |
+|---|---|---|
+| **LAN 内の常設サーバ** | 組織で 1 台立てる（公式の `plantuml-server`、または `java -jar plantuml.jar -picoweb`）。URL を `_quarto.yml` の `plantuml-server:` に書く | 執筆者が多い。**執筆者の端末に Java も `ddq` も入れずに済む** |
+| **ローカル起動** | リリース一式の `plantuml.jar` と、端末の Java（8 以上） | 常設サーバが無い。発行者の `ddq pdf` / `ddq html` は自動で上げ下げするので操作は要らない |
+:::
+
+`ddq` はビルドのたびに次の順でサーバを決める。
+
+1. 環境変数 `PLANTUML_SERVER`、または `_quarto.yml` の `plantuml-server:` に書かれたサーバに届くか
+2. 起動済みの `ddq plantuml serve`（`http://127.0.0.1:18080`）に届くか
+3. 原稿に ` ```plantuml ` が無ければ何もしない（**PlantUML を使わない文書に Java は要らない**）
+4. Java と `plantuml.jar` を探し、ローカルにサーバを上げる（ビルドが終わったら止める）
+
+### LAN 内のサーバを使う
+
+`_quarto.yml` の `plantuml-server:` に URL を書き、コミットする。以後、その設計書リポジトリを
+clone した全員のプレビューと発行がこのサーバを使う。
+
+```yaml
+plantuml-server: http://plantuml.example.local:8080
+```
+
+個人で別のサーバを試すときは環境変数 `PLANTUML_SERVER` が優先される。
+
+::: {.callout-warning}
+図のソースはサーバへ平文の HTTP で送られる。閉域の LAN 内で立てること。
+インターネット上の公開サーバ（plantuml.com）は設計書の内容が外部に出るので使わない。
+:::
+
+サーバの jar の版と、ローカルの `plantuml.jar` の版が違うと同じ原稿から違う図が出ることが
+ある。生成された SVG（`<執筆フォルダ>/diagrams/puml-*.svg`）の 1 行目に、どのサーバの
+どの版で描いたかが記録される。
+
+```text
+<!-- ddq 2.2.0 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 -->
+```
+
+### ローカルで描く（Java の用意）
+
+リリース一式には `plantuml.jar`（MIT ライセンス版）が同梱されている。要るのは **Java** だけで、
+Graphviz は要らない（レイアウトは jar 内蔵の smetana を使う）。
+
+`ddq` は Java を `JAVA_HOME` → PATH → レジストリ → 既定のインストール先の順で探す。
+見つからないときは、環境変数 `DDQ_JAVA` に `java.exe` のパスを指定する。
+
+```bat
+set "DDQ_JAVA=C:\Program Files\Eclipse Adoptium\jdk-17\bin\java.exe"
+.\ddq pdf C:\work\order-design\docs
+```
+
+`plantuml.jar` は `ddq.exe` と同じフォルダから探す。別の場所に置くなら `DDQ_PLANTUML_JAR`。
+
+### 執筆者がプレビューで見るとき
+
+`quarto preview`（VSCode の Quarto 拡張）は `ddq` を経由しないので、ローカルで描くなら
+執筆者がサーバを起動しておく。
+
+```bat
+cd C:\tools\quarto-template-2.2.0
+.\ddq plantuml serve
+```
+
+起動したままにし、執筆を終えたら Ctrl-C で止める。既定のポート（18080）なら設定は要らない。
+ポートを変えた（`--port`）ときは、環境変数 `PLANTUML_SERVER` にその URL を設定してから
+`quarto preview` を起動する。
+
+### 構文エラーのとき
+
+図の記法に誤りがあると、サーバはエラー内容を描いた画像を返す。`ddq` はそれを図として
+採用せず、ビルドを止めて原因と行番号を表示する（プレビューでは枠付きのソース表示になる）。

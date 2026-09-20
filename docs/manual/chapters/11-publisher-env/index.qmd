@@ -6,6 +6,8 @@
 出力に要るのは **Quarto と、リリース一式に入っている `ddq.exe`** だけである。
 mermaid 図の SVG 化には Windows に標準搭載の Edge（または Chrome）を使い、
 どちらも無ければ `ddq` に内蔵されたレンダラで描く。**Node.js も npm も要らない。**
+PlantUML 図（@sec-plantuml）を含む文書だけは、LAN 内の PlantUML サーバか、
+ローカルの Java（同梱の `plantuml.jar` を動かす）のどちらかが要る（@sec-plantuml-setup）。
 
 ::: {.callout-note}
 設計書と同じ版の `ddq.exe` があれば、執筆者も同じ手順で PDF・配布 HTML を出力できる。
@@ -16,6 +18,8 @@ mermaid 図の SVG 化には Windows に標準搭載の Edge（または Chrome�
 
 {{< include 02-mermaid.qmd >}}
 
-{{< include 03-update.qmd >}}
+{{< include 03-plantuml.qmd >}}
 
-{{< include 04-offline.qmd >}}
+{{< include 04-update.qmd >}}
+
+{{< include 05-offline.qmd >}}

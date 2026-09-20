@@ -20,6 +20,7 @@ design-doc.css
 design-doc.lua
 postprocess-html.js
 mermaid-config.json
+plantuml-config.puml
 .template-version
 !/template/lib.typ
 !/template/typst-template.typ
@@ -28,6 +29,7 @@ mermaid-config.json
 !/template/design-doc.lua
 !/template/postprocess-html.js
 !/template/mermaid-config.json
+!/template/plantuml-config.puml
 
 # ==== ツールの作業/キャッシュディレクトリ ====
 .quarto/
@@ -39,9 +41,10 @@ mermaid-config.json
 /*/*/.gitignore
 /*/*/*/.gitignore
 
-# ==== mermaid 変換キャッシュ（内容ハッシュ名 mmd-xxxx.*） ====
+# ==== mermaid / PlantUML 変換キャッシュ（内容ハッシュ名 mmd-xxxx.* / puml-xxxx.*） ====
 # diagrams/order-flow.* は同梱するため無視しない。
 **/diagrams/mmd-*
+**/diagrams/puml-*
 
 # ==== ページ目視確認用の一時画像（chk-*.png / page-*.png など） ====
 chk-*.png
@@ -74,3 +77,6 @@ regress/
 extension/node_modules/
 extension/out/
 *.vsix
+
+# ==== リリースに同梱する外部バイナリ（cli/vendor/README.md。17MB あるので git 管理外） ====
+cli/vendor/*.jar

@@ -8,8 +8,8 @@
 ::: {.tbl caption="発行者の経路" label="tbl-publisher-path" widths="12,88"}
 | 出力 | 内部の流れ |
 |---|---|
-| PDF | 検査（`.template-version`・機構ファイルの一致）→ PDF 用部品を置く → `quarto render --to typst --profile publish` → `_book/*.pdf` を `<執筆フォルダ>/design-doc.pdf` へ取り出す |
-| HTML | 検査（同上）→ `quarto render --to html`（環境変数 `MERMAID_SVG=1` で mermaid をベクター SVG 化）→ `_book/` |
+| PDF | 検査（`.template-version`・機構ファイルの一致）→ PDF 用部品を置く → PlantUML サーバの用意（LAN のサーバに届けばそれ、無ければローカルに起動）→ `quarto render --to typst --profile publish` → `_book/*.pdf` を `<執筆フォルダ>/design-doc.pdf` へ取り出す → ローカルに起動したサーバを止める |
+| HTML | 検査（同上）→ PlantUML サーバの用意 → `quarto render --to html`（環境変数 `MERMAID_SVG=1` で mermaid をベクター SVG 化）→ `_book/` |
 :::
 
 PDF・HTML はどちらも執筆フォルダの `_book/` を出力先に使い、**後から走ったほうが
@@ -24,11 +24,14 @@ PDF → HTML の順に実行する。
 
 執筆者は何も要らない。`quarto preview` / `quarto render`（フォーマット無指定）で
 HTML が出て、図表番号の振り直しまで `post-render`（`_quarto.yml` に登録）が自動で行う。
-mermaid はブラウザ内で描画され、ベクター SVG 化は行われない。
+mermaid はブラウザ内で描画され、ベクター SVG 化は行われない。PlantUML だけは
+プレビューでもサーバ描画で、LAN のサーバか `ddq plantuml serve` に届かなければ
+ソースが枠付きで表示される（@sec-filter-plantuml）。
 
 ```text
 執筆者:  quarto preview ──→ design-doc.lua（html）──→ Quarto HTML ──→ postprocess-html.js ──→ _book/
-                                  └ mermaid は <pre class="mermaid"> のまま（ブラウザで描く）
+                                  ├ mermaid は <pre class="mermaid"> のまま（ブラウザで描く）
+                                  └ plantuml は PlantUML サーバ（LAN / ddq plantuml serve）に描かせて image()
 
 発行者:  検査 → quarto render --to html（MERMAID_SVG=1）… 同上、ただし mermaid は SVG に焼く
          検査 → PDF 用部品 → quarto render --to typst --profile publish → design-doc.pdf

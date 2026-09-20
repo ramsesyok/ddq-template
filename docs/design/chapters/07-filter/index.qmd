@@ -9,4 +9,6 @@ div 構造として組み立て直している。
 
 {{< include 02-mermaid.qmd >}}
 
-{{< include 03-paths.qmd >}}
+{{< include 03-plantuml.qmd >}}
+
+{{< include 04-paths.qmd >}}

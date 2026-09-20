@@ -79,6 +79,7 @@
     [
       #raw(block: true, folder + "/
 ├── ddq.exe
+├── plantuml.jar     … PlantUML 図の描画
 ├── はじめかた.pdf   … 本書
 ├── README.md        … 概要と作業の流れ
 ├── ddq-table-editor-" + version + ".vsix
@@ -200,6 +201,8 @@
     *発行版*と呼ぶ。設計書と `ddq.exe` の版・機構が違えば停止し、更新は発行者が `ddq update` で行う
   - mermaid 図は Windows 標準の Edge（または Chrome）を裏で使ってベクター化。*準備は不要*。
     どちらも無ければ内蔵レンダラで描く
+  - PlantUML 図は LAN の PlantUML サーバ（`_quarto.yml` の `plantuml-server:`）か、
+    無ければ同梱の `plantuml.jar` を端末の *Java* で裏で起動して描く（11 章）
 
   #v(4pt)
   #note[
@@ -234,6 +237,7 @@
 
       `ddq.exe` はネットワークを使わない。
       Edge は Windows 標準なので mermaid も変換できる。
+      PlantUML 図を使うなら Java も持ち込む（LAN にサーバが無い場合）。
     ],
     [
       *困ったとき*

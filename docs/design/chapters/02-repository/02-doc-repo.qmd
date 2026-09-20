@@ -14,12 +14,13 @@ order-design/                 … 設計書リポジトリ（git 共有。執筆
     ├── _quarto.yml           … book 設定（章の並び・資料番号・post-render）
     ├── index.qmd             … 前付け（採番されない）
     ├── chapters/             … 本文（章＝フォルダ／節＝サブフォルダ／項＝ファイル）
-    ├── diagrams/             … 静的図と mermaid 生成 SVG のキャッシュ置き場
+    ├── diagrams/             … 静的図と mermaid / PlantUML 生成 SVG のキャッシュ置き場
     ├── design-doc.pdf        … 中間版 PDF（発行者が更新・コミット）
     ├── design-doc.lua        ┐
     ├── design-doc.css        │ 機構ファイル（コミットする。原本は template/）
     ├── postprocess-html.js   │
-    ├── mermaid-config.json   ┘
+    ├── mermaid-config.json   │
+    ├── plantuml-config.puml  ┘
     ├── .template-version     … 置かれたテンプレートの版（template/VERSION の写し）
     └── (PDF 出力時のみ: lib.typ, typst-*.typ, _quarto-publish.yml, _book/ … .gitignore)
 ```

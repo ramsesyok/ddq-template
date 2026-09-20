@@ -10,11 +10,12 @@ order-design/                 … 名前は文書ごとに決める（日本語�
     ├── _quarto.yml           … book 設定（章の並び・doc-number・post-render）
     ├── index.qmd             … 前付け（採番されない）
     ├── chapters/             … 本文
-    ├── diagrams/             … 静的図と mermaid 生成 SVG のキャッシュ置き場
+    ├── diagrams/             … 静的図と mermaid / PlantUML 生成 SVG のキャッシュ置き場
     ├── design-doc.pdf        … 中間版 PDF（発行者が更新・コミット）
     ├── design-doc.lua        ┐
     ├── design-doc.css        │ 機構ファイル（コミットする。原本は ddq に埋め込み）
     ├── postprocess-html.js   │
-    ├── mermaid-config.json   ┘
+    ├── mermaid-config.json   │
+    ├── plantuml-config.puml  ┘
     └── .template-version     … 置かれたテンプレートの版
 ```

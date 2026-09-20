@@ -13,12 +13,13 @@ order-design/              … 設計書リポジトリ（clone するのはこ�
     ├── _quarto.yml        … 文書の設定（表題・資料番号・章の並び）
     ├── index.qmd          … 前付け（採番されない章）
     ├── chapters/          … 本文。章＝フォルダ／節＝サブフォルダ／項＝ファイル
-    ├── diagrams/          … 図の置き場（SVG・mermaid のキャッシュ）
+    ├── diagrams/          … 図の置き場（SVG・mermaid / PlantUML のキャッシュ）
     ├── design-doc.pdf     … 中間版 PDF（発行者が更新する）
     ├── design-doc.lua     ┐
     ├── design-doc.css     │ 機構ファイル（触らない）。
     ├── postprocess-html.js│ 発行者が ddq で配置する
     ├── mermaid-config.json│
+    ├── plantuml-config.puml│
     ├── .template-version  ┘ 置かれたテンプレートの版
     ├── lib.typ            … 発行者の setup が置く生成物（触らない）
     ├── typst-*.typ        … 同上
@@ -49,7 +50,7 @@ order-design/              … 設計書リポジトリ（clone するのはこ�
 
 ::: {.callout-warning}
 機構ファイル（`design-doc.lua`・`design-doc.css`・`postprocess-html.js`・
-`mermaid-config.json`）は `ddq` に埋め込まれた原本の**写し**である。
+`mermaid-config.json` / `plantuml-config.puml`）は `ddq` に埋め込まれた原本の**写し**である。
 直接編集しても、発行者がテンプレートを更新（`ddq update`）したときや
 ビルドしたときに上書きされる。様式を変えたい場合は 17章を参照すること。
 :::
@@ -60,7 +61,7 @@ order-design/              … 設計書リポジトリ（clone するのはこ�
 | ファイル | 管理 | 備考 |
 |---|:---:|---|
 | `_quarto.yml`・`index.qmd`・`chapters/`・`diagrams/` | ○ | 原稿そのもの |
-| 機構ファイル4点・`.template-version` | ○ | 発行者が置く。差分が出たら発行者がコミットする |
+| 機構ファイル 5 点・`.template-version` | ○ | 発行者が置く。差分が出たら発行者がコミットする |
 | `design-doc.pdf` | ○ | **中間版**。発行者が定期的に更新してコミットする |
 | `_book/` | × | 出力先（生成物） |
 | `lib.typ`・`typst-*.typ`・`_quarto-publish.yml` | × | 発行者の setup が置く生成物 |

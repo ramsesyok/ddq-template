@@ -24,11 +24,11 @@
 
 ```text
 C:\tools\
-└── quarto-template-2.1.0/     … リリース ZIP を展開したもの（git 共有しない）
+└── quarto-template-2.2.0/     … リリース ZIP を展開したもの（git 共有しない）
     ├── ddq.exe                … 様式・変換・ビルドの実体（これを実行する）
     ├── はじめかた.pdf          … 発行者向けの最初の一歩（スライド）
     ├── README.md              … テンプレートの概要
-    ├── ddq-table-editor-2.1.0.vsix … VSCode 拡張（表の視覚編集。執筆者へ配る）
+    ├── ddq-table-editor-2.2.0.vsix … VSCode 拡張（表の視覚編集。執筆者へ配る）
     └── manual/                … 本書の PDF / HTML（執筆者へ配る）
 
 C:\work\
@@ -71,7 +71,7 @@ C:\work\
 以降のコマンドは、**展開したフォルダを開いた状態**で実行する。
 
 ```bat
-cd C:\tools\quarto-template-2.1.0
+cd C:\tools\quarto-template-2.2.0
 ```
 
 ::: {.callout-warning}

@@ -11,7 +11,7 @@ PDF と HTML は同じ作業フォルダ（`_book`）を使うため、**あと�
 
 | ファイル | 生成元 |
 |----------|--------|
-| `<執筆フォルダ>/design-doc.lua` ほか機構ファイル4点 | `ddq.exe` に埋め込まれた `template/` の同名ファイル |
+| `<執筆フォルダ>/design-doc.lua` ほか機構ファイル 5 点 | `ddq.exe` に埋め込まれた `template/` の同名ファイル |
 | `<執筆フォルダ>/lib.typ`・`typst-*.typ`・`_quarto-publish.yml` | 同上 |
 | `<執筆フォルダ>/_book/` | 原稿 |
 | `<執筆フォルダ>/design-doc.pdf` | 原稿（中間版・発行版） |

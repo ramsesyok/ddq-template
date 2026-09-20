@@ -12,8 +12,9 @@ use anyhow::{Context, Result, bail};
 ///
 /// `DDQ_BIN` に自分の絶対パスを渡し、design-doc.lua が mermaid の SVG 化に
 /// この exe を使えるようにする（cli/DESIGN.md §6）。PATH に別の版があっても、
-/// 起動した exe の版が使われる。
-pub fn render(dir: &Path, args: &[&str], extra_env: &[(&str, &str)]) -> Result<()> {
+/// 起動した exe の版が使われる。PlantUML サーバの URL（`DDQ_PLANTUML_SERVER`）は
+/// 呼び出し側が `extra_env` で渡す（§13）。
+pub fn render(dir: &Path, args: &[&str], extra_env: &[(&str, String)]) -> Result<()> {
     let mut cmd = Command::new("quarto");
     cmd.arg("render")
         .args(args)
