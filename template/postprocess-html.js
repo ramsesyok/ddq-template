@@ -50,11 +50,12 @@ const root = process.argv[2] || process.env.QUARTO_PROJECT_OUTPUT_DIR || '_book'
 
 // 章順は _quarto.yml の chapters をそのまま使う（並びを二重管理しない）。
 // chapters は「- パス.qmd」が1行1件で並ぶだけなので、簡易パースで足りる。
+// 章ファイルは .qmd と .md のどちらでもよい（実行コードセルを使わない章は .md にできる）。
 const conf = fs.readFileSync('_quarto.yml', 'utf8');
 const block = conf.match(/^\s*chapters:\s*$([\s\S]*?)^\S/m)
   || conf.match(/^\s*chapters:\s*$([\s\S]*)/m);
-const order = [...(block?.[1] ?? '').matchAll(/^\s*-\s*(\S+\.qmd)\s*$/gm)]
-  .map((m) => m[1].replace(/\.qmd$/, '.html'));
+const order = [...(block?.[1] ?? '').matchAll(/^\s*-\s*(\S+\.(?:qmd|md))\s*$/gm)]
+  .map((m) => m[1].replace(/\.(?:qmd|md)$/, '.html'));
 if (order.length === 0) {
   console.error('_quarto.yml の chapters を読めませんでした');
   process.exit(1);
