@@ -32,12 +32,17 @@ quarto-template-<版>/
 ├── ddq.exe             … 様式・変換・ビルドの実体（template/ 一式を内蔵）
 ├── はじめかた.pdf       … 発行者向けの最初の一歩（template/release-guide.typ から生成）
 ├── README.md           … テンプレートの概要と作業の流れ
+├── AGENT-GUIDE.md      … AI エージェント向けの執筆ガイド（リポジトリ直下の同名ファイルの写し）
 ├── ddq-table-editor-<版>.vsix … VSCode 拡張（.tbl の視覚編集。執筆者へ配る）
 └── manual/利用マニュアル.pdf, manual/html/   … 本書（発行者が読む・執筆者へ配る）
 ```
 
 テンプレート設計書（`docs/design/`）は同梱しない。保守者専用であり、発行者は
 `はじめかた.pdf`・`README.md`・本書で足りる。
+
+`AGENT-GUIDE.md` は、AI エージェントに原稿を書かせる発行者向けの要約である（本書 4章・6〜12章・14章の
+内容を 1 ファイルに圧縮したもの）。設計書リポジトリの `AGENTS.md` / `CLAUDE.md` に貼るか、スキルの参照資料として
+使う。記法を変えたときは本書とあわせて更新する（@sec-where）。
 
 ### 閉域（オフライン）環境向けに作る
 

@@ -49,6 +49,7 @@ C:\tools\
     ├── plantuml.jar         ← PlantUML 図の描画（ローカルの Java で ddq が起動する）
     ├── はじめかた.pdf        ← 発行者向けの最初の一歩（8 枚のスライド）
     ├── README.md            ← このファイル
+    ├── AGENT-GUIDE.md       ← AI エージェント向けの執筆ガイド（設計書リポジトリの AGENTS.md やスキルに取り込む）
     ├── ddq-table-editor-2.2.0.vsix ← VSCode 拡張（表の視覚編集。執筆者へ配る）
     └── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
 
@@ -162,6 +163,7 @@ cd C:\tools\quarto-template-2.2.0
 | [docs/design/](docs/design/) | **テンプレート設計書**（リポジトリの構成、出力経路、様式 `lib.typ` と変換 `design-doc.lua` の仕組み、HTML 採番の後処理、版の考え方、保守の観点）。**このリポジトリのみ**（リリースには同梱しません） | 保守者 |
 | [cli/DESIGN.md](cli/DESIGN.md) | `ddq` の設計（コマンド・mermaid エンジン・PlantUML サーバ・ビルド・検証） | 保守者 |
 | [extension/README.md](extension/README.md) | VSCode 拡張 `ddq-table-editor` の使い方・開発・デバッグ | 執筆者（使い方）・保守者 |
+| [AGENT-GUIDE.md](AGENT-GUIDE.md)（リリース直下にも同梱） | **AI エージェント向けの執筆ガイド**。利用マニュアル全体を読まずに、執筆フォルダの構成・`_quarto.yml`・記法（`.tbl`・IPO 図・相互参照）・コマンドを把握できる要約。設計書リポジトリの `AGENTS.md` / `CLAUDE.md` やスキルにそのまま取り込む | 発行者（AI に原稿を書かせるとき） |
 
 `examples/docs/` はこのリポジトリ同梱の**サンプル**（受注管理システムの基本設計書）です。
 記法の実例と、様式を変更したときの確認用に使います。サンプル文書を増やすときは
