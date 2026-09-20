@@ -2,12 +2,13 @@
 //! テンプレートのリポジトリのルートで実行する（template/VERSION と docs/manual/ があること）。
 //!
 //! 作るもの（cli/DESIGN.md §3.2）:
-//!   <out-dir>/quarto-template-<版>/      ddq.exe / はじめかた.pdf / README.md / manual/
+//!   <out-dir>/quarto-template-<版>/      ddq.exe / plantuml.jar / はじめかた.pdf / README.md / manual/
 //!                                        / ddq-table-editor-<版>.vsix（VSCode 拡張）
 //!   <out-dir>/quarto-template-<版>.zip
 //! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
 //! VSCode 拡張は extension/ を npm でパッケージして同梱する（2.1.0 から）。版は
 //! extension/package.json の version で、template/VERSION と一致していなければ止める。
+//! plantuml.jar は cli/vendor/plantuml.jar（git 管理外。保守者が MIT 版を置く）を同梱する（2.2.0 から）。
 
 use std::{
     env, fs,
@@ -38,8 +39,13 @@ const SAMPLE_EXCLUDE_FILES: [&str; 6] = [
     "_quarto-publish.yml",
     "index.typ",
 ];
-/// 同上。mermaid のキャッシュ（diagrams/mmd-*）。配布 HTML の _book/ 内にある分は必要なので除かない。
-const SAMPLE_EXCLUDE_PREFIXES: [&str; 1] = ["mmd-"];
+/// 同上。mermaid / PlantUML のキャッシュ（diagrams/mmd-* puml-*）。配布 HTML の _book/ 内にある分は必要なので除かない。
+const SAMPLE_EXCLUDE_PREFIXES: [&str; 2] = ["mmd-", "puml-"];
+
+/// 同梱する plantuml.jar の置き場（リポジトリ内。17MB あるので git 管理外。cli/vendor/README.md）
+const PLANTUML_JAR_SRC: &str = "cli/vendor/plantuml.jar";
+/// リリース直下での名前（ddq が exe の隣から探す名前。plantuml::find_jar）
+const PLANTUML_JAR_DEST: &str = "plantuml.jar";
 
 /// VSCode 拡張（.tbl の視覚編集）。リポジトリ内のフォルダ名と、package.json の name（= VSIX 名の先頭）
 const EXTENSION_DIR: &str = "extension";
@@ -95,6 +101,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         .unwrap_or_else(|| "ddq.exe".into());
     fs::copy(quarto::self_exe()?, stage.join(&exe_name)).context("exe をコピーできません")?;
     fs::copy(repo.join("README.md"), stage.join("README.md")).context("README.md をコピーできません")?;
+    copy_plantuml_jar(&repo, &stage)?;
     build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
     fs::copy(&manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
     copy_tree(&manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
@@ -122,7 +129,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     println!("  フォルダ: {}", stage.display());
     println!("  zip     : {}（{count} ファイル）", zip_path.display());
     println!(
-        "  内容: {} / はじめかた.pdf / README / manual（PDF + HTML）/ {}{}",
+        "  内容: {} / plantuml.jar / はじめかた.pdf / README / manual（PDF + HTML）/ {}{}",
         exe_name.display(),
         vsix_name.to_string_lossy(),
         if with_sample {
@@ -132,6 +139,41 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         }
     );
     Ok(())
+}
+
+/// plantuml.jar をリリース直下に同梱する。無ければ止める（PlantUML 図の無い組織でも、
+/// 執筆者に配る一式としては揃っている方が説明が簡単なため、省略可能にしない）。
+fn copy_plantuml_jar(repo: &Path, stage: &Path) -> Result<()> {
+    let src = repo.join(PLANTUML_JAR_SRC);
+    if !src.is_file() {
+        bail!(
+            concat!(
+                "{} がありません。PlantUML の MIT 版 jar（plantuml-mit-<版>.jar）を
+",
+                "  https://github.com/plantuml/plantuml/releases から取得し、その名前で置いてください（cli/vendor/README.md）。"
+            ),
+            src.display()
+        );
+    }
+    let jar_version = jar_version(&src).unwrap_or_else(|| "不明".to_string());
+    fs::copy(&src, stage.join(PLANTUML_JAR_DEST)).context("plantuml.jar をコピーできません")?;
+    println!("  plantuml.jar を同梱しました（PlantUML {jar_version}）");
+    Ok(())
+}
+
+/// jar の MANIFEST から版を読む（表示用。読めなければ None）
+fn jar_version(jar: &Path) -> Option<String> {
+    let file = fs::File::open(jar).ok()?;
+    let mut archive = zip::ZipArchive::new(file).ok()?;
+    let mut manifest = archive.by_name("META-INF/MANIFEST.MF").ok()?;
+    let mut text = String::new();
+    std::io::Read::read_to_string(&mut manifest, &mut text).ok()?;
+    text.lines()
+        .find_map(|l| {
+            l.strip_prefix("Implementation-Version:")
+                .or_else(|| l.strip_prefix("Bundle-Version:"))
+        })
+        .map(|v| v.trim().to_string())
 }
 
 /// VSCode 拡張（extension/）をパッケージし、できた VSIX のパスを返す。

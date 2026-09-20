@@ -6,6 +6,10 @@
 --          置換（diagrams/ に内容ハッシュでキャッシュ）。ddq は既存の Edge/Chrome を
 --          headless で使い、無ければ内蔵レンダラで描く（cli/DESIGN.md §5）。
 --        - 執筆者プレビュー HTML(既定) … Quarto 同梱 mermaid でクライアント描画（ddq 不要）
+--   1') ```plantuml フェンス → PlantUML サーバ（LAN のサーバ、または ddq が上げる
+--        ローカルの PicoWeb）に HTTP で描かせて SVG 化し、画像に置換（同じく
+--        diagrams/ にキャッシュ）。ブラウザ内で描く実装が無いので、プレビューでも
+--        サーバが要る。届かなければプレビューはソース表示で続行、発行は停止。
 --   2) ::: {.landscape} div → #landscape[...]（横向きページ）
 --   3) ::: {.ipo} div → #ipo(...)（IPO図。最初の見出し = 機能名 / 処理名、
 --      入力/処理/出力（Input/Process/Output 可）の見出しで3列に分割）
@@ -206,7 +210,192 @@ local function inject_mermaid_runtime()
   end
 end
 
+-- ============================================================
+--  PlantUML（```plantuml フェンス）
+--
+--  mermaid と違いブラウザ内で描く実装が無いので、プレビュー・配布 HTML・PDF の
+--  すべてで PlantUML サーバに HTTP で描かせ、SVG を画像として貼る（cli/DESIGN.md §13）。
+--  サーバは次の順で決め、最初に届いたものを render の間だけ覚えておく:
+--    DDQ_PLANTUML_SERVER（ddq pdf / html / diagrams が内部で上げたサーバ）
+--    → PLANTUML_SERVER（端末の環境変数）
+--    → _quarto.yml の plantuml-server:（設計書リポジトリで共有する LAN のサーバ）
+--    → http://127.0.0.1:18080（執筆者が手で上げる `ddq plantuml serve` の既定）
+--  どこにも届かなければ、プレビューではソースを枠付きで表示して続行し
+--  （render を止めない）、発行（typst / MERMAID_SVG=1）ではエラーで止める。
+--
+--  HTTP は Windows 同梱の curl.exe を pandoc.pipe で呼ぶ（POST /render）。
+--  pandoc.mediabag.fetch は GET しかできず、タイムアウトも指定できないため
+--  （落ちたサーバに章ごとに 21 秒待たされる。実測）。POST なら URL 長の制約も無い。
+--  設定 plantuml-config.puml は @startuml の直後に連結して送る（サーバは -config を
+--  受けない）。連結後のソースをハッシュするので、設定を変えれば図は再生成される。
+--  構文エラーでもサーバは「エラー内容を描いた SVG」を 200 で返すので、
+--  X-PlantUML-Diagram-Error ヘッダで判定し、その図は書かない。
+-- ============================================================
+local PUML_DEFAULT_SERVER = 'http://127.0.0.1:18080'
+local PUML_CONF = 'plantuml-config.puml'
+-- 到達確認の結果。nil = 未確認、false = どこにも届かない、table = { url, version, from }
+local puml_server = nil
+-- 届かなかった候補の説明（エラーメッセージ用）
+local puml_tried = {}
+
+-- curl を起動する。成功なら stdout、失敗なら nil と説明。
+local function curl(args, input)
+  local ok, out = pcall(pandoc.pipe, 'curl', args, input or '')
+  if ok then return out end
+  if type(out) == 'table' then
+    -- pandoc.pipe のエラー: { command, error_code, output }
+    local code = tonumber(out.error_code) or -1
+    local why = ({ [6] = 'ホスト名を解決できません', [7] = '接続できません', [28] = 'タイムアウト' })[code]
+      or ('curl 終了コード ' .. code)
+    local detail = tostring(out.output or ''):gsub('%s+$', '')
+    if detail ~= '' then why = why .. '（' .. detail .. '）' end
+    return nil, why
+  end
+  return nil, tostring(out)
+end
+
+-- サーバの候補を優先順に返す
+local function puml_candidates()
+  local list = {}
+  local function add(url, from)
+    if url and url ~= '' then table.insert(list, { url = (url:gsub('/+$', '')), from = from }) end
+  end
+  add(os.getenv('DDQ_PLANTUML_SERVER'), 'DDQ_PLANTUML_SERVER')
+  add(os.getenv('PLANTUML_SERVER'), 'PLANTUML_SERVER')
+  -- _quarto.yml の plantuml-server: を 1 行だけ読む（Lua に YAML パーサは無いが、
+  -- 値は URL 1 つなので行頭のキーを拾えば足りる。コメント行は '#' で始まるので当たらない）
+  local yml = read_file(ROOT .. '/_quarto.yml')
+  if yml then
+    yml = '\n' .. yml
+    local v = yml:match('\n[ \t]*plantuml%-server:[ \t]*"([^"\n]*)"')
+      or yml:match("\n[ \t]*plantuml%-server:[ \t]*'([^'\n]*)'")
+      or yml:match('\n[ \t]*plantuml%-server:[ \t]*([^%s#"\']+)')
+    add(v, '_quarto.yml の plantuml-server')
+  end
+  add(PUML_DEFAULT_SERVER, '既定（ddq plantuml serve）')
+  return list
+end
+
+-- 届くサーバを 1 つ決める（render 中は 1 回だけ調べる）。/serverinfo は PicoWeb が
+-- 版を返す。公式 plantuml-server には無いかもしれないので、HTTP で応答があれば
+-- 状態コードに関わらず「届いた」とみなし、版は取れたときだけ記録する。
+local function puml_find_server()
+  if puml_server ~= nil then return puml_server end
+  for _, c in ipairs(puml_candidates()) do
+    local out, why = curl({ '-s', '-S', '--connect-timeout', '2', '-m', '5', c.url .. '/serverinfo' })
+    if out then
+      c.version = out:match('"version"%s*:%s*"([^"]*)"')
+      puml_server = c
+      return c
+    end
+    table.insert(puml_tried, '  ' .. c.url .. '（' .. c.from .. '）: ' .. tostring(why))
+  end
+  puml_server = false
+  return false
+end
+
+-- フェンスの中身を、サーバに送る 1 図分のソースにする。
+--   - 改行を LF に揃える（CRLF だと @startuml の行に当たらず設定が連結されない。実測）
+--   - 先頭が @start… でなければ @startuml … @enduml で包む
+--   - plantuml-config.puml の中身を @start… の直後に連結する
+-- 返り値: ソース, 連結した行数（エラーの行番号を原稿の行に戻すため）
+local function puml_source(code)
+  code = code:gsub('\r\n', '\n'):gsub('\r', '\n')
+  if code:sub(-1) ~= '\n' then code = code .. '\n' end
+  local conf = read_file(ROOT .. '/' .. PUML_CONF) or ''
+  conf = conf:gsub('\r\n', '\n')
+  if conf ~= '' and conf:sub(-1) ~= '\n' then conf = conf .. '\n' end
+  local head, rest = code:match('^(%s*@start%w+[^\n]*\n)(.*)$')
+  local src
+  if head then
+    src = head .. conf .. rest
+  else
+    src = '@startuml\n' .. conf .. code .. '@enduml\n'
+  end
+  local _, injected = conf:gsub('\n', '')
+  return src, injected
+end
+
+-- サーバに 1 図を描かせる。成功なら SVG 文字列、失敗なら nil と理由。
+local function puml_render(server, src, injected)
+  local body = pandoc.json.encode({ source = src, options = { '-tsvg', '-charset', 'UTF-8' } })
+  -- -D - でヘッダを stdout に混ぜる。Expect: を空にするのは、本文が 1KB を超えると curl が
+  -- 100-continue を待って 1 秒止まるため（サーバは 100 を返さない）。
+  local out, why = curl({
+    '-s', '-S', '--connect-timeout', '2', '-m', '120', '-X', 'POST',
+    '-H', 'Content-Type: application/json', '-H', 'Expect:',
+    '--data-binary', '@-', '-D', '-', server.url .. '/render',
+  }, body)
+  if not out then return nil, 'サーバ ' .. server.url .. ' に送れません: ' .. tostring(why) end
+  -- ヘッダブロックは複数あり得る（1xx）。最後のブロックの次が本文。
+  local hdr, rest = out:match('^(HTTP/.-\r?\n)\r?\n(.*)$')
+  while rest and rest:match('^HTTP/') do
+    hdr, rest = rest:match('^(HTTP/.-\r?\n)\r?\n(.*)$')
+  end
+  if not hdr then return nil, 'サーバの応答を解釈できません' end
+  local status = hdr:match('^HTTP/%S+%s+(%d+)')
+  local perr = hdr:match('\n[Xx]%-[Pp]lant[Uu][Mm][Ll]%-[Dd]iagram%-[Ee]rror:%s*([^\r\n]*)')
+  if perr then
+    local line = tonumber(hdr:match('\n[Xx]%-[Pp]lant[Uu][Mm][Ll]%-[Dd]iagram%-[Ee]rror%-[Ll]ine:%s*(%d+)'))
+    if line then
+      -- 連結した設定の行数と、補った @startuml の 1 行を差し引いて原稿の行に戻す
+      local n = line - injected - 1
+      perr = perr .. '（フェンス内 ' .. math.max(n, 1) .. ' 行目付近）'
+    end
+    return nil, perr
+  end
+  if status ~= '200' then return nil, 'サーバが HTTP ' .. tostring(status) .. ' を返しました' end
+  if not rest:match('^%s*<') then return nil, 'サーバの応答が SVG ではありません' end
+  return rest
+end
+
+-- フェンス → diagrams/puml-<hash>.svg。成功なら (相対パス, 絶対パス)、失敗なら (nil, 理由)。
+local function render_plantuml(code)
+  local src, injected = puml_source(code)
+  local hash = pandoc.utils.sha1(src):sub(1, 8)
+  local svg = DIAG .. '/puml-' .. hash .. '.svg'
+  local rel = diag_rel() .. '/puml-' .. hash .. '.svg'
+  if file_exists(svg) then return rel, svg end
+  local server = puml_find_server()
+  if not server then
+    return nil, 'PlantUML サーバが見つかりません。\n' .. table.concat(puml_tried, '\n')
+  end
+  local out, err = puml_render(server, src, injected)
+  if not out then return nil, err end
+  pandoc.system.make_directory(DIAG, true)
+  -- 送ったソースも残す（mermaid の .mmd と同じ。図が変なときに手で再現できる）
+  local f = assert(io.open(DIAG .. '/puml-' .. hash .. '.puml', 'wb')); f:write(src); f:close()
+  local ver = (read_file(ROOT .. '/.template-version') or '?'):gsub('%s+$', '')
+  local header = '<!-- ddq ' .. ver .. ' engine=plantuml plantuml=' .. (server.version or '?') ..
+    ' server=' .. server.url .. ' -->\n'
+  f = assert(io.open(svg, 'wb')); f:write(header .. out); f:close()
+  return rel, svg
+end
+
 function CodeBlock(el)
+  if el.classes:includes('plantuml') then
+    local rel, abs = render_plantuml(el.text)
+    if rel then
+      local img = pandoc.Image({}, rel, '',
+        pandoc.Attr('', {}, { { 'width', fig_width(abs) } }))
+      return pandoc.Para({ img })
+    end
+    local msg = 'PlantUML の図を描けませんでした: ' .. abs
+    if WANT_SVG then
+      error(msg ..
+        '\n  1) LAN のサーバを使うなら _quarto.yml の plantuml-server: か環境変数 PLANTUML_SERVER に URL を書いてください。' ..
+        '\n  2) 自分の端末で描くなら Java と plantuml.jar を用意し、`ddq pdf` / `ddq html` から実行してください' ..
+        '（ddq が内部でサーバを上げます）。素の quarto render なら `ddq plantuml serve` を起動しておいてください。' ..
+        '\n  3) HTTP には Windows 同梱の curl.exe を使います。PATH に無い端末では動きません。')
+    end
+    -- 執筆者プレビュー: 止めずにソースを枠付きで出す（design-doc.css の .plantuml-fallback）
+    return pandoc.Div({
+      pandoc.Para({ pandoc.Strong(msg) }),
+      pandoc.Para({ pandoc.Str('LAN の PlantUML サーバ（_quarto.yml の plantuml-server）か、' ..
+        'ローカルの ddq plantuml serve を起動すると図が表示されます。PDF・配布 HTML ではエラーになります。') }),
+      pandoc.CodeBlock(el.text, pandoc.Attr('', { 'plantuml-source' })),
+    }, pandoc.Attr('', { 'plantuml-fallback' }))
+  end
   if el.classes:includes('mermaid') then
     if WANT_SVG then
       local rel, abs = render_mermaid(el.text)

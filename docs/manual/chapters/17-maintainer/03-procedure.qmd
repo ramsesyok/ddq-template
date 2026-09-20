@@ -2,12 +2,12 @@
 
 1. `template/` のファイル（または `cli/src/`）を直す。
 2. 配布される機構ファイル（`design-doc.lua`・`design-doc.css`・`postprocess-html.js`・
-   `mermaid-config.json`）を直したら `template/VERSION` を上げる。いつ上げるかの考え方は
+   `mermaid-config.json` / `plantuml-config.puml`）を直したら `template/VERSION` を上げる。いつ上げるかの考え方は
    テンプレート設計書 8 章にある。
 
    ::: {.callout-important}
    **版を上げたら、本書と `README.md` の実行例に埋め込まれた版番号も揃える。**
-   展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-2.1.0` のような例が
+   展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-2.2.0` のような例が
    全体で30箇所ほどある。ずれていると、発行者が手元のフォルダ名と合わない手順を
    読むことになる。
 
@@ -26,7 +26,7 @@
 
    ```bat
    cd extension
-   npm version 2.1.0 --no-git-tag-version
+   npm version 2.2.0 --no-git-tag-version
    cd ..
    ```
    :::

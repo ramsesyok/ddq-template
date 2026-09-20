@@ -123,3 +123,16 @@ td[rowspan], th[rowspan] { vertical-align: middle; }
 #quarto-document-content figcaption { text-align: center; }
 /* IPO の各欄の中だけは枠いっぱいに使う（上の上限を打ち消す） */
 #quarto-document-content .ipo-col img { max-width: 100%; }
+
+/* PlantUML サーバに届かないときのプレビュー表示（design-doc.lua の .plantuml-fallback）。
+   図の代わりにソースを枠付きで出す。目立つ色にして「図が描けていない」と分かるようにする。
+   PDF・配布 HTML ではエラーで止まるので、この枠は執筆者のプレビューにしか出ない。 */
+.plantuml-fallback {
+  border: 2px dashed #c60;
+  background: #fff8f0;
+  padding: 0.6em 1em;
+  margin: 1em 0;
+}
+.plantuml-fallback > p { margin: 0 0 0.4em; }
+.plantuml-fallback > p:first-child { color: #c60; }
+.plantuml-fallback pre { margin: 0; }

@@ -7,10 +7,11 @@
 | `typst-template.typ`    | PDF           | Quarto 既定テンプレートの差し替え口。`lib.typ` を取り込む   |
 | `typst-show.typ`        | PDF           | `_quarto.yml` の設定を様式の引数へ渡す                      |
 | `quarto-publish.yml`    | PDF           | typst 用の設定。`_quarto-publish.yml` として置かれる        |
-| `design-doc.lua`        | PDF ＋ HTML   | 独自記法（`.tbl` / `.landscape` / `.ipo` / mermaid）の変換  |
+| `design-doc.lua`        | PDF ＋ HTML   | 独自記法（`.tbl` / `.landscape` / `.ipo` / mermaid / plantuml）の変換 |
 | `design-doc.css`        | HTML          | HTML の見た目                                               |
 | `postprocess-html.js`   | HTML          | 図表番号を「章.節-連番」に振り直す後処理                    |
 | `mermaid-config.json`   | PDF ＋ HTML   | mermaid の設定（`htmlLabels:false` が必須）                 |
+| `plantuml-config.puml`  | PDF ＋ HTML   | PlantUML の共通設定（`layout smetana`・フォント。各図の先頭に連結） |
 | `vendor/mermaid.min.js` | PDF ＋ HTML   | mermaid 本体。`ddq` がブラウザで動かして SVG を得る（版固定） |
 | `scaffold/`             | ―            | 設計書リポジトリの雛形（`ddq init` / `ddq add` が展開）      |
 :::

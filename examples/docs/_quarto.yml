@@ -52,6 +52,9 @@ book:
     - chapters/14-tbl-examples/index.qmd
 
 lang: ja
+# PlantUML 図（```plantuml）を描く LAN 内のサーバ。空ならローカルの `ddq plantuml serve`（既定
+# http://127.0.0.1:18080）を探し、`ddq pdf` / `ddq html` は内部で上げる（利用マニュアル 8 章・11 章）。
+plantuml-server: ""
 doc-number: SD-2026-001
 doc-revision: ""       # 改訂記号（A〜Z / NC）。doc-number の末尾に結合して資料番号に表示。空=改訂記号なし
 spec: false            # スペック様式（全ページ上部に表題欄）にするか。true でスペック様式

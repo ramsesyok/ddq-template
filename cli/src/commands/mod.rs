@@ -11,6 +11,7 @@ pub mod html;
 pub mod init;
 pub mod mermaid;
 pub mod pdf;
+pub mod plantuml;
 pub mod release;
 pub mod setup;
 pub mod update;

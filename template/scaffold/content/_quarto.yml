@@ -42,6 +42,11 @@ book:
     - chapters/01-overview/index.qmd
 
 lang: ja
+# PlantUML 図（```plantuml）を描く LAN 内のサーバ。設定すると執筆者・発行者とも、
+# 自分の端末に Java や plantuml.jar が無くても図が出る（利用マニュアル 8 章・11 章）。
+# 例: plantuml-server: http://plantuml.example.local:8080
+# 空なら、ローカルの `ddq plantuml serve`（既定 http://127.0.0.1:18080）を探す。
+plantuml-server: ""
 doc-number: XX-2026-001
 doc-revision: ""       # 改訂記号（A〜Z / NC）。doc-number の末尾に結合して資料番号に表示。空=改訂記号なし
 spec: false            # スペック様式（全ページ上部に表題欄）にするか。true でスペック様式

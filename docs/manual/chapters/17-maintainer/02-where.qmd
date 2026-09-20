@@ -12,6 +12,7 @@
 | HTML の見た目                    | `design-doc.css`            | ―                                     |
 | HTML の図表番号の振り直し        | `postprocess-html.js`       | Quarto の採番より後段で走る必要がある   |
 | mermaid のテーマ・フォント       | `mermaid-config.json`       | SVG 化とプレビューの共通ソース          |
+| PlantUML のレイアウト・フォント  | `plantuml-config.puml`      | 各図の先頭に連結される（サーバ・ローカル共通） |
 | `_quarto.yml` の設定項目の追加   | `typst-show.typ` ＋ `lib.typ` | 引数として渡す                        |
 | 設計書リポジトリの雛形           | `template/scaffold/`        | `ddq init` / `ddq add` が展開する       |
 | mermaid 本体の版                 | `template/vendor/mermaid.min.js` | 差し替えたら golden テストで幾何を確認 |
@@ -20,7 +21,7 @@
 :::
 
 ::: {.callout-important}
-`design-doc.lua`・`design-doc.css`・`postprocess-html.js`・`mermaid-config.json` は
+`design-doc.lua`・`design-doc.css`・`postprocess-html.js`・`mermaid-config.json`・`plantuml-config.puml` は
 **設計書リポジトリへ配布される**（コミットされる）。これらを直したら
 `template/VERSION` を上げ、利用側の発行者に `ddq update` の実行を依頼する。
 `template/` の変更はすべて `ddq.exe` に埋め込まれるので、**直したら `cargo build` し直す**。

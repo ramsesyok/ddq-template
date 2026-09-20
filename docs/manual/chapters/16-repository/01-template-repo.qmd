@@ -22,10 +22,11 @@ design-doc-quarto-template/
 │   ├── typst-template.typ    … Quarto 既定テンプレートの差し替え口
 │   ├── typst-show.typ        … _quarto.yml の設定を様式の引数へ渡す
 │   ├── quarto-publish.yml    … PDF 用プロファイルの元
-│   ├── design-doc.lua        … 独自記法（.tbl / .landscape / .ipo / mermaid）の変換
+│   ├── design-doc.lua        … 独自記法（.tbl / .landscape / .ipo / mermaid / plantuml）の変換
 │   ├── design-doc.css        … HTML の見た目
 │   ├── postprocess-html.js   … HTML の図表番号を「章.節-連番」に振り直す後処理
 │   ├── mermaid-config.json   … mermaid 設定（htmlLabels:false 必須）
+│   ├── plantuml-config.puml  … PlantUML の共通設定（レイアウト・フォント。図の先頭に連結される）
 │   ├── vendor/mermaid.min.js … mermaid 本体（版固定。ブラウザ経路で使う）
 │   ├── scaffold/             … 設計書リポジトリの雛形
 │   └── release-guide.typ     … リリース直下に置く「はじめかた」スライドの原稿（ddq release が PDF にする）

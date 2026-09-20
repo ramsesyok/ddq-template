@@ -1,11 +1,12 @@
 //! ddq — 設計書テンプレート（Quarto book + Typst）の CLI。
 //!
-//! 旧 template/*.bat *.sh を 1 本に統合し、mermaid の SVG 化を内蔵する。
+//! 旧 template/*.bat *.sh を 1 本に統合し、mermaid の SVG 化と PlantUML サーバの起動を内蔵する。
 //! 設計は cli/DESIGN.md。ここは clap の定義と振り分けだけに留め、処理は commands/ に置く。
 
 mod assets;
 mod commands;
 mod mermaid;
+mod plantuml;
 mod quarto;
 mod writing_folder;
 mod zip_archive;
@@ -36,8 +37,10 @@ enum Command {
     Html(FolderArg),
     /// PDF を作る（<執筆フォルダ>/design-doc.pdf）
     Pdf(FolderArg),
-    /// <執筆フォルダ>/diagrams/*.mmd（手書きの静的図）を同名の .svg に変換する
+    /// <執筆フォルダ>/diagrams/*.mmd *.puml（手書きの静的図）を同名の .svg に変換する
     Diagrams(FolderArg),
+    /// PlantUML のローカルサーバを起動する（執筆者がプレビューで ```plantuml を見るとき）
+    Plantuml(PlantumlArgs),
     /// 発行者向けリリース一式（exe + 利用マニュアル + README + VSCode 拡張）を作る（保守者用）
     Release(ReleaseArgs),
     /// mermaid ソースを SVG に変換する（design-doc.lua が内部で呼ぶ）
@@ -95,6 +98,28 @@ struct ReleaseArgs {
 }
 
 #[derive(Args)]
+struct PlantumlArgs {
+    #[command(subcommand)]
+    command: PlantumlCommand,
+}
+
+#[derive(Subcommand)]
+enum PlantumlCommand {
+    /// ローカルの PlantUML サーバ（plantuml.jar 内蔵の PicoWeb）を上げたままにする。Ctrl-C で停止
+    Serve(ServeArgs),
+}
+
+#[derive(Args)]
+struct ServeArgs {
+    /// 待ち受けポート（既定はフィルタが設定なしで探す 18080）
+    #[arg(long, default_value_t = plantuml::DEFAULT_PORT)]
+    port: u16,
+    /// 待ち受けアドレス（認証が無いので通常は 127.0.0.1 のまま）
+    #[arg(long, default_value = plantuml::LOCAL_BIND)]
+    bind: String,
+}
+
+#[derive(Args)]
 struct MermaidArgs {
     /// 入力 .mmd（複数可。-o と同数）
     #[arg(short, long, required = true, num_args = 1..)]
@@ -123,6 +148,9 @@ fn main() -> anyhow::Result<()> {
         Command::Pdf(a) => commands::pdf::run(&writing_folder::resolve(a.writing_folder)?),
         Command::Diagrams(a) => commands::diagrams::run(&writing_folder::resolve(a.writing_folder)?),
         Command::Release(a) => commands::release::run(a.out_dir.as_deref(), a.with_sample, a.no_build),
+        Command::Plantuml(a) => match a.command {
+            PlantumlCommand::Serve(s) => commands::plantuml::serve(s.port, &s.bind),
+        },
         Command::Mermaid(a) => {
             commands::mermaid::run(&a.input, &a.output, a.config.as_deref(), &a.background)
         }

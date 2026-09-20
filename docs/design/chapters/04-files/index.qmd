@@ -11,11 +11,12 @@
 | `_quarto.yml` | doc | ○ | 章の並び、html 設定、画面幅（`grid:`）、資料番号、`post-render` | 両方 |
 | `index.qmd` | doc | ○ | 前付け（採番なし）。HTML のトップページ | 両方 |
 | `chapters/**.qmd` | doc | ○ | 本文 | 両方 |
-| `diagrams/` | doc | ○ | qmd が直接貼る静的図 ＋ mermaid 生成 SVG の置き場（`mmd-*` は管理外） | 両方 |
-| `design-doc.lua` | tpl→doc | ○ | mermaid / `.landscape` / `.ipo` / `.tbl`（セル結合・表幅・分割）の変換 | 両方 |
+| `diagrams/` | doc | ○ | qmd が直接貼る静的図 ＋ mermaid / PlantUML 生成 SVG の置き場（`mmd-*` `puml-*` は管理外） | 両方 |
+| `design-doc.lua` | tpl→doc | ○ | mermaid / plantuml / `.landscape` / `.ipo` / `.tbl`（セル結合・表幅・分割）の変換 | 両方 |
 | `design-doc.css` | tpl→doc | ○ | HTML の見た目 | HTML |
 | `postprocess-html.js` | tpl→doc | ○ | 図表番号を「章.節-連番」に振り直す（`post-render` で自動実行） | HTML |
 | `mermaid-config.json` | tpl→doc | ○ | mermaid のテーマ・`htmlLabels: false`（SVG 化とプレビューの共通ソース） | 両方 |
+| `plantuml-config.puml` | tpl→doc | ○ | PlantUML の共通設定（`layout smetana`・フォント）。各図の先頭に連結して送るので、変えるとキャッシュが作り直される | 両方 |
 | `.template-version` | tpl→doc | ○ | 置いた時点のテンプレート版（`template/VERSION` の写し） | ― |
 | `design-doc.pdf` | doc | ○ | 中間版（発行者が定期的に作る） | ― |
 | `typst-show.typ` | tpl→doc | × | フロントマター → `design-doc()` の引数 | PDF |

@@ -10,7 +10,7 @@
 | 2 | 1つの原稿から PDF と HTML の2系統を出す | 記法は両系統で完全に共通。出力先による分岐は `design-doc.lua` の `FORMAT` 判定1か所に閉じる（@sec-pipeline） |
 | 3 | HTML の番号は PDF と一致させる | Quarto の採番は書き換えられないため、生成後の HTML を後処理で直す（@sec-html-postprocess） |
 | 4 | 様式の単一ソースは `lib.typ` | 外枠・採番・IPO 図・横向きの実装は `lib.typ` に集約し、寸法・色・文字サイズは冒頭の調整パラメータに集める（@sec-pdf-params） |
-| 5 | 執筆者の環境は Quarto だけ | HTML を出すのに要る機構ファイルを設計書リポジトリにコミットし、mermaid はプレビュー時にブラウザ内で描く（@sec-filter-mermaid）。追加の道具は要らない |
+| 5 | 執筆者の環境は Quarto だけ | HTML を出すのに要る機構ファイルを設計書リポジトリにコミットし、mermaid はプレビュー時にブラウザ内で描く（@sec-filter-mermaid）。追加の道具は要らない。例外は PlantUML で、ブラウザ内実装が無いため LAN の描画サーバ（無ければ執筆者の Java + jar）に頼る（@sec-filter-plantuml） |
 | 6 | 原本は `template/` の1か所 | 執筆フォルダにあるのは写し。写しを直接直さず、原本を直して配り直す（@sec-repo-division） |
 | 7 | 設計書リポジトリに様式の原本と道具を入れない | 執筆者が clone するものを軽く保ち、誤コミット・`git clean` による消失を防ぐ。配布ツールは発行者の手元にだけ置く |
 | 8 | 配布される機構ファイルを変えたら版を上げる | 設計書リポジトリ側の `.template-version` と突き合わせ、更新の要否を判断できるようにする（@sec-version） |

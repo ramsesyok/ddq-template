@@ -2,7 +2,7 @@
   "name": "ddq-table-editor",
   "displayName": "DDQ Table Editor",
   "description": "Visual editor for the unified table syntax (::: {.tbl}) of design-doc-quarto-template (ddq)",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "publisher": "ramsesyok",
   "license": "MIT",
   "repository": {

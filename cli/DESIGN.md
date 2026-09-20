@@ -1,11 +1,11 @@
 # ddq — テンプレート CLI の設計書
 
 `template/*.bat` `*.sh`（7 種 × 2）を Rust 製のシングルバイナリ **`ddq`** に統合し、
-mermaid → SVG 変換を内蔵する。保守者向けの最低限の設計書。
+mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者向けの最低限の設計書。
 利用手順は利用マニュアル（`docs/manual/`）、様式・変換の内部はテンプレート設計書（`docs/design/`）。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
-- 対象版: テンプレート 2.1.0
+- 対象版: テンプレート 2.2.0（PlantUML 対応。§13）
 
 ---
 
@@ -47,6 +47,9 @@ mermaid → SVG 変換を内蔵する。保守者向けの最低限の設計書�
 | 12 | 設計書 | この `cli/DESIGN.md` | コードの隣に置く |
 | 13 | 多文書リポジトリ | `ddq add`（執筆フォルダ追加）と `ddq update --all` を新設 | 「init で 1 つ目、add で 2 つ目以降、版上げは update --all」と説明できる |
 | 14 | コーディング | **clap + derive** で引数定義。標準関数だけの手書きパースはしない。人間が読みやすいコードを優先 | 保守性 |
+| 15 | PlantUML（2.2.0） | **HTTP の描画サーバに一本化**。LAN のサーバがあれば優先、無ければ ddq が jar 内蔵の PicoWeb をローカルに上げる。フィルタは `POST /render` だけ | ブラウザ内で動く実装が無い。サーバなら執筆者に Java も ddq も要らない（§13） |
+| 16 | PlantUML の変換器の置き場 | フィルタが図ごとに ddq を呼ぶ（決定 6）のではなく、**ddq はサーバの起動・停止だけ**。変換ロジックは Lua（curl POST）と Rust（`ddq diagrams` 用）の 2 か所だが、どちらも「連結して POST」の数十行 | 執筆者に ddq が無くても LAN サーバで描ける形を優先 |
+| 17 | PlantUML のレイアウト | `!pragma layout smetana` を共通設定で固定 | Windows 版 jar は dot.exe を内蔵するが Linux サーバには無い。再現性（同じ原稿→同じ図）を優先 |
 
 ---
 
@@ -61,10 +64,11 @@ quarto-template/
 │   ├── Cargo.toml / Cargo.lock
 │   ├── build.rs                 … ../template を埋め込み、VERSION を env に出す
 │   ├── src/…                    … §8 参照
-│   └── tests/                   … golden テスト（§10）
+│   ├── tests/                   … golden テスト（§10）
+│   └── vendor/plantuml.jar      … リリースに同梱する PlantUML（MIT 版。git 管理外。vendor/README.md）
 ├── template/                    … 機構ファイルのソース（従来どおり編集する）
 │   ├── VERSION
-│   ├── design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json
+│   ├── design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json / plantuml-config.puml
 │   ├── lib.typ / typst-template.typ / typst-show.typ / quarto-publish.yml
 │   ├── release-guide.typ        … 「はじめかた」スライド（Typst。ddq release が PDF にする）
 │   ├── scaffold/{repo,content}/
@@ -84,6 +88,7 @@ quarto-template/
 ```
 quarto-template-<版>/
 ├── ddq.exe
+├── plantuml.jar         … PlantUML（MIT 版）。ddq が exe の隣から探す（2.2.0 から。§13）
 ├── README.md            … リポジトリの README
 ├── はじめかた.pdf        … 最初の一歩（template/release-guide.typ を Quarto 同梱の Typst で PDF に。
 │                            Marp は npm 依存なので使わない）
@@ -105,8 +110,8 @@ Windows の `npm` は `npm.cmd` なので `cmd /C npm …` で起動する（`Co
 
 | コマンド | 書き出すもの | git |
 |---|---|---|
-| `init` / `add` | scaffold（無いものだけ）+ 機構ファイル 4 本 + `.template-version` | コミット |
-| `update` | 機構ファイル 4 本 + `.template-version`（上書き） | コミット |
+| `init` / `add` | scaffold（無いものだけ）+ 機構ファイル 5 本 + `.template-version` | コミット |
+| `update` | 機構ファイル 5 本 + `.template-version`（上書き） | コミット |
 | `setup`（`pdf` が内部で呼ぶ） | 版・機構ファイルの一致を検査し、`lib.typ` `typst-template.typ` `typst-show.typ` `_quarto-publish.yml` を上書き | `.gitignore` 済み |
 
 `init` 直後の執筆フォルダに `lib.typ` は無い。初めて `ddq pdf` を走らせたときに置かれる。
@@ -123,6 +128,7 @@ ddq setup    <writing-folder>
 ddq html     <writing-folder>
 ddq pdf      <writing-folder>
 ddq diagrams <writing-folder>
+ddq plantuml serve [--port 18080] [--bind 127.0.0.1]
 ddq release  [out-dir] [--with-sample] [--no-build]
 ddq mermaid  -i <in.mmd>… -o <out.svg>… -c <config.json> [-b <color>]   (hidden)
 ddq --version
@@ -135,10 +141,12 @@ ddq --version
 
 ```
 init ──► add ──► update
-html ──► 版・機構の一致検査 ──► quarto render
-pdf  ──► setup（版・機構の一致検査 + PDF 側配置）
+html ──► 版・機構の一致検査 ──► plantuml::ensure ──► quarto render
+pdf  ──► setup（版・機構の一致検査 + PDF 側配置）──► plantuml::ensure
           └─(quarto render)─► design-doc.lua ──► ddq mermaid
-diagrams ──────────────────────────────────────► mermaid と同じ変換器
+                                              └─► POST /render（PlantUML サーバ。§13）
+diagrams ──────────────────────────────────────► mermaid と同じ変換器 / PlantUML サーバ
+plantuml serve ─► ローカルの PicoWeb を上げたままにする（執筆者のプレビュー用）
 release ──► update, pdf, html（manual に対して）
 ```
 
@@ -148,12 +156,13 @@ release ──► update, pdf, html（manual に対して）
 |---|---|---|
 | **init** | 1) リポジトリ直下に `.gitignore` `.gitattributes` `.vscode/settings.json` `README.md`（`{{CONTENT_DIR}}` 置換）を「無いものだけ」置く 2) `add <repo>/<name>` | init-doc |
 | **add** | 前提: 親フォルダに `.gitignore` がある（無ければ「先に `ddq init`」と案内）。拒否: 対象に `_quarto.yml` が既にある。処理: scaffold の content 一式を無いものだけ置く → `update` → `quarto render --to html` で疎通確認（`--no-render` で省略） | （新規） |
-| **update** | 機構ファイル 4 本と `.template-version` を上書き。`--all <repo>` は配下の `_quarto.yml` を持つフォルダを列挙して全部に適用（`_book/` `.quarto/` `node_modules/` は探索しない） | update-doc |
-| **setup** | `.template-version` と機構ファイル4本が現在の `ddq` と一致するか検査 → PDF 側4ファイルを上書き。不一致時は `update` せず停止。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
-| **html** | 版・機構の一致検査 → `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN`）。出力 `_book/` | build-html |
-| **pdf** | `setup` → `quarto render --to typst --profile publish`（env: `DDQ_BIN`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
-| **diagrams** | `diagrams/*.mmd` → 同名 `.svg`。設定は執筆フォルダ直下の `mermaid-config.json`（無ければ埋め込み） | render-diagrams |
-| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `docs/manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`README.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
+| **update** | 機構ファイル 5 本と `.template-version` を上書き。`--all <repo>` は配下の `_quarto.yml` を持つフォルダを列挙して全部に適用（`_book/` `.quarto/` `node_modules/` は探索しない） | update-doc |
+| **setup** | `.template-version` と機構ファイル 5 本が現在の `ddq` と一致するか検査 → PDF 側4ファイルを上書き。不一致時は `update` せず停止。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
+| **html** | 版・機構の一致検査 → PlantUML サーバの用意（§13.3）→ `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN` `DDQ_PLANTUML_SERVER`）。出力 `_book/` | build-html |
+| **pdf** | `setup` → PlantUML サーバの用意 → `quarto render --to typst --profile publish`（env: `DDQ_BIN` `DDQ_PLANTUML_SERVER`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
+| **diagrams** | `diagrams/*.mmd *.puml` → 同名 `.svg`（キャッシュ `mmd-*` `puml-*` は対象外）。設定は執筆フォルダ直下の `mermaid-config.json` / `plantuml-config.puml`（無ければ埋め込み） | render-diagrams |
+| **plantuml serve** | §13.4。Java と jar を探し、PicoWeb を既定ポートに上げて Ctrl-C まで待つ | （新規） |
+| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `docs/manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`cli/vendor/plantuml.jar` を `plantuml.jar` として同梱（無ければ停止）、`README.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
 
 `TEMPLATE_ROOT`（旧フィルタが `mermaid-config.json` のフォールバック探索に使っていた）は廃止した。
@@ -271,7 +280,7 @@ PATH 上の古い `ddq` と release フォルダの新しい `ddq` が共存し�
 
 ### 7.1 ランタイム依存
 
-配布先に追加インストールは**不要**（Quarto と、mermaid 用の Edge/Chrome を除く）。
+配布先に追加インストールは**不要**（Quarto と、mermaid 用の Edge/Chrome、PlantUML をローカルで描くときの Java を除く）。
 
 - `x86_64-pc-windows-msvc` + `-C target-feature=+crt-static`（`cli/.cargo/config.toml`）。
   既定の動的 CRT だと `VCRUNTIME140.dll`（VC++ 再頒布）が要るため必ず静的にする。
@@ -288,7 +297,7 @@ PATH 上の古い `ddq` と release フォルダの新しい `ddq` が共存し�
 | エラー | `anyhow`（アプリ側）。ライブラリ的モジュールは `thiserror` |
 | mermaid | `merman`（版固定）, `serde_json` |
 | zip | `zip`（UTF-8 名フラグ付き） |
-| Windows | `windows-sys` または `winreg`（App Paths 探索） |
+| Windows | `windows-sys`（コードページ検査・Job Object）、`winreg`（App Paths / JavaSoft 探索） |
 | 一時領域 | `tempfile` |
 | WebSocket（CDP） | `tungstenite`（`handshake` のみ。TLS なし） |
 
@@ -348,6 +357,8 @@ cli/src/
 │   ├── mod.rs         … Engine 選択と共通インタフェース（Vec<(input, output)> → Result）
 │   ├── browser.rs     … 探索・HTML 生成・起動・CDP（DevToolsActivePort → WebSocket）
 │   └── merman.rs      … merman クレート呼び出しと foreignObject 抑止
+├── plantuml/
+│   └── mod.rs         … Java / jar / サーバ URL の探索、PicoWeb の起動・停止（Job Object）、手書き HTTP、Session（§13）
 └── zip.rs             … release 用
 ```
 
@@ -406,7 +417,10 @@ cli/src/
 | Linux / macOS バイナリ | 保留。OS 依存は `cfg(windows)` に閉じ込めてある |
 | QuickJS + DOM シムで本物の mermaid.js をブラウザ無しで動かす | 見送り（R&D コスト大） |
 | `@preview/merman`（Typst パッケージ内で直接描画） | 見送り。Typst 0.15 必須（Quarto 1.9 は 0.14.2）で、配布 HTML もカバーしない |
-| 執筆者プレビューでの SVG 焼き込み | 見送り（決定 5）。プレビューは Quarto のみで動くことを優先 |
+| 執筆者プレビューでの SVG 焼き込み | 見送り（決定 5）。プレビューは Quarto のみで動くことを優先（PlantUML はサーバ描画なので例外。§13） |
+| `ddq preview`（serve を上げてから `quarto preview` を起動） | 保留。`ddq plantuml serve` で運用は成り立つ。VSCode 拡張の Preview ボタンからは通らない |
+| 公式 plantuml-server（Docker）との疎通確認 | 保留（PoC-3）。`POST /render` は PicoWeb で確認済み。公式サーバは `/serverinfo` が無いかもしれないので、到達判定は「HTTP 応答があれば可」にしてある |
+| PlantUML の一括変換・`ddq pdf` の JVM 常駐 | 不要になった。サーバ常駐で 1 図数十 ms |
 
 ---
 
@@ -501,3 +515,81 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 - [x] `.github/workflows/ci.yml` 追加
 - [x] `cli/tools/regress.py` を作り、§12.2 の比較で合格条件を満たすことを確認（報告を `regress/report/` に残す）
 - [x] `template/VERSION` → 2.0.0
+
+
+---
+
+## 13. PlantUML 対応（2.2.0）
+
+検討の経緯・PoC の実測は `cli/plantuml-study.md`（検討メモ）にある。ここは設計の結論。
+
+### 13.1 方針
+
+1. **LAN 内に PlantUML サーバがあれば優先して使う。** ddq も Java も jar も無い執筆者が、サーバさえあれば図を見られる。
+2. LAN サーバが無い執筆者は、リリース一式（ddq + jar）と Java を用意し、執筆中は `ddq plantuml serve` を起動しておく。
+3. 発行者は `ddq pdf` / `ddq html` を打つだけ。サーバの起動・停止は ddq が内部で行う。
+
+mermaid と違い PlantUML にはブラウザ内で動く実装が無い。「フィルタが図ごとに ddq を呼ぶ」（決定 6）を
+PlantUML にも当てると執筆者に ddq が要る。**HTTP の描画サーバに一本化**すれば、サーバが LAN の常設でも
+ローカルの PicoWeb（jar 内蔵）でもフィルタは同じで、執筆者の要件は「サーバに届くこと」だけになる。
+
+### 13.2 構造
+
+```
+                 ┌ LAN の PlantUML サーバ（公式 plantuml-server / PicoWeb）
+design-doc.lua ──┤                                        … POST /render（curl.exe、HTTP 1 本）
+                 └ ローカルの PicoWeb（java -jar plantuml.jar -picoweb）
+                        ├ 執筆者が手で起動: ddq plantuml serve（既定 http://127.0.0.1:18080）
+                        └ ddq pdf / html / diagrams が内部で空きポートに起動し、終了時に kill
+```
+
+| 要素 | 内容 |
+|---|---|
+| 記法 | ```` ```plantuml ```` フェンス。`@startuml` / `@enduml` は省略可（`@start…` で始まらなければフィルタが補う）。採番・参照・大きさは mermaid と同じ（`::: {#fig-x}`、`fig_width`） |
+| サーバの決め方（フィルタ・ddq 共通） | `DDQ_PLANTUML_SERVER`（ddq が内部起動したもの）→ `PLANTUML_SERVER`（端末）→ `_quarto.yml` の `plantuml-server:`（設計書リポジトリで共有）→ `http://127.0.0.1:18080`（`ddq plantuml serve` の既定）。render 中に 1 回だけ `/serverinfo` で到達を調べる |
+| 届かないとき | プレビュー（HTML・`MERMAID_SVG` 無し）: ソースを枠付き（`.plantuml-fallback`）で表示して render を止めない。発行（typst / `MERMAID_SVG=1`）: エラー停止 |
+| HTTP の手段（Lua） | Windows 同梱の `curl.exe` を `pandoc.pipe` で呼ぶ。`pandoc.mediabag.fetch` は GET のみ・タイムアウト不可（落ちたサーバに章ごとに 21 秒。実測）で不採用。`--connect-timeout 2`、`-H Expect:`（100-continue の 1 秒待ちを避ける）、`-D -`（ヘッダを読む） |
+| 構文エラー | サーバは 200 で「エラー内容を描いた SVG」を返す。`X-PlantUML-Diagram-Error` / `-Line` ヘッダで判定し、その図は書かない。行番号は連結した設定の行数を差し引いて原稿の行に戻す |
+| 共通設定 | `plantuml-config.puml`（機構ファイル 5 本目）。`-config` はサーバに渡せないので、中身を `@start…` の直後に**連結して送る**。連結後のソースをハッシュするので、設定を変えるとキャッシュが自動で無効になる（mermaid には無い利点）。既定: `!pragma layout smetana`、`defaultFontName "Yu Gothic"`、`backgroundColor transparent` |
+| 改行 | CRLF を LF に揃えてから連結する（CRLF だと `@startuml\n` に当たらず設定が連結されない。実測） |
+| キャッシュ | `diagrams/puml-<sha1 8 桁>.svg`（+ 送ったソース `.puml`）。git 管理外（`**/diagrams/puml-*`）。SVG 先頭に `<!-- ddq <版> engine=plantuml plantuml=<版> server=<url> -->` |
+| フォント | SVG の `<text>` は `textLength` で幅が固定され、Typst（resvg）はそれを尊重する（実測）。サーバ側と Typst 側でフォントが違っても箱からはみ出さず、違いは行の高さだけ。`Yu Gothic` は Windows のローカルと発行者の Typst が同じ実体を引くための既定 |
+| レイアウト | `!pragma layout smetana` 固定（決定 17）。Windows 版 jar は `%TEMP%\_graphviz\dot.exe`（2.44.1）を内蔵展開するので既定は本物の dot だが、Linux サーバには無い |
+
+### 13.3 ddq 側（`src/plantuml/mod.rs`）
+
+- 探索: java = `DDQ_JAVA` → `JAVA_HOME/bin` → PATH → レジストリ `JavaSoft\{JDK,JRE,…}` → 既知パス（Java / Adoptium / Microsoft / Zulu / Corretto / BellSoft）。
+  jar = `DDQ_PLANTUML_JAR` → exe の隣の `plantuml.jar` → `PLANTUML_JAR`。
+- `ensure(dir)`（pdf / html / diagrams）: 設定済みサーバに届けばそれ → 既定ポートの `serve` が上がっていればそれ →
+  原稿に ```` ```plantuml ```` が無ければ何もしない（**PlantUML を使わない文書に Java を要求しない**）→ ローカルを空きポートで起動。
+  URL は `DDQ_PLANTUML_SERVER` で quarto に渡す。
+- PicoWeb の起動（PoC-4 の実測に基づく）: `-picoweb:0:127.0.0.1` で起動すると実ポートが `webPort=<n>` として **stderr** に出る
+  （stdout は空。stdout を待つと永久に止まる）。読んだら残りは捨て続けるスレッドを置く（パイプ詰まり防止）。
+  `/serverinfo` が 200 になるまで待つ（実測 0.2 秒、上限 30 秒）。
+- 停止: `/stopserver` は JVM を終了しない（実測）ので `kill`。Drop で必ず kill する。
+  親（ddq）が異常終了しても JVM を残さないよう、**Job Object（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`）**に入れる
+  （`windows-sys` の `Win32_System_JobObjects` `Win32_System_Threading` `Win32_Security`）。
+- HTTP は手書き（`TcpStream`、HTTP/1.1、`Connection: close`、chunked 対応）。新しいクレートは足さない。
+
+### 13.4 コマンド
+
+| コマンド | 内容 |
+|---|---|
+| `ddq plantuml serve [--port 18080] [--bind 127.0.0.1]` | 執筆者向け。Java と jar を探して PicoWeb を上げ、Ctrl-C まで待つ。既定ポートならフィルタが設定なしで見つける |
+| `ddq pdf` / `ddq html` | `ensure` でサーバを用意し、render 後に止める。打つのは 1 コマンドだけ |
+| `ddq diagrams` | `diagrams/*.puml`（キャッシュ `puml-*` を除く）も同名 `.svg` に。同じサーバの決め方 |
+| `ddq release` | `cli/vendor/plantuml.jar`（MIT 版）を `plantuml.jar` として同梱。無ければ停止（`cli/vendor/README.md`） |
+
+### 13.5 テスト
+
+- `tests/plantuml.rs`: `ddq diagrams` の `.puml`（LF / CRLF、設定の連結、構文エラーの図を書かない）、`ddq plantuml serve --port 0`
+  の起動と、親を kill したとき JVM も消えること。Java か jar が無ければ skip（CI は `DDQ_E2E=1` で失敗）。
+- `tests/e2e.rs`: `examples/docs` に PlantUML の状態遷移図を 1 枚置き、PDF・配布 HTML で `puml-*.svg` が 1 つできること。
+- CI: `actions/setup-java`（Temurin 17）と、`cli/vendor/plantuml.jar` をリリースから取得してキャッシュ（`PLANTUML_VERSION`）。
+- 検証した版: PlantUML 1.2026.8（MIT）、Java 17.0.2、Quarto 1.9.38。
+
+### 13.6 大方針との関係
+
+「執筆者は Quarto と VSCode 拡張だけ」は、PlantUML を使わない文書と LAN サーバのある組織では**そのまま**。
+変わるのは「PlantUML を使い、かつ LAN サーバが無い執筆者」だけで、その持ち物は発行者と同じ（リリース一式 + Java）。
+利用マニュアルの「役割の違いは持ち物だけ」の延長として、例外の範囲を明示する（3 章・8 章・11 章）。

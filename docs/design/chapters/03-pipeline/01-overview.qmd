@@ -29,6 +29,7 @@ flowchart TD
 | 様式 | `lib.typ` が外枠・資料番号欄・採番・改ページを描く | 様式は無い。`design-doc.css` で見た目だけ整える |
 | 図表番号 | Typst のカウンタで「章.節-連番」 | Quarto の採番を `postprocess-html.js` で「章.節-連番」に振り直す（@sec-html-postprocess） |
 | mermaid | ベクター SVG に焼き込んで `image()` | 既定はブラウザ内描画。配布 HTML は SVG 焼き込み（@sec-filter-mermaid） |
+| PlantUML | PlantUML サーバに描かせた SVG を `image()` | 同じ（ブラウザ内描画が無いので、プレビューもサーバ。@sec-filter-plantuml） |
 | 独自記法 | `#landscape[…]`・`#ipo(…)`・`#_tbl-auto[…]` など Typst の生ブロック | div 構造として組み立て直す（Typst の生ブロックは HTML で捨てられるため） |
 | 用途 | 発行版・中間版（紙面の確認） | 執筆者の確認用・配布用 |
 :::

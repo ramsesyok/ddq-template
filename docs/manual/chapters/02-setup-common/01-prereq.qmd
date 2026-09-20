@@ -6,6 +6,7 @@
 |------|------|
 | OS | Windows 10 / 11（執筆だけなら macOS / Linux でも可） |
 | 必須ソフトウェア | Quarto（PDF 生成に使う Typst は同梱） |
+| 任意 | Java 8 以上（PlantUML 図をローカルで描くときだけ。LAN にサーバがあれば不要。@sec-plantuml-setup） |
 | 推奨エディタ | Visual Studio Code（以下 VSCode） |
 | 権限 | Quarto のインストールに管理者権限が要る場合がある |
 
@@ -32,7 +33,8 @@
 
 PDF・配布 HTML の出力にはリリース一式の `ddq.exe` を使う（インストール不要。@sec-publisher-env）。
 mermaid 図の焼き込みには Windows 標準の Edge が使われ、無ければ `ddq` 内蔵のレンダラで描く。
-**Node.js も npm もどの端末にも要らない。**
+**Node.js も npm もどの端末にも要らない。** PlantUML 図を使う文書だけは、LAN の PlantUML
+サーバか Java のどちらかが要る（@sec-plantuml-setup）。
 
 ### パスに使える文字 {#sec-ascii-path}
 

@@ -18,10 +18,10 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | PDF 組版 | Quarto → Typst（Quarto 同梱。LaTeX 不要） |
 | 様式の実体 | `template/lib.typ`（Typst テンプレート） |
 | 記法の拡張 | `template/design-doc.lua`（Pandoc Lua フィルタ） |
-| 図 | mermaid（文字で書いた図をベクター SVG に） |
-| ビルド・配置の道具 | `ddq.exe`（Rust 製の単一実行ファイル。様式一式を内蔵） |
+| 図 | mermaid（文字で書いた図をベクター SVG に）、PlantUML（LAN のサーバか、同梱 jar をローカルの Java で） |
+| ビルド・配置の道具 | `ddq.exe`（Rust 製の単一実行ファイル。様式一式を内蔵）＋ `plantuml.jar`（PlantUML 用。MIT 版） |
 | 表の編集 | VSCode 拡張 `ddq-table-editor`（`.tbl` をセル結合つきで視覚的に編集。リリースに VSIX 同梱） |
-| 執筆者に要るもの | Quarto ＋ VSCode の Quarto 拡張だけ（表の編集拡張は任意） |
+| 執筆者に要るもの | Quarto ＋ VSCode の Quarto 拡張だけ（表の編集拡張は任意）。PlantUML 図を使う文書で LAN にサーバが無いときだけ、リリース一式と Java も |
 
 > **このリポジトリは「様式の実体（`template/` と、それを内蔵する `cli/`）と、表の編集拡張（`extension/`）、
 > それにテンプレート自身の文書（`docs/`）とサンプル（`examples/`）」です。**
@@ -44,11 +44,12 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 
 ```
 C:\tools\
-└── quarto-template-2.1.0/   ← リリース ZIP を展開したもの（git 管理外）
+└── quarto-template-2.2.0/   ← リリース ZIP を展開したもの（git 管理外）
     ├── ddq.exe              ← 様式・変換・ビルドの実体（これを実行する。インストール不要）
+    ├── plantuml.jar         ← PlantUML 図の描画（ローカルの Java で ddq が起動する）
     ├── はじめかた.pdf        ← 発行者向けの最初の一歩（8 枚のスライド）
     ├── README.md            ← このファイル
-    ├── ddq-table-editor-2.1.0.vsix ← VSCode 拡張（表の視覚編集。執筆者へ配る）
+    ├── ddq-table-editor-2.2.0.vsix ← VSCode 拡張（表の視覚編集。執筆者へ配る）
     └── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
 
 C:\work\
@@ -73,6 +74,8 @@ C:\work\
 - **大きな表のページ分割** — PDF でページをまたぐと、同じ表番号で「（1／3）」と自動で続きます
 - **横向きページ・IPO図** — 縦横の混在も定型ページも用意ずみ
 - **フローチャート**（mermaid）— 文字で書いた図が、そのまま図版になります
+- **UML 図**（PlantUML）— シーケンス・クラス・状態遷移・アクティビティなども文字で書けます。
+  LAN の PlantUML サーバがあれば執筆者の環境に何も要りません
 - **章ごとのファイル分割** — 何ファイルに分けても、番号は文書全体で通し番号になります
 - **執筆者の HTML は発行版と同じ番号** — 章番号・図表番号・相互参照まで一致します
   （PDF 固有の改ページ・横向き・様式だけは中間版の PDF で確認します）
@@ -92,7 +95,7 @@ C:\work\
 ZIP を展開し、**展開したフォルダで**実行します。
 
 ```bat
-cd C:\tools\quarto-template-2.1.0
+cd C:\tools\quarto-template-2.2.0
 .\ddq init C:\work\order-design
 ```
 
@@ -106,12 +109,14 @@ cd C:\tools\quarto-template-2.1.0
 `Ctrl+Shift+K` のプレビューに、発行版と同じ章番号・図表番号・相互参照が出ます。
 `ddq` も Node.js も要りません。表は同梱の VSCode 拡張（VSIX）を入れると、
 セル結合つきで視覚的に編集できます。
+PlantUML 図だけは描画にサーバが要ります。LAN にサーバがあれば `_quarto.yml` に URL を
+書くだけ、無ければ Java を入れて `ddq plantuml serve` を起動しておきます。
 → 利用マニュアル 3章・5章、記法は 6〜10章
 
 ### 4. 発行者が PDF・配布 HTML を出す
 
 ```bat
-cd C:\tools\quarto-template-2.1.0
+cd C:\tools\quarto-template-2.2.0
 .\ddq pdf  C:\work\order-design\docs
 .\ddq html C:\work\order-design\docs
 ```
@@ -124,6 +129,8 @@ PDF は**中間版**としてコミットします。改ページ・横向きペ
 確認できないため、執筆者はこの PDF で紙面を見ます。
 mermaid 図は Windows 標準の Edge（または Chrome）を headless で使ってベクター SVG に
 焼き込みます。どちらも無い端末では `ddq` 内蔵のレンダラで描きます。
+PlantUML 図は LAN のサーバか、無ければ同梱の `plantuml.jar` をローカルの Java で
+`ddq` が起動して描きます（起動・停止は `ddq pdf` の内部で行います）。
 Node.js も npm も要りません。
 → 利用マニュアル 11章・12章
 
@@ -132,7 +139,7 @@ Node.js も npm も要りません。
 新しい版は別のフォルダに展開されるので、そちらから機構ファイルを入れ直します。
 
 ```bat
-cd C:\tools\quarto-template-2.1.0
+cd C:\tools\quarto-template-2.2.0
 .\ddq update C:\work\order-design\docs
 ```
 
@@ -153,7 +160,7 @@ cd C:\tools\quarto-template-2.1.0
 |---|---|---|
 | [docs/manual/](docs/manual/)（リリース展開フォルダでは `manual/`） | **利用マニュアル**（役割別の環境構築・執筆・確認・出力・記法・制限事項・トラブル対処、保守者向けの版の上げ方とリリースの作り方）。本テンプレート自身で書かれており、`ddq pdf docs\manual` で PDF になります | 全員（執筆者にはこの PDF/HTML を配る） |
 | [docs/design/](docs/design/) | **テンプレート設計書**（リポジトリの構成、出力経路、様式 `lib.typ` と変換 `design-doc.lua` の仕組み、HTML 採番の後処理、版の考え方、保守の観点）。**このリポジトリのみ**（リリースには同梱しません） | 保守者 |
-| [cli/DESIGN.md](cli/DESIGN.md) | `ddq` の設計（コマンド・mermaid エンジン・ビルド・検証） | 保守者 |
+| [cli/DESIGN.md](cli/DESIGN.md) | `ddq` の設計（コマンド・mermaid エンジン・PlantUML サーバ・ビルド・検証） | 保守者 |
 | [extension/README.md](extension/README.md) | VSCode 拡張 `ddq-table-editor` の使い方・開発・デバッグ | 執筆者（使い方）・保守者 |
 
 `examples/docs/` はこのリポジトリ同梱の**サンプル**（受注管理システムの基本設計書）です。

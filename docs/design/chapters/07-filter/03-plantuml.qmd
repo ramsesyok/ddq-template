@@ -1,0 +1,61 @@
+## PlantUML はサーバ描画 {#sec-filter-plantuml}
+
+PlantUML（` ```plantuml `）は mermaid と違い**ブラウザ内で動く実装が無い**。
+そこで mermaid の「プレビューはブラウザ内描画、発行は SVG 焼き込み」という 2 モードを持たず、
+**すべての出力で PlantUML サーバに HTTP で描かせて SVG を得る**。サーバが LAN の常設でも、
+`ddq` がローカルに上げた jar 内蔵の PicoWeb でも、フィルタの処理は同じである。
+
+::: {.tbl caption="PlantUML の描画先" label="tbl-plantuml-server" widths="14,30,34,22"}
+| 実行者 | 経路 | PlantUML の扱い | 追加で要るもの |
+|---|---|---|---|
+| 執筆者 | `quarto preview`（LAN サーバあり） | サーバに `POST /render` → SVG を `image()` | **なし**（`_quarto.yml` の `plantuml-server:`） |
+| 執筆者 | `quarto preview`（LAN サーバなし） | 同上。サーバは `ddq plantuml serve` で自分が上げる | リリース一式（`ddq.exe` + `plantuml.jar`）と Java |
+| 発行者 | PDF・配布 HTML | 同上。サーバは `ddq pdf` / `ddq html` が内部で上げて止める | 同左（LAN サーバがあれば不要） |
+:::
+
+### サーバの決め方と届かないとき
+
+`DDQ_PLANTUML_SERVER`（`ddq` が内部起動したもの）→ `PLANTUML_SERVER` → `_quarto.yml` の
+`plantuml-server:` → `http://127.0.0.1:18080`（`ddq plantuml serve` の既定）の順に、render 中
+1 回だけ `/serverinfo` で到達を調べる。`_quarto.yml` は YAML パーサを使わず行頭のキーを 1 行だけ読む
+（値は URL 1 つなので足りる）。
+
+どこにも届かないとき、**プレビュー（HTML・`MERMAID_SVG` なし）はソースを枠付きで表示して
+render を止めない**（`.plantuml-fallback`。`design-doc.css`）。発行（typst / `MERMAID_SVG=1`）は
+エラーで止める。判定は mermaid と同じ `WANT_SVG` を使う。
+
+### HTTP の手段
+
+Windows 同梱の `curl.exe` を `pandoc.pipe` で呼び、`POST /render`（JSON `{source, options}`）を送る。
+`pandoc.mediabag.fetch` は GET しかできずタイムアウトも指定できない（落ちたサーバに章ごとに
+21 秒待たされる。実測）ため使わない。`--connect-timeout 2`、`-H Expect:`（本文 1KB 超で curl が
+100-continue を 1 秒待つのを避ける）、`-D -`（ヘッダを読む）を付ける。
+
+構文エラーでもサーバは **200 でエラー内容を描いた SVG** を返すので、`X-PlantUML-Diagram-Error` /
+`-Line` ヘッダで判定し、その図は書かない。行番号は連結した設定の行数を差し引いて原稿の行に戻す。
+
+### 共通設定は連結して送る
+
+`plantuml-config.puml`（機構ファイル）はサーバに `-config` で渡せないため、**中身を `@start…` の
+直後に連結してから送る**。`@startuml` が無ければ補う。連結後のソースを SHA-1 でハッシュして
+`diagrams/puml-<hash>.svg` に置くので、**設定を変えると図は自動で描き直される**（mermaid の
+`mermaid-config.json` には無い性質）。改行は LF に揃えてから連結する（CRLF だと `@startuml\n`
+に当たらず設定が連結されない。実測）。
+
+既定の設定は `!pragma layout smetana`（Graphviz の Java 移植。dot の有無や版に依らず同じ配置）、
+`defaultFontName "Yu Gothic"`、`backgroundColor transparent`。
+
+### フォントと文字幅
+
+PlantUML の SVG は各 `<text>` に `textLength` を持ち、Typst（resvg）はそれを尊重する（実測）。
+文字幅はサーバ側の Java が計測した値に固定されるため、**描く側にそのフォントが無くても
+箱からはみ出さない**（違いは行の高さだけ）。LAN のサーバが Linux で Yu Gothic を持たなくても
+実用になる理由である。
+
+### 図の大きさ・採番
+
+SVG は `width` / `height` / `viewBox` を持つので、`svg_size()` と `fig_width()` は mermaid と
+共通で、`::: {#fig-x}` の採番・`@fig-x` の参照もそのまま効く。SVG 先頭には
+`<!-- ddq <版> engine=plantuml plantuml=<版> server=<url> -->` を残し、どのサーバで焼いたかを
+後から判別できるようにする。ddq 側（Java / jar の探索、PicoWeb の起動・停止、Job Object）は
+`cli/DESIGN.md` §13 にある。

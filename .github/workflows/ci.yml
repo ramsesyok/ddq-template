@@ -6,10 +6,14 @@
 # DDQ_E2E=1 で「quarto が無ければ skip」を失敗にし、検査が黙って素通りしないようにする。
 # runner は en-US（CP1252）なので日本語のパスはそもそも作れず、非 ASCII パスの検査は
 # CP1252 で表せる文字（Übung café）で行う（日本語の検査は CP932 の手元で走る）。
+# PlantUML（tests/plantuml.rs と e2e の PlantUML 図）は Java と plantuml.jar が要る。jar は
+# cli/vendor/plantuml.jar（git 管理外）に MIT 版を置く決まりなので、CI では同じ場所へ
+# リリースから取得してキャッシュする（版は PLANTUML_VERSION。cli/DESIGN.md §13）。
 name: ci
 env:
   DDQ_GOLDEN_LOOSE: "1"
   DDQ_E2E: "1"
+  PLANTUML_VERSION: "1.2026.8"
 on:
   push:
     branches: [main]
@@ -35,6 +39,18 @@ jobs:
         with:
           version: 1.9.38
       - run: quarto --version
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/cache@v4
+        id: plantuml-cache
+        with:
+          path: cli/vendor/plantuml.jar
+          key: plantuml-mit-${{ env.PLANTUML_VERSION }}
+      - if: steps.plantuml-cache.outputs.cache-hit != 'true'
+        run: curl.exe -sSL -o vendor/plantuml.jar "https://github.com/plantuml/plantuml/releases/download/v${{ env.PLANTUML_VERSION }}/plantuml-mit-${{ env.PLANTUML_VERSION }}.jar"
+      - run: java -jar vendor/plantuml.jar -version
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test

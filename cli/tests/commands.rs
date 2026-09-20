@@ -3,11 +3,12 @@
 
 use std::{fs, path::Path, process::Command};
 
-const MECHANISM: [&str; 4] = [
+const MECHANISM: [&str; 5] = [
     "design-doc.lua",
     "design-doc.css",
     "postprocess-html.js",
     "mermaid-config.json",
+    "plantuml-config.puml",
 ];
 const PDF_SIDE: [&str; 4] = [
     "lib.typ",

@@ -27,9 +27,10 @@ _quarto-publish.yml
 # 直下フォルダ（docs/ や改名後）のものだけ無視し、ルートの .gitignore は残す。
 /*/.gitignore
 
-# ==== mermaid 変換キャッシュ（内容ハッシュ名 mmd-xxxx.*） ====
-# diagrams/ に置いた静的図（自分で描いた .mmd/.svg）は無視しない。
+# ==== mermaid / PlantUML 変換キャッシュ（内容ハッシュ名 mmd-xxxx.* / puml-xxxx.*） ====
+# diagrams/ に置いた静的図（自分で描いた .mmd/.puml/.svg）は無視しない。
 **/diagrams/mmd-*
+**/diagrams/puml-*
 
 # ==== ページ目視確認用の一時画像（chk-*.png / page-*.png など） ====
 chk-*.png

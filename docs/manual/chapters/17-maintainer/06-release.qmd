@@ -65,9 +65,9 @@ quarto-template-<版>/
 （タグの指すコミットと配布物を一致させるため）。
 
 ```bash
-gh release create v2.1.0 "release/quarto-template-2.1.0.zip" \
+gh release create v2.2.0 "release/quarto-template-2.2.0.zip" \
   --target main \
-  --title "v2.1.0 — （変更の要約）" \
+  --title "v2.2.0 — （変更の要約）" \
   --notes-file <リリースノートのファイル>
 ```
 
@@ -77,9 +77,9 @@ gh release create v2.1.0 "release/quarto-template-2.1.0.zip" \
   - 発行者のはじめかた（展開してそのまま使う・`cd` して絶対パスで `ddq init`）
   - 主な変更
   - 既存利用者向けの `ddq update` 手順
-  - 互換性（配布される機構ファイル4本に変更があるか）
+  - 互換性（配布される機構ファイル 5 本に変更があるか）
   - VSCode 拡張（VSIX）に変更があるか。あれば執筆者に入れ直してもらう（VSIX は自動更新されない）
 
-機構ファイル4本に変更が無い版では、既存の設計書リポジトリで `ddq update` を実行しても
+機構ファイル 5 本に変更が無い版では、既存の設計書リポジトリで `ddq update` を実行しても
 実質 `.template-version` の更新だけになる。その旨をノートに書くと、発行者が
 更新の要否を判断できる。
