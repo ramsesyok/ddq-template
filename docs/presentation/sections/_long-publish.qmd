@@ -1,0 +1,21 @@
+## 発行の流れ（発行者）
+
+```bat
+cd C:\tools\quarto-template-2.2.1
+.\ddq update C:\work\order-design\docs   :: 機構ファイルを ddq.exe の版に揃える（差分は git で確認）
+.\ddq pdf    C:\work\order-design\docs   :: 中間版／発行版 PDF → docs\design-doc.pdf
+.\ddq html   C:\work\order-design\docs   :: 配布用 HTML       → docs\_book\
+```
+
+- `pdf` / `html` は、リポジトリの `.template-version` と機構ファイルが `ddq.exe` と**一致することを確認してから**出力
+  → 版が違えば暗黙に更新せず停止。`update` して差分を見てコミット
+- 中間版 PDF は**コミットする**：執筆者が紙面（改ページ・横向き・様式）を確認するため
+- テンプレートの新版は**別フォルダに展開**して `update` するだけ。執筆者は `git pull`
+
+::: {.note}
+執筆者の環境は何も変わらない。機構ファイルの更新は git の差分として届く
+:::
+
+::: {.notes}
+【1:00】「update → pdf → html」の順。版チェックで止まるのは安全側の設計だと言う。
+:::

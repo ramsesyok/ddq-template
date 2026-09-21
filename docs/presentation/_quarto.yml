@@ -1,0 +1,37 @@
+# ============================================================
+#  設計書テンプレートの紹介スライド（Quarto revealjs）
+#
+#  lt.qmd   … Lightning Talk 版（5 分）
+#  long.qmd … ロング版（15〜20 分。LT のスライドをすべて含み、詳細とデモを足したもの）
+#  sections/ … 両方から {{< include >}} する 1 スライド〜数スライド単位の断片
+#
+#  ビルド（このフォルダで）:
+#    quarto render            … 両方 → _book/lt.html, _book/long.html
+#    quarto preview lt.qmd    … 書きながら確認
+#  1 ファイルで配る: quarto render lt.qmd -M embed-resources:true
+#  PDF にする: ブラウザで ?print-pdf を付けて開き、Ctrl+P → PDF 保存
+# ============================================================
+project:
+  type: default
+  output-dir: _book        # ルートの .gitignore が _book/ を無視するのでこの名前にしている
+  render:
+    - lt.qmd
+    - long.qmd
+
+lang: ja
+
+format:
+  revealjs:
+    theme: [default, custom.scss]
+    width: 1280
+    height: 720
+    margin: 0.06
+    center: false
+    slide-number: c/t
+    transition: none
+    code-line-numbers: false
+    code-copy: false
+    highlight-style: github
+    fig-align: center
+    footer: "設計書テンプレート — Markdown で書いて PDF にする"
+    embed-resources: false

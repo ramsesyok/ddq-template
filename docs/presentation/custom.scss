@@ -1,0 +1,89 @@
+/*-- scss:defaults --*/
+// 日本語は本文フォントを Windows 標準のゴシックに寄せる（lib.typ と同系統）
+$font-family-sans-serif: "Meiryo UI", "Yu Gothic UI", "Yu Gothic", "Hiragino Sans", "Noto Sans JP", sans-serif;
+$font-family-monospace: "BIZ UDGothic", "Consolas", "MS Gothic", monospace;
+$presentation-font-size-root: 30px;
+$presentation-heading-font-weight: 700;
+$presentation-h2-font-size: 1.5em;
+$link-color: #1f4e79;
+$code-block-font-size: 0.7em;
+
+/*-- scss:rules --*/
+.reveal h2 {
+  color: #1f4e79;
+  border-bottom: 3px solid #1f4e79;
+  padding-bottom: 0.1em;
+  margin-bottom: 0.6em;
+}
+.reveal .slide-number { font-size: 16px; }
+.reveal .footer { font-size: 16px; color: #666; }
+
+// 強調（青）
+.reveal strong { color: #1f4e79; }
+
+// 小さめの補足
+.reveal .small { font-size: 0.7em; color: #555; }
+.reveal .tiny  { font-size: 0.55em; color: #666; }
+
+// 大きく 1 行だけ言うスライド
+.reveal .big {
+  font-size: 1.6em;
+  font-weight: 700;
+  color: #1f4e79;
+  text-align: center;
+  margin: 0.6em 0 0.8em;
+}
+
+// 左に色帯の注記
+.reveal .note {
+  border-left: 6px solid #1f4e79;
+  background: #eef3f8;
+  padding: 0.4em 0.8em;
+  margin: 0.6em 0;
+  font-size: 0.8em;
+}
+
+// 紙面画像に枠と影
+.reveal img.paper {
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  background: #fff;
+}
+
+// 原稿↔出力 の対比で使うキャプション
+.reveal .caption {
+  font-size: 0.6em;
+  color: #666;
+  text-align: center;
+  margin-top: 0.2em;
+}
+
+// 表を少し小さく
+.reveal table { font-size: 0.7em; }
+.reveal table th { background: #eef3f8; }
+
+// コードを詰める
+.reveal pre { margin: 0.3em 0; }
+.reveal pre code { padding: 0.6em; line-height: 1.35; }
+
+// revealjs 既定の code 高さ制限（400px）を緩める（木構造を切らない）
+.reveal pre code { max-height: 560px; }
+
+// 仕組みスライドの流れ図（mermaid は日本語の幅計測で崩れるので CSS で組む）
+.reveal .flow {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 0.3em; margin: 0.5em 0 0.8em; font-size: 0.62em; line-height: 1.3;
+}
+.reveal .flow .box {
+  display: inline-block; border: 2px solid #1f4e79; border-radius: 6px;
+  padding: 0.4em 0.7em; background: #f4f7fa; text-align: center;
+}
+.reveal .flow .box.ddq { border-style: dashed; background: #fff; }
+.reveal .flow .arr { color: #1f4e79; font-size: 1.4em; padding: 0 0.1em; }
+
+// 1 枚にコードを 2 つ載せるスライド用（表のスライド）
+.reveal .compact p { font-size: 0.7em; margin: 0.2em 0; }
+.reveal .compact pre { margin: 0.15em 0 0.5em; }
+.reveal .compact pre code { font-size: 0.9em; line-height: 1.3; padding: 0.5em; }
+.reveal .compact ul { font-size: 0.72em; margin-top: 0.4em; }
+.reveal .compact ul li { margin-bottom: 0.15em; }

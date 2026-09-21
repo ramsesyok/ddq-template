@@ -1,0 +1,45 @@
+## 文書の構造：章＝フォルダ、節・項＝ファイル
+
+:::: {.columns}
+::: {.column width="50%"}
+```text
+docs/                    ← 執筆フォルダ
+├── _quarto.yml          ← 表題・資料番号・章の並び
+├── index.qmd            ← 前付け（改正履歴・用語）
+├── chapters/
+│   ├── 01-overview/
+│   │   ├── index.qmd    ← 章（# 見出し）
+│   │   └── 01-purpose.qmd
+│   ├── 04-system/
+│   │   ├── index.qmd
+│   │   └── 01-hardware/
+│   │       ├── index.qmd
+│   │       └── 01-config.qmd
+│   └── ...
+└── diagrams/            ← 画像（SVG/PNG）
+```
+:::
+::: {.column width="50%"}
+章ファイルから節・項を取り込む：
+
+```markdown
+# システム構成
+
+本章では…を記述する。
+
+{{{< include 01-hardware/index.qmd >}}}
+
+{{{< include 02-software/index.qmd >}}}
+```
+
+- 何ファイルに分けても番号は通し番号
+- 人ごと・機能ごとにファイルを分けて**並行執筆**できる
+- git の diff・レビューが**ファイル単位**でできる
+:::
+::::
+
+::: {.notes}
+【1:00】「Word の 1 ファイル」から「フォルダ＝章」へ。並行して書ける・
+差分が読める、が内部の説得材料。include のパスは章フォルダ基準、は
+マニュアルに書いてあるので深入りしない。
+:::

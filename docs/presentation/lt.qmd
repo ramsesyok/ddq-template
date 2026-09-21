@@ -1,0 +1,23 @@
+---
+title: "設計書、Markdown で書きませんか"
+subtitle: "様式付き PDF を Quarto で組む社内テンプレートの紹介 — LT 版（5 分）"
+author: "発表者名（所属）"
+date: 2026-09-21
+date-format: "YYYY年M月D日"
+---
+
+{{< include sections/_01-problem.qmd >}}
+
+{{< include sections/_02-result.qmd >}}
+
+{{< include sections/_03-markdown-only.qmd >}}
+
+{{< include sections/_04-numbering.qmd >}}
+
+{{< include sections/_05-table.qmd >}}
+
+{{< include sections/_06-author-env.qmd >}}
+
+{{< include sections/_07-start.qmd >}}
+
+{{< include sections/_08-summary-lt.qmd >}}

@@ -1,0 +1,45 @@
+## デモ（3〜4 分）
+
+| # | やること | 見せるもの |
+|---|---|---|
+| 1 | `.\ddq init C:\work\demo-design` | 雛形一式ができる（`_quarto.yml`・章フォルダ・`.gitignore`） |
+| 2 | `_quarto.yml` の表題・資料番号を直す | 設定はここだけ |
+| 3 | 章ファイルに見出し・本文・`.tbl` の表・mermaid の図を書く | 原稿は Markdown だけ |
+| 4 | `Ctrl+Shift+K`（`quarto preview`） | 章番号・図表番号・相互参照が付いた HTML |
+| 5 | 図を 1 つ**前に挿入**して保存 | 後ろの図番号と本文の参照が**ずれずに追従** |
+| 6 | `.\ddq pdf C:\work\demo-design\docs` | 外枠・資料番号欄・目次つきの PDF |
+
+: {tbl-colwidths="[5,50,45]"}
+
+::: {.small}
+事前準備：リリース ZIP 展開済み ／ Quarto ＋ VSCode 拡張導入済み ／ 手順 3 の原稿はクリップボードに用意 ／
+`ddq pdf` は事前に 1 回通しておく（Edge の初回起動を済ませる）
+:::
+
+::: {.notes}
+【3:30】手順 5 が山場。「図を足しても本文を直さない」を目の前で見せる。
+PDF 生成に時間がかかる環境なら、手順 6 は事前に出しておいた PDF を開いて代替。
+:::
+
+## デモがこけたときの保険
+
+:::: {.columns}
+::: {.column width="50%"}
+![](images/html-preview.png){.paper}
+
+::: {.caption}
+手順 4：HTML プレビュー（番号・参照つき）
+:::
+:::
+::: {.column width="50%"}
+![](images/pdf-figure-crop.png){.paper}
+
+::: {.caption}
+手順 6：同じ箇所の PDF
+:::
+:::
+::::
+
+::: {.notes}
+デモが動かないときだけ使う。動いたら飛ばす（`→` で次へ）。
+:::
