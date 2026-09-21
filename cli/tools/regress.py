@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """ddq 移行の回帰確認（cli/DESIGN.md §12）。
 
-移行前（現行 bat）と移行後（ddq）で docs（examples/docs/）と manual（docs/manual/）を作り、作成物が変わって
-いないことを 5 層で比べる。開発用。配布しない。
+移行前（現行 bat）と移行後（ddq）で docs（examples/docs/）・plantuml（examples/plantuml/）・manual（docs/manual/）を
+作り、作成物が変わっていないことを 5 層で比べる。開発用。配布しない。plantuml は PlantUML の経路
+（サーバ起動・共通設定の連結）を通す唯一のサンプルで、cli/vendor/plantuml.jar があれば自動で使う。
 
     python cli/tools/regress.py capture baseline docs --builder bat
     python cli/tools/regress.py capture baseline manual --builder bat
@@ -12,7 +13,7 @@
     python cli/tools/regress.py compare manual
 
 採取物は regress/<label>/<doc>/ に、比較結果は regress/report/<doc>/ に置く（.gitignore 済み）。
-必要なもの: Python 3.10+, Pillow, pypdf, Quarto, Chrome/Edge（mermaid 用）。
+必要なもの: Python 3.10+, Pillow, pypdf, Quarto, Chrome/Edge（mermaid 用）、Java + cli/vendor/plantuml.jar（plantuml 用）。
 """
 
 from __future__ import annotations
@@ -35,10 +36,23 @@ TEMPLATE = REPO / "template"
 REGRESS = REPO / "regress"
 
 # 採取対象の執筆フォルダ（名前 → リポジトリ内のパス）
-DOCS = {"docs": REPO / "examples" / "docs", "manual": REPO / "docs" / "manual"}
+DOCS = {
+    "docs": REPO / "examples" / "docs",
+    "plantuml": REPO / "examples" / "plantuml",
+    "manual": REPO / "docs" / "manual",
+}
+
+# テンプレートリポジトリでは plantuml.jar が exe の隣に無いので、git 管理外の vendor 品を指す
+PLANTUML_JAR = REPO / "cli" / "vendor" / "plantuml.jar"
 
 # 執筆フォルダにコミットされる機構ファイル（§12.2 層 0）
-MECHANISM_FILES = ["design-doc.lua", "design-doc.css", "postprocess-html.js", "mermaid-config.json"]
+MECHANISM_FILES = [
+    "design-doc.lua",
+    "design-doc.css",
+    "postprocess-html.js",
+    "mermaid-config.json",
+    "plantuml-config.puml",
+]
 
 # 頁画像の許容差分画素数。0 が期待値だが、閾値を持たせて「NG」と「要目視」を分ける。
 PIXEL_DIFF_THRESHOLD = 0
@@ -88,10 +102,11 @@ def run(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = No
     subprocess.run(cmd, cwd=cwd, env=env, check=True)
 
 
-def clear_mermaid_cache(doc: Path) -> None:
-    """diagrams/mmd-* を消し、変換器を必ず通す（§12.1）。"""
-    for p in (doc / "diagrams").glob("mmd-*"):
-        p.unlink()
+def clear_diagram_cache(doc: Path) -> None:
+    """diagrams/mmd-* と puml-* を消し、変換器（mermaid / PlantUML サーバ）を必ず通す（§12.1）。"""
+    for pattern in ("mmd-*", "puml-*"):
+        for p in (doc / "diagrams").glob(pattern):
+            p.unlink()
 
 
 def capture(label: str, doc_name: str, builder: Builder) -> None:
@@ -102,9 +117,9 @@ def capture(label: str, doc_name: str, builder: Builder) -> None:
     out.mkdir(parents=True)
 
     print(f"[capture] {label}/{doc_name}")
-    clear_mermaid_cache(doc)
+    clear_diagram_cache(doc)
 
-    # 1) PDF（mermaid をここで焼く）
+    # 1) PDF（mermaid / PlantUML をここで焼く）
     run(builder.pdf(doc))
     shutil.copy2(doc / "design-doc.pdf", out / "design-doc.pdf")
 
@@ -138,8 +153,9 @@ def capture(label: str, doc_name: str, builder: Builder) -> None:
     # 5) 焼かれた SVG
     svg_dir = out / "diagrams"
     svg_dir.mkdir()
-    for p in sorted((doc / "diagrams").glob("mmd-*.svg")):
-        shutil.copy2(p, svg_dir / p.name)
+    for pattern in ("mmd-*.svg", "puml-*.svg"):
+        for p in sorted((doc / "diagrams").glob(pattern)):
+            shutil.copy2(p, svg_dir / p.name)
 
     # 6) 機構ファイルのハッシュ
     hashes = {name: sha256(doc / name) for name in MECHANISM_FILES}
@@ -346,6 +362,8 @@ def main() -> int:
     cmp.add_argument("doc", choices=sorted(DOCS))
 
     args = ap.parse_args()
+    if PLANTUML_JAR.is_file():
+        os.environ.setdefault("DDQ_PLANTUML_JAR", str(PLANTUML_JAR))
     if args.cmd == "capture":
         if args.builder == "ddq" and not args.ddq:
             ap.error("--builder ddq には --ddq <exe> が要ります")

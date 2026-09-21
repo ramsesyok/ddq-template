@@ -1,5 +1,5 @@
 # 注意: .gitignore ではインライン（行末）コメント不可。コメントは必ず行頭に置く。
-# 執筆フォルダ（docs/manual・docs/design・examples/*/docs）は増減・改名するので、
+# 執筆フォルダ（docs/manual・docs/design・examples/docs・examples/plantuml）は増減・改名するので、
 # パターンはフォルダ名に依存させず「名前」でマッチさせる。実体が template/ にある機構ファイルは末尾で除外解除する。
 
 # ==== ビルド生成物 ====
@@ -35,8 +35,8 @@ plantuml-config.puml
 .quarto/
 **/*.quarto_ipynb
 # Quarto が執筆フォルダ直下に自動生成する .gitignore（中身は /.quarto/）。
-# 執筆フォルダは docs/<名前>（設計リポジトリ）と examples/<名前>/docs（サンプル）に
-# あるので、深さ 2〜3 のものを無視し、ルートの .gitignore は残す。
+# 執筆フォルダは docs/<名前>（設計リポジトリ）と examples/<名前>（サンプル）にあるので、
+# 深さ 2 のものを無視し（3 は将来の入れ子用）、ルートの .gitignore は残す。
 /*/.gitignore
 /*/*/.gitignore
 /*/*/*/.gitignore

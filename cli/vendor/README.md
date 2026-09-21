@@ -6,6 +6,6 @@
 
 - GPL 版（`plantuml-<版>.jar`）を同梱すると release ZIP に GPL の義務が付くので、MIT 版を使う。
   MIT 版でも UML の全図種と Smetana（Graphviz の Java 移植）は使える（無いのは ditaa / jcckit / sudoku 等）。
-- 検証した版は cli/DESIGN.md §13 に記録する。版を変えたらサンプル文書（examples/docs）の PDF で図を確認する。
+- 検証した版は cli/DESIGN.md §13 に記録する。版を変えたらサンプル文書（examples/plantuml。PlantUML の全図種がある）の PDF で図を確認する。
 - 手元の CI・テストでは `DDQ_PLANTUML_JAR` にこのファイルのパスを渡す（`cargo test` は
   `cli/vendor/plantuml.jar` があれば自動で使う。tests/plantuml.rs）。
