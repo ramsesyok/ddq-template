@@ -39,14 +39,27 @@
    cargo build --release
    ```
 
-4. サンプル文書（`examples\docs`）へ `ddq update` で機構を明示的に反映してから、
-   PDF・HTML の両方を出し、体裁を確認する。
+4. サンプル文書（`examples\docs` と `examples\plantuml`）へ `ddq update` で機構を明示的に
+   反映してから、PDF・HTML の両方を出し、体裁を確認する。`examples\plantuml` は
+   PlantUML の経路（サーバの起動・共通設定の連結・エラー処理）を本格的に通す唯一の
+   サンプルなので省略しない。
 
    ```bat
+   set DDQ_PLANTUML_JAR=%CD%\cli\vendor\plantuml.jar
    cli\target\release\ddq.exe update examples\docs
    cli\target\release\ddq.exe pdf examples\docs
    cli\target\release\ddq.exe html examples\docs
+   cli\target\release\ddq.exe update examples\plantuml
+   cli\target\release\ddq.exe pdf examples\plantuml
+   cli\target\release\ddq.exe html examples\plantuml
    ```
+
+   ::: {.callout-note}
+   `DDQ_PLANTUML_JAR` はテンプレートリポジトリで作業する保守者だけに要る。`ddq` は
+   `plantuml.jar` を exe の隣（リリース一式の展開フォルダ）から探すが、`cli\target\release\`
+   には無いので、`cli\vendor\plantuml.jar`（git 管理外。入手は `cli/vendor/README.md`）を
+   環境変数で指す。発行者はリリース一式を使うので設定は要らない（@sec-plantuml-setup）。
+   :::
 
 5. 本書（`docs\manual`）とテンプレート設計書（`docs\design`）でも出力を確認する
    （記法の網羅度が高いため、退行を見つけやすい）。`cli/tests/` のテスト（`cargo test`）も

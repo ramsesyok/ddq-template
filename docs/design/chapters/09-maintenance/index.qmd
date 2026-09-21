@@ -31,8 +31,11 @@
 
 1. `template/` を直したら、配置ツールをビルドし直して原本を埋め込み直し、
    執筆フォルダへ**明示的に更新**する（忘れると版・内容の不一致としてビルドが停止する）。
-2. サンプル文書（`examples/docs/`）で PDF・HTML の**両方**を出し、体裁を確認する。
-   PDF だけ直すと HTML の採番がずれることがある。
+2. サンプル文書（`examples/docs/` と `examples/plantuml/`）で PDF・HTML の**両方**を出し、
+   体裁を確認する。PDF だけ直すと HTML の採番がずれることがある。`examples/plantuml/` は
+   PlantUML の経路（サーバ起動・共通設定の連結・エラー処理）を本格的に通す唯一のサンプル
+   なので省略しない（テンプレートリポジトリでは `DDQ_PLANTUML_JAR` で
+   `cli/vendor/plantuml.jar` を指す）。
 3. 利用マニュアル（`docs/manual/`）と本書（`docs/design/`）でも出力を確認する。
    記法の網羅度が高く、退行を見つけやすい。
 4. `postprocess-html.js` を直したときは、同じ `_book/` に 2 回続けて流しても結果が

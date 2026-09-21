@@ -5,7 +5,7 @@
 # 管理対象（＝コミットする）:
 #   - 本文（_quarto.yml / index.qmd / chapters/ / diagrams/）
 #   - 機構ファイル（design-doc.lua / design-doc.css / postprocess-html.js /
-#     mermaid-config.json / .template-version）… 発行者が ddq init・ddq update で置く
+#     mermaid-config.json / plantuml-config.puml / .template-version）… 発行者が ddq init・ddq update で置く
 #   - design-doc.pdf … 発行者が定期的に作る「中間版」。レビューの基準になるので残す
 
 # ==== ビルド生成物 ====

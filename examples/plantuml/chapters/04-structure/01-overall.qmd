@@ -1,0 +1,94 @@
+## 全体構成 {#sec-structure-overall}
+
+プログラムを @tbl-sp-list の 6 つのサブプログラムに分割する。サブプログラムの構成と
+依存関係を @fig-components に示す（コンポーネント図）。業務のサブプログラム（SP-01〜
+SP-04）は画面からの要求で動くオンライン処理、SP-05 は日次バッチ、SP-06 は常駐処理である。
+
+::: {.tbl caption="サブプログラム一覧" label="tbl-sp-list" widths="10,18,12,60"}
+| ID    | サブプログラム | 処理形態   | 機能概要                                                       |
+|-------|----------------|------------|----------------------------------------------------------------|
+| SP-01 | 受注受付       | オンライン | 受注入力の検査・重複判定・受注テーブル登録。SP-03 を同期呼出   |
+| SP-02 | 受注検索       | オンライン | 検索条件から受注一覧・明細を取得し画面へ返す                   |
+| SP-03 | 在庫引当       | オンライン | 受注明細の在庫確認・楽観ロックによる引当・補充依頼の起票       |
+| SP-04 | 出荷指示編集   | オンライン | 引当済受注から出荷指示メッセージを組み立て、送信キューへ積む   |
+| SP-05 | 売上抽出       | バッチ     | 出荷完了受注を売上 CSV に編集し、会計連携用フォルダへ出す      |
+| SP-06 | 連携送信       | 常駐       | 送信キューを監視し、倉庫管理・購買システムへ順序を保って送る   |
+:::
+
+::: {#fig-components}
+
+```plantuml
+skinparam componentStyle rectangle
+
+package "受注管理システム" {
+  [SP-01 受注受付] as sp1
+  [SP-02 受注検索] as sp2
+  [SP-03 在庫引当] as sp3
+  [SP-04 出荷指示編集] as sp4
+  [SP-05 売上抽出] as sp5
+  [SP-06 連携送信] as sp6
+  database "受注 DB" as db
+  queue "送信キュー\n(IF-01)" as q
+  folder "売上連携\nフォルダ" as csv
+}
+
+[画面 (Web UI)] as ui
+[倉庫管理システム] as wms
+[購買システム] as pur
+[会計システム] as acc
+
+ui --> sp1
+ui --> sp2
+sp1 --> sp3 : 引当要求
+sp3 --> sp4 : 引当済受注
+sp1 --> db
+sp2 --> db
+sp3 --> db
+sp4 --> db
+sp4 --> q : 出荷指示
+sp3 --> q : 補充依頼
+q --> sp6
+sp6 --> wms : AMQP
+sp6 --> pur : REST
+sp5 --> db
+sp5 --> csv
+csv ..> acc : FTPS (日次)
+```
+
+プログラムの全体構成（コンポーネント図）
+:::
+
+サブプログラムの配置を @fig-deploy に示す（配置図）。オンラインと常駐は同じ AP
+サーバの JVM 上で動き、バッチはジョブ管理サーバから起動される別 JVM で動く。
+
+::: {#fig-deploy}
+
+```plantuml
+node "AP サーバ (×2)" as ap {
+  node "JVM: oms-online" as jvm1 {
+    component "SP-01〜SP-04" as online
+    component "SP-06 連携送信" as sp6
+  }
+  folder "/var/oms/queue" as qdir
+}
+node "ジョブ管理サーバ" as job {
+  node "JVM: oms-batch" as jvm2 {
+    component "SP-05 売上抽出" as sp5
+  }
+}
+node "DB サーバ" as dbsv {
+  database "PostgreSQL 16" as pg
+}
+cloud "倉庫管理システム" as wms
+cloud "購買システム" as pur
+
+online --> pg : JDBC
+sp5 --> pg : JDBC
+online --> qdir : 書込
+sp6 --> qdir : 読出
+sp6 --> wms : AMQP
+sp6 --> pur : HTTPS
+```
+
+サブプログラムの配置（配置図）
+:::

@@ -217,6 +217,12 @@ stateDiagram-v2
   描画には **PlantUML サーバが要る**（`_quarto.yml` の `plantuml-server:` か、ローカルの
   `ddq plantuml serve`）。サーバが無い環境ではプレビューに橙枠でソースが出るだけで、
   PDF 生成は失敗する。サーバの有無が不明なら mermaid を優先する。
+  図の種類ごとの実例はテンプレートのリポジトリの `examples/plantuml/`（プログラム概要設計書。
+  12 章が記法例の付録）にある。
+- PlantUML のアクティビティ図で `if` の中でスイムレーン `|名前|` を切り替えると、`endif` の後も
+  そのレーンのまま。分岐後の処理は `endif` 直後にレーンを指定し直す（IPO の処理欄で起きやすい）。
+- 横に長い図（参加者の多いシーケンス図・タイミング図）は本文幅に縮められて読めなくなる。
+  `.landscape` に入れる。タイミング図は `scale 1 as 12 pixels` で 1 単位の幅を指定する。
 - 主な mermaid: `flowchart TD/LR` / `stateDiagram-v2` / `sequenceDiagram` / `erDiagram` / `classDiagram` / `gantt`。
   決定表など表で表すべきものは mermaid でなく `.tbl`（グリッド表）で書く。
 

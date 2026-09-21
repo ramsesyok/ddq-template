@@ -1,0 +1,12 @@
+# プログラム構成 {#sec-structure}
+
+本章では、プログラムをサブプログラムに分割し、機能ブロックとの対応、サブプログラム
+間の相互関係、プログラム全体の処理方式を記述する。
+
+{{< include 01-overall.qmd >}}
+
+{{< include 02-mapping.qmd >}}
+
+{{< include 03-interaction.qmd >}}
+
+{{< include 04-processing.qmd >}}

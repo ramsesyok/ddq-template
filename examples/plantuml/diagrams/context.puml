@@ -1,0 +1,16 @@
+@startuml
+' 静的な図の例。ddq diagrams で同名の .svg に変換し、原稿から画像として貼る。
+left to right direction
+skinparam componentStyle rectangle
+
+[受注管理システム] as oms
+[倉庫管理システム] as wms
+[購買システム] as pur
+[会計システム] as acc
+actor 営業担当 as sales
+
+sales --> oms : 受注入力
+oms --> wms : 出荷指示 (AMQP)
+oms --> pur : 補充依頼 (REST)
+oms --> acc : 売上 CSV (FTPS, 日次)
+@enduml

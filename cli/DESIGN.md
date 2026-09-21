@@ -156,7 +156,7 @@ release ──► update, pdf, html（manual に対して）
 | コマンド | 処理 | 現行 |
 |---|---|---|
 | **init** | 1) リポジトリ直下に `.gitignore` `.gitattributes` `.vscode/settings.json` `README.md`（`{{CONTENT_DIR}}` 置換）を「無いものだけ」置く 2) `add <repo>/<name>` | init-doc |
-| **add** | 前提: 親フォルダに `.gitignore` がある（無ければ「先に `ddq init`」と案内）。拒否: 対象に `_quarto.yml` が既にある。処理: scaffold の content 一式を無いものだけ置く → `update` → `quarto render --to html` で疎通確認（`--no-render` で省略） | （新規） |
+| **add** | 前提: 上のフォルダのどこかにリポジトリの目印（`.gitignore` / `.git` / `.svn` / `.hg`）がある（無ければ「先に `ddq init`」と案内。執筆フォルダは入れ子でもよい）。拒否: 対象に `_quarto.yml` が既にある。処理: scaffold の content 一式を無いものだけ置く → `update` → `quarto render --to html` で疎通確認（`--no-render` で省略） | （新規） |
 | **update** | 機構ファイル 5 本と `.template-version` を上書き。`--all <repo>` は配下の `_quarto.yml` を持つフォルダを列挙して全部に適用（`_book/` `.quarto/` `node_modules/` は探索しない） | update-doc |
 | **setup** | `.template-version` と機構ファイル 5 本が現在の `ddq` と一致するか検査 → PDF 側4ファイルを上書き。不一致時は `update` せず停止。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
 | **html** | 版・機構の一致検査 → PlantUML サーバの用意（§13.3）→ `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN` `DDQ_PLANTUML_SERVER`）。出力 `_book/` | build-html |

@@ -1,0 +1,107 @@
+## SP-01 受注受付 {#sec-sp01}
+
+### 機能詳細
+
+SP-01 の機能を入出力と関連づけて @tbl-sp01-ipo に示す。
+
+::: {.ipo module="SP-01 受注受付" caption="受注受付の処理" label="tbl-sp01-ipo"}
+## 受注受付
+
+### 入力
+
+- 受注入力データ（基本設計書 8.1 入力データ I-01）
+- 顧客マスタ（基本設計書 11.2 DB-02）
+- 商品マスタ（基本設計書 11.2 DB-03）
+
+### 処理
+
+```plantuml
+start
+:入力検査
+(必須・型・桁・顧客の存在);
+:重複判定
+(顧客・注文日・明細の一致);
+if (重複あり?) then (yes)
+  :警告を返す;
+  stop
+endif
+:受注番号を採番;
+:受注・受注明細を登録;
+:SP-03 へ引当要求;
+:引当結果を受注へ反映;
+stop
+```
+
+### 出力
+
+- 受注テーブル・受注明細テーブル（基本設計書 11.2 DB-01）
+- 受注登録結果（基本設計書 8.2 出力データ O-01）
+- 引当要求（TB-01 引当要求テーブル）
+:::
+
+### 入力データ
+
+@tbl-sp01-in に示す。
+
+::: {.tbl caption="SP-01 入力データ" label="tbl-sp01-in" widths="26,30,44"}
+| データ           | 仕様の所在                | 使い方                             |
+|------------------|---------------------------|------------------------------------|
+| 受注入力データ   | 基本設計書 8.1 I-01       | 画面からの登録要求                 |
+| 顧客マスタ       | 基本設計書 11.2 DB-02     | 顧客コードの存在・与信状態を検査   |
+| 商品マスタ       | 基本設計書 11.2 DB-03     | 商品コードの存在・販売可否を検査   |
+:::
+
+### 出力データ
+
+@tbl-sp01-out に示す。
+
+::: {.tbl caption="SP-01 出力データ" label="tbl-sp01-out" widths="26,30,44"}
+| データ               | 仕様の所在              | 内容                                   |
+|----------------------|-------------------------|----------------------------------------|
+| 受注・受注明細       | 基本設計書 11.2 DB-01   | 登録（状態＝受付済）                   |
+| 受注登録結果         | 基本設計書 8.2 O-01     | 受注番号・引当結果・警告               |
+| 引当要求             | @sec-tables TB-01       | SP-03 への同期呼出の引数               |
+:::
+
+### 処理方式
+
+- **入出力の方法**: 画面からの要求は JSON（HTTP POST）で受け、DB アクセスは共通基盤の
+  リポジトリクラスを介して行う。
+- **処理アルゴリズム**: 重複判定は「同一顧客・同一注文日・明細（商品・数量）の集合が
+  一致」を条件とし、直近 7 日の受注を対象に検索する。
+- **例外処理**: 入力検査 NG は業務エラーとして項目ごとのメッセージを返す。DB 例外・
+  SP-03 からの例外はトランザクションをロールバックし、システムエラーとして上位に
+  通知する。SP-03 の引当が「取り寄せ中」で戻ったときは正常扱いで登録を完了する。
+- **主要なモジュール**: @fig-sp01-class に示す 4 モジュールで構成する。
+
+::: {#fig-sp01-class}
+
+```plantuml
+class OrderAcceptController {
+  +accept(req: OrderRequest): OrderResult
+}
+class OrderValidator {
+  +validate(req: OrderRequest): List<Violation>
+  +isDuplicate(req: OrderRequest): boolean
+}
+class OrderRegistrar {
+  +register(req: OrderRequest): OrderId
+}
+class AllocationRequestBuilder {
+  +build(id: OrderId, lines: List<Line>): AllocRequest
+}
+interface AllocationService <<SP-03>> {
+  +allocate(req: AllocRequest): AllocResult
+}
+OrderAcceptController --> OrderValidator
+OrderAcceptController --> OrderRegistrar
+OrderAcceptController --> AllocationRequestBuilder
+OrderAcceptController --> AllocationService : 同期呼出
+```
+
+SP-01 の主要モジュール構成（クラス図）
+:::
+
+### その他
+
+なし。
