@@ -70,9 +70,9 @@ quarto-template-<版>/
 （タグの指すコミットと配布物を一致させるため）。
 
 ```bash
-gh release create v2.2.0 "release/quarto-template-2.2.0.zip" \
+gh release create v2.2.1 "release/quarto-template-2.2.1.zip" \
   --target main \
-  --title "v2.2.0 — （変更の要約）" \
+  --title "v2.2.1 — （変更の要約）" \
   --notes-file <リリースノートのファイル>
 ```
 

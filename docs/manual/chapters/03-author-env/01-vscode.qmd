@@ -75,7 +75,7 @@ Marketplace には公開していないので、**発行者から VSIX を受け
    を選んで VSIX を指定する。コマンドでも入れられる。
 
 ```bat
-code --install-extension ddq-table-editor-2.2.0.vsix
+code --install-extension ddq-table-editor-2.2.1.vsix
 ```
 
 使い方は次のとおり。

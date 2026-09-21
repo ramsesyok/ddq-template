@@ -111,7 +111,7 @@ mermaid と違い、PlantUML にはブラウザの中で動く実装が無い。
 `plantuml.jar`）と Java を用意し、執筆中は次を起動しておく（@sec-plantuml-setup）。
 
 ```bat
-cd C:\tools\quarto-template-2.2.0
+cd C:\tools\quarto-template-2.2.1
 .\ddq plantuml serve
 ```
 :::

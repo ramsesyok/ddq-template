@@ -8,7 +8,7 @@ clone して書き始めればよい（@sec-place）。
 リリースを展開したフォルダを開き、作成先のパスを**絶対パス**で渡して実行する。
 
 ```bat
-cd C:\tools\quarto-template-2.2.0
+cd C:\tools\quarto-template-2.2.1
 .\ddq init C:\work\order-design
 ```
 
@@ -31,7 +31,7 @@ cd C:\tools\quarto-template-2.2.0
 執筆フォルダを作成: C:\work\order-design\docs
   作成: _quarto.yml
   ...
-機構ファイルを更新しました: C:\work\order-design\docs（テンプレート 2.2.0）
+機構ファイルを更新しました: C:\work\order-design\docs（テンプレート 2.2.1）
 疎通確認のため HTML を一度 render します...
 OK -> C:\work\order-design\docs\_book\index.html
 ```
@@ -243,7 +243,7 @@ PDF では章（`#`）の先頭で自動的にページを改める。`pagebreak
 ```bat
 :: 設計書リポジトリ側で改名し、展開フォルダに戻ってビルドする
 cd C:\work\order-design && git mv docs design-doc
-cd C:\tools\quarto-template-2.2.0
+cd C:\tools\quarto-template-2.2.1
 .\ddq pdf C:\work\order-design\design-doc
 ```
 
