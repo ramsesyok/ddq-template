@@ -11,7 +11,7 @@
 **別のフォルダに展開される**ので、そちらへ移動してから実行する。
 
 ```bat
-cd C:\tools\quarto-template-2.2.0
+cd C:\tools\quarto-template-2.2.1
 .\ddq update C:\work\order-design\docs
 ```
 
