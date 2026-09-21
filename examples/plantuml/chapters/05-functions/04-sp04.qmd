@@ -1,0 +1,59 @@
+## SP-04 出荷指示編集 {#sec-sp04}
+
+### 機能詳細
+
+引当済の受注から出荷指示メッセージ（倉庫管理システム I/F 仕様 WMS-IF-007 の形式）を
+組み立て、送信キューへ積む。同時に出荷指示書（基本設計書 8.2 O-03）を発行する。
+組み立てるメッセージの構造を @fig-ship-msg に示す（クラス図）。
+
+::: {#fig-ship-msg}
+
+```plantuml
+class ShipInstruction {
+  +instructionNo: String
+  +orderNo: String
+  +shipDate: LocalDate
+  +warehouseCode: String
+}
+class ShipLine {
+  +lineNo: int
+  +itemCode: String
+  +quantity: int
+  +lotPolicy: String
+}
+class Destination {
+  +name: String
+  +postalCode: String
+  +address: String
+  +tel: String
+}
+ShipInstruction "1" *-- "1..*" ShipLine
+ShipInstruction "1" *-- "1" Destination
+```
+
+出荷指示メッセージの構造
+:::
+
+### 入力データ
+
+- 受注・受注明細（基本設計書 11.2 DB-01。状態＝引当済）
+- 顧客マスタ（基本設計書 11.2 DB-02。届け先）
+
+### 出力データ
+
+- 出荷指示メッセージ（@sec-internal-files IF-01）
+- 出荷指示書（基本設計書 8.2 O-03）
+- 受注の状態（基本設計書 11.2 DB-01。出荷指示済）
+
+### 処理方式
+
+- **入出力の方法**: SP-03 から同期呼出で受注 ID を受け、SP-01〜SP-03 と同一
+  トランザクションで動く。
+- **処理アルゴリズム**: 明細を倉庫コードで分け、倉庫ごとに 1 メッセージを組み立てる。
+  出荷指示番号は受注番号＋倉庫コード＋連番とし、再送時も同じ番号になる（冪等）。
+- **例外処理**: 届け先が不完全（住所欠落）のときは業務エラーとして SP-03 経由で
+  SP-01 に返す。
+
+### その他
+
+なし。

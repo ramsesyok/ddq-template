@@ -1,0 +1,18 @@
+# 機能 {#sec-func}
+
+本章では、サブプログラムごとに機能詳細・入力データ・出力データ・処理方式を記述する。
+入力データ・出力データは基本設計書の外部仕様（入出力データ仕様・表示画面仕様・
+データベース仕様）と本書の @sec-internal-files〜@sec-tables を参照する形式で書き、
+実体を再掲しない。
+
+{{< include 01-sp01.qmd >}}
+
+{{< include 02-sp02.qmd >}}
+
+{{< include 03-sp03.qmd >}}
+
+{{< include 04-sp04.qmd >}}
+
+{{< include 05-sp05.qmd >}}
+
+{{< include 06-sp06.qmd >}}

@@ -14,7 +14,8 @@ design-doc-quarto-template/
 │   └── design/               … テンプレート設計書の原稿（様式・変換の仕組み。保守者向け）
 │
 ├── examples/                 … サンプルの設計書リポジトリ（記法の実例・様式の検証用）
-│   └── docs/                 … 受注管理システム 基本設計書
+│   ├── docs/                 … 受注管理システム 基本設計書（mermaid・IPO 図・表の実例）
+│   └── plantuml/             … 受注管理システム プログラム概要設計書（PlantUML の実例）
 │
 ├── template/                 … 様式・変換の実体（ddq に埋め込まれる原本）
 │   ├── VERSION               … テンプレートの版（= ddq の版）
@@ -47,4 +48,5 @@ design-doc-quarto-template/
 同じ形をしている。違いは、原本が同じリポジトリの `template/` にあるため、
 **機構ファイルの写しと `design-doc.pdf` を git 管理しない**ことだけである
 （`.gitignore` が名前で無視し、`template/` 配下だけを除外解除している）。
-サンプル文書を増やすときは `examples/` に執筆フォルダを足す。
+サンプル文書を増やすときは `ddq add examples\<名前>` で執筆フォルダを足す（リポジトリの目印は
+ルートの `.gitignore` を上へたどって見つける）。
