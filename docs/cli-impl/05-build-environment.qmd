@@ -1,0 +1,60 @@
+# ビルド・実行環境と依存関係 {#sec-build-environment}
+
+## 再現の入口
+
+**確認済み（静的）**：ビルドは `cli/` を作業ディレクトリにする。`template/` はコンパイル入力なので、CLIディレクトリだけを切り出しても同じビルドにはならない。`build.rs` はテンプレート全体の変更を再ビルド条件とし、lockfileからmerman版も抽出する。release設定は `strip=true`、`lto=thin`、`codegen-units=1`、Windows MSVC x64 のみ `.cargo/config.toml` でCRT静的リンクを指定する。[E-0003](appendix-evidence.qmd#ev-e-0003)
+
+```powershell
+# リポジトリルートから
+Set-Location cli
+cargo build --locked --release
+cargo test --locked --offline --bin ddq --test commands
+cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact
+Set-Location ..
+```
+
+`--offline` は依存が既に取得済みの場合の再現指定である。上記のテスト2コマンドは今回実行した。releaseビルドと次の配布物生成は再現手順として示すもので、今回の実行成功を意味しない。[E-0017](appendix-evidence.qmd#ev-e-0017)
+
+```powershell
+# release は必ずリポジトリルートで実行する
+cli\target\release\ddq.exe release
+```
+
+## 実行環境の境界
+
+**確認済み（静的）**：作成・更新は通常のファイルI/Oで実行でき、init/addのHTML疎通確認は `--no-render` で省略できる。pdf/htmlにはPATH上のQuartoが必要。Mermaidは内蔵merman、または外部Edge/Chromeを使う。PlantUMLのローカル起動はJavaとjar、原稿フェンスのHTTP描画はLuaから呼ぶcurlを必要とする。リリースのVSIX作成はNode/npmも使う。[E-0005](appendix-evidence.qmd#ev-e-0005)、[E-0007](appendix-evidence.qmd#ev-e-0007)～[E-0013](appendix-evidence.qmd#ev-e-0013)
+
+**確認済み（設定）**：CLIのCIは `windows-latest`、Rust stable、Quarto **1.9.38**、Temurin **17**、PlantUML MIT版名 **1.2026.8** を設定し、fmt、clippy、cargo test、release buildを実施する定義である。`DDQ_E2E` の設定により外部依存不足を失敗にし、`DDQ_GOLDEN_LOOSE=1` でフォント差を許容する。これはCI定義の確認であり、特定のCI実行が成功した証拠ではない。[E-0015](appendix-evidence.qmd#ev-e-0015)
+
+## 主要依存と版
+
+表のRust版は `Cargo.lock` の解決版で静的確認済み。完全な依存グラフの正本はlockfileとmanifestであり、本文には変更影響の大きいものを掲載する。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0018](appendix-evidence.qmd#ev-e-0018)
+
+| 依存 | 解決版／実物版 | 利用境界・差替え時の注意 |
+|---|---|---|
+| clap | 4.6.7 | deriveによるCLI定義。hidden/既定値/競合引数を維持 |
+| include_dir | 0.7.4 | 雛形のコンパイル時埋込み。配置名の変換はinit側 |
+| merman | 0.8.0-alpha.6（要求も完全固定） | default-features無効、complete-svg有効。`resvg_safe` と図IDを維持 |
+| tungstenite | 0.30.0 | handshakeのみ、CDPのローカルWebSocket。TLS機能なし |
+| zip | 8.6.0 | deflateのみ。配布ZIP作成とjar版読込み |
+| windows-sys／winreg | 0.61.2／0.56.0 | ACP検査、Job Object、レジストリ探索。Windows限定 |
+| Mermaid JS | 11.16.0（埋込み文字列から抽出） | `template/vendor/mermaid.min.js`。ブラウザ描画の固定入力 |
+| PlantUML jar | 1.2026.8（ローカルMANIFEST） | `cli/vendor/plantuml.jar` はGit管理外。配布時に外部ファイルとしてコピー |
+
+**確認済み（ローカル資料）**：直接依存のlicense宣言はローカルCargo registryのmanifestから採取し、`analysis/dependencies.json` に残した。CLI本体のmanifestには `[patch]` 指定がない。jarのMANIFEST版とCI取得名が一致することは確認したが、版一致だけでは取得元・配布種別・改変有無を証明できない。OSSの全NOTICE、推移依存の法的評価、EOL調査は行っていない。[E-0018](appendix-evidence.qmd#ev-e-0018)、[U-0003](07-issues-unknowns.qmd#u-0003)
+
+## テストの期待値と今回の結果
+
+| 検証 | 既存コードでの期待 | 今回の観測 |
+|---|---|---|
+| binary内unit | 背景style、file URL、script escape、PlantUML設定・HTTP・フェンス、Windows ACP | **確認済み**：10件成功。ACP固有テストはCP932以外で早期return |
+| `tests/commands.rs` | init/add/update/setup、版違い拒否、表示版 | **確認済み**：4件成功 |
+| `tests/golden.rs` merman | 22図の生成、コメント、foreignObject不在、text存在 | **確認済み**：1テスト成功 |
+| golden browser | pathの乱数成分等を除いた数値列の比較。loose時は数値個数とviewBox 25%以内 | **未確認**：今回未実行 |
+| `tests/plantuml.rs` | 静的puml、構文エラー、serve起動・親終了後の停止 | **未確認**：今回未実行 |
+| `tests/e2e.rs` | ASCII／非ASCIIパス、PDF、SVG件数、HTML内参照と検索索引 | **未確認**：今回未実行 |
+| `tools/regress.py` | 機構hash、Typst、ページ画像、PDF文字、HTML、SVGの比較 | **未確認**：今回未実行。旧bat比較には過去版資産も必要 |
+
+期待値は静的確認、実行結果はWindows／Cargo **1.98.1**、Python **3.12.0**、Quarto **1.9.38** の調査環境での観測である。初めの2行は同一のcargo testコマンドで実行し、mermanを別コマンドで確認した。15件成功は全E2E成功やブラウザとの幾何一致を意味しない。[E-0016](appendix-evidence.qmd#ev-e-0016)、[E-0017](appendix-evidence.qmd#ev-e-0017)
+
+**確認済み（静的）**：E2E／PlantUMLテストの厳格化は `DDQ_E2E` の値が `1` かではなく、環境変数が存在するかで判定する。browser goldenはブラウザ未検出時に早期returnするため、通常のテスト成功表示だけでブラウザ経路を検証済みと判断しない。[E-0016](appendix-evidence.qmd#ev-e-0016)

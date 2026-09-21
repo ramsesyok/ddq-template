@@ -1,0 +1,74 @@
+[
+  {
+    "name": "anyhow",
+    "resolved": "1.0.104",
+    "license_declaration": "MIT OR Apache-2.0",
+    "manifest_available": true
+  },
+  {
+    "name": "clap",
+    "resolved": "4.6.7",
+    "license_declaration": "MIT OR Apache-2.0",
+    "manifest_available": true
+  },
+  {
+    "name": "include_dir",
+    "resolved": "0.7.4",
+    "license_declaration": "MIT",
+    "manifest_available": true
+  },
+  {
+    "name": "merman",
+    "resolved": "0.8.0-alpha.6",
+    "license_declaration": "MIT OR Apache-2.0",
+    "manifest_available": true
+  },
+  {
+    "name": "serde",
+    "resolved": "1.0.229",
+    "license_declaration": "MIT OR Apache-2.0",
+    "manifest_available": true
+  },
+  {
+    "name": "serde_json",
+    "resolved": "1.0.151",
+    "license_declaration": "MIT OR Apache-2.0",
+    "manifest_available": true
+  },
+  {
+    "name": "tempfile",
+    "resolved": "3.27.0",
+    "license_declaration": "MIT OR Apache-2.0",
+    "manifest_available": true
+  },
+  {
+    "name": "tungstenite",
+    "resolved": "0.30.0",
+    "license_declaration": "MIT OR Apache-2.0",
+    "manifest_available": true
+  },
+  {
+    "name": "walkdir",
+    "resolved": "2.5.0",
+    "license_declaration": "Unlicense/MIT",
+    "manifest_available": true
+  },
+  {
+    "name": "windows-sys",
+    "resolved": "0.61.2",
+    "license_declaration": "MIT OR Apache-2.0",
+    "manifest_available": true
+  },
+  {
+    "name": "winreg",
+    "resolved": "0.56.0",
+    "license_declaration": "MIT",
+    "manifest_available": true
+  },
+  {
+    "name": "zip",
+    "resolved": "8.6.0",
+    "license_declaration": "MIT",
+    "manifest_available": true
+  }
+]

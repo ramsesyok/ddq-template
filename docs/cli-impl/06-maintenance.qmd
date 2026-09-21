@@ -1,0 +1,46 @@
+# 変更時の注意点 {#sec-maintenance}
+
+## 変更箇所から影響先へ
+
+次表の依存関係は静的確認済み。検証欄は**今後の変更時に行う確認**であり、今回すべてを実施したという意味ではない。
+
+| 変更したいもの | 読む実装と連動先 | 守る契約／検証 |
+|---|---|---|
+| サブコマンド追加・引数 | `main::Command` → dispatch → `commands/mod.rs` → 実装 | default、help、排他、非成功。commands統合テスト |
+| 機構・雛形・版 | `assets` → `update` → `setup` → template/scaffold → build.rs | 原稿の保持、機構5本の完全一致、表示版。templateと拡張の版を揃える |
+| Mermaidの描画 | `mermaid` → browser/merman → Lua `render_mermaid` | 図ID、背景、UTF-8、エラー、cache更新。両engineのgoldenとPDFの文字 |
+| PlantUML設定・通信 | `plantuml` → diagrams、Session → Lua `puml_source/puml_candidates/puml_render` | 設定連結、優先順位、HTTP200のエラー、改行、curlとの条件差 |
+| パス・探索 | `writing_folder` → init/add/pdf/html/update、Lua ROOT/diag_rel | ACP、入れ子、日本語、空白、除外フォルダ、誤更新範囲 |
+| Quartoプロファイル・出力先 | `quarto`、pdf `find_pdf` → publish設定 → releaseのmanualコピー | `_book`とPDF一件の前提。PDF→HTMLの順で両方を残す |
+| 配布構成・ZIP | `release` → assets案内PDF、extension、vendor、zip_archive | stage削除範囲、--no-buildの残る処理、同梱版、ZIP再展開 |
+
+根拠：[E-0002](appendix-evidence.qmd#ev-e-0002)～[E-0016](appendix-evidence.qmd#ev-e-0016)。
+
+## 互換性を左右する条件
+
+**確認済み（静的）**：機構ファイルを執筆先だけで変更すると、html/pdfの一致検査が止まる。共通設定を変更するときも `template/` の原本、版、再ビルド、update、cache再生成の連動を考慮する。`setup` に暗黙のupdateを追加すると、発行コマンドが版管理対象を変更しない現在の契約を変えてしまう。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+**確認済み（静的）**：Windowsのパス検査は `WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, ...)` で文字ごとに判定し、全OSで制御文字を拒否する。日本語が常に使えるという契約ではなく、端末のACPに依存する。検査を通すコマンドはinit/add/pdf/htmlであり、すべてのCLI操作の共通前処理ではない。実際のLuaでは `QUARTO_WIN_CODEPAGE` による復号も関わる。[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+**確認済み（静的）**：`release` の入力には埋込み資産とディスク上のREADME・manual・VSIX・jarが混在する。古い実行ファイルでもディスクの `template/VERSION` は存在しか検査しない。配布名と拡張の比較は埋込み版が基準なので、ソース更新後の再ビルドを配布工程から外せない。[E-0013](appendix-evidence.qmd#ev-e-0013)
+
+## 待機時間・メモリ・資源解放
+
+| 箇所 | コード上の値／挙動（確認済み） | 改修時に区別すること |
+|---|---|---|
+| browser | TIMEOUT=60秒。DevTools待ち、通信、イベント、評価に使用 | バッチ全体60秒の保証ではない。図数に応じて待機が反復する |
+| PlantUML probe | Rust接続／読書きtimeoutは各2秒 | 名前解決を含む総時間の期限ではない |
+| PicoWeb起動 | STARTUP_TIMEOUT=30秒、probe再試行50ms | stderrのblocking readを中断する時計ではない |
+| PlantUML render | Rust接続／読書きtimeoutは各120秒 | Lua/curlはconnect 2秒、全体120秒で別条件 |
+| Mermaidバッチ | 全ソースと全結果をメモリに保持 | ストリーム処理ではない。大きい図・多数図の上限は未定義 |
+| Java stderr | threadがread_to_endでVecへ蓄積 | コメントの「捨て続ける」と異なり、バッファを保持する |
+
+根拠：[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)。性能目標・最大規模は [U-0005](07-issues-unknowns.qmd#u-0005) で不明としている。
+
+**確認済み（静的）**：browserでは通常の処理後に `Browser.close`、起動プロセスkill、一時フォルダcloseを試すが、cleanup失敗は無視する。PicoWebは通常のDropでkill/wait、Windowsは `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` を使う。すべての強制終了や初期化失敗で子が消えるという保証には広げない。[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0011](appendix-evidence.qmd#ev-e-0011)
+
+## 入力と外部接続の前提
+
+**確認済み（静的）**：通常のプロセス呼出しは引数列で渡し、Luaからの起動も `pandoc.pipe` を使う。Windowsのnpmだけは `cmd /C npm` を経由する。ブラウザには専用profileと `--no-sandbox` を指定する。PlantUMLの既定bindはloopbackであるが、serveの `--bind` は変更可能で、ddq側に認証やTLSを追加する処理はない。[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0013](appendix-evidence.qmd#ev-e-0013)
+
+**推定（運用条件）**：外部サーバを指定すると原稿の図ソースと共通設定がそのサーバへ送られる。接続先変更は描画結果だけでなくデータの送信先を変える。また、SVGコメントにはサーバURLが残る。外部入力の安全性を検証する汎用実行基盤として扱うことは、この実装からは保証できない。通信境界を変更する際は、認証・送信範囲・SVGの扱いを併せて評価する。[E-0010](appendix-evidence.qmd#ev-e-0010)、[E-0012](appendix-evidence.qmd#ev-e-0012)

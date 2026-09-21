@@ -1,0 +1,71 @@
+# データとインタフェース {#sec-data-interfaces}
+
+## 執筆フォルダに置かれるデータ
+
+以下の生成側・参照側・上書き規則は静的確認済み。通常のテキスト読込みは `read_to_string` によりUTF-8を要求する。機構の照合では改行を正規化しない。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0006](appendix-evidence.qmd#ev-e-0006)
+
+| データ | 生成側 → 参照側 | 保存・互換性の契約 |
+|---|---|---|
+| `_quarto.yml`、`index.qmd`、`chapters/` | init/addの雛形 → 執筆者／Quarto | 既存ファイルは保持。updateの上書き対象外 |
+| 機構5本 | update → setup照合／Quarto・Lua | `design-doc.lua`、`design-doc.css`、`postprocess-html.js`、`mermaid-config.json`、`plantuml-config.puml` を常に上書き |
+| `.template-version` | update → setup照合／LuaのSVGコメント | 埋込み版と末尾LF。照合はtrim後の文字列 |
+| PDF側4本 | setup → Quarto publish／Typst | `lib.typ`、`typst-template.typ`、`typst-show.typ`、`_quarto-publish.yml` を上書き |
+| 静的図 | 執筆者の `.mmd/.puml` → diagrams → `.svg` | 同名SVGを上書き。失敗時の既存SVGは削除しない |
+| フェンス図キャッシュ | Lua → `diagrams/mmd-*`、`puml-*` → Lua／Quarto | ソースとSVGを保存。下記の内容キーで再利用 |
+| `_book/`、`design-doc.pdf` | Quarto → pdfのコピー／release | PDFは `_book` 直下に一件。HTMLとPDFは同じ出力領域を利用 |
+
+実際の文書リポジトリでは機構ファイルとPDF成果物の版管理方針を `template/scaffold/repo/gitignore` が定める。一方、このテンプレートリポジトリ自身は原本との重複を避けるため配置済み機構をルート `.gitignore` で除外する。両者を混同しない。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0015](appendix-evidence.qmd#ev-e-0015)
+
+## 外部プロセスと通信の両端
+
+各行は静的確認済み。外部処理自体の全互換性を保証するものではない。
+
+| ID | 送信／呼出元 → 受信／実行先 | 入力と結果 | 失敗の扱い |
+|---|---|---|---|
+| IF-01 | `quarto::render` → Quarto | `render`引数、CWD、環境変数。stdout/stderrは継承 | 子の非成功をanyhowへ変換 |
+| IF-02 | Lua `render_mermaid` → `ddq mermaid` | `pandoc.pipe`で入力・出力パス、JSON設定、背景色 | プロセス成功とSVG存在の両方が必要 |
+| IF-03 | `browser::Cdp` → Edge/Chrome | ローカルWebSocket上のJSON、図ソース→JSON中のSVG | 通信／ページ例外はバッチ全体のエラー、図構文エラーは図単位 |
+| IF-04 | Rust `plantuml`／Lua → PlantUML | HTTP GET `/serverinfo`、POST `/render`。UTF-8 JSON→SVG | HTTP状態・エラーヘッダ・本文を確認 |
+| IF-05 | `release` → npm／Quarto Typst／ZIP | VSIXビルド、案内PDFコンパイル、ファイル群の圧縮 | 各段階で停止。全体の巻戻しなし |
+
+根拠：[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0014](appendix-evidence.qmd#ev-e-0014)。
+
+**確認済み（静的）**：IF-03では一時HTMLと専用profileを作り、`--remote-debugging-port=0` の実ポートを `DevToolsActivePort` から読む。targetを作成・attachし、Page loadを待って `Runtime.evaluate` に図ソースをJSON文字列として渡す。生成ページは `mermaid.render('my-svg', ...)`、背景色設定、`XMLSerializer` の順でSVGを返す。設定内の `</` はscriptタグを閉じないようエスケープする。[E-0009](appendix-evidence.qmd#ev-e-0009)
+
+**確認済み（静的）**：IF-04のPOST本文は次の構造である。`source` は共通設定を連結した文字列で、`options` は固定の配列となる。[E-0010](appendix-evidence.qmd#ev-e-0010)、[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+```json
+{"source":"@startuml\n...\n@enduml\n","options":["-tsvg","-charset","UTF-8"]}
+```
+
+**確認済み（静的）**：Rust側は `TcpStream` によるHTTP/1.1、`Connection: close` を使い、1xxヘッダとchunked本文を解釈する。URLは `http://host[:port]` の形で、HTTPSやパス付きURLを受け付けない。Lua側はPATH上のcurlを `pandoc.pipe` で呼ぶ。両経路とも HTTP 200 でも `X-PlantUML-Diagram-Error` があれば失敗し、本文の簡易確認は空白除去後の先頭が `<` かどうかにとどまる。XMLとしてのSVG妥当性までは検証しない。[E-0010](appendix-evidence.qmd#ev-e-0010)、[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+## 設定の優先順位と適用時点
+
+以下は各コマンド実行時の静的確認済みの探索規則。全変数はプロセス環境で受け取り、永続的な設定保存機構はない。
+
+| 設定 | 優先順位／用途 |
+|---|---|
+| 執筆フォルダ | CLI明示値 → CWD基準の `docs`。`_quarto.yml` の存在を確認 |
+| `DDQ_BIN` | Quarto起動時に `current_exe` で上書き。Luaはこの値 → PATHの `ddq` |
+| `DDQ_MERMAID_ENGINE` | `browser`／`merman` を明示。未設定時のみ自動選択 |
+| `EXECUTABLE_BROWSER` | 明示パス → Windows App Paths → Windows既知パス。非Windowsの自動探索は明示パスのみ |
+| `DDQ_JAVA` | 明示値 → `JAVA_HOME/bin/java` → PATH → Windows JavaSoftレジストリ → 既知パス |
+| `DDQ_PLANTUML_JAR` | 明示値 → ddq実行ファイル隣の `plantuml.jar` → `PLANTUML_JAR` |
+| PlantUMLサーバ | Rustは `DDQ_PLANTUML_SERVER` → `PLANTUML_SERVER` → `_quarto.yml` の最初の有効設定を一つ選ぶ。そのprobe失敗後は既定ローカルへ |
+| `MERMAID_SVG` | HTML発行で `1` を設定。LuaはTypst出力またはこの値でSVG化 |
+| Luaの文書ルート | `DOC_ROOT` → `quarto.project.directory` → `QUARTO_PROJECT_DIR` → `.` |
+
+根拠：[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)。明示されたJava／jar／browserパスは、探索時に一律に存在確認するわけではなく、実行段階で失敗する場合がある。
+
+**確認済み（静的）**：Luaの `puml_candidates` は環境変数2種・YAML・既定サーバを候補として列挙し、順番に到達確認する。Rustの「設定を一つ選ぶ」処理とは、上位の設定が到達不能な場合の挙動が異なる。YAMLの抽出は両側とも行ベースの簡易処理であり、Quartoの全profile／include／YAML構文を評価しない。[E-0010](appendix-evidence.qmd#ev-e-0010)、[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+**確認済み（静的）**：MermaidのJSON設定は明示ファイルまたは埋込み既定を使い、diagramsでは執筆フォルダ内の設定ファイルがあれば優先する。PlantUMLのRust側は共通設定の読込み失敗時に埋込み既定へ戻るが、Lua側は設定が読めなければ空文字列を連結する。通常のpdf/htmlでは先行する機構照合が欠落・改変を検出する。[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0008](appendix-evidence.qmd#ev-e-0008)～[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+## キャッシュとSVGの契約 {#sec-cache-contract}
+
+**確認済み（静的）**：Luaがキャッシュ名を決め、ddq自身はキーを計算しない。Mermaidは図ソースのSHA-1先頭8桁、PlantUMLは改行整形・設定連結後のソースのSHA-1先頭8桁を使う。SVGが存在すれば内容検査や版比較をせず再利用する。Mermaidは設定変更もキーに含まず、両方ともエンジン・ddq・サーバの版を含まない。[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+**確認済み（静的）**：新規生成時のコメントは、Mermaidでは `ddq <版> engine=browser mermaid=<版>` または `engine=merman merman=<版>`、PlantUMLでは `engine=plantuml plantuml=<版または?> server=<URL>` を含む。これは生成経路の記録であり、キャッシュ有効性の検査には使わない。PlantUMLサーバのURLは配布されるSVGにも残る。[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+**推定（変更影響）**：設定・フォント・レンダラの変更では、既存キャッシュのため差が見えない可能性がある。比較時は再生成対象を明示し、静的な手書きSVGとキャッシュを区別する。ハッシュ衝突や古い出力残存の実障害は今回再現していない。[U-0007](07-issues-unknowns.qmd#u-0007)

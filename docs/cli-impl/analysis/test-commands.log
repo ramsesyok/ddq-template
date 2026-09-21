@@ -1,0 +1,28 @@
+warn: could not canonicalize path C:\Users\ramse
+   Compiling ddq v0.0.0 (C:\Users\ramse\Projects\design-doc-quarto-template\cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.99s
+     Running unittests src\main.rs (target\debug\deps\ddq-dea11f4ebc7428b4.exe)
+
+running 10 tests
+test mermaid::browser::tests::file_url_encodes_spaces_and_non_ascii ... ok
+test mermaid::tests::adds_style_when_missing ... ok
+test mermaid::tests::appends_to_existing_style ... ok
+test plantuml::tests::fence_detection ... ok
+test plantuml::tests::response_parsing ... ok
+test plantuml::tests::source_assembly ... ok
+test plantuml::tests::quarto_yml_key ... ok
+test writing_folder::tests::japanese_is_encodable_but_emoji_is_not ... ok
+test plantuml::tests::url_split ... ok
+test mermaid::browser::tests::page_does_not_close_script_early ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\commands.rs (target\debug\deps\commands-0f8bc59f5b2e2f8e.exe)
+
+running 4 tests
+test version_matches_template_version ... ok
+test update_rejects_folder_without_quarto_yml ... ok
+test setup_rejects_different_template_version ... ok
+test init_then_add_then_update_all ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
