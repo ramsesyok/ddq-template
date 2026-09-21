@@ -1,0 +1,35 @@
+# 対象と読み方 {#sec-overview}
+
+## 対象・バージョン・解析範囲
+
+確認済み（静的）：パッケージ名は `ddq-table-editor`、表示名は `DDQ Table Editor`、版は `2.2.1`、publisher は `ramsesyok`。`package.json` が宣言する対応範囲は VSCode `^1.85.0` で、エントリポイントは `out/extension.js` である。テンプレート版も `2.2.1`。版の正本と解析時の実体は [E-0001](appendix-evidence.qmd#ev-e-0001) に示す。
+
+| 範囲 | 扱い | 境界 |
+|---|---|---|
+| `extension/src/` | 解析対象 | 拡張ホスト、文書検出、モデル、変換、React 画面 |
+| manifest・ビルド・テスト・CI | 解析対象 | コマンド登録、生成物、条件付きテスト、配布経路 |
+| `template/design-doc.lua` | 関連部分を解析 | `.tbl`、幅指定、`merge-cols` の消費側 |
+| `extension/requirements.md`・README・sample | 照合資料 | 意図・用例と実装の差を確認 |
+| VSCode 本体・React 等の内部実装 | 対象外 | API 呼出境界と解決依存版まで |
+| DB・常駐サーバ・独自バイナリ形式 | 非該当 | 当拡張に該当する実装を持たない |
+| 実 VSCode での操作・VSIX インストール | 未確認 | Node テストで代替できない UI・ホスト依存動作 |
+
+## 役割と読み始める場所
+
+確認済み（静的）：`ddqTableEditor.open` がアクティブ文書とカーソル位置を受け取り、隣の Webview に表を開く。Webview 内の編集内容は Apply まで文書へ反映しない。Apply は VSCode の文書バッファを編集する処理で、ディスク保存を呼び出さない。セルの Markdown 本文は文字列として編集し、プレビューも生成 Markdown のソース表示である。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0005](appendix-evidence.qmd#ev-e-0005)
+
+| 調べる事項 | 最初に読むコード | 関連章 |
+|---|---|---|
+| 起動、競合拒否、文書への反映 | `extension/src/extension.ts` の `openTableEditor` / `applyToDocument` | 第2・3章 |
+| どの表を編集するか | `markdown-document/findEditTarget.ts` の `findEditTarget` | 第3章 |
+| 結合・行列操作・Undo | `model/TableModel.ts`、`webview/TableEditor.tsx` | 第3・4章 |
+| pipe / grid / merge-cols の選択 | `formats/tbl/serializeTblBlock.ts` の `serializeTableBody` | 第4章 |
+| ビルド・配布と改修時の検証 | `extension/package.json`、`.github/workflows/extension.yml` | 第5・6章 |
+
+上表の省略パスは `extension/src/` 起点である。本書は全関数の一覧ではなく、これらの境界をまたぐ契約を扱う。
+
+## 記載方針と調査の限界
+
+現行動作はコードを根拠に記載し、要求資料との不一致を隠さない。たとえば「結合なしなら pipe」という説明には、実際には「セル内改行なし・ヘッダ1行」の条件がある。再現された制約と未調査事項は [第7章](07-issues-unknowns.qmd#sec-issues-unknowns) に集約する。
+
+確認済み（実行）：Windows / Node 24.18.0 / Pandoc 3.8.3 で型チェック、168件のテスト、ビルド、オフライン検査を実行した。これは CI の全 OS・Node 構成や、VSCode GUI の動作確認を意味しない。[E-0018](appendix-evidence.qmd#ev-e-0018)

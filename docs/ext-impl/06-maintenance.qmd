@@ -1,0 +1,42 @@
+# 変更時の注意点 {#sec-maintenance}
+
+## 守るべき境界
+
+確認済み（静的）：文書への反映はホストに集約される。改修では `TextDocument.version` の拒否条件、警告後の再確認、Apply 後の対象再検出を一続きで維持する。行数が増減した後に古い範囲を使うと別の本文を置換し得るため、モデルの `version` を文書版の代わりに使用してはならない。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0004](appendix-evidence.qmd#ev-e-0004)
+
+分割表は div 属性を共有するため、パート編集時に fence を再生成しない。外側 `.landscape`、他パート、パート間の空行を保持する。属性を編集可能にする変更は、置換範囲だけでなく全パートの列数・幅・結合をどう扱うかまで決める必要がある。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0004](appendix-evidence.qmd#ev-e-0004)
+
+モデルは新しいオブジェクトを返す方式で履歴を保持する。過去モデルを直接書き換える変更は Undo を壊す。正規化による ID の再採番、hidden の再計算、履歴と別の選択状態も維持する。[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0008](appendix-evidence.qmd#ev-e-0008)
+
+## 変更影響と検証先
+
+以下は推奨する改修時の検証である。今回実行した検証とは [第5章](05-build-environment.qmd#sec-build-environment) で区別する。
+
+| 変更対象 | 直接・間接の影響先 | 優先して確認する箇所 |
+|---|---|---|
+| fence / パート検出 | `findEditTarget` → `buildReplacement` → 文書の置換範囲 | `findEditTarget.test.ts`、`applyTable.test.ts`、`integration.test.ts`、`lineEndings.test.ts`、コード内記法例 |
+| TableModel / 正規化 | 全パーサ、UI、結合、履歴、Apply | 両 tsconfig、行列操作と選択・結合の往復 |
+| セル編集・フォーカス | GridView → モデル確定 → Undo / Apply / clipboard | `cellTextEditing.test.ts`、実 IME、blur 直後の Apply |
+| 本文変換・表示幅 | pipe/grid → Pandoc AST → HTML/PDF | `gridTable.test.ts`、`pandoc.test.ts`、日本語・コード span・リスト・末尾 `\` |
+| `merge-cols` | 再現判定・出力・再読込 → Lua 全パート処理 | `mergeCols.test.ts`、`outputFormat.test.ts`、同じ入力で Lua 結果を比較 |
+| 列幅・属性 | プレビュー → Apply 検証 → div → Lua | `columnWidths.test.ts`、`tblAttributes.test.ts`、分割表の属性保持 |
+| TSV / 選択 | 全体置換または部分貼付 → 結合・表サイズ・履歴 | `tsvClipboard.test.ts`、`selection.test.ts`、空白と引用符 |
+| assets / 依存更新 | Vite/esbuild → buildHtml/CSP → VSIX | build、check:offline、VSIX 内の固定名、実 Webview 起動 |
+
+表内のテスト名は `extension/src/` 配下の該当ディレクトリを指す。現行テストの守備範囲は [E-0017](appendix-evidence.qmd#ev-e-0017)、呼出関係は [E-0002](appendix-evidence.qmd#ev-e-0002)〜[E-0016](appendix-evidence.qmd#ev-e-0016) による。
+
+特に grid の出力だけを変更してはならない。空行補完と読込時の折畳み、表示幅と境界座標、縦結合の行高と本文復元は対になっている。テンプレート側の Pandoc 解釈まで確かめる必要がある。`merge-cols` は TypeScript と Lua にアルゴリズムを持つため、片方だけを改修すると再現判定が実際の描画とずれる。[E-0011](appendix-evidence.qmd#ev-e-0011)〜[E-0013](appendix-evidence.qmd#ev-e-0013)
+
+## 性能と資源の条件
+
+確認済み（静的）：履歴の過去状態は100件だが、表の行数・列数・文字数の明示的な上限はない。多くの操作がモデルを複製し、画面は全行の HTML table を描画する。grid シリアライザの `coveringCell` は被覆セルを後方探索し、大きな結合では探索が長くなる。`canUseMergeCols` は対象5列以下で順列候補も調べる。[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0008](appendix-evidence.qmd#ev-e-0008)、[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+`perf.test.ts` は500行×10列の grid 読書き、300行×10列を1セルへ結合した出力に各2秒未満等の条件を置く。今回これらを含むテストは成功したが、個別の精密計測、反復統計、GUI の応答時間、メモリ最大量は測定していない。推定として、表サイズと履歴が増えるとメモリ負荷も増えるため、大規模化の改修ではモデル・プレビュー・描画を分けて測る。[E-0017](appendix-evidence.qmd#ev-e-0017)、[E-0018](appendix-evidence.qmd#ev-e-0018)
+
+## Webview と配布物の保護
+
+確認済み（静的）：`buildHtml` は16バイト乱数から nonce を作り、`default-src 'none'`、nonce 付きスクリプト、拡張ローカルの style/image を指定する。`localResourceRoots` は `out/webview`、資産 URI は `asWebviewUri` で変換する。`connect-src` の許可を追加せず、既定の通信拒否を利用する。[E-0002](appendix-evidence.qmd#ev-e-0002)
+
+セル本文とプレビューは React の文字列として表示され、任意 HTML をそのまま DOM へ挿入する処理ではない。一方、メッセージの TypeScript 型は実行時の構造検査ではなく、ホストの正規化も完全な入力スキーマ検証ではない。送信元や payload を増やす変更時は、既存の内部 Webview という信頼境界を再評価する。[E-0005](appendix-evidence.qmd#ev-e-0005)、[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0007](appendix-evidence.qmd#ev-e-0007)
+
+`check-offline.mjs` は生成 JS/CSS の通信 API、未許可 URL、動的 import、CSS import 等をパターン検査し、CSP も検査する。XML 名前空間と React のエラー解説 URL は例外扱いである。これを無効化してビルドを通すのではなく、新依存が含む文字列と実行動作を確認する。静的パターン検査の成功だけで全通信経路の不存在を実測したことにはならない。[E-0016](appendix-evidence.qmd#ev-e-0016)

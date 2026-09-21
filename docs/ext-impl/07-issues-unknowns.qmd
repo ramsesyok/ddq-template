@@ -1,0 +1,57 @@
+# 既知の問題と未解明事項 {#sec-issues-unknowns}
+
+## 確認された境界事例
+
+以下は対象版で確認した挙動であり、修正済みとはしていない。純粋関数の再現コードは `analysis/probe.cjs`、結果は `analysis/probe-results.json` に保存した。[E-0019](appendix-evidence.qmd#ev-e-0019)
+
+| ID | 確認済みの事実 | 影響と次の確認 |
+|---|---|---|
+| I-01 | 改行を含む縦結合を merge-cols で出力し再読込すると、grid 入力には展開処理が掛からず、未結合の `gridTable` モデルになる | 再編集画面が描画時の結合を再現しない。単一表の次回 Apply では merge-cols 属性を出さなくなる経路。ホストを含む連続 Apply でも確認する |
+| I-02 | pipe 内のコード span にある `<br>` は `cellTextFromMarkdown` で LF に変換される | grid 読込にあるコード span 保護が pipe にはない。記法を説明するセルの内容が変わる |
+| I-03 | `parseWidths('-20,80', 2)` は `[20,80]` を返す | 読込は数字と小数点の抽出なので符号を落とす。UI の負幅拒否と同じ検証ではない |
+| I-04 | Markdown コードブロック内の未終了 `.tbl` 開始例が、別の本文位置での `findEditTarget` も失敗させる | fence 走査がコードブロックを区別しない。記法例を含む文書では開けない場合がある |
+
+I-01 は `findEditTarget.ts` が `outputFormat === 'pipeTable'` の場合だけ `expandMergeCols` を呼ぶこと、I-02 は pipe と grid の別々の本文変換経路に対応する。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0011](appendix-evidence.qmd#ev-e-0011)
+
+## 実装の差と影響評価
+
+確認済み（静的）：要求資料やコメントの説明を、そのまま一般的な動作保証として使用できない箇所がある。
+
+| 箇所 | 実装事実 | 評価 |
+|---|---|---|
+| 分割表の形式 | 非結合・改行なし・ヘッダ1行では pipe を出力 | 「分割表は grid 固定」という説明とは異なる。残した div の merge-cols が再結合する可能性は推定で、解除操作から Lua 描画まで要確認 |
+| 分割表の幅 | 属性パネルは無効化するが GridView の幅入力は無効化しない。Apply は div を置換しない | 入力した幅は共通 widths に保存されない。実機 UI で表示・検証・反映のずれを確認する |
+| merge-cols の本文比較 | 拡張は生文字列、Lua は Pandoc stringify | 強調・リンク・コード等を含む場合に判定がずれる可能性。全ケースの同値性は未確認 |
+| merge-cols の不正値 | 拡張は空・数字なしを全列扱い、大小文字を無視して all 判定。Lua の Div は非空値のみを扱い、不正値は警告し結合しない | 手書きの不正値・空値に対する読込表示と描画の差に注意 |
+| 旧 `.merge-rows` | README では非対応。`.tbl` 内では当該クラスを見て pipe の結合展開へ進むコードが残る | 旧記法全体の互換対応と解釈しない |
+| UI の形式案内 | 結合なし・改行なしでは pipe と表示するが、シリアライザはヘッダ数も判断する | ヘッダ0行・複数行では実出力が grid になる |
+
+根拠：[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0005](appendix-evidence.qmd#ev-e-0005)、[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0012](appendix-evidence.qmd#ev-e-0012)、[E-0013](appendix-evidence.qmd#ev-e-0013)。上表の可能性は未観測の障害を断定するものではない。
+
+## 未確認事項と追加調査
+
+### U-0001：実ホストの状態遷移 {#u-0001 .unnumbered}
+
+未確認：VSCode の IME、フォーカス移動直後の Apply、多重 Apply、警告モーダル中の別表起動、パネル再表示。静的には単一グローバル Session と非同期処理があり、セッション ID の照合や処理中ロックがない。`sample/tables.qmd` を Extension Development Host で開き、文書版と Session の変化を記録して確認する。推定される競合影響と、通常の版不一致拒否は分けて評価する。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0017](appendix-evidence.qmd#ev-e-0017)
+
+### U-0002：保存と改行 {#u-0002 .unnumbered}
+
+未確認：CRLF 文書への実 WorkspaceEdit と保存後の改行・BOM の保持。`lineEndings.test.ts` は文字列の読込と置換を検証するが、VSCode の保存は実行しない。CRLF・LF の文書、末尾改行あり／なし、新規挿入・連続 Apply を実ファイルで比較する。[E-0004](appendix-evidence.qmd#ev-e-0004)
+
+### U-0003：テンプレートとの往復 {#u-0003 .unnumbered}
+
+未確認：装飾 Markdown の比較、既存 merge-cols が残る分割表での結合解除、属性の変則的な綴り、ヘッダ境界を跨ぐ結合の全組合せ。拡張出力 → Pandoc + 現行 Lua → 再読込の同一ケースを比較する。既存の Pandoc テスト成功は、全入力の往復保持を示すものではない。[E-0011](appendix-evidence.qmd#ev-e-0011)〜[E-0013](appendix-evidence.qmd#ev-e-0013)
+
+### U-0004：大規模入力と Unicode {#u-0004 .unnumbered}
+
+不明：実用上の最大表サイズ、メモリ上限、全 Unicode の表示桁整合。限定的な perf テストに加え、大規模結合・長文・履歴100件・絵文字の複合列を用い、変換と UI 描画を別々に測定する。[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0017](appendix-evidence.qmd#ev-e-0017)
+
+### U-0005：配布・互換環境 {#u-0005 .unnumbered}
+
+未確認：VSIX の実収録物とオフラインインストール、VSCode 最小対応版での実行、CI 全構成の再実行、npm audit。特に解決済み `@types/vscode` は最小対応版より新しく、型チェックだけでは最小版との互換性を確定できない。配布前に版照合・VSIX 内資産・バンドル依存を含めて検証する。[E-0015](appendix-evidence.qmd#ev-e-0015)〜[E-0018](appendix-evidence.qmd#ev-e-0018)
+
+### U-0006：文書の表示確認 {#u-0006 .unnumbered}
+
+未確認：生成 HTML のブラウザ上での目視確認。HTML 生成、ローカルリンク、章アンカー、SVG 構造の検査は行うが、文字の重なりや表の横幅など視覚的な品質は別途確認する。結果は `analysis/validation.md` と `analysis/output-audit.json` に残す。
+
+改修に進む場合は、再現済みの本文変化・結合の往復差を先に扱い、続いて実ホストの競合と分割表を確認する。性能拡張や対応環境の拡大は、対象入力と環境を決めてから評価する。

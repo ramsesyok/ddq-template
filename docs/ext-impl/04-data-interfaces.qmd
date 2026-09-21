@@ -1,0 +1,79 @@
+# データとインタフェース {#sec-data-interfaces}
+
+## 中間モデルと識別子
+
+確認済み（静的）：`model/TableModel.ts` がホストと Webview 共通の契約である。セルは結合後も行列内に存在し、吸収された位置を `hidden` で区別する。可視の左上セルが本文と span を持つ。[E-0007](appendix-evidence.qmd#ev-e-0007)
+
+| データ | 意味・単位 | 保守上の条件 |
+|---|---|---|
+| `rows` / `columns` | 行列配列。座標は0始まり | 正規化が最大行長・列数・1の最大値へ列数を揃える |
+| セル `id` / `row` / `col` | 座標から `r0c0` 等へ再設定 | 行列操作をまたぐ永続 ID ではない |
+| `rowspan` / `colspan` / `hidden` | 結合領域と被覆位置 | span を整数化し表内へ制限、hidden を再計算 |
+| `text` | Markdown 本文の文字列、改行 LF | UI で Markdown をレンダリングしない |
+| `headerRows` | 先頭からのヘッダ行数 | 正規化後は0〜行数の整数 |
+| 列 `align` / `width` | left / center / right、数値または未指定 | width 属性とソース罫線幅は別の概念 |
+| 表 `id` / `version` | 生成時の識別情報・版値 | 競合検出は別の `TextDocument.version` を使用 |
+| `attributes` / `outputFormat` | div 属性と出力希望形式 | シリアライザが表の条件を見て実形式を決める |
+
+`normalizeTableModel` は列を最低1個にするが、行が空なら行を自動追加しない。空表は後段の検証で拒否する。重なる結合は走査順で先の結合を優先して後の span を縮める。これはモデル整形であり、任意 JSON を安全に受け付けるスキーマ検証ではない。[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0010](appendix-evidence.qmd#ev-e-0010)
+
+## ホストと Webview の通信
+
+確認済み（静的）：`WebviewMessages.ts` の discriminated union に従い、ホストの `postMessage` と Webview の `acquireVsCodeApi().postMessage` を使用する。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0005](appendix-evidence.qmd#ev-e-0005)
+
+| 方向・type | payload | 受信後の処理 |
+|---|---|---|
+| Webview → host：`ready` | なし | Session のモデルと context を返す |
+| Webview → host：`apply` | `model` | 検証して文書へ反映 |
+| Webview → host：`close` | なし | パネルと Session を破棄 |
+| host → Webview：`init` | `model`、`context` | 履歴を初期化、警告表示 |
+| host → Webview：`applied` | なし | 反映完了メッセージ |
+| host → Webview：`error` | `message` | エラーメッセージ |
+
+`context` は対象種別、パート数と0始まりの番号、属性編集可否、外側 div のクラス、警告配列を持つ。プロトコル版、要求 ID、タイムアウト、再送制御はない。`close` は型とホスト受信処理に存在するが、現行画面にはそれを送るボタンはない。`getState` / `setState` は API 型に定義されるだけで呼び出されない。
+
+## Markdown の読込・出力契約 {#sec-format-contract}
+
+確認済み（静的）：出力判断の正本は `serializeTableBody`。`outputFormat` の値だけでは出力記法を決定しない。[E-0009](appendix-evidence.qmd#ev-e-0009)
+
+| 優先 | 条件 | 本体の出力 |
+|---|---|---|
+| 1 | 結合なし、セル内 LF なし、ヘッダ1行 | pipe |
+| 2 | `outputFormat=mergeCols` かつ再現判定成功 | 結合を同一本文の複数行へ展開。LF ありなら素の grid、なければ pipe |
+| 3 | その他 | 結合を罫線で表す grid |
+
+単一 `.tbl` の生成時は、再現可能な場合だけ `merge-cols` 属性を付ける。複数パートでは再現判定が常に不可となるが、優先1の pipe 出力は可能であり「分割表は必ず grid」ではない。既存分割表の div 属性は書き換えない点にも注意する。[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+### pipe と grid
+
+pipe パーサは `|` 始まりの行を収集し、2行目が区切り行であることを要求する。ヘッダと区切り行の大きい方の列数に揃え、不足セルは空、本文行の余分なセルは採用しない。ヘッダは必ず1行で、`\|` を本文へ戻し、`<br>` を LF にする。コード span 内の変換制限は [第7章](07-issues-unknowns.qmd#sec-issues-unknowns) を参照する。[E-0011](appendix-evidence.qmd#ev-e-0011)
+
+grid パーサは、全罫線の `+` の表示桁を集めて列境界を作る。内容行で内部境界の `|` が欠ける部分が横結合、行間の罫線区間が空白の部分が縦結合である。最初の `=` を含む区切りまでをヘッダとし、その線のコロンから揃えを読む。ヘッダなしでは最上段の罫線を用いる。[E-0011](appendix-evidence.qmd#ev-e-0011)
+
+出力では最低3桁の内容幅を基礎に、本文の表示幅で列を広げ、横結合の不足幅を構成列へ配分する。縦結合の本文は被覆行へ上詰めで流し、行高が足りなければ最後の行を伸ばす。表示幅計算は CJK 等を2、U+0300〜U+036F の結合文字と NUL を0、それ以外を原則1とする独自実装で、Unicode 全域の書記素幅を保証しない。[E-0011](appendix-evidence.qmd#ev-e-0011)
+
+### セル内改行とリスト
+
+`gridCellLines` は末尾空白・末尾バックスラッシュを整理し、本文中の `|` をエスケープする。段落からリストへ移る位置に空行を補い、空行なしで続く項目本文を字下げする。普通の行間にはハード改行用 `\` を付け、リスト項目の前と空行の前後には付けない。[E-0011](appendix-evidence.qmd#ev-e-0011)
+
+読込ではセル共通の字下げと上下の充填用空行を除き、内部の相対的な字下げを残す。`gridCellTextFromLines` はコード span を保護しながら `<br>` と行末 `\` を改行へ、ソフト改行を空白へ変換する。出力側が補うリスト前の空行は読み戻しで畳む。物理行・空白・末尾のリテラル `\` を元の綴りどおり保存する変換ではない。
+
+### merge-cols の再現判定
+
+確認済み（静的）：対象は本体の縦結合であり、複数パート、ヘッダ1行以外、本体なし、横結合、ヘッダから跨る縦結合、空本文の結合を拒否する。結合を展開した本文配列と実際の span 配列を作り、シミュレーション結果が同じか比較する。[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+候補は結合を持つ列の左からの並び、全列が対象なら `all`、対象5列以下なら順列も追加する。属性は1始まりの列番号で、指定順が `prevcol` の関係を決める。ただし評価は各行の列を左から1回だけ走査し、前行と同じ非空本文かつ階層上位が当該行で吸収済みのときだけ結合する。指定順を逆転しても右側列は未評価であり、自由な階層再配置にはならない。
+
+消費側の Lua は各パートの本体に処理を適用し、既に span を持つ表や不揃いな行を `is_plain_grid` で除外する。Lua は Pandoc AST の `stringify` 結果、拡張はモデルの生文字列を比較するため、Markdown 装飾を含む場合の一致判定には差がある。[E-0013](appendix-evidence.qmd#ev-e-0013)
+
+## 属性・列幅とクリップボード
+
+確認済み（静的）：`caption`、`label`、`.unnumbered` をモデル属性とし、`widths` を列情報、`merge-cols` を結合処理へ分離する。label は先頭 `#` を外し、Apply では `tbl-` 始まりを要求する。`.unnumbered` の出力時は label を省略する。未知の key/value 属性は順序付き配列に保持し、追加クラスは出力可能な英数字・下線・ハイフンに制限する。属性値の改行・タブは空白化し、バックスラッシュと引用符をエスケープする。[E-0009](appendix-evidence.qmd#ev-e-0009)
+
+列幅の検査は有限数のみを指定値とし、負値、合計100超過、全列指定時の合計0以下を拒否する。空欄が1列だけで他列の指定があり残り幅が正なら、Apply／プレビュー直前に `100 − 合計` を補完する。合計は小数3桁に丸め、超過判定には `1e-9` の許容差を使う。全列自動幅も許可するが、補完後も一部の列だけが指定済みなら拒否する。Lua は幅を相対比へ正規化するため、UI の100上限は拡張側の制約である。[E-0010](appendix-evidence.qmd#ev-e-0010)、[E-0013](appendix-evidence.qmd#ev-e-0013)
+
+TSV は `text/plain` のみを扱い、タブ・LF・引用符を含むセルを引用し、内部引用符を二重化する。コピー時の hidden セルは空文字。選択ありの貼付は左上起点で、1値なら選択範囲を埋め、表外へは行列を増やす。選択なしはタブを含む入力だけで全体を置換し、属性は引き継ぐが列幅・揃え・結合は引き継がない。どちらの貼付もセル前後を `trim` する。入力欄や編集中セルのコピー／貼付はブラウザの処理に任せる。[E-0014](appendix-evidence.qmd#ev-e-0014)
+
+## 永続化の境界
+
+確認済み（静的）：永続化対象は利用者の `.qmd` / `.md` 本文であり、独自 DB や編集セッションファイルはない。読込時は CRLF・CR・LF を `splitLines` で統一し、置換文字列は LF で組み立てる。VSCode による実際の改行変換や保存文字コードは、純粋関数のテストだけでは確定しない。[E-0004](appendix-evidence.qmd#ev-e-0004)、[U-0002](07-issues-unknowns.qmd#u-0002)

@@ -1,0 +1,11 @@
+# 本書について {.unnumbered}
+
+本書は、`extension/` に実装された **DDQ Table Editor** のソフトウェア実装仕様書である。VSCode で Markdown の表を読み込み、セル・結合・属性を編集し、`.tbl` ブロックへ書き戻す処理について、実装構造、データ契約、変更影響を説明する。
+
+対象は **2.2.1**、基準コミットは `b79bfed4e81f7942bcfc1c5ba19aa1a69df310e5`、解析日は **2026-09-21**。
+
+改修箇所を探す場合は [全体構造](02-architecture.qmd#sec-architecture) と [変更時の注意点](06-maintenance.qmd#sec-maintenance) から読む。書き戻しの範囲と失敗時の状態は [主要機能と処理の流れ](03-behavior.qmd#sec-behavior)、記法の変換条件は [データとインタフェース](04-data-interfaces.qmd#sec-data-interfaces) にまとめた。
+
+実装から確認した事実を「確認済み（静的）」、実行して観測した結果を「確認済み（実行）」と記す。推定される影響と未確認の動作は区別する。本文の E-ID から [解析根拠](appendix-evidence.qmd#sec-evidence) を参照できる。
+
+調査メモ、対象ソースのハッシュ、実行記録は `analysis/`、再生成手順は `README.md` に保存している。

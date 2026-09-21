@@ -1,0 +1,74 @@
+# ビルド・実行環境と依存関係 {#sec-build-environment}
+
+## ビルドと起動の再現方法
+
+確認済み（静的）：作業ディレクトリは `extension/`。依存を lockfile から用意し、ホストと Webview をビルドする。以下は再現手順であり、今回実行した範囲は本章末尾に示す。[E-0015](appendix-evidence.qmd#ev-e-0015)
+
+```powershell
+Set-Location extension
+npm ci
+npm run typecheck
+npm test
+npm run build
+npm run check:offline
+npm run check:audit
+```
+
+`npm run verify` は型チェック → テスト → ビルド → オフライン検査 → 本番依存監査を順に行う。`npm ci` と `npm audit` は取得先やキャッシュに依存し、配布拡張の「実行時オフライン」とは異なる条件である。
+
+| 生成物 | 生成元 | 実行・参照先 |
+|---|---|---|
+| `out/extension.js` | `esbuild.mjs` | VSCode 拡張ホスト |
+| `out/webview/assets/main.js` | Vite、`main.tsx` | ホストが生成する Webview HTML |
+| `out/webview/assets/main.css` | Vite、CSS import | 同じ Webview HTML |
+| `ddq-table-editor-<版>.vsix` | `npm run package` | VSCode へのインストール、リリース一式への同梱 |
+
+`npm run package` は再ビルド後に `vsce package` を実行する。`.vscodeignore` はソース、node_modules、テスト、サンプル、スクリプト、map 等を除外する。JS/CSS の固定名は `buildHtml` と Vite 設定の共通契約である。[E-0015](appendix-evidence.qmd#ev-e-0015)
+
+デバッグは VSCode で `extension/` 自体を開き、`Run Extension` を実行する。設定上は `npm: build` の後、`sample/` を開く Extension Development Host を起動する。監視ビルドは `watch:ext` / `watch:webview`、起動前ビルドを省く構成もある。実際の F5 起動は今回未確認。[E-0017](appendix-evidence.qmd#ev-e-0017)
+
+## 設定と検証構成
+
+確認済み（静的）：利用者向け `contributes.configuration` は宣言されていない。出力希望形式や属性は編集モデルが保持し、実行環境変数で表の振る舞いを切り替える構成はない。開発・テスト用の設定は以下のとおり。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0015](appendix-evidence.qmd#ev-e-0015)、[E-0017](appendix-evidence.qmd#ev-e-0017)
+
+| 設定 | 読む場所・条件 | 効果 |
+|---|---|---|
+| `PANDOC` | `pandoc.test.ts` の起動時 | 明示時はその実行ファイルだけを探す。未指定時は PATH と Windows の Quarto 同梱候補 |
+| `REQUIRE_PANDOC` | 同テスト起動時、非空なら有効 | Pandoc 不在を失敗にする。未指定なら当該 suite をスキップ |
+| `NODE_ENV` | `vite.config.mts` 読込時 | 値が `production` のとき minify、その他では source map。バンドル中の React 向け定義は常に production |
+| tsconfig 2種 | 型チェック | ホストは CommonJS/ES2020、Webview は ESNext・DOM・react-jsx |
+| `vitest.config.mts` | テスト起動時 | Node 環境、`src/**/*.test.ts`、Webview は除外 |
+
+CI は Ubuntu / Windows × Node 20 / 22 の4構成で型チェック・テスト・ビルド・オフライン検査を行う定義である。Linux は Pandoc を導入し `REQUIRE_PANDOC=1` とする。別ジョブで監査し、成功後にテンプレート版と拡張版を照合して VSIX を生成する。これは定義の確認であり、現在の GitHub Actions の成功状況を取得したものではない。[E-0017](appendix-evidence.qmd#ev-e-0017)
+
+## 主要な依存
+
+確認済み（静的）：`package-lock.json` は lockfileVersion 3。以下の解決版は調査時の node_modules の版とも一致した。直接依存の要求範囲・解決版・実体版・manifest のライセンス表記は `analysis/dependencies.json` に保存した。[E-0015](appendix-evidence.qmd#ev-e-0015)
+
+| 依存 | 要求範囲 → 解決版 | 使用境界・更新時の確認 |
+|---|---|---|
+| React / ReactDOM | `^18.2.0` → `18.3.1` | Webview にバンドル。textarea、IME、状態更新順序 |
+| TypeScript | `^5.3.0` → `5.9.3` | 型チェック、ホストと DOM の両設定 |
+| Vite / plugin-react | `^8.2.1` → `8.2.1` / `^6.0.5` → `6.0.5` | Webview IIFE、固定 asset 名、CSP 下の動作 |
+| esbuild | `^0.28.2` → `0.28.2` | ホスト CJS、外部 `vscode`、Node 18 ターゲット |
+| Vitest | `^4.1.10` → `4.1.10` | 純粋処理と Pandoc 連携のテスト |
+| `@vscode/vsce` | `^3.9.2` → `3.9.2` | 配布用 VSIX |
+| `@types/vscode` | `^1.85.0` → `1.125.0` | コンパイル時の API 型。最小対応版と同じ版ではない |
+
+依存はすべて `devDependencies` に宣言されるが、React 等は配布 JS に含まれる。`check:audit` の `npm audit --omit=dev --audit-level=low` は、その同梱コード全体を監査した保証にはならない。更新時はバンドル内容を含めて判断する。[E-0015](appendix-evidence.qmd#ev-e-0015)、[E-0016](appendix-evidence.qmd#ev-e-0016)
+
+拡張自身の `extension/LICENSE` は MIT、Copyright は `2026 RamsesYok`。主要な直接依存の manifest は TypeScript が Apache-2.0、表中の他パッケージは MIT を宣言する。推移依存全体のライセンス、改変有無の上流比較、保守期限は未確認である。
+
+## 今回の実行確認
+
+確認済み（実行）：2026-09-21、Windows、Node `24.18.0`、npm `11.16.0`、Quarto 同梱 Pandoc `3.8.3`、既存 node_modules を使用した。`npm ci` は未実施。[E-0018](appendix-evidence.qmd#ev-e-0018)
+
+| 確認項目 | 結果 | 適用限界 |
+|---|---|---|
+| 型チェック | 成功 | 最小 VSCode での API 実行を保証しない |
+| Vitest、Pandoc 必須 | 17ファイル・168テスト成功、スキップなし | Node 環境。GUI と実 WorkspaceEdit は対象外 |
+| ビルド | ホストと Webview とも成功 | VSIX の作成・インストールは未実施 |
+| オフライン検査 | 3生成物と CSP の検査成功 | 静的なパターン検査であり通信の実測ではない |
+| 境界事例の再現 | 第7章に記載した読込・出力差を確認 | 小さな入力と純粋関数による観測 |
+
+`npm audit`、CI の Node 20/22 全構成、Extension Development Host の手動確認は未実施。性能テストの合格を大規模表の UI 応答保証に読み替えない。
