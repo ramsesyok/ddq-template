@@ -98,7 +98,17 @@ fn init_then_add_then_update_all() {
     let out = ddq(&["add", &api.to_string_lossy(), "--no-render"]);
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("既に _quarto.yml"));
-    // init していない場所への add は拒否
+    // 入れ子の執筆フォルダ（リポジトリ直下でなくてもよい。目印は上へたどって探す）
+    let nested = repo.join("examples").join("plantuml");
+    assert_ok(&ddq(&["add", &nested.to_string_lossy(), "--no-render"]));
+    assert!(nested.join("_quarto.yml").is_file());
+    // ddq init していない（.gitignore の無い）版管理の作業コピーでも、.svn などの目印があれば通る
+    let svn = tmp.path().join("svn-repo");
+    fs::create_dir_all(svn.join(".svn")).unwrap();
+    let svn_docs = svn.join("docs");
+    assert_ok(&ddq(&["add", &svn_docs.to_string_lossy(), "--no-render"]));
+    assert!(svn_docs.join("_quarto.yml").is_file());
+    // 目印が上のどこにも無い場所への add は拒否（一時フォルダの先祖に目印が無い前提）
     let out = ddq(&[
         "add",
         &tmp.path().join("nowhere/docs").to_string_lossy(),

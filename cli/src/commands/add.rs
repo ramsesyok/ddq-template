@@ -10,19 +10,33 @@ use anyhow::{Context, Result, bail};
 
 use crate::{assets, commands::update, quarto, writing_folder};
 
+/// リポジトリの目印。`ddq init` が置く `.gitignore` か、版管理ツールの作業コピーの目印
+/// （git / Subversion / Mercurial）。`.git` は worktree・submodule ではファイルなので exists で見る。
+const REPO_MARKERS: [&str; 4] = [".gitignore", ".git", ".svn", ".hg"];
+
+/// `dir` から上へたどり、最初に目印のあるフォルダとその目印を返す。
+/// 執筆フォルダはリポジトリ直下でなくてもよい（`examples/plantuml` のような入れ子も可）。
+fn find_repo(dir: &Path) -> Option<(&Path, &'static str)> {
+    dir.ancestors()
+        .skip(1)
+        .find_map(|d| REPO_MARKERS.iter().find(|m| d.join(m).exists()).map(|m| (d, *m)))
+}
+
 pub fn run(dir: &Path, no_render: bool) -> Result<()> {
     let dir = writing_folder::absolute(dir)?;
     writing_folder::ensure_encodable(&dir)?;
 
-    let repo = dir
+    let parent = dir
         .parent()
         .context("執筆フォルダには親フォルダ（リポジトリ）が要ります")?;
-    if !repo.join(".gitignore").is_file() {
-        bail!(
-            "{} に .gitignore がありません。設計書リポジトリではないようです。
+    match find_repo(&dir) {
+        Some((repo, marker)) => println!("リポジトリ: {}（{} あり）", repo.display(), marker),
+        None => bail!(
+            "{} から上のどのフォルダにも {} がありません。設計書リポジトリではないようです。
                新しいリポジトリを作るときは `ddq init <リポジトリのパス>` を使ってください。",
-            repo.display()
-        );
+            parent.display(),
+            REPO_MARKERS.join(" / ")
+        ),
     }
     // 既存の文書を壊さないための拒否。init は再実行を許すので、この検査は add だけが行う。
     if dir.join("_quarto.yml").is_file() {
