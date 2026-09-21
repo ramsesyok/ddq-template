@@ -1,0 +1,34 @@
+# 対象と読み方 {#sec-overview}
+
+## 対象版と役割
+
+**確認済み（静的）**：ddq は Rust の単一実行ファイルであり、Quarto book と Typst を利用する設計書テンプレートの配置・発行を支援する。`cli/src/main.rs::main` が引数を解析し、`commands` に同期的に振り分ける。組版処理そのものは Quarto／Pandoc／Typst に委譲し、図変換は Mermaid と PlantUML で異なる経路を持つ。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0002](appendix-evidence.qmd#ev-e-0002)
+
+| 識別項目 | 確認した値・条件 |
+|---|---|
+| リポジトリの版 | `02672eb3054d0f6b7139e21b31d91aba7dd57595`、`main` |
+| 調査開始時 | 追跡ファイルの差分なし。未追跡 `.claude/` は解析対象外 |
+| 表示版／機構版 | `template/VERSION` の `2.2.1` |
+| Cargo パッケージ | `ddq`、package version `0.0.0`、edition `2024`、rust-version `1.95` |
+| 調査基準日 | 2026-09-21 |
+
+上表は静的確認済み。表示版と Cargo の版は同一ではない。`build.rs` が `DDQ_VERSION` をコンパイル時に設定し、`assets::VERSION`、`--version`、配置先の `.template-version`、リリース名に使う。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0003](appendix-evidence.qmd#ev-e-0003)
+
+## 適用範囲
+
+| 範囲 | 調査の深さ／適用性 |
+|---|---|
+| `cli/src`、Cargo／ビルド設定 | 全自前 Rust ソースを読み、入口から主要な正常・異常経路を追跡 |
+| `cli/tests`、`cli/tools/regress.py` | 期待値、実行条件、回帰検証の境界を調査。実行範囲は第5章 |
+| `template`、CI、`extension/package.json` | CLI に埋め込む資産、Luaとの契約、発行・配布に関わる部分を確認 |
+| 自前のDB・GUI | 適用なし。`cli/src` と直接依存にDB接続・スキーマ・GUIイベント処理はない。外部プロセス内部はこの判断の対象外 |
+| OSS内部、Typst組版詳細、VSCode拡張内部 | 詳細解析対象外。利用API・生成物・設定の境界のみ確認 |
+| ブラウザ／Java／全E2E／リリースの実行 | 今回は未確認。静的追跡と既存テストの読解を実行成功と扱わない |
+
+境界と非該当の判断根拠は [E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0016](appendix-evidence.qmd#ev-e-0016)。外部実装の振る舞いまで網羅した解析ではない。
+
+## 読み始める場所と確度
+
+コマンド追加は `main.rs::Command`、`main`、`commands/mod.rs` から始める。配置規則は `assets.rs` と `commands/setup.rs`、図変換は `mermaid/mod.rs` と `plantuml/mod.rs`、配布は `commands/release.rs` が入口になる。[E-0002](appendix-evidence.qmd#ev-e-0002)
+
+本文の根拠IDは [解析根拠](appendix-evidence.qmd#sec-evidence) のパス・シンボルに対応する。パスはリポジトリルート基準で記載するため、HTMLだけを配布しても対象を特定できる。既存の `cli/DESIGN.md` は設計方針と過去の測定の資料として扱い、現行コードとの差は [既知の問題と未解明事項](07-issues-unknowns.qmd#sec-issues-unknowns) に残す。

@@ -1,0 +1,50 @@
+# 全体構造 {#sec-architecture}
+
+## ビルドと実行の構成
+
+**確認済み（静的）**：Cargo の binary ターゲット `ddq` は `src/main.rs` を入口とする。`template/` は実行時に隣接フォルダから読むのではなく、`include_str!`／`include_dir!` で実行ファイルに取り込む。実行時の文書入力は執筆フォルダに置き、更新時に埋込み資産を書き出す。[E-0003](appendix-evidence.qmd#ev-e-0003)
+
+```mermaid
+flowchart TB
+  T[template 原本] -->|コンパイル時に埋込み| A[assets]
+  M[main / clap] -->|コマンド振分け| C[commands]
+  C -->|パス検査| W[writing_folder]
+  C -->|配置| A
+  C -->|render| Q[quarto モジュール]
+  Q -->|子プロセス| P[Quarto / Pandoc / Typst]
+  P -->|Lua が別プロセス起動| D[ddq mermaid]
+  D --> R[mermaid モジュール]
+  C -->|静的図| R
+  R -->|CDP| B[Edge / Chrome]
+  R -->|同一プロセス| N[merman]
+  C -->|セッション準備| U[plantuml モジュール]
+  U -->|接続または起動| S[外部サーバ / Java PicoWeb]
+  P -->|Lua / curl / HTTP| S
+  C -->|配布フォルダ| Z[zip_archive]
+```
+
+図の辺は静的確認済みの呼出し・データ供給を示す。`assets` 等は ddq 内のモジュール、Quarto・ブラウザ・Java は別プロセスである。全コマンドが全経路を使うわけではない。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0012](appendix-evidence.qmd#ev-e-0012)
+
+## 主要コンポーネント
+
+以下はすべて静的確認済み。完全な関数一覧ではなく、変更の起点となる責務を示す。
+
+| コンポーネント | 責務と読むシンボル | 主な利用先 |
+|---|---|---|
+| コマンド入口 | `main.rs::Cli / Command / main` | `commands::*::run`、`plantuml::serve` |
+| 配置・版管理 | `assets::MECHANISM / PDF_SIDE / SCAFFOLD`、`setup::ensure_current` | init/add/update/setup/html/pdf |
+| パス・探索 | `writing_folder::resolve / find_all / ensure_encodable` | main、作成・発行コマンド |
+| Quarto起動 | `quarto::render / run / self_exe` | CWD、DDQ_BIN、終了状態の統一 |
+| Mermaid変換 | `mermaid::choose_engine / render_jobs`、`browser::Cdp`、`merman_engine::render` | hidden CLI と diagrams |
+| PlantUML連携 | `plantuml::ensure / Session / LocalServer / render` | html/pdf/diagrams/serve |
+| 配布 | `release::run / build_extension / copy_tree`、`zip_archive::create` | manual、VSIX、jar、ZIP |
+
+根拠：[E-0002](appendix-evidence.qmd#ev-e-0002)～[E-0014](appendix-evidence.qmd#ev-e-0014)。
+
+## 所有権と並行性
+
+**確認済み（静的）**：通常のコマンド処理、図の描画、フォルダ更新は直列で進む。非同期ランタイムや自前のジョブキューはない。Mermaid の `Job` は入力／出力 `PathBuf` の対であり、ブラウザ経路は一つのバッチで一度起動し、図ごとに新しい CDP target を作る。merman は同一プロセスで Renderer を共用し順に描画する。[E-0009](appendix-evidence.qmd#ev-e-0009)
+
+**確認済み（静的）**：`Session::External` は URL と任意の版だけを保持し、外部サーバを終了しない。`Session::Local` は `LocalServer` を所有する。通常のスコープ終了・エラー伝播で `Drop` が Java を kill/wait し、Windows では Job Object を閉じる。Java の stderr を読み続けるスレッドが一つ作られる。OSからの強制終了や初期化途中の失敗は `Drop` だけでは説明できないため、[U-0002](07-issues-unknowns.qmd#u-0002) を参照する。[E-0011](appendix-evidence.qmd#ev-e-0011)
+
+**確認済み（静的）**：自前コードには同じ執筆フォルダを操作する複数 ddq 間の排他がない。テスト内の `QUARTO_LOCK` は E2E テストの二経路を直列化するもので、製品のロックではない。[E-0016](appendix-evidence.qmd#ev-e-0016)

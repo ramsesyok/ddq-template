@@ -1,0 +1,38 @@
+project:
+  type: book
+  output-dir: _book
+  post-render:
+    - postprocess-html.js
+book:
+  title: "ddq ソフトウェア実装仕様書"
+  subtitle: "Software Implementation Specification — テンプレート 2.2.1"
+  date: "2026-09-21"
+  chapters:
+    - index.qmd
+    - 01-overview.qmd
+    - 02-architecture.qmd
+    - 03-behavior.qmd
+    - 04-data-interfaces.qmd
+    - 05-build-environment.qmd
+    - 06-maintenance.qmd
+    - 07-issues-unknowns.qmd
+  appendices:
+    - appendix-evidence.qmd
+lang: ja
+toc: true
+toc-depth: 3
+format:
+  html:
+    number-sections: true
+    number-depth: 2
+    code-copy: true
+    css: design-doc.css
+    embed-resources: false
+    grid:
+      sidebar-width: 300px
+      body-width: 1100px
+      margin-width: 60px
+filters:
+  - design-doc.lua
+execute:
+  eval: false

@@ -1,0 +1,85 @@
+# 解析根拠 {#sec-evidence}
+
+## 共通の識別条件
+
+基準はコミット `02672eb3054d0f6b7139e21b31d91aba7dd57595`、ブランチmain、2026-09-21時点のワークツリー。調査開始時に追跡ファイル差分はなく、`.claude/` は未追跡かつ対象外だった。以下のパスはリポジトリ相対である。静的根拠はソースに記述された処理を支え、実際の全入力での成功を支えるものではない。
+
+`analysis/source-sha256.json` にCLIソース、テスト、主要境界ファイルおよびローカルjarのSHA-256を記録した。依存のlicense宣言は `analysis/dependencies.json`、実行条件は `analysis/validation.md` に記録している。正式文書の主張の再確認に必要なパスとシンボルは以下に収録する。
+
+## 本文で参照した根拠
+
+### E-0001：対象版・ビルド宣言 {#ev-e-0001 .unnumbered}
+
+**確認済み／種別：Git・設定・ソース**。`cli/Cargo.toml` のpackage/dependencies/target/profile、`cli/Cargo.lock`、`template/VERSION`、`cli/build.rs::main / locked_version`。Rustの要求版・feature・解決版、表示版の生成経路を確認。GitのHEAD／branch／statusも確認した。package 0.0.0とテンプレート2.2.1を区別する。
+
+### E-0002：CLIとモジュール構成 {#ev-e-0002 .unnumbered}
+
+**確認済み／種別：ソース**。`cli/src/main.rs::Cli / Command / main` と各Args、`cli/src/commands/mod.rs`。全10コマンドの入口、hidden mermaid、引数の既定・排他、Resultの伝播を確認。`cli/src/**/*.rs` の自前処理全体とCargo直接依存を調べ、DB・GUIを実装していないという適用範囲判断に用いた。外部依存内部はこの負の判断に含めない。
+
+### E-0003：埋込み資産と生成物 {#ev-e-0003 .unnumbered}
+
+**確認済み／種別：ソース・設定**。`cli/src/assets.rs::VERSION / MECHANISM / PDF_SIDE / SCAFFOLD / MERMAID_JS / RELEASE_GUIDE_TYP / write_dir_if_absent / write_if_absent`、`cli/build.rs::main`、`cli/.cargo/config.toml`、`template/scaffold/repo` と `content`。埋込み元と書出し先、上書き／保持、CRT設定を確認。`template/quarto-publish.yml` は執筆先で `_quarto-publish.yml` という名前になる。
+
+### E-0004：パス・フォルダ探索 {#ev-e-0004 .unnumbered}
+
+**確認済み／種別：ソース**。`cli/src/writing_folder.rs::resolve / absolute / ensure_encodable / unencodable_chars / find_all`。`docs`既定、_quarto.yml存在、Windows ACPと制御文字検査、探索除外5名を確認。`ensure_encodable` の呼出元は `commands/init.rs`、`add.rs`、`html.rs`、`pdf.rs`。ACPの全環境動作の実証ではない。
+
+### E-0005：作成・追加 {#ev-e-0005 .unnumbered}
+
+**確認済み／種別：ソース**。`cli/src/commands/init.rs::run / REPO_FILES`、`add.rs::run / find_repo / populate / REPO_MARKERS`。名前検査、ancestor探索、既存原稿の保持、機構上書き、HTML疎通確認、途中状態が残る経路を確認。initはGit初期化を表示するだけで実行しない。
+
+### E-0006：更新・整合性検査 {#ev-e-0006 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値**。`cli/src/commands/update.rs::run / run_all`、`setup.rs::run / ensure_current`、`cli/tests/commands.rs`。機構5本→版ファイルの書込み順、版のtrim比較と機構の完全比較、PDF4本の配置を確認。対応する限定実行結果はE-0017。
+
+### E-0007：Quartoと発行成果物 {#ev-e-0007 .unnumbered}
+
+**確認済み／種別：ソース**。`cli/src/quarto.rs::render / run / self_exe`、`commands/html.rs::run`、`commands/pdf.rs::run / find_pdf`、`template/quarto-publish.yml`。CWD、DDQ_BIN、MERMAID_SVG、publish profile、Session寿命、_book直下のPDF一件制約を確認。`quarto::run` は子の非成功をエラー化するが、終了コードの直接転送はしない。
+
+### E-0008：静的図 {#ev-e-0008 .unnumbered}
+
+**確認済み／種別：ソース**。`cli/src/commands/diagrams.rs::run`。直下探索、拡張子、接頭辞除外、Mermaid先行、設定読取り、PlantUMLの強制ローカル起動条件、成功分保持、ファイルI/O時の即時失敗を確認。新規出力を作らないエラーと、古い出力が残ることを区別した。
+
+### E-0009：Mermaid変換とブラウザ {#ev-e-0009 .unnumbered}
+
+**確認済み／種別：ソース**。`cli/src/commands/mermaid.rs::run`、`mermaid/mod.rs::Job / Engine / choose_engine / load_config / render_jobs / set_root_background`、`mermaid/browser.rs::find / find_windows / render / render_page / launch / wait_for_devtools_endpoint / Cdp / file_url`、`mermaid/merman_engine.rs::render / render_one`。バッチ、CDP、JSON、60秒定数、resvg_safe、コメント、cleanupを追跡。本文の1バッチ1ブラウザはこのAPI単位であり、文書全体で一回という意味ではない。
+
+### E-0010：PlantUMLの選択・HTTP・入力 {#ev-e-0010 .unnumbered}
+
+**確認済み／種別：ソース・単体テスト期待値**。`cli/src/plantuml/mod.rs::find_java / find_jar / configured_server / server_from_quarto_yml / manuscript_uses_plantuml / has_plantuml_fence / split_url / request / parse_response / dechunk / probe / render / assemble_source / load_config / svg_header / ensure`。探索順、簡易フェンス検出、設定一候補、HTTP制約、timeout、payload、ヘッダ判定、応答の簡易確認を確認。原稿走査は_book/.quartoを除くqmd/mdで、Quartoの章登録に限定しない。
+
+### E-0011：PlantUMLプロセス寿命 {#ev-e-0011 .unnumbered}
+
+**確認済み／種別：ソース**。`cli/src/plantuml/mod.rs::LocalServer::start / wait`、`Drop for LocalServer`、`job::attach / Handle::close`、`Session::env`、`start_local`、`commands/plantuml.rs::serve`。空きポート、stderrのwebPort、30秒定数、読取スレッド、kill/wait、Windows Job Objectを確認。同期read_line、Vec蓄積、attach失敗時の専用cleanup欠落は静的事実で、障害の動的実証はない。
+
+### E-0012：Luaとの境界・キャッシュ {#ev-e-0012 .unnumbered}
+
+**確認済み／種別：ソース・設定**。`template/design-doc.lua` のROOT/DDQ/DIAG/WANT_SVG、`diag_rel / render_mermaid / puml_candidates / puml_find_server / puml_source / puml_render / render_plantuml / CodeBlock`、`template/mermaid-config.json`、`template/plantuml-config.puml`。図ごとのddq起動、curl、ソース組立て、候補選択、8桁キー、出力存在検査、プレビューと発行のエラー差を確認。組版や表変換の全内部は対象外。
+
+### E-0013：release工程 {#ev-e-0013 .unnumbered}
+
+**確認済み／種別：ソース・設定**。`cli/src/commands/release.rs::run / copy_plantuml_jar / jar_version / build_extension / npm / build_release_guide / copy_tree`、`extension/package.json` のname/version/scripts.package。CWD検査、manual順序、stage削除、current_exeコピー、同梱物、除外条件、--no-build、jar版の表示のみという範囲を確認。今回は配布工程を実行していない。
+
+### E-0014：ZIP生成と検証 {#ev-e-0014 .unnumbered}
+
+**確認済み／種別：ソース**。`cli/src/zip_archive.rs::create / verify`。ファイルのみを名前順にDeflateし、トップフォルダ名を付け、ZIPを開き直してエントリ数を比較する。verify内の不一致／読込み失敗では削除する。途中の書込みエラーすべてに共通する削除処理ではない。UTF-8名のフラグ設定はzipクレートに委譲しており、今回ZIP実物のビット検査はしていない。
+
+### E-0015：CI・版管理境界 {#ev-e-0015 .unnumbered}
+
+**確認済み／種別：設定・手順文書**。`.github/workflows/ci.yml`、ルート `.gitignore`、`template/scaffold/repo/gitignore`、`docs/manual/chapters/17-maintainer/06-release.qmd`。Windows CIの依存版・コマンド・環境変数と、原本リポジトリ／文書リポジトリの生成物管理の差を確認。CI実行結果や公開リリースの同一性は調べていない。
+
+### E-0016：テスト・回帰ツール {#ev-e-0016 .unnumbered}
+
+**確認済み／種別：テストソース**。`cli/tests/commands.rs`、`golden.rs::fixtures / run_ddq / geometry / roughly_same_size`、`e2e.rs::skip_without_quarto / build_and_check / QUARTO_LOCK`、`plantuml.rs::skip / diagrams_renders_puml_and_rejects_syntax_error / serve_answers_serverinfo_and_stops_with_parent`、`common/mod.rs`、`cli/tools/regress.py::Builder / capture / compare`。22組のgolden入力、skipと厳格化、幾何比較の限界、PDF/HTML検証、旧版比較の採取物を確認した。
+
+### E-0017：今回の限定実行 {#ev-e-0017 .unnumbered}
+
+**確認済み／種別：実行観測**。2026-09-21、Windows、CWD=`cli`、Cargo 1.98.1。`cargo test --locked --offline --bin ddq --test commands` は終了0、unit 10件とcommands 4件が成功。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。
+
+### E-0018：依存のローカル同定 {#ev-e-0018 .unnumbered}
+
+**確認済み／種別：lockfile・ローカルmanifest・バイナリ内メタデータ**。`cli/Cargo.lock` とCargo registryの各 `<name>-<version>/Cargo.toml` のlicense宣言を照合。結果は `analysis/dependencies.json`。`cli/vendor/plantuml.jar` は17,744,555 bytes、`META-INF/MANIFEST.MF` の `Implementation-Version: 1.2026.8` を確認した。Build-Jdk-Spec 21はビルドJDKのメタデータで、実行JDKの最低版と同一視しない。`template/vendor/mermaid.min.js` の `version:"11.16.0"` と `assets::mermaid_js_version` の抽出方式を確認。license原文全量やupstreamとの改変差分は未確認。
+
+### E-0019：資料の差異 {#ev-e-0019 .unnumbered}
+
+**確認済み／種別：既存設計書とソースの比較**。`cli/DESIGN.md` §5.4／§7.2／§7.5、`cli/plantuml-study.md`、`commands/release.rs::run`、`mermaid/mod.rs::Engine::label / render_jobs`、`plantuml/mod.rs::LocalServer::start`、`Cargo.toml`。設計案・PoC・現在の実装を区別し、releaseの作業ディレクトリ、直接依存、SVG版表記、エラー後の既存出力、stderr保持の差を第7章に整理した。
