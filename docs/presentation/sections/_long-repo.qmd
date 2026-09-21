@@ -1,0 +1,40 @@
+## 置き場所：リリース一式は設計書リポジトリの外
+
+:::: {.columns}
+::: {.column width="46%"}
+**道具**（git 管理外・展開したまま使う）
+
+```text
+C:\tools\quarto-template-2.2.1\
+├── ddq.exe          ← 様式・変換・ビルドの実体
+├── plantuml.jar     ← PlantUML 描画
+├── はじめかた.pdf    ← 発行者向け 8 枚
+├── AGENT-GUIDE.md   ← AI 向け執筆ガイド
+├── ddq-table-editor-2.2.1.vsix
+└── manual\          ← 利用マニュアル
+```
+:::
+::: {.column width="54%"}
+**原稿**（git 共有。執筆者はこれだけ clone）
+
+```text
+C:\work\order-design\
+├── .gitignore  README.md  .vscode\
+└── docs\                 ← 執筆フォルダ
+    ├── _quarto.yml  index.qmd
+    ├── chapters\  diagrams\
+    ├── design-doc.lua  design-doc.css …
+    │                     ← 機構ファイルの写し（編集しない）
+    ├── design-doc.pdf    ← 中間版 PDF（発行者がコミット）
+    └── .template-version ← どの版の機構か
+```
+:::
+::::
+
+- 設計書リポジトリに `ddq.exe` を入れない：`git clean` で消える・誤コミットを防ぐ
+- 機構ファイルは**写し**。`ddq update` で差し替え、差分を git で確認してコミット
+
+::: {.notes}
+【1:00】「道具は C:\tools、原稿は C:\work、混ぜない」だけ。
+版の食い違いは ddq が検出して止まる（次のスライド）。
+:::

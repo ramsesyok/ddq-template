@@ -1,0 +1,76 @@
+---
+title: "設計書、Markdown で書きませんか"
+subtitle: "様式付き PDF を Quarto で組む社内テンプレートの紹介 — ロング版（15〜20 分）"
+author: "発表者名（所属）"
+date: 2026-09-21
+date-format: "YYYY年M月D日"
+---
+
+## 今日の話
+
+1. 何が困っているか
+2. できあがるもの
+3. 書き方（構造・番号・図・表・定型ページ）
+4. デモ
+5. 運用（役割・置き場所・発行の流れ）
+6. 中身と制約
+
+::: {.small}
+発表者：設計書テンプレートの保守を担当 ／ 質問は途中でもどうぞ
+:::
+
+::: {.notes}
+【0:30】自己紹介はこの 1 行だけ。「デモがある」と先に言っておく。
+:::
+
+# 1. 何が困っているか {.unlisted}
+
+{{< include sections/_01-problem.qmd >}}
+
+# 2. できあがるもの {.unlisted}
+
+{{< include sections/_02-result.qmd >}}
+
+{{< include sections/_03-markdown-only.qmd >}}
+
+{{< include sections/_long-html.qmd >}}
+
+# 3. 書き方 {.unlisted}
+
+{{< include sections/_long-structure.qmd >}}
+
+{{< include sections/_04-numbering.qmd >}}
+
+{{< include sections/_long-figures.qmd >}}
+
+{{< include sections/_05-table.qmd >}}
+
+{{< include sections/_long-table-editor.qmd >}}
+
+{{< include sections/_long-ipo.qmd >}}
+
+{{< include sections/_long-agent.qmd >}}
+
+{{< include sections/_06-author-env.qmd >}}
+
+# 4. デモ {.unlisted}
+
+{{< include sections/_long-demo.qmd >}}
+
+# 5. 運用 {.unlisted}
+
+{{< include sections/_long-roles.qmd >}}
+
+{{< include sections/_long-repo.qmd >}}
+
+{{< include sections/_long-publish.qmd >}}
+
+{{< include sections/_07-start.qmd >}}
+
+# 6. 中身と制約 {.unlisted}
+
+{{< include sections/_long-pipeline.qmd >}}
+
+{{< include sections/_long-limits.qmd >}}
+
+{{< include sections/_long-summary.qmd >}}

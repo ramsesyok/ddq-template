@@ -1,0 +1,22 @@
+## 中で何が動いているか
+
+::: {.flow}
+[原稿<br>`.qmd`]{.box} [→]{.arr} [Quarto<br>（Pandoc）]{.box} [→]{.arr} [`design-doc.lua`<br>Lua フィルタ<br>採番・`.tbl`・IPO・横向き]{.box} [→]{.arr}
+[Typst<br>`lib.typ`（様式）<br>→ **PDF**]{.box} [／]{.arr} [HTML<br>`postprocess-html.js`<br>→ **HTML**（番号を PDF と揃える）]{.box}
+:::
+
+::: {.flow}
+[`ddq.exe`（Rust・単一ファイル）]{.box .ddq} [⇢]{.arr} [様式一式を執筆フォルダへ配置 ／ Quarto を起動 ／ mermaid を SVG に焼き込み ／ 版の一致を確認]{.box .ddq}
+:::
+
+| 要素 | 使っているもの | 執筆者・発行者が入れるもの |
+|---|---|---|
+| PDF 組版 | **Typst**（Quarto に同梱） | なし（**LaTeX 不要**） |
+| 記法の拡張 | **Pandoc Lua フィルタ**（`design-doc.lua`） | なし（Quarto 内蔵の Lua） |
+| mermaid → SVG | Windows 標準の **Edge headless** | なし（**Node.js 不要**） |
+| 配置・ビルド | **`ddq.exe`**（様式一式を内蔵） | ZIP を展開するだけ |
+
+::: {.notes}
+【1:00】社内向けなので深入りしない。「Quarto 標準の上に Lua フィルタと
+Typst テンプレートを足しただけ。特別なものは入れていない」が要点。
+:::

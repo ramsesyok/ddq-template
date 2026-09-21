@@ -1,0 +1,23 @@
+## 始め方は 3 ステップ
+
+```bat
+:: 1. 設計書リポジトリを作る（リリース ZIP を展開したフォルダで）
+cd C:\tools\quarto-template-2.2.1
+.\ddq init C:\work\order-design
+
+:: 2. 書く（執筆者は Quarto だけ）
+cd C:\work\order-design\docs
+quarto preview
+
+:: 3. PDF を出す（ddq.exe を持つ人）
+cd C:\tools\quarto-template-2.2.1
+.\ddq pdf C:\work\order-design\docs
+```
+
+- `ddq init` が `_quarto.yml`・章の雛形・`.gitignore` まで置く → 表題と資料番号を直して `git init`
+- リリース ZIP に **`ddq.exe`・利用マニュアル（PDF/HTML）・VSCode 拡張・AI 向け執筆ガイド**が入っている
+
+::: {.notes}
+【0:30】コマンドは読まなくてよい。「init → 書く → pdf」の 3 語だけ。
+ZIP を展開すれば全部入っている、インストールは Quarto だけ、を繰り返す。
+:::

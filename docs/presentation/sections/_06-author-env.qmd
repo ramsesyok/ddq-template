@@ -1,0 +1,31 @@
+## 執筆者に要るのは Quarto と VSCode だけ
+
+:::: {.columns}
+::: {.column width="42%"}
+**入れるもの**
+
+- Quarto（無料・単体インストール）
+- VSCode ＋ Quarto 拡張
+- （任意）表の視覚編集拡張 `.vsix`
+
+**要らないもの**
+
+- LaTeX ／ Node.js ／ npm
+- 発行用ツール `ddq.exe`（なくても書ける）
+
+`Ctrl+Shift+K` でプレビュー →
+:::
+::: {.column width="58%"}
+![](images/html-preview.png){.paper}
+
+::: {.caption}
+執筆中の HTML：章ごとのページ・全文検索つき。番号は PDF と一致
+:::
+:::
+::::
+
+::: {.notes}
+【0:30】「環境構築で挫折させない」が要点。執筆者は Quarto を入れて
+リポジトリを clone するだけ。図（mermaid）もブラウザ内で描かれる。
+紙面（改ページ・横向き）だけは PDF で確認する、と一言添える。
+:::
