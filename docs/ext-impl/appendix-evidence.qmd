@@ -1,0 +1,85 @@
+# 解析根拠 {#sec-evidence}
+
+## 対象版と資料
+
+共通条件は DDQ Table Editor `2.2.1`、基準コミット `b79bfed4e81f7942bcfc1c5ba19aa1a69df310e5`、解析日2026-09-21。パスはリポジトリルート起点で示す。行番号に依存せず、パスとシンボルで根拠を再確認する。
+
+ソースの静的確認と実行観測を以下で区別する。追跡対象ファイルの一覧は `analysis/inventory.txt`、実体の SHA-256 は `analysis/source-sha256.json`、詳細所見は `analysis/findings.md`。要求資料は `extension/requirements.md`、関連する作業規約は `extension/AGENTS.md` であり、両資料の記述だけで実装済みと断定しない。
+
+## 本文で参照した根拠
+
+### E-0001 {#ev-e-0001 .unnumbered}
+
+確認済み（静的）。`extension/package.json` の name / version / publisher / engines / main / contributes / activationEvents と `template/VERSION`。パッケージ識別、対応版宣言、コマンドとメニュー条件、利用者設定の未宣言を確認。`extension/LICENSE` が拡張自身のライセンス根拠。
+
+### E-0002 {#ev-e-0002 .unnumbered}
+
+確認済み（静的）。`extension/src/extension.ts` の `Session`、`activate`、`openTableEditor`、`applyToDocument`、`postInit`、`disposePanel`、`buildHtml`。単一パネル、対象文書版、エラーと警告、WorkspaceEdit、再検出、CSP、保存呼出の不存在を追跡。メッセージの型は `extension/src/model/WebviewMessages.ts`。非同期競合の実機再現は含まない。
+
+### E-0003 {#ev-e-0003 .unnumbered}
+
+確認済み（静的）。`extension/src/markdown-document/findEditTarget.ts` の `findEditTarget`、`fromTblBlock`、`parseTableSource`、`newTableModel`。`findTblBlock.ts` の `scanFences` / `findTblBlockAt`、`splitParts.ts` の `partAt`、`findPlainTable.ts` の `findPlainTableAt`。対象優先度、全文 fence 走査、最寄りパート、pipe 限定の merge-cols 展開、他パート列数を確認。
+
+### E-0004 {#ev-e-0004 .unnumbered}
+
+確認済み（静的）。`extension/src/markdown-document/applyTable.ts` の `buildReplacement` / `anchorLineOf`、`replaceRange.ts` の `withSurroundingBlankLines`、`splitLines.ts`。置換範囲、挿入時の空行、改行入力の統一を確認。`replaceLines` はテストの純粋な置換補助であり、ホストが実際に反映するのは WorkspaceEdit。関連テストは同ディレクトリの `applyTable.test.ts`、`integration.test.ts`、`lineEndings.test.ts`。
+
+### E-0005 {#ev-e-0005 .unnumbered}
+
+確認済み（静的）。`extension/src/webview/TableEditor.tsx` の `update`、メッセージ・clipboard イベント、`preview`、`Toolbar` への callback。`Toolbar.tsx`、`AttributesPanel.tsx`、`vscodeApi.ts`。init 時の履歴初期化、ソースプレビュー、属性編集可否、通信 API、未使用の getState/setState を確認。
+
+### E-0006 {#ev-e-0006 .unnumbered}
+
+確認済み（静的）。`extension/src/webview/GridView.tsx` の textarea、`onEditorKeyDown`、`commitEditing`、`onHandleMouseDown`、`inTextField`。`extension/src/model/selection.ts` の `anchorOf`、`expandRangeToMerges`、移動関数と `cellTextEditing.ts`。セルドラフト、IME キー判定、1個の textarea、結合を考慮した選択と移動を確認。IME の実機品質は未確認。
+
+### E-0007 {#ev-e-0007 .unnumbered}
+
+確認済み（静的）。`extension/src/model/TableModel.ts`、`normalizeTableModel.ts`、`mergeCells.ts`、`unmergeCell.ts`、`rowColOps.ts`、`clearCells.ts`。矩形性、座標再採番、span/hidden の再計算、本文の結合と解除、行列挿入・削除、消去の契約を確認。
+
+### E-0008 {#ev-e-0008 .unnumbered}
+
+確認済み（静的）。`extension/src/model/history.ts` の `HISTORY_LIMIT`、`createHistory`、`pushHistory`、`undoHistory`、`redoHistory` と `history.test.ts`。過去状態100件、同一参照の無操作、新規更新で future 消去。選択を履歴に含めないことは `TableEditor.tsx` の別 state で確認。
+
+### E-0009 {#ev-e-0009 .unnumbered}
+
+確認済み（静的）。`extension/src/formats/tbl/serializeTblBlock.ts` の `serializeTableBody`、`buildFenceHeader`、`flattenMerges`、`escapeAttr` と `parseTblAttributes.ts` の `parseFenceHeader` / `toTblAttributes`。形式選択順、属性の保持と再生成、label 省略、未知属性の処理を確認。関連テストは `outputFormat.test.ts` と `tblAttributes.test.ts`。
+
+### E-0010 {#ev-e-0010 .unnumbered}
+
+確認済み（静的）。`extension/src/model/validateTableModel.ts` と `columnWidths.ts` の `WIDTH_TOTAL`、`EPSILON`、`inspectColumnWidths`、`completeColumnWidths`。Apply のエラー／警告、幅補完の時点、100上限、丸めを確認。読込側の数値抽出は `extension/src/formats/tbl/parseTblAttributes.ts` の `parseWidths`。関連テストは `columnWidths.test.ts`。
+
+### E-0011 {#ev-e-0011 .unnumbered}
+
+確認済み（静的）。`extension/src/formats/pipeTable/parsePipeTable.ts` / `serializePipeTable.ts`、`gridTable/parseGridTable.ts` / `serializeGridTable.ts` / `displayLine.ts`、`displayWidth.ts`、`cellText.ts`。表示桁、境界からの結合復元、行高、本文エスケープ、リストと改行、pipe と grid のコード span 保護の差を確認。実行検証は `gridTable.test.ts` と `pandoc.test.ts` を含む E-0018。
+
+### E-0012 {#ev-e-0012 .unnumbered}
+
+確認済み（静的）。`extension/src/formats/mergeCols/canUseMergeCols.ts`、`simulateMergeCols.ts`、`expandMergeCols.ts`。拒否条件、候補と順列、1始まり属性、左から1回の評価、span 比較、展開時の hidden と本文を確認。`mergeCols.test.ts` が部分列指定や逆順連鎖等の回帰検証を持つ。
+
+### E-0013 {#ev-e-0013 .unnumbered}
+
+確認済み（静的）。`template/design-doc.lua` の `is_plain_grid`、`parse_merge_cols`、`parse_widths`、`merge_body`、`.tbl` の `Div` 処理。全パートへの適用、AST stringify、既存結合の除外、幅統一、不正属性値の処理を確認。TypeScript と Lua の全入力での同値性を示すものではない。
+
+### E-0014 {#ev-e-0014 .unnumbered}
+
+確認済み（静的）。`extension/src/model/parseTsv.ts` の `parseTsv` / `splitTsv`、`tsvClipboard.ts` の `buildTsv` / `pasteCellsAt` / `grow` と `webview/TableEditor.tsx` の copy / paste handler。引用セル、前後 trim、表の拡張、hidden スキップ、全体置換条件、属性の引継ぎを確認。関連テストは `tsvClipboard.test.ts`。
+
+### E-0015 {#ev-e-0015 .unnumbered}
+
+確認済み（静的・ローカル実体照合）。`extension/package.json`、`package-lock.json`、`esbuild.mjs`、`vite.config.mts`、`tsconfig.json`、`tsconfig.webview.json`、`.vscodeignore`。ビルド契約、生成形式、固定パス、依存要求と解決版を確認。インストール済み直接依存の manifest から版とライセンス表記を照合した結果は `analysis/dependencies.json`。全推移依存や上流改変比較は未調査。
+
+### E-0016 {#ev-e-0016 .unnumbered}
+
+確認済み（静的）。`extension/scripts/check-offline.mjs` の `TARGETS` / `NETWORK_APIS` / `ALLOWED_URLS` と CSP 検査、`package.json` の `check:audit`。3生成物に対する検査項目、許可 URL、監査対象範囲を確認。オフライン検査の実行成功は E-0018、ネットワーク通信の実測と npm audit は未実施。
+
+### E-0017 {#ev-e-0017 .unnumbered}
+
+確認済み（静的）。`.github/workflows/extension.yml`、`extension/vitest.config.mts`、`.vscode/launch.json`、`.vscode/tasks.json`、`sample/tables.qmd`、`src/formats/pandoc.test.ts` / `perf.test.ts` と各 `*.test.ts`。CI の OS/Node、Pandoc 必須化、VSIX 版照合、開発ホストの起動定義、テストの対象と時間しきい値を確認。CI 自体の現在の実行結果は取得していない。
+
+### E-0018 {#ev-e-0018 .unnumbered}
+
+確認済み（実行）。Windows / Node 24.18.0 / npm 11.16.0 / Pandoc 3.8.3 で `typecheck`、`test`、`build`、`check:offline` が成功。Pandoc パスを指定し、`REQUIRE_PANDOC=1` で17ファイル・168テストを省略なく実行。条件と範囲は `analysis/validation.md`。依存の再インストール、VSIX、GUI、監査はこの確認に含まない。
+
+### E-0019 {#ev-e-0019 .unnumbered}
+
+確認済み（実行）。`analysis/probe.cjs` と `analysis/probe-results.json`。既存の TypeScript をメモリ上で変換して呼び、改行を含む merge-cols の再読込、pipe 内のコード span、負号付き幅、コードブロック内 fence、分割表の形式選択を観測。ソースの修正や VSCode の起動は行っていない。実行方法はリポジトリルートから `node docs/ext-impl/analysis/probe.cjs`。

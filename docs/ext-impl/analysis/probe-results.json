@@ -1,0 +1,20 @@
+{
+  "multilineMergeCols": {
+    "inputMerged": true,
+    "markdown": "::: {.tbl merge-cols=\"1\"}\n+-----+\n| H   |\n+=====+\n| A\\  |\n| B   |\n+-----+\n| A\\  |\n| B   |\n+-----+\n:::",
+    "reopenedOk": true,
+    "reopenedMerged": false,
+    "reopenedFormat": "gridTable"
+  },
+  "pipeCodeSpan": "`\n`",
+  "negativeWidthsRead": [
+    20,
+    80
+  ],
+  "codeFenceScan": {
+    "ok": false,
+    "message": "終了 fence `:::` が見つからない div があります。ドキュメントを変更しません。（2 行目）"
+  },
+  "splitUnmergedFormat": true,
+  "splitSingleLineFormat": true
+}
