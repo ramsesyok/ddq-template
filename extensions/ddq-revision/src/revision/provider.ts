@@ -174,9 +174,17 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
     }
 }
 
-/** 直した内容を YAML に直して文書へ書く（保存はしない = VSCode の流儀）。 */
+/**
+ * 直した内容を YAML に直して文書へ書く（保存はしない = VSCode の流儀）。
+ *
+ * ddq は LF で書くが、Git の設定によっては作業ツリーの yml が CRLF になっている。
+ * その文書の改行に合わせて書かないと、メモを 1 つ直しただけで全行が書き換わってしまう。
+ */
 export async function write(document: vscode.TextDocument, revision: Revision) {
-    const next = toYaml(revision);
+    const next =
+        document.eol === vscode.EndOfLine.CRLF
+            ? toYaml(revision).replace(/\n/g, '\r\n')
+            : toYaml(revision);
     if (next === document.getText()) return;
     const edit = new vscode.WorkspaceEdit();
     edit.replace(

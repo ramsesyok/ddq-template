@@ -10,7 +10,7 @@ import { emptyRevision, parse, toYaml, type Revision } from './revfile';
  * 毎回差分が出るので、読めること・書き戻して**同じ文字列になる**ことを見る。
  * 採り直すときは `ddq rev diff <フォルダ> --write` の出力をそのまま置き換える。
  */
-const golden = readFileSync(join(__dirname, 'rev-B.golden.yml'), 'utf8');
+const golden = readFileSync(join(__dirname, 'rev-B.golden.yml'), 'utf8').replace(/\r\n/g, '\n');
 
 describe('ddq が書いたファイル', () => {
     it('読める', () => {
@@ -37,7 +37,14 @@ describe('ddq が書いたファイル', () => {
     });
 
     it('書き戻すと同じ文字列になる（差分を汚さない）', () => {
+        // ddq は LF で書く。手元の Git が CRLF に変換していても同じ結果になるよう、
+        // 読み込み時に LF へ揃えてから比べる（CRLF を読めることは別のテストで見る）。
         expect(toYaml(parse(golden))).toBe(golden);
+    });
+
+    it('CRLF のファイルでも改行だけの差にならない', () => {
+        const crlf = golden.replace(/\n/g, '\r\n');
+        expect(toYaml(parse(crlf))).toBe(golden);
     });
 
     it('複数行のメモも往復する', () => {

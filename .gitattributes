@@ -19,3 +19,6 @@ VERSION text eol=lf
 *.tsx text eol=lf
 *.mts text eol=lf
 *.mjs text eol=lf
+# ddq が書いた改訂ファイル（拡張の往復テストの golden）。ddq は LF で書くので、
+# CRLF に変換されると「書き戻すと同じ文字列になる」検査が Windows だけ落ちる。
+*.golden.yml text eol=lf
