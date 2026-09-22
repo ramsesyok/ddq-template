@@ -36,11 +36,12 @@ book:
     - chapters/10-ipo/index.qmd
     - chapters/11-publisher-env/index.qmd
     - chapters/12-build/index.qmd
-    - chapters/13-trouble/index.qmd
-    - chapters/14-limitations/index.qmd
-    - chapters/15-cheatsheet/index.qmd
-    - chapters/16-repository/index.qmd
-    - chapters/17-maintainer/index.qmd
+    - chapters/13-revision/index.qmd
+    - chapters/14-trouble/index.qmd
+    - chapters/15-limitations/index.qmd
+    - chapters/16-cheatsheet/index.qmd
+    - chapters/17-repository/index.qmd
+    - chapters/18-maintainer/index.qmd
 
 lang: ja
 doc-number: MAN-2026-001

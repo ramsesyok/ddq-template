@@ -1,0 +1,40 @@
+## VSCode を使わずに作る {#sec-revision-cli}
+
+拡張を入れていなくても、`ddq` だけで同じことができる。CI で改訂履歴の抜けを
+検査したいときにも使う。
+
+```bat
+:: 1) 見出し・表・図にラベルを付ける（初回だけ）
+.\ddq tag list  C:\work\order-design\docs --unlabeled
+.\ddq tag apply C:\work\order-design\docs --all
+
+:: 2) 前の改訂タグと作業ツリーを比べ、改訂ファイルを作る
+.\ddq rev next  C:\work\order-design\docs
+.\ddq rev diff  C:\work\order-design\docs --write
+
+:: 3) revisions\rev-B.yml の note（修正内容）を書く
+
+:: 4) 改訂履歴の表を作る
+.\ddq rev build C:\work\order-design\docs
+```
+
+::: {.tbl caption="改訂履歴のコマンド" label="tbl-revision-commands" widths="30,70"}
+| コマンド | 内容 |
+|--------------------------|--------------------------------------------------|
+| `ddq tag list <フォルダ>` | 見出し・表・図とラベルの有無を一覧する。`--unlabeled` で未付与だけ |
+| `ddq tag apply <フォルダ> --all` | ラベルの無いものすべてに候補を書き戻す。`--dry-run` で確認だけ |
+| `ddq rev next <フォルダ>` | 次の改訂記号と、比較基準の候補（前回の改訂タグ）を出す |
+| `ddq rev diff <フォルダ>` | 差分を表示する。`--write` で改訂ファイルに落とす。`--base <ref>` で基準を指定 |
+| `ddq rev build <フォルダ>` | 改訂ファイルから `revisions/history.qmd` を作る。`--check` で警告があれば異常終了 |
+:::
+
+`--base` にはタグだけでなく、ブランチ名・コミット ID・`HEAD~3` のような書き方も使える。
+
+改訂ファイルには、人が選んだ基準（`base`）と、それを解決したコミット ID
+（`base_commit`）の両方が残る。タグは付け替えられるため、**取り直したときに同じ結果に
+なるよう**コミット ID の方を使う。
+
+::: {.callout-note}
+`ddq rev build --check` は、修正内容が空の行があると異常終了する。発行前の検査として
+CI やバッチに組み込める（表そのものは作られる）。
+:::
