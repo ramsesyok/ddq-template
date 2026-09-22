@@ -437,7 +437,7 @@ docs/
 | 2 | **完了**（PR #101）。`extensions/` への移動 + `release.rs` 複数 VSIX + CI の matrix | 既存拡張のリリースが変わらないことを確認 |
 | 3 | **完了**。`extensions/ddq-revision/`: タグ付け画面（Webview 表 + WorkspaceEdit）。実拡張ホストでの検証も同梱 | 機能 1 完成 |
 | 4 | **完了**。`cli/src/doc/`（gitsrc, diff, revfile）+ `ddq rev next/diff/build` + `lib.typ` の `_xref-page` + scaffold（`revisions/history.qmd`・`index.qmd` の include）。版 2.3.0 | CLI 単体で改訂履歴が出る（サンプル文書で PDF の頁列まで確認） |
-| 5 | Custom Editor（差分表・note・確定） | 機能 2 完成 |
+| 5 | **完了**。Custom Editor（差分表・note・確定）。実拡張ホストで往復を確認 | 機能 2 完成 |
 | 6 | 実文書で 1 改訂サイクル（`rev-A` → `rev-B`）を回す。マニュアル（執筆手順）と `docs/ext-impl`/`cli-impl` を更新 | リリース 2.3.0 |
 
 - 段階 1・4 は VSCode 無しで完結するので、拡張と並行できる。

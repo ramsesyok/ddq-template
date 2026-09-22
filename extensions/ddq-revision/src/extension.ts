@@ -6,12 +6,13 @@
  * 当てる**。こうすると Ctrl+Z で戻せて、未保存のバッファにもそのまま当たる。
  */
 
-import { randomBytes } from 'node:crypto';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 import { DdqError, ddqCommand, run, runJson, versionOf } from './ddq/run';
 import type { TagList } from './ddq/types';
+import { EMPTY_SCHEME, RevisionEditorProvider, html, openDiff, write, writingFolderOf } from './revision/provider';
+import { parse } from './revision/revfile';
 import { characterOffset, checkRows, rowKey, sortForApply, type Row } from './tagging/labels';
 import type { FromWebviewMessage, ToWebviewMessage } from './tagging/messages';
 
@@ -31,12 +32,61 @@ export function activate(context: vscode.ExtensionContext) {
             openTags(context, resource)
         )
     );
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ddqRevision.newRevision', (resource?: vscode.Uri) =>
+            newRevision(resource)
+        )
+    );
+    // 改訂履歴の編集画面（revisions/rev-<記号>.yml）
+    context.subscriptions.push(
+        vscode.window.registerCustomEditorProvider(
+            RevisionEditorProvider.viewType,
+            new RevisionEditorProvider(context.extensionUri),
+            { webviewOptions: { retainContextWhenHidden: true }, supportsMultipleEditorsPerDocument: false }
+        )
+    );
+    // 追加・削除の側に出す「空の文書」（§5.8）
+    context.subscriptions.push(
+        vscode.workspace.registerTextDocumentContentProvider(
+            EMPTY_SCHEME,
+            RevisionEditorProvider.emptyProvider()
+        )
+    );
     // 書き戻しだけを呼ぶ口。package.json に出していないのでコマンドパレットには現れない。
     // 実拡張ホストで動かす検証（tests/host）がここを使う。
     context.subscriptions.push(
         vscode.commands.registerCommand(
             'ddqRevision.internal.applyRows',
             (folder: string, list: TagList, rows: Row[]) => applyRows(folder, list, rows)
+        )
+    );
+    // 改訂履歴の編集画面が行うことを、検証（tests/host）から直接呼ぶための口。
+    // package.json に出していないのでコマンドパレットには現れない。
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            'ddqRevision.internal.writeNote',
+            async (uri: string, note: string) => {
+                const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(uri));
+                const revision = parse(document.getText());
+                if (revision.entries.length === 0) return false;
+                revision.entries[0].note = note;
+                await write(document, revision);
+                return true;
+            }
+        )
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            'ddqRevision.internal.openDiff',
+            async (uri: string, index: number) => {
+                const target = vscode.Uri.parse(uri);
+                const document = await vscode.workspace.openTextDocument(target);
+                const revision = parse(document.getText());
+                const entry = revision.entries[index];
+                if (!entry) return false;
+                await openDiff(writingFolderOf(target), revision, entry.label);
+                return true;
+            }
         )
     );
     context.subscriptions.push({ dispose: dispose });
@@ -65,7 +115,7 @@ async function openTags(context: vscode.ExtensionContext, resource?: vscode.Uri)
             vscode.ViewColumn.Active,
             { enableScripts: true, retainContextWhenHidden: true }
         );
-        panel.webview.html = webviewHtml(panel.webview, context.extensionUri);
+        panel.webview.html = html(panel.webview, context.extensionUri, 'tags');
         panel.onDidDispose(() => {
             session = undefined;
         });
@@ -258,27 +308,55 @@ function hasLabel(line: string): boolean {
     return /\{[^}]*#(sec|tbl|fig)-|label\s*=\s*"/.test(line);
 }
 
-function webviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
-    const nonce = randomBytes(16).toString('base64');
-    const scriptUri = webview.asWebviewUri(
-        vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'assets', 'main.js')
+
+
+/**
+ * 新しい改訂を始める。
+ *
+ * `ddq rev next` が決めた記号と基準で `rev diff --write` を走らせ、できた
+ * `revisions/rev-<記号>.yml` を編集画面で開く。基準のタグが無いときは人に選ばせる。
+ */
+async function newRevision(resource?: vscode.Uri) {
+    const folder = await resolveWritingFolder(resource);
+    if (!folder) return;
+    const command = ddqCommand(
+        vscode.workspace.getConfiguration('ddqRevision').get<string>('ddqPath')
     );
-    const styleUri = webview.asWebviewUri(
-        vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'assets', 'main.css')
-    );
-    // connect-src を書かないので default-src 'none' が効き、通信は一切できない
-    return `<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; script-src 'nonce-${nonce}'; style-src ${webview.cspSource} 'nonce-${nonce}';">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" nonce="${nonce}" href="${styleUri}">
-  <title>DDQ Revision</title>
-</head>
-<body>
-  <div id="root"></div>
-  <script nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
+    try {
+        const next = await runJson<{ rev: string; base: string | null; drafts: string[] }>(
+            command,
+            ['rev', 'next', folder, '--json'],
+            folder
+        );
+        let base = next.base ?? undefined;
+        if (!base) {
+            base = await vscode.window.showInputBox({
+                title: '比較の基準',
+                prompt: 'rev-<記号> のタグがありません。タグ・ブランチ・コミット ID を入れてください',
+                placeHolder: 'HEAD'
+            });
+            if (!base) return;
+        }
+        if (next.drafts.length > 0) {
+            vscode.window.showInformationMessage(
+                `書きかけの改訂 ${next.drafts.join(', ')} を続けます（新しい記号は作りません）。`
+            );
+        }
+        const args = ['rev', 'diff', folder, '--write', '--base', base];
+        const out = await run(command, args, folder);
+        const file = vscode.Uri.file(path.join(folder, 'revisions', `rev-${next.rev}.yml`));
+        await vscode.commands.executeCommand(
+            'vscode.openWith',
+            file,
+            RevisionEditorProvider.viewType
+        );
+        const warnings = out
+            .split(String.fromCharCode(10))
+            .filter((l) => l.startsWith('警告'))
+            .join(String.fromCharCode(10));
+        if (warnings !== '') vscode.window.showWarningMessage(warnings);
+    } catch (e) {
+        const error = e instanceof DdqError ? e : new DdqError(String(e));
+        vscode.window.showErrorMessage([error.message, error.detail].filter(Boolean).join(String.fromCharCode(10)));
+    }
 }

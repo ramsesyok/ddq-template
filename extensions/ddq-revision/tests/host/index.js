@@ -3,12 +3,19 @@
  *
  *   node tests/host/run.mjs
  *
- * インストール済みの VSCode を `--extensionDevelopmentPath` / `--extensionTestsPath` で
- * 起動し、この `run()` が本物の VSCode API の上で走る。見るのは 3 つ:
- *   1. コマンドで一覧のパネルが開くこと
+ * VSCode を `--extensionDevelopmentPath` / `--extensionTestsPath` で起動し、この `run()` が
+ * 本物の VSCode API の上で走る。見るのは 2 つの画面:
+ *
+ * ラベル一覧:
+ *   1. コマンドでパネルが開くこと
  *   2. `ddq tag list --json` の結果から作った編集指示を WorkspaceEdit で当てられること
  *      （日本語の行でも位置がずれないこと）
  *   3. 当てた直後に Undo で元へ戻せること
+ *
+ * 改訂履歴（実物の ddq があるときだけ）:
+ *   4. `ddq rev diff --write` が作った yml が Custom Editor で開くこと
+ *   5. 画面で書いたメモが ddq の読める形で文書に入り、`ddq rev build` が表に出すこと
+ *   6. 差分ボタンで VSCode の差分エディタが開くこと（左 git: / 右 作業ツリー）
  */
 const assert = require('node:assert');
 const { execFileSync } = require('node:child_process');
@@ -92,7 +99,96 @@ async function run() {
     assert.strictEqual(doc.getText(), before, 'Undo で戻らない');
     say('Ctrl+Z ひと押しで元に戻る');
 
+    // 4) 改訂履歴の編集画面（Custom Editor）。実物の ddq が要るので、差し替えのときは飛ばす
+    if (process.env.DDQ_IS_REAL === '1') {
+        await revisionEditor(docs, ddq);
+    } else {
+        log.push('--   改訂履歴の編集画面は実物の ddq が要るので飛ばした');
+    }
+
     fs.writeFileSync(path.join(process.env.HOST_OUT, 'host-result.txt'), log.join('\n'), 'utf8');
+}
+
+/**
+ * 改訂履歴の編集画面を通して見る。
+ *   1. 差分を取って yml ができる（ddq rev diff --write）
+ *   2. その yml が Custom Editor で開く
+ *   3. 画面から書いたメモが文書に入り、保存すると ddq が読める形で残る
+ *   4. 差分ボタンが VSCode の差分エディタを開く（左が git:、右が作業ツリー）
+ */
+async function revisionEditor(docs, ddq) {
+    const repo = path.dirname(docs);
+    const git = (args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
+
+    // 改訂履歴はラベルが前提（ラベルの無い見出しは追えない）。ここまでの手順では
+    // 書き戻しを Undo で戻しているので、まず実際にラベルを付けてから始める。
+    execFileSync(ddq, ['tag', 'apply', docs, '--all'], { encoding: 'utf8' });
+    git(['init', '-q', '.']);
+    git(['config', 'user.email', 't@example.com']);
+    git(['config', 'user.name', 'test']);
+    git(['add', '-A']);
+    git(['commit', '-qm', '初版']);
+    git(['tag', 'rev-A']);
+
+    // 本文を直してから差分を取る
+    const target = path.join(docs, 'chapters', '01-overview', 'index.qmd');
+    fs.writeFileSync(
+        target,
+        fs.readFileSync(target, 'utf8').replace('導入の本文。', '導入の本文を直した。')
+    );
+    execFileSync(ddq, ['rev', 'diff', docs, '--write'], { encoding: 'utf8' });
+
+    const yml = path.join(docs, 'revisions', 'rev-B.yml');
+    assert.ok(fs.existsSync(yml), 'rev-B.yml ができていない');
+    say('ddq rev diff --write で改訂ファイルができる');
+
+    await vscode.commands.executeCommand(
+        'vscode.openWith',
+        vscode.Uri.file(yml),
+        'ddqRevision.editor'
+    );
+    await new Promise((r) => setTimeout(r, 2000));
+    const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    assert.ok(
+        tab.input instanceof vscode.TabInputCustom,
+        `Custom Editor ではない: ${tab.input && tab.input.constructor.name}`
+    );
+    assert.strictEqual(tab.input.viewType, 'ddqRevision.editor');
+    say(`改訂ファイルが編集画面で開く（${tab.label}）`);
+
+    // 画面から書いたのと同じことを内部コマンドで行い、文書 → 保存 → ddq が読める形を見る
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(yml));
+    const written = await vscode.commands.executeCommand(
+        'ddqRevision.internal.writeNote',
+        doc.uri.toString(),
+        '導入の説明を補足した。'
+    );
+    assert.ok(written, 'メモを書けなかった');
+    assert.ok(doc.isDirty, '未保存のバッファに入っていない');
+    await doc.save();
+    assert.ok(
+        /note: \|\r?\n\s+導入の説明を補足した。/.test(fs.readFileSync(yml, 'utf8')),
+        'ddq の読める形でメモが入っていない'
+    );
+    say('画面で書いたメモが ddq の読める形で文書に入る');
+
+    // ddq が読めること（表が作れること）で往復を確かめる
+    const out = execFileSync(ddq, ['rev', 'build', docs], { encoding: 'utf8' });
+    const history = fs.readFileSync(path.join(docs, 'revisions', 'history.qmd'), 'utf8');
+    assert.ok(history.includes('導入の説明を補足した。'), `表にメモが出ていない: ${out}`);
+    say('ddq rev build がそのメモを表に出す');
+
+    // 差分エディタ（左が git:、右が作業ツリー）
+    await vscode.commands.executeCommand('ddqRevision.internal.openDiff', doc.uri.toString(), 0);
+    await new Promise((r) => setTimeout(r, 1500));
+    const diffTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    assert.ok(
+        diffTab.input instanceof vscode.TabInputTextDiff,
+        `差分エディタではない: ${diffTab.input && diffTab.input.constructor.name}`
+    );
+    assert.strictEqual(diffTab.input.original.scheme, 'git');
+    assert.strictEqual(diffTab.input.modified.scheme, 'file');
+    say('差分ボタンで VSCode の差分エディタが開く（左 git: / 右 作業ツリー）');
 }
 
 module.exports.run = () =>
