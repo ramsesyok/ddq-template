@@ -1,0 +1,41 @@
+# 対象と読み方 {#sec-overview}
+
+## 対象・バージョン・解析範囲
+
+確認済み（静的）：パッケージ名は `ddq-revision`、表示名は `DDQ Revision`、版は `2.3.0`、publisher は `ramsesyok`。対応範囲は VSCode `^1.85.0`、エントリポイントは `out/extension.js`。`activationEvents` は空で、`contributes` が宣言するコマンド・カスタムエディタの登録によって起動する。テンプレート版も `2.3.0` で、`ddq release` と CI がこの一致を検査する。[E-0001](appendix-evidence.qmd#ev-e-0001)
+
+::: {.tbl caption="解析の範囲と境界" label="tbl-scope" widths="30,16,54"}
+| 範囲 | 扱い | 境界 |
+|---|---|---|
+| `extensions/ddq-revision/src/` | 解析対象 | 拡張ホスト、ddq の起動、ラベルの検査、YAML、React 画面 |
+| manifest・ビルド・テスト・CI | 解析対象 | コマンド登録、生成物、単体テスト、実拡張ホストの検証、配布経路 |
+| `cli/src/commands/tag.rs`・`rev.rs`・`doc/revfile.rs` | 契約の相手として解析 | JSON の形、改訂ファイルの形 |
+| `docs/revision-study.md` | 照合資料 | 決定事項（§2）と実装の差を確認 |
+| VSCode 本体・React・内蔵 Git 拡張の内部実装 | 対象外 | API 呼出境界と解決依存版まで |
+| `ddq` 内部の走査・差分アルゴリズム | 対象外 | `cli/DESIGN.md` §14・§15 が扱う |
+| 実 VSCode の GUI 操作（人の手による） | 一部未確認 | 自動化した範囲は [E-0009](appendix-evidence.qmd#ev-e-0009)。押下・見た目の最終確認は人が行う |
+:::
+
+## 役割と読み始める場所
+
+確認済み（静的）：この拡張は 2 つの画面を持つ。**ラベル一覧**（コマンドで開く Webview パネル）と、**改訂履歴の編集**（`revisions/rev-*.yml` に結び付いたカスタムエディタ）である。どちらも Webview は 1 つのバンドルで、HTML の `data-view` 属性でどちらを描くかを決める。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0006](appendix-evidence.qmd#ev-e-0006)
+
+::: {.tbl caption="調べる事項と読み始める場所" label="tbl-where" widths="38,36,26"}
+| 調べる事項 | 最初に読むコード | 関連章 |
+|---|---|---|
+| コマンド・エディタの登録、執筆フォルダの決め方 | `src/extension.ts` の `activate` / `resolveWritingFolder` | 第2・3章 |
+| ラベルの書き戻し（検査と `WorkspaceEdit`） | `src/extension.ts` の `applyRows`、`src/tagging/labels.ts` | 第3・4章 |
+| 改訂履歴の画面と保存 | `src/revision/provider.ts` の `resolveCustomTextEditor` / `write` | 第3章 |
+| 差分エディタの左右の決め方 | `src/revision/provider.ts` の `openDiff` | 第3・4章 |
+| `ddq` の起動と JSON の形 | `src/ddq/run.ts`、`src/ddq/types.ts` | 第4章 |
+| 改訂ファイル（YAML）の読み書き | `src/revision/revfile.ts` | 第4章 |
+| ビルド・配布と改修時の検証 | `package.json`、`.github/workflows/extension.yml`、`tests/host/` | 第5・6章 |
+:::
+
+上表の省略パスは `extensions/ddq-revision/` 起点である。本書は全関数の一覧ではなく、これらの境界をまたぐ契約を扱う。
+
+## 記載方針と調査の限界
+
+現行動作はコードを根拠に記載し、設計（`docs/revision-study.md`）との差があれば隠さずに書く。実装で変えた判断は [第7章](07-issues-unknowns.qmd#sec-issues-unknowns) に集約する。
+
+確認済み（実行）：Windows / Node 24.18.0 で型チェック、45 件の単体テスト、ビルド、オフライン検査、本番依存の脆弱性検査を実行した。加えて**インストール済みの VSCode を起動する検証**（`npm run test:host`）を実物の `ddq.exe` とともに実行し、10 項目を観測した。これは CI の全 Node 構成や、人の手による GUI 操作の確認を意味しない。[E-0008](appendix-evidence.qmd#ev-e-0008)、[E-0009](appendix-evidence.qmd#ev-e-0009)
