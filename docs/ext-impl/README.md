@@ -1,6 +1,6 @@
 # DDQ Table Editor 実装仕様書
 
-`extension/` の版2.2.1を解析した Quarto book。本文7章と解析根拠付録を含む。
+`extensions/ddq-table-editor/`（解析時は `extension/`）の版 2.2.1 を解析した Quarto book。本文7章と解析根拠付録を含む。
 
 - 入口: [index.qmd](index.qmd)
 - 調査メモ: [analysis/progress.md](analysis/progress.md)、[analysis/findings.md](analysis/findings.md)

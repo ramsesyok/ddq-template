@@ -26,7 +26,7 @@
 | pipe / grid / merge-cols の選択 | `formats/tbl/serializeTblBlock.ts` の `serializeTableBody` | 第4章 |
 | ビルド・配布と改修時の検証 | `extension/package.json`、`.github/workflows/extension.yml` | 第5・6章 |
 
-上表の省略パスは `extension/src/` 起点である。本書は全関数の一覧ではなく、これらの境界をまたぐ契約を扱う。
+上表の省略パスは `extension/src/` 起点である（解析時の配置。**テンプレート 2.3.0 で `extension/` は `extensions/ddq-table-editor/` へ移した**ので、現在のパスは読み替える）。本書は全関数の一覧ではなく、これらの境界をまたぐ契約を扱う。
 
 ## 記載方針と調査の限界
 

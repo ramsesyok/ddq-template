@@ -14,7 +14,7 @@ cli\target\release\ddq.exe release
 
 ビルドには Rust（stable）と MSVC のリンカ（Visual Studio の「C++ によるデスクトップ開発」
 ワークロード）、それに VSCode 拡張のパッケージ用に **Node.js（20 以上）と npm** が要る
-（`ddq release` が `extension/` で `npm ci` → `npm run package` を実行する）。
+（`ddq release` が `extensions/` の各拡張で `npm ci` → `npm run package` を実行する）。
 配布先には何も要らない（CRT は静的リンク。`cli/DESIGN.md` §7.1）。
 
 ::: {.tbl caption="ddq release の引数・オプション" label="tbl-release-opts" widths="24,76"}
@@ -59,7 +59,7 @@ quarto-template-<版>/
   欠けていればエラーにして zip を消す。
 - `--no-build` を使うときは、`docs/manual/design-doc.pdf` と `docs/manual/_book/` の
   **両方**が最新であることを確かめる（片方だけ古いまま同梱される事故を防ぐため）。
-  `extension/ddq-table-editor-<版>.vsix` も同様（版が違えば無いものとして止まる）。
+  `extensions/<拡張>/<拡張>-<版>.vsix` も同様（版が違えば無いものとして止まる）。
 - `template/` を直したあと `cargo build` を忘れると、古い機構ファイルを内蔵した exe が
   リリースに入る。`cargo build` は `template/` の変更を検知して再ビルドするが、
   実行するのは保守者である。

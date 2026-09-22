@@ -75,7 +75,8 @@ quarto-template/
 │   └── vendor/mermaid.min.js    … 新規（11.16.0）
 ├── docs/                        … 設計リポジトリ（執筆フォルダ manual/ = 利用マニュアル、design/ = テンプレート設計書）
 ├── examples/                    … サンプルの設計書リポジトリ（docs/ = 受注管理システム基本設計書。--with-sample の同梱元）
-├── extension/                   … VSCode 拡張 ddq-table-editor（2.1.0 で旧 quarto-table-support を統合。
+├── extensions/                  … VSCode 拡張（1 フォルダ = 1 拡張。2.3.0 で extension/ から移した）
+│   └── ddq-table-editor/        … 表の視覚編集（2.1.0 で旧 quarto-table-support を統合。
 │                                   ddq release が npm でパッケージして VSIX を同梱する）
 ├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release
 └── .github/workflows/extension.yml … 拡張の CI（Ubuntu / Windows × Node 20 / 22）
@@ -93,7 +94,7 @@ quarto-template-<版>/
 ├── AGENT-GUIDE.md       … AI エージェント向けの執筆ガイド（リポジトリ直下の同名ファイル）
 ├── はじめかた.pdf        … 最初の一歩（template/release-guide.typ を Quarto 同梱の Typst で PDF に。
 │                            Marp は npm 依存なので使わない）
-├── ddq-table-editor-<版>.vsix … VSCode 拡張（2.1.0 から。extension/ を `npm run package` したもの）
+├── ddq-table-editor-<版>.vsix … VSCode 拡張（2.1.0 から。extensions/ の各拡張を `npm run package` したもの）
 └── manual/
     ├── 利用マニュアル.pdf
     └── html/index.html
@@ -103,7 +104,7 @@ quarto-template-<版>/
 
 VSIX は `ddq release` が `extension/` で `npm ci`（`node_modules/` が無いときだけ）→
 `npm run package` を実行して作る（`--no-build` なら既存の VSIX を使う）。
-`extension/package.json` の `version` が `template/VERSION` と違えば止める（拡張の版＝テンプレートの版）。
+`extensions/<拡張>/package.json` の `version` が `template/VERSION` と違えば止める（拡張の版＝テンプレートの版）。
 発行者・執筆者の端末に Node.js が要らない点は変わらない（要るのは保守者のリリース作成時だけ）。
 Windows の `npm` は `npm.cmd` なので `cmd /C npm …` で起動する（`Command::new("npm")` は .cmd を解決しない）。
 

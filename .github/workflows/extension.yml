@@ -1,14 +1,15 @@
-# VSCode 拡張 ddq-table-editor（extension/）の CI。
-# 旧 quarto-table-support リポジトリの ci.yml を extension/ 配下で動くようにしたもの。
+# VSCode 拡張（extensions/<拡張>/）の CI。
+# 拡張は 1 フォルダ = 1 つで、どれも同じ作法（npm ci / typecheck / test / build /
+# check:offline / package）に揃える。増やすときは matrix.ext に足すだけでよい。
 # ddq（cli/）の CI は ci.yml。
 name: extension
 
 on:
   push:
     branches: [main]
-    paths: [extension/**, .github/workflows/extension.yml]
+    paths: [extensions/**, .github/workflows/extension.yml]
   pull_request:
-    paths: [extension/**, .github/workflows/extension.yml]
+    paths: [extensions/**, .github/workflows/extension.yml]
   workflow_dispatch:
 
 # 同じブランチへ続けて push したら古い実行は打ち切る
@@ -19,17 +20,17 @@ concurrency:
 permissions:
   contents: read
 
-defaults:
-  run:
-    working-directory: extension
-
 jobs:
   test:
-    name: テスト (${{ matrix.os }} / Node ${{ matrix.node }})
+    name: テスト (${{ matrix.ext }} / ${{ matrix.os }} / Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: extensions/${{ matrix.ext }}
     strategy:
       fail-fast: false
       matrix:
+        ext: [ddq-table-editor]
         os: [ubuntu-latest, windows-latest]
         node: ['20', '22']
     steps:
@@ -39,7 +40,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-          cache-dependency-path: extension/package-lock.json
+          cache-dependency-path: extensions/${{ matrix.ext }}/package-lock.json
 
       # グリッド表の記法は pandoc の解釈に強く依存するため、
       # src/formats/pandoc.test.ts を本物の pandoc に対して実行する。
@@ -70,15 +71,22 @@ jobs:
         run: npm run check:offline
 
   audit:
-    name: 脆弱性チェック
+    name: 脆弱性チェック (${{ matrix.ext }})
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extensions/${{ matrix.ext }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ext: [ddq-table-editor]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: extension/package-lock.json
+          cache-dependency-path: extensions/${{ matrix.ext }}/package-lock.json
       - run: npm ci
 
       # 利用者へ配布されるのは本番依存だけなので、ここは必ず 0 件であること
@@ -90,24 +98,31 @@ jobs:
         run: npm audit || true
 
   package:
-    name: VSIX の生成
+    name: VSIX の生成 (${{ matrix.ext }})
     runs-on: ubuntu-latest
     needs: [test, audit]
+    defaults:
+      run:
+        working-directory: extensions/${{ matrix.ext }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ext: [ddq-table-editor]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: extension/package-lock.json
+          cache-dependency-path: extensions/${{ matrix.ext }}/package-lock.json
       - run: npm ci
 
-      # ddq release と同じ照合（extension/package.json の version = template/VERSION）
+      # ddq release と同じ照合（各 package.json の version = template/VERSION）
       - name: 版の照合
         run: |
-          expected=$(tr -d '[:space:]' < ../template/VERSION)
+          expected=$(tr -d '[:space:]' < ../../template/VERSION)
           actual=$(node -p "require('./package.json').version")
-          echo "template/VERSION=$expected extension/package.json=$actual"
+          echo "template/VERSION=$expected ${{ matrix.ext }}/package.json=$actual"
           test "$expected" = "$actual"
 
       - name: パッケージ
@@ -115,6 +130,6 @@ jobs:
       - name: 成果物を保存
         uses: actions/upload-artifact@v5
         with:
-          name: ddq-table-editor-vsix
-          path: 'extension/*.vsix'
+          name: ${{ matrix.ext }}-vsix
+          path: 'extensions/${{ matrix.ext }}/*.vsix'
           if-no-files-found: error

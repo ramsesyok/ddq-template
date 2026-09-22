@@ -3,8 +3,8 @@
 ## プロジェクト概要
 
 `design-doc-quarto-template` の統一テーブル記法 `::: {.tbl …}` を編集する VSCode 拡張
-（`ddq-table-editor`。旧 `quarto-table-support`）。このリポジトリの `extension/` に置き、
-`ddq release` がリリース一式へ VSIX として同梱する（`../cli/src/commands/release.rs`）。
+（`ddq-table-editor`。旧 `quarto-table-support`）。このリポジトリの `extensions/ddq-table-editor/` に置き、
+`ddq release` がリリース一式へ VSIX として同梱する（`../../cli/src/commands/release.rs`）。
 `mkdocs-table-editor` をベースにしているが、**出力ルールは全面的に異なる**。
 
 **仕様の正は [requirements.md](requirements.md)。実装前に必ず読むこと。**
@@ -12,12 +12,12 @@
 参照すべき外部ドキュメント:
 
 - `../manual/chapters/09-table/` … 執筆者から見た `.tbl` の記法（利用マニュアル 9 章）
-- `../template/design-doc.lua` … 実際の変換処理。
+- `../../template/design-doc.lua` … 実際の変換処理。
   `merge_body` と `Div` ハンドラが本拡張の挙動の根拠
 
 ## 版とリリース
 
-- `package.json` の `version` は `../template/VERSION` と同じ値にする（`ddq release` が照合する）
+- `package.json` の `version` は `../../template/VERSION` と同じ値にする（`ddq release` が照合する）
 - `.gitignore` はリポジトリのルートにある（ルートの `/*/.gitignore` 規則でここの `.gitignore` は
   無視される）。`node_modules/` `out/` `*.vsix` はそこで除外済み
 - CI は `../.github/workflows/extension.yml`
@@ -121,7 +121,7 @@ npm run verify
 テンプレート込みの手動確認が要るときは:
 
 ```bash
-"/c/Program Files/Quarto/bin/tools/pandoc.exe" -f markdown -t html --lua-filter=../template/design-doc.lua sample/tables.qmd
+"/c/Program Files/Quarto/bin/tools/pandoc.exe" -f markdown -t html --lua-filter=../../template/design-doc.lua sample/tables.qmd
 ```
 
 ### 検査を形骸化させないこと

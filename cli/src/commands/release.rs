@@ -6,8 +6,9 @@
 //!                                        / ddq-table-editor-<版>.vsix（VSCode 拡張）
 //!   <out-dir>/quarto-template-<版>.zip
 //! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
-//! VSCode 拡張は extension/ を npm でパッケージして同梱する（2.1.0 から）。版は
-//! extension/package.json の version で、template/VERSION と一致していなければ止める。
+//! VSCode 拡張は extensions/<拡張>/ を npm でパッケージして同梱する（2.1.0 から。
+//! 2.3.0 で extension/ → extensions/ddq-table-editor/ に移し、複数の拡張を扱えるようにした）。
+//! 版は各 package.json の version で、template/VERSION と一致していなければ止める。
 //! plantuml.jar は cli/vendor/plantuml.jar（git 管理外。保守者が MIT 版を置く）を同梱する（2.2.0 から）。
 
 use std::{
@@ -50,9 +51,10 @@ const PLANTUML_JAR_DEST: &str = "plantuml.jar";
 /// AI エージェント向け執筆ガイド（リポジトリ直下。リリース直下に同名で置く）
 const AGENT_GUIDE: &str = "AGENT-GUIDE.md";
 
-/// VSCode 拡張（.tbl の視覚編集）。リポジトリ内のフォルダ名と、package.json の name（= VSIX 名の先頭）
-const EXTENSION_DIR: &str = "extension";
-const EXTENSION_NAME: &str = "ddq-table-editor";
+/// VSCode 拡張を置くフォルダ。この下の 1 フォルダ = 1 拡張で、どれも同じ作法
+/// （`package.json` の name と version、`npm run package` で VSIX ができる）に揃える。
+/// 版はすべて template/VERSION と一致していなければならない（利用マニュアル 17 章）。
+const EXTENSIONS_DIR: &str = "extensions";
 
 pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<()> {
     let repo = env::current_dir().context("カレントディレクトリを取得できません")?;
@@ -91,7 +93,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     }
 
     // 1b) VSCode 拡張（VSIX）。マニュアルと同じく --no-build なら既にあるものを使う
-    let vsix = build_extension(&repo.join(EXTENSION_DIR), no_build)?;
+    let vsixes = build_extensions(&repo.join(EXTENSIONS_DIR), no_build)?;
 
     // 2) 集める（毎回作り直す）
     if stage.exists() {
@@ -111,8 +113,12 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
     fs::copy(&manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
     copy_tree(&manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
-    let vsix_name = vsix.file_name().context("VSIX のファイル名")?;
-    fs::copy(&vsix, stage.join(vsix_name)).context("VSIX をコピーできません")?;
+    let mut vsix_names: Vec<String> = Vec::new();
+    for vsix in &vsixes {
+        let vsix_name = vsix.file_name().context("VSIX のファイル名")?;
+        fs::copy(vsix, stage.join(vsix_name)).context("VSIX をコピーできません")?;
+        vsix_names.push(vsix_name.to_string_lossy().into_owned());
+    }
     if with_sample {
         copy_tree(
             &repo.join(SAMPLE_DIR),
@@ -137,7 +143,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     println!(
         "  内容: {} / plantuml.jar / はじめかた.pdf / README / AGENT-GUIDE / manual（PDF + HTML）/ {}{}",
         exe_name.display(),
-        vsix_name.to_string_lossy(),
+        vsix_names.join(" / "),
         if with_sample {
             " / docs（サンプル）"
         } else {
@@ -182,13 +188,35 @@ fn jar_version(jar: &Path) -> Option<String> {
         .map(|v| v.trim().to_string())
 }
 
-/// VSCode 拡張（extension/）をパッケージし、できた VSIX のパスを返す。
+/// `extensions/` の各拡張をパッケージし、できた VSIX のパスを（フォルダ名順に）返す。
 ///
-/// - `extension/package.json` の version が template/VERSION と違えば止める
+/// 1 フォルダ = 1 拡張。フォルダ名は `package.json` の name と一致させる（VSIX 名の先頭になる）。
+fn build_extensions(root: &Path, no_build: bool) -> Result<Vec<PathBuf>> {
+    let mut dirs: Vec<PathBuf> = fs::read_dir(root)
+        .with_context(|| format!("{} を読めません", root.display()))?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.join("package.json").is_file())
+        .collect();
+    dirs.sort();
+    if dirs.is_empty() {
+        bail!("{} に VSCode 拡張がありません", root.display());
+    }
+    dirs.iter().map(|d| build_extension(d, no_build)).collect()
+}
+
+/// VSCode 拡張 1 つをパッケージし、できた VSIX のパスを返す。
+///
+/// - `package.json` の name がフォルダ名と違えば止める（VSIX 名の先頭になるため）
+/// - `package.json` の version が template/VERSION と違えば止める
 ///   （拡張の版はテンプレートの版に揃える。利用マニュアル 17 章）
 /// - `no_build` でなければ `npm ci`（node_modules が無いときだけ）→ `npm run package`
-/// - どちらの場合も `extension/<name>-<版>.vsix` が無ければエラー
+/// - どちらの場合も `<拡張>/<name>-<版>.vsix` が無ければエラー
 fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {
+    let dir_name = ext
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let rel = format!("{EXTENSIONS_DIR}/{dir_name}");
     let package_json = ext.join("package.json");
     let text = fs::read_to_string(&package_json)
         .with_context(|| format!("{} を読めません", package_json.display()))?;
@@ -196,43 +224,48 @@ fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {
         .with_context(|| format!("{} を JSON として読めません", package_json.display()))?;
     let name = meta["name"].as_str().unwrap_or_default();
     let version = meta["version"].as_str().unwrap_or_default();
-    if name != EXTENSION_NAME {
+    if name != dir_name {
         bail!(
-            "{} の name が {EXTENSION_NAME} ではありません: {name}",
+            "{} の name がフォルダ名と違います: name = {name}, フォルダ = {dir_name}",
             package_json.display()
         );
     }
     if version != assets::VERSION {
         bail!(
             concat!(
-                "VSCode 拡張の版がテンプレートの版と違います: {} の version = {}, template/VERSION = {}\n",
-                "extension/ で `npm version {} --no-git-tag-version` を実行して揃えてください"
+                "VSCode 拡張の版がテンプレートの版と違います: {} の version = {}, template/VERSION = {}
+",
+                "{} で `npm version {} --no-git-tag-version` を実行して揃えてください"
             ),
             package_json.display(),
             version,
             assets::VERSION,
+            rel,
             assets::VERSION
         );
     }
 
-    let vsix = ext.join(format!("{EXTENSION_NAME}-{}.vsix", assets::VERSION));
+    let vsix = ext.join(format!("{name}-{}.vsix", assets::VERSION));
     if !no_build {
-        println!("  VSCode 拡張をパッケージ（npm run package）...");
+        println!("  VSCode 拡張をパッケージ（{rel}）...");
         if !ext.join("node_modules").is_dir() {
-            quarto::run(npm(ext).arg("ci"), "npm ci（extension/）")?;
+            quarto::run(npm(ext).arg("ci"), &format!("npm ci（{rel}）"))?;
         }
-        quarto::run(npm(ext).args(["run", "package"]), "npm run package（extension/）")?;
+        quarto::run(
+            npm(ext).args(["run", "package"]),
+            &format!("npm run package（{rel}）"),
+        )?;
     }
     if !vsix.is_file() {
         bail!(
-            "{} がありません（--no-build を外すか、extension/ で npm run package を実行してください）",
+            "{} がありません（--no-build を外すか、{rel} で npm run package を実行してください）",
             vsix.display()
         );
     }
     Ok(vsix)
 }
 
-/// `npm` を extension/ で起動するコマンド。Windows の npm は npm.cmd なので cmd 経由で呼ぶ
+/// `npm` を拡張のフォルダで起動するコマンド。Windows の npm は npm.cmd なので cmd 経由で呼ぶ
 /// （`Command::new("npm")` は .cmd を解決しない）。
 fn npm(dir: &Path) -> std::process::Command {
     let mut cmd = if cfg!(windows) {

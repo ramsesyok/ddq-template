@@ -35,7 +35,8 @@ design-doc-quarto-template/
 │   └── plantuml/            … 受注管理システム プログラム概要設計書（PlantUML の実例）
 │
 ├── cli/                     … 配置・ビルドの道具（template/ を内蔵する）。設計は cli/DESIGN.md
-└── extension/               … VSCode 拡張（表の視覚編集）。extension/README.md
+└── extensions/              … VSCode 拡張（1 フォルダ = 1 拡張）
+    └── ddq-table-editor/    … 表の視覚編集。README はフォルダ内
 ```
 
 ### 文書の置き場
