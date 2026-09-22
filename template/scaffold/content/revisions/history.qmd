@@ -1,0 +1,1 @@
+<!-- ddq rev build が生成する。手で編集しない（revisions/rev-*.yml を直す）。 -->

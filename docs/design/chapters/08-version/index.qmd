@@ -55,8 +55,8 @@ VSCode の Quarto 拡張や素の `quarto render` はこの検査を行わない
 
 ## 実行例の版番号 {#sec-version-examples}
 
-リリース展開フォルダの名前に版が入る（`quarto-template-2.2.2/`）ため、README や
-利用マニュアルの実行例（`cd C:\tools\quarto-template-2.2.2`）にも版番号が埋め込まれている。
+リリース展開フォルダの名前に版が入る（`quarto-template-2.3.0/`）ため、README や
+利用マニュアルの実行例（`cd C:\tools\quarto-template-2.3.0`）にも版番号が埋め込まれている。
 版を上げたら**これらも揃える**。ずれていると、発行者が手元のフォルダ名と合わない手順を
 読むことになる。確認方法は利用マニュアル 17 章にある。
 

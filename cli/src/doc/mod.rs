@@ -3,8 +3,11 @@
 //! `ddq tag`（見出し・表・図のラベル付け）と、後に足す `ddq rev`（改訂履歴）が
 //! 共有する。Quarto のレンダリングには関与せず、qmd/md をテキストとして読むだけ。
 
+pub mod diff;
+pub mod gitsrc;
 pub mod labels;
 pub mod project;
+pub mod revfile;
 pub mod units;
 
 use std::{collections::HashMap, path::Path};

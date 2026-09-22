@@ -55,7 +55,7 @@ Quarto 同梱の mermaid がブラウザ内で描画するため、追加の道�
 
 ```text
 発行者の手元                              執筆者の手元
-quarto-template-2.2.2/  ←（共有しない）
+quarto-template-2.3.0/  ←（共有しない）
 └── ddq.exe
 order-design/           ──── git ────→   order-design/
 └── docs/                                └── docs/  … 機構ファイル込みで clone される

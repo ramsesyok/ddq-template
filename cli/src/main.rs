@@ -44,6 +44,8 @@ enum Command {
     Plantuml(PlantumlArgs),
     /// 見出し・表・図の Quarto ラベル（改訂履歴のキー）を一覧・付与する
     Tag(TagArgs),
+    /// 見出し・表・図の単位で改訂履歴を作る（Git の版と作業ツリーを比べる）
+    Rev(RevArgs),
     /// 発行者向けリリース一式（exe + 利用マニュアル + README + VSCode 拡張）を作る（保守者用）
     Release(ReleaseArgs),
     /// mermaid ソースを SVG に変換する（design-doc.lua が内部で呼ぶ）
@@ -142,6 +144,58 @@ struct TagApplyArgs {
 }
 
 #[derive(Args)]
+struct RevArgs {
+    #[command(subcommand)]
+    command: RevCommand,
+}
+
+#[derive(Subcommand)]
+enum RevCommand {
+    /// 次の改訂記号と比較基準の候補（前回の改訂タグ）を出す
+    Next(RevNextArgs),
+    /// 基準の版と作業ツリーを比べ、ラベル単位の変更を出す
+    Diff(RevDiffArgs),
+    /// revisions/*.yml から改訂履歴の表（revisions/history.qmd）を作る
+    Build(RevBuildArgs),
+}
+
+#[derive(Args)]
+struct RevNextArgs {
+    /// 執筆フォルダ（_quarto.yml のあるフォルダ。省略時 docs）
+    writing_folder: Option<PathBuf>,
+    /// 機械可読な JSON で出す
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Args)]
+struct RevDiffArgs {
+    /// 執筆フォルダ（_quarto.yml のあるフォルダ。省略時 docs）
+    writing_folder: Option<PathBuf>,
+    /// 比較の基準（タグ・ブランチ・コミット ID。省略時は前回の改訂タグ）
+    #[arg(long, value_name = "REF")]
+    base: Option<String>,
+    /// 機械可読な JSON で出す（VSCode 拡張向け）
+    #[arg(long)]
+    json: bool,
+    /// 空白・空行だけの違いも変更として扱う
+    #[arg(long)]
+    strict: bool,
+    /// 結果を revisions/rev-<記号>.yml に書く（既にあるメモは引き継ぐ）
+    #[arg(long)]
+    write: bool,
+}
+
+#[derive(Args)]
+struct RevBuildArgs {
+    /// 執筆フォルダ（_quarto.yml のあるフォルダ。省略時 docs）
+    writing_folder: Option<PathBuf>,
+    /// 警告があれば異常終了する（CI 向け）
+    #[arg(long)]
+    check: bool,
+}
+
+#[derive(Args)]
 struct PlantumlArgs {
     #[command(subcommand)]
     command: PlantumlCommand,
@@ -205,6 +259,19 @@ fn main() -> anyhow::Result<()> {
                     t.from.as_deref(),
                     t.dry_run,
                 )
+            }
+        },
+        Command::Rev(a) => match a.command {
+            RevCommand::Next(r) => commands::rev::next(&writing_folder::resolve(r.writing_folder)?, r.json),
+            RevCommand::Diff(r) => commands::rev::diff_cmd(
+                &writing_folder::resolve(r.writing_folder)?,
+                r.base.as_deref(),
+                r.json,
+                r.strict,
+                r.write,
+            ),
+            RevCommand::Build(r) => {
+                commands::rev::build(&writing_folder::resolve(r.writing_folder)?, r.check)
             }
         },
         Command::Plantuml(a) => match a.command {

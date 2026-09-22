@@ -44,13 +44,13 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 
 ```
 C:\tools\
-└── quarto-template-2.2.2/   ← リリース ZIP を展開したもの（git 管理外）
+└── quarto-template-2.3.0/   ← リリース ZIP を展開したもの（git 管理外）
     ├── ddq.exe              ← 様式・変換・ビルドの実体（これを実行する。インストール不要）
     ├── plantuml.jar         ← PlantUML 図の描画（ローカルの Java で ddq が起動する）
     ├── はじめかた.pdf        ← 発行者向けの最初の一歩（8 枚のスライド）
     ├── README.md            ← このファイル
     ├── AGENT-GUIDE.md       ← AI エージェント向けの執筆ガイド（設計書リポジトリの AGENTS.md やスキルに取り込む）
-    ├── ddq-table-editor-2.2.2.vsix ← VSCode 拡張（表の視覚編集。執筆者へ配る）
+    ├── ddq-table-editor-2.3.0.vsix ← VSCode 拡張（表の視覚編集。執筆者へ配る）
     └── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
 
 C:\work\
@@ -96,7 +96,7 @@ C:\work\
 ZIP を展開し、**展開したフォルダで**実行します。
 
 ```bat
-cd C:\tools\quarto-template-2.2.2
+cd C:\tools\quarto-template-2.3.0
 .\ddq init C:\work\order-design
 ```
 
@@ -117,7 +117,7 @@ PlantUML 図だけは描画にサーバが要ります。LAN にサーバがあ�
 ### 4. 発行者が PDF・配布 HTML を出す
 
 ```bat
-cd C:\tools\quarto-template-2.2.2
+cd C:\tools\quarto-template-2.3.0
 .\ddq pdf  C:\work\order-design\docs
 .\ddq html C:\work\order-design\docs
 ```
@@ -140,7 +140,7 @@ Node.js も npm も要りません。
 新しい版は別のフォルダに展開されるので、そちらから機構ファイルを入れ直します。
 
 ```bat
-cd C:\tools\quarto-template-2.2.2
+cd C:\tools\quarto-template-2.3.0
 .\ddq update C:\work\order-design\docs
 ```
 
