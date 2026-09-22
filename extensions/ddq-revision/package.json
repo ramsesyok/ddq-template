@@ -25,12 +25,22 @@
         "command": "ddqRevision.tags",
         "title": "見出し・表・図のラベルを一覧する",
         "category": "DDQ Revision"
+      },
+      {
+        "command": "ddqRevision.newRevision",
+        "title": "新しい改訂を始める（差分を取る）",
+        "category": "DDQ Revision"
       }
     ],
     "menus": {
       "explorer/context": [
         {
           "command": "ddqRevision.tags",
+          "when": "explorerResourceIsFolder",
+          "group": "7_modification"
+        },
+        {
+          "command": "ddqRevision.newRevision",
           "when": "explorerResourceIsFolder",
           "group": "7_modification"
         }
@@ -45,7 +55,19 @@
           "markdownDescription": "`ddq` 実行ファイルのパス。空なら `PATH` から探す。"
         }
       }
-    }
+    },
+    "customEditors": [
+      {
+        "viewType": "ddqRevision.editor",
+        "displayName": "DDQ 改訂履歴",
+        "selector": [
+          {
+            "filenamePattern": "**/revisions/rev-*.yml"
+          }
+        ],
+        "priority": "default"
+      }
+    ]
   },
   "scripts": {
     "build:ext": "node esbuild.mjs",

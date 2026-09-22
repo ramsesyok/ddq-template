@@ -15,7 +15,8 @@
   "include": [
     "src/extension.ts",
     "src/ddq/**/*.ts",
-    "src/tagging/**/*.ts"
+    "src/tagging/**/*.ts",
+    "src/revision/**/*.ts"
   ],
   "exclude": [
     "src/webview/**",

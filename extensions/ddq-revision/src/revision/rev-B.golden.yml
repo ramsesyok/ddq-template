@@ -1,0 +1,44 @@
+# ddq rev diff が作り、人が note（修正内容）を書き足すファイル。
+# 改訂履歴の表は `ddq rev build` が revisions/history.qmd に生成する。
+rev: B
+date: 2026-09-22
+base: rev-A
+base_commit: 75468c39af440081ad9a2903cedfc1e1873f24cc
+scheme: alpha
+entries:
+  - label: sec-f348af
+    kind: changed
+    unit: heading
+    title: 目的
+    file: chapters/01-overview/01-purpose.qmd
+    note: |
+      目的の記述に背景を補足した。
+  - label: sec-fc37ef
+    kind: renamed
+    unit: heading
+    title: 可用性を最も重視する
+    file: chapters/02-design-policy/01-availability.qmd
+    note: |
+      標題の言い回しを見直した
+      （内容の変更は無い）。
+  - label: sec-2e72c0
+    kind: removed
+    unit: heading
+    title: 他システムとは疎結合とする
+    file: chapters/02-design-policy/03-loose-coupling.qmd
+    note: |
+      疎結合の方針は第4章に統合したため削除。
+  - label: sec-observability
+    kind: added
+    unit: heading
+    title: 監視できることを設計に織り込む
+    file: chapters/02-design-policy/04-observability.qmd
+    note: |
+      監視に関する方針を新規に追加。
+  - label: tbl-cond
+    kind: changed
+    unit: tbl
+    title: 設計条件
+    file: chapters/03-design-conditions/index.qmd
+    note: |
+      性能条件のピーク時受注量を 100 → 150 件/分に見直した。

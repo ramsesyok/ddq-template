@@ -32,14 +32,18 @@ const extensionDevelopmentPath = path.resolve(here, '../..');
 const repo = path.resolve(extensionDevelopmentPath, '../..');
 
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'ddq-revision-host-'));
-const docs = makeWorkspace(work);
+// 検証用の設計書リポジトリ。VSCode のプロファイル（user-data）と混ざらないよう
+// 1 階層下げる（混ざると git add -A がプロファイルの使用中ファイルで落ちる）。
+const repoDir = path.join(work, 'repo');
+const docs = makeWorkspace(repoDir);
 const ddq = resolveDdq(work);
+const ddqIsReal = !ddq.startsWith(work); // 差し替え（シム）は work の中に作る
 console.log(`ddq: ${ddq}`);
 
 // 拡張には設定 ddqRevision.ddqPath 経由で渡す（設定の経路もここで確かめる）
-fs.mkdirSync(path.join(work, '.vscode'), { recursive: true });
+fs.mkdirSync(path.join(repoDir, '.vscode'), { recursive: true });
 fs.writeFileSync(
-    path.join(work, '.vscode', 'settings.json'),
+    path.join(repoDir, '.vscode', 'settings.json'),
     JSON.stringify({ 'ddqRevision.ddqPath': ddq }, null, 2)
 );
 
@@ -51,9 +55,14 @@ try {
         vscodeExecutablePath,
         extensionDevelopmentPath,
         extensionTestsPath: path.join(here, 'index.js'),
-        extensionTestsEnv: { DDQ_BIN: ddq, HOST_OUT: work, DOCS_DIR: docs },
+        extensionTestsEnv: {
+            DDQ_BIN: ddq,
+            HOST_OUT: work,
+            DOCS_DIR: docs,
+            DDQ_IS_REAL: ddqIsReal ? '1' : '0'
+        },
         launchArgs: [
-            work,
+            repoDir,
             '--disable-workspace-trust',
             '--user-data-dir',
             path.join(work, 'user-data'),
