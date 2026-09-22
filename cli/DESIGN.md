@@ -149,6 +149,8 @@ pdf  ──► setup（版・機構の一致検査 + PDF 側配置）──► p
 diagrams ──────────────────────────────────────► mermaid と同じ変換器 / PlantUML サーバ
 plantuml serve ─► ローカルの PicoWeb を上げたままにする（執筆者のプレビュー用）
 release ──► update, pdf, html（manual に対して）
+tag list ─┐
+tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出し・表・図の抽出）
 ```
 
 ### 各コマンド
@@ -164,6 +166,8 @@ release ──► update, pdf, html（manual に対して）
 | **diagrams** | `diagrams/*.mmd *.puml` → 同名 `.svg`（キャッシュ `mmd-*` `puml-*` は対象外）。設定は執筆フォルダ直下の `mermaid-config.json` / `plantuml-config.puml`（無ければ埋め込み） | render-diagrams |
 | **plantuml serve** | §13.4。Java と jar を探し、PicoWeb を既定ポートに上げて Ctrl-C まで待つ | （新規） |
 | **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `docs/manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`cli/vendor/plantuml.jar` を `plantuml.jar` として同梱（無ければ停止）、`README.md`、`AGENT-GUIDE.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
+| **tag list** | 執筆フォルダの見出し・表・図と Quarto ラベルの有無を一覧する。ラベルが無いものには内容由来ハッシュの候補と**編集指示**（ファイル・行・行頭からの文字数・挿入する文字列）を付ける。`--json` は機械可読（VSCode 拡張・CI 向け）、`--unlabeled` はラベルの無いものだけ | （新規。§14） |
+| **tag apply** | `--all` で候補をすべて書き戻す。`--from <FILE>` は `tag list --json` の出力（人が候補を直したもの）を読んで書き戻し、当てる前に文書側と突き合わせる。`--dry-run` で書かずに内容だけ出す | （新規。§14） |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
 
 `TEMPLATE_ROOT`（旧フィルタが `mermaid-config.json` のフォールバック探索に使っていた）は廃止した。
@@ -349,7 +353,7 @@ cli/src/
 ├── main.rs            … clap の Cli / Commands enum と dispatch だけ
 ├── commands/
 │   ├── init.rs  add.rs  update.rs  setup.rs
-│   ├── html.rs  pdf.rs  diagrams.rs  release.rs
+│   ├── html.rs  pdf.rs  diagrams.rs  release.rs  tag.rs
 │   └── mermaid.rs     … hidden サブコマンド（引数→ renderer 呼び出し）
 ├── assets.rs          … include_dir! の窓口（機構ファイル名の定数、書き出し関数）
 ├── writing_folder.rs  … 執筆フォルダの検証・列挙（_quarto.yml の有無、コードページで表せない文字の検査）
@@ -358,6 +362,11 @@ cli/src/
 │   ├── mod.rs         … Engine 選択と共通インタフェース（Vec<(input, output)> → Result）
 │   ├── browser.rs     … 探索・HTML 生成・起動・CDP（DevToolsActivePort → WebSocket）
 │   └── merman.rs      … merman クレート呼び出しと foreignObject 抑止
+├── doc/               … 執筆フォルダを「論理文書」として読む層（§14）
+│   ├── mod.rs         … 走査の入口（Doc: 文書順のファイル列・見出し等の一覧・警告）
+│   ├── project.rs     … _quarto.yml の chapters と {{< include >}} の再帰展開
+│   ├── units.rs       … 行頭パターンによる見出し・.tbl・.ipo・#fig-・pipe 表キャプションの抽出
+│   └── labels.rs      … 候補ラベル（sha1）と編集指示の生成
 ├── plantuml/
 │   └── mod.rs         … Java / jar / サーバ URL の探索、PicoWeb の起動・停止（Job Object）、手書き HTTP、Session（§13）
 └── zip.rs             … release 用
@@ -594,3 +603,76 @@ design-doc.lua ──┤                                        … POST /render
 「執筆者は Quarto と VSCode 拡張だけ」は、PlantUML を使わない文書と LAN サーバのある組織では**そのまま**。
 変わるのは「PlantUML を使い、かつ LAN サーバが無い執筆者」だけで、その持ち物は発行者と同じ（リリース一式 + Java）。
 利用マニュアルの「役割の違いは持ち物だけ」の延長として、例外の範囲を明示する（3 章・8 章・11 章）。
+
+---
+
+## 14. 見出し・表・図のラベル（`ddq tag`）
+
+検討と設計の全体は `docs/revision-study.md`（ddq-revision）にある。ここは CLI 側の実装に絞る。
+
+### 14.1 なぜ要るのか
+
+改訂履歴を**ページ単位ではなく「見出し・表・図」単位**で作るために、その 3 者を一意に指す
+キーが要る。キーは Quarto のラベル（`{#sec-x}` / `label="tbl-x"` / `{#fig-x}`）をそのまま使う。
+見出し文言やキャプションは改訂で変わるがラベルは変わらないので、版をまたいだ対応付けが安定し、
+改訂履歴表からは `@sec-x` でそのまま参照リンクになる（二重管理にならない）。
+
+### 14.2 何を拾うか（`doc::units`）
+
+行頭のパターンだけで拾う。Pandoc の完全なパーサは要らない（ラベルを足す位置が分かればよい）。
+
+| 種別 | 記法 | ラベル |
+|---|---|---|
+| 見出し | `# 見出し {属性}` | 属性の `#sec-…` |
+| 統一テーブル | `::: {.tbl caption="…" label="…"}` | 属性の `label=` |
+| IPO 図 | `::: {.ipo … label="…"}` | 同上（IPO は表番号を持つ） |
+| パイプ表 | 表の前後（空行 1 つまで可）の `: キャプション {#tbl-…}` | 属性の `#tbl-…` |
+| 図 | `::: {#fig-x}` | この記法は id 必須なので常に有り |
+
+走査から外すもの:
+
+- YAML front matter とコードフェンスの内側
+- **`.tbl` / `.ipo` / `#fig-` ブロックの内側の見出し**。IPO 図は `## <機能名>` `### 入力`
+  `### 処理` `### 出力` という見出しで中身を書く記法で、これは文書の節ではない
+- キャプションの無い `.tbl`（採番されない表。ラベルを付けても参照できないので `no-caption` の警告だけ）
+
+### 14.3 文書順（`doc::project`）
+
+`_quarto.yml` の `book.chapters`（`part:` の入れ子も含む）を起点に `{{< include >}}` を再帰展開する。
+**include のパスの基準は「`chapters:` に並べた章ファイルのあるディレクトリ」で、入れ子の include でも
+変わらない**（include 元ファイルの位置ではない）。執筆フォルダの `_quarto.yml` にも同じ注意書きがある。
+ここを取り違えると章の大半を取りこぼす（実際に踏んだ）。
+
+`_quarto.yml` が無いフォルダでは配下の qmd/md をパス順に並べる（テンプレート外でも一応動く保険）。
+
+### 14.4 候補ラベル（`doc::labels`）
+
+`sha1(相対パス + 種別 + 正規化した文言)` の先頭 6 桁に接頭辞を付ける（衝突したら 8 → 10 → 40 桁）。
+
+- **決定的**にするのは、「一覧 → 一部だけ書き戻し → 再実行」で未書き戻し分の候補が揺れないため。
+  CLI と VSCode 拡張で同じ結果が出るのでテストもしやすい。
+- 章番号の連番にしないのは、章構成を組み替えると番号と場所がずれて却って分かりにくいため。
+- 一度書き戻したラベルは、内容が変わっても**不変のキー**として扱う（候補生成に内容を使うのは初回だけ）。
+
+### 14.5 書き戻し
+
+`tag list` は編集指示（`file` / `line` / `col` / `insert`）を返し、`tag apply` がそれを当てる。
+**`col` は行頭からの文字数**（バイト数ではない。日本語の見出しで意味が変わる）。挿入はすべて
+1 行の中で完結し、行の増減を伴わない。VSCode 拡張はこの編集指示を `WorkspaceEdit` として自分で
+当てる（Undo が効き、未保存のバッファにもそのまま当たる）。
+
+- 同じファイルの中は**行番号の大きい順**に当てて位置ずれを防ぐ
+- 改行コードは保つ（CRLF の行に挿入しても CRLF のまま）
+- `--from` は当てる前に文書側と突き合わせる: 行が動いた・既にラベルがある・ラベルの形が違う・
+  他と重複する、のいずれかなら**何も書かずに止める**
+
+### 14.6 テスト
+
+- `src/doc/*` の単体テスト: `chapters:` の読み取り（`part:` 入れ子・字下げの終わり）、入れ子 include の
+  パス解決、行頭パターン（見出し・`.tbl`・`.ipo`・`#fig-`・pipe 表）、ユニット内側の見出しを外すこと、
+  候補ラベルの決定性と衝突回避、挿入位置（既存属性あり／なし、CRLF）。
+- `tests/tag.rs`: 2 段の入れ子 include を持つ執筆フォルダを組み立て、`tag list --json` の
+  `order` と `items`、`tag apply --all` の冪等性、`--dry-run` が書かないこと、CRLF の保存、
+  `--from` で人が直したラベルを当てられること、形の違うラベル・重複ラベルを**何も書かずに**弾くこと。
+- 実文書での確認（手動、`docs/revision-study.md` §8 V4）: `examples/docs` の見出し 112 件ほかに
+  一括付与し、付与前後で PDF は全ページのテキストが一致、HTML も本文・図表番号・内部リンクが不変。
