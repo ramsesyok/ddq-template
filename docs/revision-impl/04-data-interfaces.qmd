@@ -1,0 +1,92 @@
+# データとインタフェース {#sec-data-interfaces}
+
+## `ddq` との契約 {#sec-data-ddq}
+
+確認済み（静的）：拡張が起動するのは `ddq` の 4 つの呼び出しだけである。`ddq` 側の実体は `cli/src/commands/tag.rs`・`rev.rs`。[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0005](appendix-evidence.qmd#ev-e-0005)
+
+::: {.tbl caption="拡張が起動する ddq" label="tbl-ddq-calls" widths="34,24,42"}
+| 呼び出し | 使う場面 | 受け取るもの |
+|---|---|---|
+| `ddq --version` | ラベル一覧を開いたとき | 版の文字列（`versionOf` が末尾だけ取る） |
+| `ddq tag list <folder> --json` | 同上、書き戻しの後 | `TagList`（下表） |
+| `ddq rev next <folder> --json` | 改訂を開くとき、新しい改訂を始めるとき | `rev` / `base` / `base_commit` / `scheme` / `tags` / `drafts` |
+| `ddq rev diff <folder> --write [--base <ref>]` | 差分の取り直し | 標準出力（人向けの文。警告行を拾う） |
+| `ddq rev build <folder>` | 表を作る、確定する | 標準出力（同上） |
+:::
+
+実行ファイルは設定 `ddqRevision.ddqPath`、空なら `PATH` の `ddq`。作業ディレクトリは執筆フォルダである。
+
+確認済み（静的）：**`.cmd` / `.bat` は `cmd /c` を通す**（`spawnArgs`）。Windows の Node は CVE-2024-27980 の対応以降、バッチを `execFile` で直接起動できない。標準出力の上限は 64 MiB に上げてある（設計書は 1000 ページ級になりうるため）。[E-0004](appendix-evidence.qmd#ev-e-0004)
+
+### `TagList`（`ddq tag list --json`）
+
+確認済み（静的）：`src/ddq/types.ts` が受け側の型で、`cli/src/doc/units.rs` の `Item` と対になる。[E-0004](appendix-evidence.qmd#ev-e-0004)
+
+::: {.tbl caption="TagList の項目" label="tbl-taglist" widths="20,22,58"}
+| 項目 | 型 | 意味 |
+|---|---|---|
+| `folder` | string | 走査した執筆フォルダ（絶対パス） |
+| `order` | string[] | 文書順のファイル。画面の並びに使う |
+| `items[].kind` | `heading`/`tbl`/`ipo`/`pipe`/`fig` | 種別。表示名は `kindLabel` |
+| `items[].level` | number? | 見出しの深さ |
+| `items[].file` / `line` | string / number | 場所（行は 1 始まり） |
+| `items[].title` | string \| null | 見出しの文言・表のキャプション |
+| `items[].label` | string \| null | 既に付いているラベル |
+| `items[].suggested` | string? | 候補ラベル（`ddq` が内容から決める） |
+| `items[].edit` | `{file,line,col,insert}`? | 書き戻しの指示。**`col` は行頭からの文字数** |
+| `items[].warning` | `no-caption`/`bare-figure`? | 候補を出せない理由 |
+| `warnings` | string[] | 走査の警告（重複ラベルなど） |
+:::
+
+確認済み（静的）：**`col` はバイト数ではない**。日本語の見出しで位置がずれるため、当てる直前に `characterOffset` が UTF-16 の位置へ直す（サロゲートペアは 1 文字として数える）。[E-0004](appendix-evidence.qmd#ev-e-0004)
+
+### 挿入文字列の作り直し
+
+確認済み（静的）：人が候補を書き換えたとき、`insertFor` は **`ddq` が返した `insert` の形を保ったまま**ラベルだけ差し替える（`suggested` の文字列を置換する）。形を決めているのは `ddq` 側なので、拡張は新しい形を作らない。[E-0004](appendix-evidence.qmd#ev-e-0004)
+
+| `ddq` が返す形 | 意味 |
+|---|---|
+| ` {#sec-x}` | 属性の無い見出し・キャプション行の末尾に足す |
+| `#sec-x ` | 既に `{…}` がある行の、`{` の直後に足す |
+| ` label="tbl-x"` | `.tbl` / `.ipo` の `}` の直前に足す |
+
+## 改訂ファイル（YAML） {#sec-data-revfile}
+
+確認済み（静的）：`src/revision/revfile.ts` は **`ddq`（`cli/src/doc/revfile.rs`）と同じ形**を読み書きする写しである。汎用の YAML ライブラリを使わないのは、引用の付け方やキーの順が変わると `rev diff --write` と画面からの保存で毎回差分が出るためである。[E-0007](appendix-evidence.qmd#ev-e-0007)
+
+::: {.tbl caption="改訂ファイルの項目" label="tbl-revfile" widths="22,16,62"}
+| 項目 | 型 | 意味 |
+|---|---|---|
+| `rev` | string | 改訂記号（ファイル名と一致） |
+| `date` | string | 改訂日 |
+| `base` | string | 人が選んだ基準（タグ・ブランチ・コミット ID） |
+| `base_commit` | string | それを解決した SHA。取り直しはこちらを使う |
+| `scheme` | string | `alpha` / `numeric` |
+| `entries[].label` | string | ラベル（改訂履歴のキー） |
+| `entries[].kind` | string | `changed`/`added`/`removed`/`renamed` |
+| `entries[].unit` | string | `heading`/`tbl`/`ipo`/`pipe`/`fig` |
+| `entries[].title` / `file` | string | 表示用の名称と場所 |
+| `entries[].note` | string | 修正内容（人が書く。複数行可） |
+| `entries[].stale` | bool | 差分から消えたがメモが残っているもの |
+:::
+
+確認済み（静的）：読める形は限られる（字下げ 2 段のマップ、`- ` の要素、素の値・引用符付き・`|` の block scalar）。読めない行は捨てる。書くときは `note` が空なら `""`、非空なら `|` の block scalar、値は必要なときだけ引用する（`quote`）。[E-0007](appendix-evidence.qmd#ev-e-0007)
+
+確認済み（実行）：`ddq rev diff --write` が実際に書いたファイル（`rev-B.golden.yml`）を読み、書き戻すと**同じ文字列になる**ことをテストで固定してある。CRLF のファイルを読んでも改行だけの差にならない。[E-0008](appendix-evidence.qmd#ev-e-0008)
+
+## Webview とのメッセージ {#sec-data-messages}
+
+確認済み（静的）：2 画面とも `postMessage` の型を TypeScript で定義し、拡張と Webview の双方が同じ型を import する。`acquireVsCodeApi` は 1 回しか呼べないため、`vscodeApi.ts` が取得した 1 つを使い回す。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0006](appendix-evidence.qmd#ev-e-0006)
+
+::: {.tbl caption="メッセージ" label="tbl-messages" widths="18,38,44"}
+| 画面 | 拡張 → Webview | Webview → 拡張 |
+|---|---|---|
+| ラベル一覧 | `list` / `busy` / `errors` / `error` | `ready` / `reload` / `reveal` / `apply` |
+| 改訂履歴 | `revision` / `busy` / `notice` | `ready` / `edit` / `diff` / `reveal` / `refresh` / `build` / `fix` |
+:::
+
+`apply` は行の配列（`item` と人が直した `label`、チェックの有無）を、`edit` は**改訂まるごと**を送る。拡張側はそれを YAML に直して文書へ書くだけで、差分の計算はしない。
+
+## Webview の HTML {#sec-data-html}
+
+確認済み（静的）：HTML は `html(webview, extensionUri, view)` が組み立てる。CSP は `default-src 'none'` で `connect-src` を書かないため、**実行時に通信できない**。スクリプトとスタイルは nonce 付き、参照先は `out/webview/assets/main.js` と `main.css` の固定名である（Vite の設定と対になる契約）。`<body data-view="tags|revision">` でどちらの画面を描くかを決める。[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0008](appendix-evidence.qmd#ev-e-0008)

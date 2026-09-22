@@ -1,0 +1,13 @@
+# 本書について {.unnumbered}
+
+本書は、`extensions/ddq-revision/` に実装された **DDQ Revision** のソフトウェア実装仕様書である。見出し・表・図に Quarto のラベルを付け、そのラベルを手がかりに版どうしの差分を並べ、修正内容を書き足して改訂履歴を作る処理について、実装構造、データ契約、変更影響を説明する。
+
+対象は **2.3.0**、基準コミットは `b5368a191764fa5a391ef140064b73b067e395e7`、解析日は **2026-09-23**。
+
+この拡張は**単独では動かない**。文書の解釈（走査・候補ラベル・差分）はすべて `ddq`（Rust の CLI）が行い、拡張はその JSON を表示し、結果を `WorkspaceEdit` として当てる殻である。したがって本書の中心は **`ddq` との契約**（[データとインタフェース](04-data-interfaces.qmd#sec-data-interfaces)）と、**VSCode API の使い方**（[主要機能と処理の流れ](03-behavior.qmd#sec-behavior)）にある。
+
+改修箇所を探す場合は [全体構造](02-architecture.qmd#sec-architecture) と [変更時の注意点](06-maintenance.qmd#sec-maintenance) から読む。設計の意図と、そう決めた理由は `docs/revision-study.md`（実現性検討と設計）にあり、本書はその結果として**何が実装されているか**を扱う。
+
+実装から確認した事実を「確認済み（静的）」、実行して観測した結果を「確認済み（実行）」と記す。推定される影響と未確認の動作は区別する。本文の E-ID から [解析根拠](appendix-evidence.qmd#sec-evidence) を参照できる。
+
+対象ソースのハッシュと実行記録は `analysis/`、再生成手順は `README.md` に保存している。

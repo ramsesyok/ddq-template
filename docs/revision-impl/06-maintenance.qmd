@@ -1,0 +1,60 @@
+# 変更時の注意点 {#sec-maintenance}
+
+## どこを直すと何に響くか
+
+確認済み（静的）：この拡張の壊れやすさは、ほぼ**`ddq` との契約**と**VSCode の作法**の 2 か所に集まっている。[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0007](appendix-evidence.qmd#ev-e-0007)
+
+::: {.tbl caption="変更の影響" label="tbl-impact" widths="30,70"}
+| 直すもの | 一緒に直すもの・確かめること |
+|---|---|
+| `ddq` の JSON（`tag list --json`） | `src/ddq/types.ts`。項目を増やすだけなら拡張は動くが、名前を変えると画面が空になる。`tests/host/tag-list.golden.json` も採り直す |
+| `ddq` の改訂ファイルの形 | `src/revision/revfile.ts` の `parse` / `toYaml` と `rev-B.golden.yml`。**往復テストが落ちるので気付ける**（落ちなければ形が合っている） |
+| `ddq` のコマンド名・引数 | `extension.ts` と `revision/provider.ts` の呼び出し 5 か所（@sec-data-ddq） |
+| 挿入位置の決め方（`col` の意味） | `characterOffset` と `labels.test.ts`。バイト数に変えると日本語の見出しでずれる |
+| Webview の成果物名 | `html()` の参照先と `vite.config.mts` の `fileName` / `assetFileNames` は対になっている |
+| 画面を増やす | `html()` の `view` 引数と `main.tsx` の分岐（`data-view`） |
+| 版 | `package.json` の `version` を `template/VERSION` に揃える。揃っていないと `ddq release` と CI が止まる |
+:::
+
+## 守るべき作法
+
+確認済み（静的）：次はこの拡張の設計上の約束で、変更するときは `docs/revision-study.md` の決定事項に戻って判断する。
+
+- **qmd を解釈しない。** 走査・候補・差分は `ddq` が返す JSON に由来する。同じ解釈を 2 か所に持つと、CLI と拡張で結果が食い違う
+- **書き戻しは `WorkspaceEdit`。** `ddq` にファイルを書かせない。Undo が効き、未保存のバッファにも当たるため
+- **通信しない。** Webview の CSP は `default-src 'none'`。`check:offline` が成果物を検査する
+- **コミットとタグは人が打つ。** 「確定する」は案内までで、Git を実行しない（運用が回ると確かめられるまでの方針）
+
+## 落とし穴 {#sec-maint-pitfalls}
+
+確認済み（実行）：実装と検証で実際に踏んだもの。いずれも再発しやすい。[E-0008](appendix-evidence.qmd#ev-e-0008)、[E-0009](appendix-evidence.qmd#ev-e-0009)
+
+::: {.tbl caption="踏んだ落とし穴" label="tbl-pitfalls" widths="30,70"}
+| 事象 | 対処 |
+|---|---|
+| Windows で `.cmd` の `ddq` が `EINVAL` | `spawnArgs` が `cmd /c` を通す（Node の CVE-2024-27980 対応以降の仕様） |
+| CRLF の yml を保存すると全行が変わる | `write` が `document.eol` に合わせて書く |
+| golden が CRLF になり往復テストが Windows だけ落ちる | `.gitattributes` で `*.golden.yml` を `eol=lf`、テスト側も読み込み時に揃える |
+| jsdom 27 が Node 20 で動かない | jsdom を 26 に固定（@sec-build-environment） |
+| 新しいプロファイルで拡張が読み込まれない | 検証の起動に `--disable-workspace-trust` を付ける |
+| 検証用リポジトリで `git add -A` が落ちる | VSCode のプロファイル（`user-data`）と同じフォルダに git リポジトリを作らない |
+:::
+
+## 検証の仕方 {#sec-maint-tests}
+
+確認済み（実行）：単体テストは 45 件（`vitest`）。うち Webview の描画は jsdom で、**「パネルが真っ白」を拾う**ために入れてある（タブは開くので実拡張ホストでは気付けない）。[E-0008](appendix-evidence.qmd#ev-e-0008)
+
+::: {.tbl caption="テストの分担" label="tbl-tests" widths="34,66"}
+| テスト | 見るもの |
+|---|---|
+| `src/ddq/run.test.ts` | 実行ファイルの決め方、`.cmd` の包み方、版の取り出し |
+| `src/tagging/labels.test.ts` | ラベルの検査、当てる順、挿入文字列の作り直し、文字位置の変換 |
+| `src/revision/revfile.test.ts` | `ddq` が書いた golden の読み取りと往復、人が手で書いた形、CRLF |
+| `src/webview/TagTable.test.tsx` | 一覧の描画、候補の書き換え、書き戻しの押下で渡るもの |
+| `src/webview/RevisionEditor.test.tsx` | 差分一覧の描画、メモの反映、ボタン、確定済みの読み取り専用 |
+| `tests/host/`（`npm run test:host`） | **本物の VSCode**でパネルが開くこと、`WorkspaceEdit` が当たること、Undo、カスタムエディタ、`ddq rev build` までの往復、差分エディタ |
+:::
+
+確認済み（静的）：実拡張ホストの検証は内部コマンド（`internal.applyRows` / `internal.writeNote` / `internal.openDiff`）を叩く。Webview の中身は外から触れないため、**画面が呼ぶのと同じ関数**を別の入口から呼んでいる。`package.json` に出していないのでコマンドパレットには現れない。[E-0002](appendix-evidence.qmd#ev-e-0002)
+
+確認済み（静的）：CI（`extension.yml`）の `host` ジョブは **差し替えの `ddq`**（実物の出力を採取した golden を返す）で走るため、**改訂履歴の部分は飛ばされる**（`DDQ_IS_REAL` が 0）。改訂履歴まで通したいときは、実物の `ddq.exe` がある手元で `npm run test:host` を実行する。[E-0009](appendix-evidence.qmd#ev-e-0009)

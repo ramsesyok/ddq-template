@@ -1,0 +1,63 @@
+# 全体構造 {#sec-architecture}
+
+## 層の分け方
+
+確認済み（静的）：ソースは 4 つに分かれ、**VSCode に依存する層**と**依存しない層**が分けてある。依存しない層（`tagging/`・`revision/revfile.ts`・`ddq/types.ts`）は Node のテストで直接叩ける。[E-0003](appendix-evidence.qmd#ev-e-0003)
+
+::: {.tbl caption="ソースの構成" label="tbl-layers" widths="26,12,20,42"}
+| 置き場 | 行数 | VSCode 依存 | 役割 |
+|---|---|---|---|
+| `src/extension.ts` | 362 | あり | 登録、ラベル一覧の画面、書き戻し、改訂の開始 |
+| `src/revision/provider.ts` | 308 | あり | 改訂履歴のカスタムエディタ、差分エディタ、確定の案内 |
+| `src/ddq/run.ts` | 86 | なし | `ddq` の起動と JSON の読み取り |
+| `src/ddq/types.ts` | 75 | なし | `tag list --json` の型と表示名 |
+| `src/tagging/labels.ts` | 135 | なし | 候補ラベルの検査、当てる順、文字位置の変換 |
+| `src/tagging/messages.ts` | 47 | なし | ラベル一覧の画面とのメッセージ、並び・件数 |
+| `src/revision/revfile.ts` | 243 | なし | 改訂ファイル（YAML）の読み書き |
+| `src/revision/messages.ts` | 75 | なし | 改訂の画面とのメッセージ、表示名 |
+| `src/webview/*.tsx` | 662 | Webview のみ | React の 2 画面（ラベル一覧・改訂履歴） |
+:::
+
+## 起動と登録
+
+確認済み（静的）：`activate` は 5 つの登録を行う。`activationEvents` は空で、宣言したコマンドやカスタムエディタが必要になった時点で VSCode が拡張を起動する。[E-0002](appendix-evidence.qmd#ev-e-0002)
+
+::: {.tbl caption="activate が登録するもの" label="tbl-activate" widths="34,66"}
+| 登録 | 内容 |
+|---|---|
+| コマンド `ddqRevision.tags` | ラベル一覧のパネルを開く。引数にフォルダの URI を取れる（エクスプローラの右クリック） |
+| コマンド `ddqRevision.newRevision` | `rev next` と `rev diff --write` を走らせ、できた yml をカスタムエディタで開く |
+| カスタムエディタ `ddqRevision.editor` | `**/revisions/rev-*.yml` に結び付く（`priority: default`） |
+| コンテンツプロバイダ `ddq-rev` | 空文字列を返すだけ。差分の「相手のいない側」に使う（@sec-behavior-diff） |
+| 内部コマンド 3 つ | `internal.applyRows` / `internal.writeNote` / `internal.openDiff`。`package.json` に出していないのでコマンドパレットに現れない。実拡張ホストの検証がここを叩く（@sec-maint-tests） |
+:::
+
+## 画面と状態の持ち方
+
+確認済み（静的）：2 つの画面で**状態の持ち方が違う**。
+
+- **ラベル一覧**は拡張ホスト側のモジュール変数 `session`（パネル・執筆フォルダ・直近の一覧）に持つ。同時に 1 枚だけで、2 回目の呼び出しは既存のパネルを `reveal` して対象フォルダを差し替える。
+- **改訂履歴**は `CustomTextEditorProvider` で、**状態は `TextDocument` そのもの**である。保存・未保存の印・Undo・外部からの変更検知を VSCode に任せられる。画面の編集は YAML 全体を作り直して `WorkspaceEdit` で置き換える。
+
+[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0006](appendix-evidence.qmd#ev-e-0006)
+
+```{mermaid}
+flowchart LR
+  U[利用者] -->|コマンド| EXT[extension.ts]
+  U -->|rev-*.yml を開く| PROV[revision/provider.ts]
+  EXT -->|spawn| DDQ[ddq.exe]
+  PROV -->|spawn| DDQ
+  EXT -->|postMessage| WV1[Webview: ラベル一覧]
+  PROV -->|postMessage| WV2[Webview: 改訂履歴]
+  WV1 -->|apply| EXT
+  WV2 -->|edit| PROV
+  EXT -->|WorkspaceEdit| DOC[(原稿 qmd)]
+  PROV -->|WorkspaceEdit| YML[(revisions/rev-*.yml)]
+  PROV -->|vscode.diff| GIT[内蔵 Git 拡張]
+```
+
+## 依存の向き
+
+確認済み（静的）：`webview/` は `tagging/` と `revision/` の**型とロジック**を import するが、逆は無い。`ddq/run.ts` は Node の `child_process` を使うため Webview 側の型検査からは外してある（`tsconfig.webview.json` の `exclude`）。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0007](appendix-evidence.qmd#ev-e-0007)
+
+拡張どうし（`ddq-table-editor`）とのコード共有は無い。共通なのは作法だけで、その決まりはテンプレート設計書 2.5 節にある。

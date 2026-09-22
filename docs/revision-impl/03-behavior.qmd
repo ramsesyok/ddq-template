@@ -1,0 +1,87 @@
+# 主要機能と処理の流れ {#sec-behavior}
+
+## 執筆フォルダの決め方 {#sec-behavior-folder}
+
+確認済み（静的）：`resolveWritingFolder` は**`_quarto.yml` があるフォルダ**を次の順で探す。見つからなければメッセージを出して何もしない。[E-0002](appendix-evidence.qmd#ev-e-0002)
+
+1. 引数の URI（エクスプローラでフォルダを右クリックしたとき）がそれ自身で執筆フォルダなら、それ
+2. 開いているエディタのファイルから**上へ 12 段まで**たどる
+3. ワークスペース内の `**/_quarto.yml` を最大 20 件探す（`_book` と `node_modules` は除く）。1 件ならそれ、複数なら `showQuickPick` で選ばせる
+
+改訂履歴のカスタムエディタ側は探さない。`revisions/rev-B.yml` から `revisions` の親を取るだけである（`writingFolderOf`）。
+
+## ラベル一覧 {#sec-behavior-tags}
+
+確認済み（静的）：`ddqRevision.tags` はパネルを 1 枚だけ持つ。既に開いていれば作り直さず、対象フォルダを差し替えて `reveal` する。パネルは `retainContextWhenHidden: true` で、他のタブへ移っても入力中の候補が消えない。[E-0002](appendix-evidence.qmd#ev-e-0002)
+
+```{mermaid}
+sequenceDiagram
+  participant W as Webview
+  participant E as extension.ts
+  participant D as ddq.exe
+  W->>E: ready
+  E->>D: ddq --version
+  E->>D: ddq tag list <folder> --json
+  D-->>E: TagList
+  E-->>W: list（TagList と版）
+  Note over W: 候補ラベルを人が直す
+  W->>E: apply（rows）
+  E->>E: checkRows（形・重複）
+  alt 検査で弾かれた
+    E-->>W: errors（行ごとの理由）
+  else
+    E->>E: WorkspaceEdit で挿入
+    E->>D: ddq tag list（取り直し）
+  end
+```
+
+### 書き戻しの検査 {#sec-behavior-apply}
+
+確認済み（静的）：`applyRows` は**当てる前に 2 段階**で確かめる。[E-0004](appendix-evidence.qmd#ev-e-0004)
+
+::: {.tbl caption="書き戻しの前に確かめること" label="tbl-apply-checks" widths="26,40,34"}
+| 段 | 見るもの | 弾いたときの扱い |
+|---|---|---|
+| 1. ラベルの検査（`checkRows`） | 空でないか、種別に合った接頭辞か（`sec-`/`tbl-`/`fig-`）、英数字・`-`・`_` だけか、既存および同じ回の他の行と重複しないか | 1 件でも駄目なら**何も当てず**、行ごとの理由を画面へ返す |
+| 2. 文書の状態 | その行が開けるか、行番号が文書の範囲内か、一覧を取った時点からラベルが増えていないか | その行だけ飛ばし、残りは当てる。飛ばした件数と理由を通知に出す |
+:::
+
+確認済み（静的）：当て方は `WorkspaceEdit` 1 つにまとめ、**同じファイルでは行番号の大きい順**に挿入する（`sortForApply`）。挿入位置は `ddq` が返す「行頭からの文字数」を UTF-16 の位置に直して使う（`characterOffset`）。保存はしない。[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0009](appendix-evidence.qmd#ev-e-0009)
+
+## 改訂履歴の編集 {#sec-behavior-editor}
+
+確認済み（静的）：`resolveCustomTextEditor` が呼ばれると、Webview を `data-view="revision"` で組み立て、次を行う。[E-0006](appendix-evidence.qmd#ev-e-0006)
+
+- `parse(document.getText())` で改訂を読み、`ddq rev next --json` でタグの一覧を取り、**`rev-<記号>` タグがあれば確定済み**として画面を読み取り専用にする
+- `onDidChangeTextDocument` を購読し、**外から書き換わっても画面を合わせる**（`ddq rev diff --write` が同じファイルを書くため）
+- 画面からの `edit` は `toYaml` で YAML 全体を作り直し、`WorkspaceEdit` で置き換える。**文書の改行（`document.eol`）に合わせて書く**ので、CRLF のファイルで全行が書き換わらない
+
+::: {.tbl caption="画面のボタンが行うこと" label="tbl-editor-buttons" widths="20,80"}
+| ボタン | 行うこと |
+|---|---|
+| 差分を取り直す | 未保存なら確認して保存 → `ddq rev diff <folder> --write [--base <ref>]`。ddq が yml を書き、外部変更として画面へ戻る |
+| 表を作る | `ddq rev build <folder>`。標準出力をそのまま画面の通知欄に出す |
+| 確定する | メモが空なら確認 → 保存 → `rev build` → **次に人が打つ Git コマンドを案内**（実行はしない）。「コマンドをコピー」でクリップボードへ |
+:::
+
+`ddq` が失敗したときは、例外を捕まえて画面の通知欄に理由（メッセージと ddq の出力）を出す。拡張は落ちない。
+
+## 差分エディタ {#sec-behavior-diff}
+
+確認済み（静的）：`openDiff` は自前で差分を描かず、`vscode.diff` に渡す。左右の URI は変更の種別で使い分ける。[E-0005](appendix-evidence.qmd#ev-e-0005)、[E-0009](appendix-evidence.qmd#ev-e-0009)
+
+::: {.tbl caption="差分の左右" label="tbl-diff-uris" widths="20,40,40"}
+| 種別 | 左（旧版） | 右（新版） |
+|---|---|---|
+| changed / renamed | 内蔵 Git 拡張の `toGitUri(file, base_commit)` | 作業ツリーの `file:` URI |
+| added | `ddq-rev:<名前>?empty`（空を返す自前スキーム） | 作業ツリーの `file:` URI |
+| removed | `toGitUri(file, base_commit)` | `ddq-rev:<名前>?empty` |
+:::
+
+**追加されたファイルに `git:` URI を使わない**のは、旧版に存在しないパスの `git:` URI は `openTextDocument` が例外になるためである（設計時の実測。`docs/revision-study.md` §8 V3）。基準には `base_commit`（SHA）を渡す。`toGitUri` はタグでも SHA でも動く。
+
+`file` が空のエントリ（場所が分からないもの）は差分を出せないので、警告を出して何もしない。
+
+## 新しい改訂を始める {#sec-behavior-new}
+
+確認済み（静的）：`newRevision` は `ddq rev next --json` で記号と基準を決める。基準のタグが無ければ `showInputBox` で尋ね、空なら中止する。書きかけの改訂があるときは「その続きを開く」と知らせる（新しい記号は作らない）。`rev diff --write` を実行したあと `vscode.openWith` でカスタムエディタとして開き、ddq の出力のうち「警告」で始まる行があれば警告として出す。[E-0002](appendix-evidence.qmd#ev-e-0002)

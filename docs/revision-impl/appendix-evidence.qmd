@@ -1,0 +1,58 @@
+# 解析根拠 {#sec-evidence}
+
+## 対象版と資料
+
+共通条件は DDQ Revision `2.3.0`、基準コミット `b5368a191764fa5a391ef140064b73b067e395e7`、解析日 2026-09-23。パスはリポジトリルート起点で示す。行番号に依存せず、パスとシンボルで根拠を再確認する。
+
+ソースの静的確認と実行観測を以下で区別する。実体の SHA-256 は `analysis/source-sha256.json`（拡張のソース 28 件と、契約の相手である `ddq` 側 4 件）、実行記録は `analysis/execution.md`。設計資料は `docs/revision-study.md`、作業規約は `extensions/ddq-revision/AGENTS.md` であり、両資料の記述だけで実装済みと断定しない。
+
+## 本文で参照した根拠
+
+### E-0001 {#ev-e-0001 .unnumbered}
+
+確認済み（静的）。`extensions/ddq-revision/package.json` の name / displayName / version / publisher / engines / main / activationEvents / contributes（commands・menus・configuration・customEditors）と `template/VERSION`。パッケージ識別、対応版宣言、コマンドとメニュー条件、利用者設定が `ddqRevision.ddqPath` の 1 つだけであること、**`dependencies` を持たない**ことを確認。`extensions/ddq-revision/LICENSE` が拡張自身のライセンス根拠。
+
+### E-0002 {#ev-e-0002 .unnumbered}
+
+確認済み（静的）。`src/extension.ts` の `activate`、`dispose`、`openTags`、`resolveWritingFolder`、`refresh`、`onMessage`、`reveal`、`newRevision`。登録するコマンドとプロバイダ、単一パネルと `retainContextWhenHidden`、執筆フォルダの探索順（引数 → 開いているファイルから 12 段 → `findFiles` と `showQuickPick`）、内部コマンド 3 つが `package.json` に無いこと、`rev next` が基準を返さないときの `showInputBox` を追跡。非同期の競合の実機再現は含まない。
+
+### E-0003 {#ev-e-0003 .unnumbered}
+
+確認済み（静的）。`src/tagging/labels.ts`（`prefixOf`・`isValidLabel`・`checkRows`・`insertFor`・`sortForApply`・`characterOffset`）、`src/tagging/messages.ts`（`sortItems`・`counts`）、`src/webview/vscodeApi.ts`。VSCode に依存しない層の境界と、`acquireVsCodeApi` を 1 つだけ取得して使い回す構造を確認。
+
+### E-0004 {#ev-e-0004 .unnumbered}
+
+確認済み（静的）。`src/ddq/run.ts`（`ddqCommand`・`spawnArgs`・`run`・`runJson`・`versionOf`・`DdqError`）、`src/ddq/types.ts`、`src/extension.ts` の `applyRows`。`ddq` の起動（作業ディレクトリ・`maxBuffer` 64 MiB・`windowsHide`）、`.cmd` / `.bat` を `cmd /c` で包むこと、`col` が文字数であること、書き戻し前の 2 段階の検査と `WorkspaceEdit` へのまとめ方を追跡。契約の相手は `cli/src/doc/units.rs` の `Item` / `Edit` と `cli/src/commands/tag.rs`。
+
+### E-0005 {#ev-e-0005 .unnumbered}
+
+確認済み（静的）。`src/revision/provider.ts` の `openDiff`・`gitUri`・`EMPTY_SCHEME`・`RevisionEditorProvider.emptyProvider`、および `src/extension.ts` の `registerTextDocumentContentProvider`。差分の左右の決め方（changed/renamed は `toGitUri`、added は自前スキーム、removed は右が自前スキーム）、内蔵 Git 拡張（`vscode.git`）の `getAPI(1).toGitUri` 呼出、`base_commit` を優先し無ければ `base` を渡すことを確認。
+
+### E-0006 {#ev-e-0006 .unnumbered}
+
+確認済み（静的）。`src/revision/provider.ts` の `resolveCustomTextEditor`・`refresh`・`build`・`fix`・`write`・`tagState`・`writingFolderOf`・`html`、`src/revision/messages.ts`、`src/webview/main.tsx`。カスタムエディタの状態が `TextDocument` であること、`onDidChangeTextDocument` の購読、`document.eol` に合わせた書き出し、タグの有無による読み取り専用、確定が Git を実行せず案内に留まること、`data-view` による画面の切り替えと CSP を追跡。
+
+### E-0007 {#ev-e-0007 .unnumbered}
+
+確認済み（静的）。`src/revision/revfile.ts`（`parse`・`toYaml`・`scalar`・`quote`・`unquote`）と、対になる `cli/src/doc/revfile.rs`。読める形の範囲（字下げ・`- ` の要素・引用・`|` の block scalar）と、書くときのキー順・`note` の表し方が両者で一致することを確認。`tsconfig.json` / `tsconfig.webview.json` の include・exclude（`src/ddq/run.ts` を Webview 側から外す）、`vitest.config.mts`、`package.json` の `jsdom` 固定も同根拠。
+
+### E-0008 {#ev-e-0008 .unnumbered}
+
+確認済み（実行）。`extensions/ddq-revision/` で `npm run verify` を実行。Windows / Node 24.18.0 で、型検査 2 種、**単体テスト 45 件（5 ファイル）**、ビルド、オフライン検査（`out/extension.js`・`main.js`・`main.css` と CSP）、本番依存の脆弱性 0 件を観測した。生成物の大きさは `out/extension.js` 31,391 バイト、`main.js` 151,596 バイト、`main.css` 4,262 バイト。`npm run package` で `ddq-revision-2.3.0.vsix`（9 ファイル）が作られ、`src/`・`tests/`・`.vscode-test/` を含まないことを確認。記録は `analysis/execution.md`。
+
+### E-0009 {#ev-e-0009 .unnumbered}
+
+確認済み（実行）。`npm run test:host` を、インストール済みの VSCode（`Code.exe`）と実物の `ddq.exe`（`cli/target/release/`）で実行。専用の `--user-data-dir` と `--disable-workspace-trust` で起動し、一時フォルダに作った執筆フォルダに対して次の 10 項目を観測した。
+
+1. ラベル一覧のパネルが開く（タブ名「ラベル一覧: docs」、`TabInputWebview`）
+2. 3 件のラベルを `WorkspaceEdit` で書き戻す
+3. 日本語の見出しでも挿入位置がずれない
+4. 未保存のバッファに当たる（`document.isDirty`）
+5. `undo` ひと押しで元に戻る
+6. `ddq rev diff --write` が `revisions/rev-B.yml` を作る
+7. その yml がカスタムエディタで開く（`TabInputCustom`、`viewType` 一致）
+8. 画面から書いたメモが `note: |` の形で文書に入る
+9. `ddq rev build` がそのメモを `revisions/history.qmd` に出す
+10. 差分ボタンで差分エディタが開く（左 `git:`、右 `file:`）
+
+記録は `analysis/execution.md`。VSIX をインストールした状態での動作、人の手による GUI 操作、Windows 以外の OS は含まない。

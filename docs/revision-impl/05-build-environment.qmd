@@ -1,0 +1,62 @@
+# ビルド・実行環境と依存関係 {#sec-build-environment}
+
+## ビルドと検証の再現方法
+
+確認済み（実行）：作業ディレクトリは `extensions/ddq-revision/`。[E-0008](appendix-evidence.qmd#ev-e-0008)
+
+```powershell
+Set-Location extensions\ddq-revision
+npm ci
+npm run verify      # typecheck → test → build → check:offline → check:audit
+npm run test:host   # 実拡張ホスト（本物の VSCode）で動かす
+```
+
+::: {.tbl caption="生成物" label="tbl-artifacts" widths="34,26,40"}
+| 生成物 | 生成元 | 参照先 |
+|---|---|---|
+| `out/extension.js` | `esbuild.mjs`（cjs・node18・bundle） | VSCode 拡張ホスト |
+| `out/webview/assets/main.js` | Vite（`src/webview/main.tsx`、iife） | `html()` が組み立てる Webview |
+| `out/webview/assets/main.css` | Vite（CSS import） | 同じ Webview |
+| `ddq-revision-<版>.vsix` | `npm run package`（`vsce package`） | インストール、リリース一式への同梱 |
+:::
+
+確認済み（実行）：2.3.0 の成果物は `out/extension.js` 31,391 バイト、`main.js` 151,596 バイト、`main.css` 4,262 バイト。VSIX は 9 ファイル・約 65 KB で、`src/`・`tests/`・`node_modules/`・`.vscode-test/` は `.vscodeignore` により入らない。[E-0008](appendix-evidence.qmd#ev-e-0008)
+
+## 依存関係
+
+確認済み（静的）：**本番依存はゼロ**である。`dependencies` を持たず、すべて `devDependencies`（ビルドとテストの道具）である。実行時に必要なのは VSCode API と、外部プロセスとしての `ddq` だけである。[E-0001](appendix-evidence.qmd#ev-e-0001)
+
+::: {.tbl caption="開発時の依存（役割別）" label="tbl-devdeps" widths="34,66"}
+| 依存 | 役割 |
+|---|---|
+| `esbuild` | 拡張ホスト側のバンドル |
+| `vite`・`@vitejs/plugin-react`・`react`・`react-dom` | Webview のバンドルと画面 |
+| `typescript` | 型検査（ホスト用と Webview 用の 2 つの tsconfig） |
+| `vitest`・`jsdom` | 単体テスト。Webview の描画テストだけ jsdom |
+| `@vscode/test-electron` | 実拡張ホストでの検証。VSCode を取得して起動する |
+| `@vscode/vsce` | VSIX の作成 |
+| `@types/*` | 型定義 |
+:::
+
+確認済み（静的）：**`jsdom` は 26 に固定**してある。27 以降は Node 22 以上を要求し、CI の Node 20 で `webidl.util.markAsUncloneable is not a function` になる。上げるときは `.github/workflows/extension.yml` の `matrix.node` から 20 を外すかどうかを一緒に決める。[E-0007](appendix-evidence.qmd#ev-e-0007)
+
+確認済み（静的）：`@vscode/test-electron` が取得する VSCode は `.vscode-test/`（git 管理外）に入り、**配布物には含まれない**。`npm run test:host` は「環境変数 `VSCODE_BIN` → インストール済みの VSCode → ダウンロード」の順で選ぶので、手元の保守者は通信せずに流せる。[E-0009](appendix-evidence.qmd#ev-e-0009)
+
+## 設定
+
+::: {.tbl caption="設定と環境変数" label="tbl-settings" widths="30,26,44"}
+| 名前 | 読む場所 | 効果 |
+|---|---|---|
+| `ddqRevision.ddqPath` | 拡張（`ddqCommand`） | `ddq` 実行ファイルのパス。空なら `PATH` の `ddq` |
+| `VSCODE_BIN` | `tests/host/run.mjs` | 検証に使う VSCode を明示する |
+| `DDQ_BIN` / 第 1 引数 | 同上 | 検証に使う `ddq` を明示する |
+| `NODE_ENV` | `vite.config.mts` | `production` のとき minify、それ以外は source map |
+:::
+
+利用者向けの設定はこの 1 つだけである。画面の配色は VSCode のテーマ変数（`--vscode-*`）を使い、固定色を持たない。
+
+## オフラインであること
+
+確認済み（実行）：`npm run check:offline` がビルド成果物（`out/extension.js`・`main.js`・`main.css`）を走査し、通信 API（`fetch`・`XMLHttpRequest`・`WebSocket`・`node:http` など）と外部 URL が無いこと、Webview の CSP に `connect-src` が無いことを確かめる。2.3.0 で合格している。[E-0008](appendix-evidence.qmd#ev-e-0008)
+
+`ddq` を子プロセスとして起動するのは通信ではない（同じ PC の実行ファイル）。`ddq` 自身も PlantUML を使う場合を除いて通信しない（利用マニュアル 11 章）。

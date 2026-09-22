@@ -438,7 +438,7 @@ docs/
 | 3 | **完了**。`extensions/ddq-revision/`: タグ付け画面（Webview 表 + WorkspaceEdit）。実拡張ホストでの検証も同梱 | 機能 1 完成 |
 | 4 | **完了**。`cli/src/doc/`（gitsrc, diff, revfile）+ `ddq rev next/diff/build` + `lib.typ` の `_xref-page` + scaffold（`revisions/history.qmd`・`index.qmd` の include）。版 2.3.0 | CLI 単体で改訂履歴が出る（サンプル文書で PDF の頁列まで確認） |
 | 5 | **完了**。Custom Editor（差分表・note・確定）。実拡張ホストで往復を確認 | 機能 2 完成 |
-| 6 | **完了**。利用マニュアルに 13 章「改訂履歴を作る」を追加（13〜17 章は 1 つずつ繰り下げ）。サンプル文書（`examples/docs`）に実例の改訂履歴を用意。実装仕様書（`docs/table-editor-impl` / `cli-impl`、および ddq-revision の分）の更新は別途 | リリース 2.3.0 |
+| 6 | **完了**。利用マニュアルに 13 章「改訂履歴を作る」を追加（13〜17 章は 1 つずつ繰り下げ）。サンプル文書（`examples/docs`）に実例の改訂履歴を用意。実装仕様書は `docs/revision-impl/` に起こした（`cli-impl` の更新は別途） | リリース 2.3.0 |
 
 - 段階 1・4 は VSCode 無しで完結するので、拡張と並行できる。
 - 自動タグ付け・自動コミット（Q17 で保留）は段階 6 の運用結果を見て追加する。

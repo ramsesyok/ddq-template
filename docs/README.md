@@ -8,6 +8,7 @@
 | `design/` | テンプレート設計書（様式・変換の仕組み、調整箇所、版の考え方、保守の観点） | 保守者 |
 | `cli-impl/` | ddq ソフトウェア実装仕様書（CLI の構造・処理・外部契約・変更影響・解析根拠） | CLI の改修者 |
 | `table-editor-impl/` | DDQ Table Editor ソフトウェア実装仕様書（拡張・表編集・記法変換・変更影響・解析根拠） | `ddq-table-editor` の改修者 |
+| `revision-impl/` | DDQ Revision ソフトウェア実装仕様書（ddq との契約・ラベル付け・改訂履歴・変更影響・解析根拠） | `ddq-revision` の改修者 |
 | `presentation/` | 紹介スライド（revealjs。LT 版 5 分／ロング版 15〜20 分）。設計書ではないので `ddq` を使わず `quarto render` で出す | 発表者 |
 
 このほかに、実装前の検討書を単一の Markdown で置く（執筆フォルダではないので `ddq` は使わない）。
