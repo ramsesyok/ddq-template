@@ -7,7 +7,7 @@
 
 `template/VERSION` が版である。配置ツールの `--version` もこの値を表示し、
 執筆フォルダへ写しを置くときに `.template-version` として書き込まれる。
-VSCode 拡張の版（`extension/package.json` の `version`）もこの値に揃える
+VSCode 拡張の版（`extensions/<拡張>/package.json` の `version`）もこの値に揃える
 （リリース作成時に一致を検査する）。
 
 ```text

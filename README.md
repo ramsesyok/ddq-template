@@ -23,7 +23,7 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | 表の編集 | VSCode 拡張 `ddq-table-editor`（`.tbl` をセル結合つきで視覚的に編集。リリースに VSIX 同梱） |
 | 執筆者に要るもの | Quarto ＋ VSCode の Quarto 拡張だけ（表の編集拡張は任意）。PlantUML 図を使う文書で LAN にサーバが無いときだけ、リリース一式と Java も |
 
-> **このリポジトリは「様式の実体（`template/` と、それを内蔵する `cli/`）と、表の編集拡張（`extension/`）、
+> **このリポジトリは「様式の実体（`template/` と、それを内蔵する `cli/`）と、VSCode 拡張（`extensions/`）、
 > それにテンプレート自身の文書（`docs/`）とサンプル（`examples/`）」です。**
 > 設計書そのものは、ここから作る**別のリポジトリ（設計書リポジトリ）**に置きます。
 > 設計書を書く人がこのリポジトリを持つ必要はありません。
@@ -162,7 +162,7 @@ cd C:\tools\quarto-template-2.3.0
 | [docs/manual/](docs/manual/)（リリース展開フォルダでは `manual/`） | **利用マニュアル**（役割別の環境構築・執筆・確認・出力・記法・制限事項・トラブル対処、保守者向けの版の上げ方とリリースの作り方）。本テンプレート自身で書かれており、`ddq pdf docs\manual` で PDF になります | 全員（執筆者にはこの PDF/HTML を配る） |
 | [docs/design/](docs/design/) | **テンプレート設計書**（リポジトリの構成、出力経路、様式 `lib.typ` と変換 `design-doc.lua` の仕組み、HTML 採番の後処理、版の考え方、保守の観点）。**このリポジトリのみ**（リリースには同梱しません） | 保守者 |
 | [cli/DESIGN.md](cli/DESIGN.md) | `ddq` の設計（コマンド・mermaid エンジン・PlantUML サーバ・ビルド・検証） | 保守者 |
-| [extension/README.md](extension/README.md) | VSCode 拡張 `ddq-table-editor` の使い方・開発・デバッグ | 執筆者（使い方）・保守者 |
+| [extensions/ddq-table-editor/README.md](extensions/ddq-table-editor/README.md) | VSCode 拡張 `ddq-table-editor` の使い方・開発・デバッグ | 執筆者（使い方）・保守者 |
 | [AGENT-GUIDE.md](AGENT-GUIDE.md)（リリース直下にも同梱） | **AI エージェント向けの執筆ガイド**。利用マニュアル全体を読まずに、執筆フォルダの構成・`_quarto.yml`・記法（`.tbl`・IPO 図・相互参照）・コマンドを把握できる要約。設計書リポジトリの `AGENTS.md` / `CLAUDE.md` やスキルにそのまま取り込む | 発行者（AI に原稿を書かせるとき） |
 
 `examples/docs/` はこのリポジトリ同梱の**サンプル**（受注管理システムの基本設計書）です。

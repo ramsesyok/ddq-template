@@ -2,10 +2,10 @@
 
 設計書テンプレート（[design-doc-quarto-template](../README.md)）の統一テーブル記法
 `::: {.tbl …}` を視覚的に編集する VSCode 拡張です。旧名 `quarto-table-support`
-（別リポジトリ）を 2.1.0 でこのリポジトリの `extension/` に取り込み、
+（別リポジトリ）を 2.1.0 でこのリポジトリに取り込み（2.3.0 で `extension/` → `extensions/ddq-table-editor/`）、
 **リリース一式（`quarto-template-<版>.zip`）に VSIX として同梱**するようにしました。
 
-版はテンプレートの版（`../template/VERSION`）と揃えます。`ddq release` が
+版はテンプレートの版（`../../template/VERSION`）と揃えます。`ddq release` が
 `package.json` の `version` を照合するので、テンプレートの版を上げたら
 `npm version <版> --no-git-tag-version` でここも上げてください。
 
@@ -172,7 +172,7 @@ npm run verify
 ### CI
 
 `../.github/workflows/extension.yml` で GitHub Actions が動きます
-（`extension/` 配下の push / pull request、手動実行）。
+（`extensions/` 配下の push / pull request、手動実行）。
 
 | ジョブ | 内容 |
 |--------|------|
@@ -182,7 +182,7 @@ npm run verify
 
 ### デバッグ（F5）
 
-VSCode で**この `extension/` フォルダを開き**（リポジトリのルートではなく）、
+VSCode で**この `extensions/ddq-table-editor/` フォルダを開き**（リポジトリのルートではなく）、
 `F5`（**Run Extension**）を押すと Extension Development Host が起動します。起動前に
 `npm: build` が自動で走り、`sample/` フォルダを開いた状態で立ち上がります。
 

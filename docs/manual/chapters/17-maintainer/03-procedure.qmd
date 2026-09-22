@@ -20,14 +20,14 @@
 
    「新しい版を受け取ったとき」の説明で使う版番号（現行＋1）も併せてずらす。
 
-   **VSCode 拡張の版も同じ値にする。** `extension/package.json` の `version` は
+   **VSCode 拡張の版も同じ値にする。** `extensions/<拡張>/package.json` の `version` は
    `template/VERSION` と一致していなければ `ddq release` が止まる（同梱する VSIX の版と
    テンプレートの版を 1 つに揃えるため）。
 
    ```bat
-   cd extension
+   cd extensions\ddq-table-editor
    npm version 2.3.0 --no-git-tag-version
-   cd ..
+   cd ..\..
    ```
    :::
 
