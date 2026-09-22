@@ -433,10 +433,10 @@ docs/
 | 段階 | 内容 | 成果 |
 |---|---|---|
 | 0 | **V1〜V5 完了（2026-09-22）** | 頁列は採用。`postprocess-html.js` の修正は 2.2.2 として先行リリース済み。タグ付けの試作（Python）は Rust 実装の期待値に使える |
-| 1 | `cli/src/doc/`（scan, units, labels）+ `ddq tag list/apply`。fixture は `examples/docs` と最小 qmd | CLI 単体でタグ付けが回る。テストは「qmd → 期待 JSON」 |
+| 1 | **完了**（PR #99）。`cli/src/doc/`（project, units, labels）+ `ddq tag list/apply` | CLI 単体でタグ付けが回る |
 | 2 | `extensions/` への移動 + `release.rs` 複数 VSIX + 版 2.3.0 の準備 | 既存拡張のリリースが変わらないことを確認 |
 | 3 | `ddq-revision` 拡張: タグ付け画面（Webview 表 + WorkspaceEdit） | 機能 1 完成。examples/docs で一括付与 |
-| 4 | `cli/src/doc/`（gitsrc, diff）+ `ddq rev diff/next/build` + scaffold（`revisions/history.qmd`・`index.qmd` の include） | CLI 単体で yml を手書きして改訂履歴表が出る |
+| 4 | **完了**。`cli/src/doc/`（gitsrc, diff, revfile）+ `ddq rev next/diff/build` + `lib.typ` の `_xref-page` + scaffold（`revisions/history.qmd`・`index.qmd` の include）。版 2.3.0 | CLI 単体で改訂履歴が出る（サンプル文書で PDF の頁列まで確認） |
 | 5 | Custom Editor（差分表・note・確定） | 機能 2 完成 |
 | 6 | 実文書で 1 改訂サイクル（`rev-A` → `rev-B`）を回す。マニュアル（執筆手順）と `docs/ext-impl`/`cli-impl` を更新 | リリース 2.3.0 |
 

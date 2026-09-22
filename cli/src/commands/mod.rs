@@ -13,6 +13,7 @@ pub mod mermaid;
 pub mod pdf;
 pub mod plantuml;
 pub mod release;
+pub mod rev;
 pub mod setup;
 pub mod tag;
 pub mod update;

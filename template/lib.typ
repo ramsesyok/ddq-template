@@ -381,6 +381,22 @@
   }
 }
 
+// 参照先のページ番号。改訂履歴表の「頁」列など、`#_xref-page("sec-x")`{=typst} で使う。
+// _xref と同じ手順で参照先（見出し <sec-x> / 自前採番表 <sn-tbl-x> / フロート図表
+// <fig-x> <tbl-x>）の location を求め、そこでページカウンタを読む。_page-start は
+// カウンタに反映済みなので、ページ下部に印字される番号と一致する。
+// 見つからないときは _xref と同じく build を壊さず赤い「?」を出す。
+#let _xref-page(name) = context {
+  let sn = query(label("sn-" + name))
+  let hit = if sn.len() > 0 { sn } else { query(label(name)) }
+  if hit.len() > 0 {
+    let loc = hit.first().location()
+    link(loc, [#counter(page).at(loc).first()])
+  } else {
+    text(fill: red)[?]
+  }
+}
+
 // ---- 横向きページの様式（枠・資料番号を 90°回転で配置） ----
 // 縦綴じのまま用紙を回して読む配置なので、資料番号を右端に縦置きする。
 // 資料番号の枠は外枠の右辺に接する（原紙準拠）ため、x は
