@@ -6,6 +6,10 @@
  *
  * 「パネルが真っ白」は実拡張ホストの検証でも気付きにくい（タブは開くため）ので、
  * ここで表が実際に組まれることと、書き戻しの押下で何が拡張へ渡るかを見る。
+ *
+ * jsdom は 26 に固定してある。27 以降は Node 22 以上を要求し、CI の Node 20 で
+ * 「webidl.util.markAsUncloneable is not a function」になる（実測）。上げるときは
+ * .github/workflows/extension.yml の matrix.node から 20 を外すかどうかを一緒に決める。
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
