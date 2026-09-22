@@ -76,6 +76,7 @@ quarto-template/
 ├── docs/                        … 設計リポジトリ（執筆フォルダ manual/ = 利用マニュアル、design/ = テンプレート設計書）
 ├── examples/                    … サンプルの設計書リポジトリ（docs/ = 受注管理システム基本設計書。--with-sample の同梱元）
 ├── extensions/                  … VSCode 拡張（1 フォルダ = 1 拡張。2.3.0 で extension/ から移した）
+│   ├── ddq-revision/            … 見出し・表・図のラベル付け（ddq tag list/apply の画面。2.3.0）
 │   └── ddq-table-editor/        … 表の視覚編集（2.1.0 で旧 quarto-table-support を統合。
 │                                   ddq release が npm でパッケージして VSIX を同梱する）
 ├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release

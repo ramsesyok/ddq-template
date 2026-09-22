@@ -163,6 +163,7 @@ cd C:\tools\quarto-template-2.3.0
 | [docs/design/](docs/design/) | **テンプレート設計書**（リポジトリの構成、出力経路、様式 `lib.typ` と変換 `design-doc.lua` の仕組み、HTML 採番の後処理、版の考え方、保守の観点）。**このリポジトリのみ**（リリースには同梱しません） | 保守者 |
 | [cli/DESIGN.md](cli/DESIGN.md) | `ddq` の設計（コマンド・mermaid エンジン・PlantUML サーバ・ビルド・検証） | 保守者 |
 | [extensions/ddq-table-editor/README.md](extensions/ddq-table-editor/README.md) | VSCode 拡張 `ddq-table-editor` の使い方・開発・デバッグ | 執筆者（使い方）・保守者 |
+| [extensions/ddq-revision/README.md](extensions/ddq-revision/README.md) | VSCode 拡張 `ddq-revision`（ラベル付け・改訂履歴）の使い方・開発 | 執筆者（使い方）・保守者 |
 | [AGENT-GUIDE.md](AGENT-GUIDE.md)（リリース直下にも同梱） | **AI エージェント向けの執筆ガイド**。利用マニュアル全体を読まずに、執筆フォルダの構成・`_quarto.yml`・記法（`.tbl`・IPO 図・相互参照）・コマンドを把握できる要約。設計書リポジトリの `AGENTS.md` / `CLAUDE.md` やスキルにそのまま取り込む | 発行者（AI に原稿を書かせるとき） |
 
 `examples/docs/` はこのリポジトリ同梱の**サンプル**（受注管理システムの基本設計書）です。

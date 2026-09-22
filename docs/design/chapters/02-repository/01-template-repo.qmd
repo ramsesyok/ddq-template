@@ -36,7 +36,8 @@ design-doc-quarto-template/
 │
 ├── cli/                     … 配置・ビルドの道具（template/ を内蔵する）。設計は cli/DESIGN.md
 └── extensions/              … VSCode 拡張（1 フォルダ = 1 拡張）
-    └── ddq-table-editor/    … 表の視覚編集。README はフォルダ内
+    ├── ddq-table-editor/    … 表の視覚編集。README はフォルダ内
+    └── ddq-revision/        … 見出し・表・図のラベル付け（改訂履歴の土台）
 ```
 
 ### 文書の置き場

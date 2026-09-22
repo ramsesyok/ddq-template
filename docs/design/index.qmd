@@ -20,6 +20,7 @@
 | リリースの作り方・配り方、版の上げ方の手順 | 利用マニュアル 17 章 | 保守者 |
 | 配置・ビルドを行う CLI の設計 | `cli/DESIGN.md` | 保守者 |
 | 表の視覚編集を行う VSCode 拡張 | `extensions/ddq-table-editor/README.md` | 執筆者・保守者 |
+| ラベル付けを行う VSCode 拡張 | `extensions/ddq-revision/README.md` | 執筆者・保守者 |
 
 本書は様式と変換の仕組み（`template/`）に絞る。配置・ビルドの道具や VSCode 拡張は、
 本書の対象外であり、それぞれの文書を参照する。

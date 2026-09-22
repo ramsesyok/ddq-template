@@ -434,8 +434,8 @@ docs/
 |---|---|---|
 | 0 | **V1〜V5 完了（2026-09-22）** | 頁列は採用。`postprocess-html.js` の修正は 2.2.2 として先行リリース済み。タグ付けの試作（Python）は Rust 実装の期待値に使える |
 | 1 | **完了**（PR #99）。`cli/src/doc/`（project, units, labels）+ `ddq tag list/apply` | CLI 単体でタグ付けが回る |
-| 2 | `extensions/` への移動 + `release.rs` 複数 VSIX + 版 2.3.0 の準備 | 既存拡張のリリースが変わらないことを確認 |
-| 3 | `ddq-revision` 拡張: タグ付け画面（Webview 表 + WorkspaceEdit） | 機能 1 完成。examples/docs で一括付与 |
+| 2 | **完了**（PR #101）。`extensions/` への移動 + `release.rs` 複数 VSIX + CI の matrix | 既存拡張のリリースが変わらないことを確認 |
+| 3 | **完了**。`extensions/ddq-revision/`: タグ付け画面（Webview 表 + WorkspaceEdit）。実拡張ホストでの検証も同梱 | 機能 1 完成 |
 | 4 | **完了**。`cli/src/doc/`（gitsrc, diff, revfile）+ `ddq rev next/diff/build` + `lib.typ` の `_xref-page` + scaffold（`revisions/history.qmd`・`index.qmd` の include）。版 2.3.0 | CLI 単体で改訂履歴が出る（サンプル文書で PDF の頁列まで確認） |
 | 5 | Custom Editor（差分表・note・確定） | 機能 2 完成 |
 | 6 | 実文書で 1 改訂サイクル（`rev-A` → `rev-B`）を回す。マニュアル（執筆手順）と `docs/ext-impl`/`cli-impl` を更新 | リリース 2.3.0 |

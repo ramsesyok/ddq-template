@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ext: [ddq-table-editor]
+        ext: [ddq-table-editor, ddq-revision]
         os: [ubuntu-latest, windows-latest]
         node: ['20', '22']
     steps:
@@ -79,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ext: [ddq-table-editor]
+        ext: [ddq-table-editor, ddq-revision]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -107,7 +107,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ext: [ddq-table-editor]
+        ext: [ddq-table-editor, ddq-revision]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
