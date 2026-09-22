@@ -82,4 +82,4 @@
 
 ### E-0019 {#ev-e-0019 .unnumbered}
 
-確認済み（実行）。`analysis/probe.cjs` と `analysis/probe-results.json`。既存の TypeScript をメモリ上で変換して呼び、改行を含む merge-cols の再読込、pipe 内のコード span、負号付き幅、コードブロック内 fence、分割表の形式選択を観測。ソースの修正や VSCode の起動は行っていない。実行方法はリポジトリルートから `node docs/ext-impl/analysis/probe.cjs`。
+確認済み（実行）。`analysis/probe.cjs` と `analysis/probe-results.json`。既存の TypeScript をメモリ上で変換して呼び、改行を含む merge-cols の再読込、pipe 内のコード span、負号付き幅、コードブロック内 fence、分割表の形式選択を観測。ソースの修正や VSCode の起動は行っていない。実行方法はリポジトリルートから `node docs/table-editor-impl/analysis/probe.cjs`。

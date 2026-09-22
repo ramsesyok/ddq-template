@@ -1,0 +1,55 @@
+## 拡張の共通作法 {#sec-extensions}
+
+VSCode 拡張は `extensions/` の下に置く。**1 フォルダ = 1 拡張**で、どれも同じ作法に
+従わせる。拡張ごとに中身（扱う記法・画面）は違ってよいが、**配られ方・検査のされ方は
+同じ**にしておかないと、リリースと CI が拡張の数だけ枝分かれするためである。
+
+::: {.tbl caption="今ある拡張" label="tbl-extensions" widths="26,44,30"}
+| 拡張 | 役割 | 実装仕様書 |
+|------------------|------------------------------------|------------------|
+| `ddq-table-editor` | 統一テーブル `::: {.tbl …}` の視覚編集 | `docs/table-editor-impl/` |
+| `ddq-revision` | 見出し・表・図のラベル付けと、ラベル単位の改訂履歴 | 別途（未作成） |
+:::
+
+### 決まりごと {#sec-extensions-rules}
+
+::: {.tbl caption="拡張が守ること" label="tbl-extensions-rules" widths="30,70"}
+| 決まり | 中身 |
+|--------------------------|--------------------------------------------------|
+| フォルダ名 = `name` | `package.json` の `name` とフォルダ名を一致させる。VSIX 名の先頭になるので、`ddq release` が食い違いを検査して止める |
+| 版はテンプレートに揃える | `package.json` の `version` を `template/VERSION` と同じ値にする。`ddq release` と CI が照合する（@sec-version） |
+| npm scripts を揃える | `build` / `test` / `typecheck` / `check:offline` / `check:audit` / `verify` / `package`。CI は拡張ごとにこれを呼ぶだけで済む |
+| 実行時に通信しない | Webview の CSP は `default-src 'none'`（`connect-src` を書かない）。`check:offline` がビルド成果物を検査する |
+| 成果物名を固定する | `out/extension.js` と `out/webview/assets/main.{js,css}`。拡張ホストが組み立てる HTML と Vite の設定の間の契約である |
+| 文書の解釈は ddq に任せる | qmd の走査・差分・候補の生成は `ddq` が行い、拡張はその JSON を表示するだけにする。同じ解釈を 2 か所に持たない |
+| 書き戻しは `WorkspaceEdit` | `ddq` にファイルを書かせない。`Ctrl+Z` で戻せて、未保存のバッファにも当たるため |
+:::
+
+最後の 2 つは `ddq-revision` で明確にした分担である（`ddq-table-editor` は編集対象が
+その場のテキストなので `ddq` を呼ばないが、書き戻しの作法は同じ）。
+
+### 共有しないもの {#sec-extensions-sharing}
+
+**拡張どうしでコードは共有していない。** 共通なのは作法だけで、実際に同じ中身の
+ファイルは `esbuild.mjs` と `scripts/check-offline.mjs` の 2 本である（写しとして置く）。
+
+分けたままにしているのは、**拡張ごとに独立して版を上げ、パッケージできる**ことを
+優先しているためである。共有の置き場（`extensions/shared/`）を先に作ると、片方の都合で
+もう片方のビルドが動く。写しが増えて実害が出た時点で切り出す。
+
+### 増やすときの手順 {#sec-extensions-add}
+
+1. `extensions/<name>/` を作り、既存の拡張から `esbuild.mjs`・`scripts/check-offline.mjs`・
+   `tsconfig*.json`・`vite.config.mts`・`vitest.config.mts`・`.vscodeignore` を写して直す
+2. `package.json` の `name` をフォルダ名に、`version` を `template/VERSION` に合わせる
+3. `.github/workflows/extension.yml` の `matrix.ext` に名前を足す（3 か所とも同じ行）
+4. `ddq release` は `extensions/` を走査するので**変更不要**。VSIX が 1 本増える
+5. 実装仕様書は拡張ごとに 1 冊立てる（`docs/<name>-impl/`）。共通の作法は本節が持ち、
+   実装仕様書は**その拡張に固有のこと**だけを書く
+
+::: {.callout-note}
+実装仕様書を拡張ごとに分けるのは、扱う対象が重ならないためである。表エディタは
+`.tbl` の構文解析とグリッド編集、`ddq-revision` は `ddq` の起動と YAML と差分の UI で、
+共有するコードは無い。1 冊にまとめると全章が「表エディタでは…／改訂では…」の
+二股になり、読みにくく取り違えやすい。
+:::

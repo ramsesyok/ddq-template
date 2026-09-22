@@ -2,7 +2,7 @@
 
 - 日付: 2026-09-22
 - 対象: テンプレート 2.2.2（`ddq` + `design-doc.lua` + `lib.typ` + ddq-table-editor 2.2.2）
-- 位置づけ: 実装前の検討書。実装後は `docs/ext-impl/` / `docs/cli-impl/` の実装仕様書へ昇格する
+- 位置づけ: 実装前の検討書。実装後は `docs/cli-impl/` / 拡張ごとの実装仕様書（`docs/table-editor-impl/` と同じ形）へ昇格する
 - 経緯: 2026-09-22 の一問一答（Q1〜Q19）で決めた前提を §2 にまとめ、それに基づく設計を §3 以降に記す。同日に**検証 V1〜V5 をすべて実機で行い**、結果を §8 に記した。V1 で見つかった HTML のリンク切れは 2.2.2 として先行修正済み（PR #97）。`lib.typ` の `_xref-page`（V2）は ddq-revision 実装時に入れる
 
 ---
@@ -383,7 +383,7 @@ docs/
 ```
 
 - `cli/src/commands/release.rs` の `EXTENSION_DIR`/`EXTENSION_NAME` を配列にし、`extensions/*/` を順に `npm ci && npm run package` して VSIX を 2 本同梱する。版一致検査は両方に適用。
-- `.github` の CI・`docs/README.md`・`docs/ext-impl/`・`AGENT-GUIDE.md` の `extension/` 参照を `extensions/ddq-table-editor/` に直す。
+- `.github` の CI・`docs/README.md`・実装仕様書・`AGENT-GUIDE.md` の `extension/` 参照を `extensions/ddq-table-editor/` に直す。
 - 共通 Webview 部品（Grid）は当面 `ddq-revision` 内に置き、二重化が実害になった時点で `extensions/shared/` に切り出す（先に抽象化しない）。
 
 ---
@@ -438,7 +438,7 @@ docs/
 | 3 | **完了**。`extensions/ddq-revision/`: タグ付け画面（Webview 表 + WorkspaceEdit）。実拡張ホストでの検証も同梱 | 機能 1 完成 |
 | 4 | **完了**。`cli/src/doc/`（gitsrc, diff, revfile）+ `ddq rev next/diff/build` + `lib.typ` の `_xref-page` + scaffold（`revisions/history.qmd`・`index.qmd` の include）。版 2.3.0 | CLI 単体で改訂履歴が出る（サンプル文書で PDF の頁列まで確認） |
 | 5 | **完了**。Custom Editor（差分表・note・確定）。実拡張ホストで往復を確認 | 機能 2 完成 |
-| 6 | **完了**。利用マニュアルに 13 章「改訂履歴を作る」を追加（13〜17 章は 1 つずつ繰り下げ）。サンプル文書（`examples/docs`）に実例の改訂履歴を用意。`docs/ext-impl`/`cli-impl`（実装仕様書）の更新は別途 | リリース 2.3.0 |
+| 6 | **完了**。利用マニュアルに 13 章「改訂履歴を作る」を追加（13〜17 章は 1 つずつ繰り下げ）。サンプル文書（`examples/docs`）に実例の改訂履歴を用意。実装仕様書（`docs/table-editor-impl` / `cli-impl`、および ddq-revision の分）の更新は別途 | リリース 2.3.0 |
 
 - 段階 1・4 は VSCode 無しで完結するので、拡張と並行できる。
 - 自動タグ付け・自動コミット（Q17 で保留）は段階 6 の運用結果を見て追加する。
