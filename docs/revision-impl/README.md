@@ -7,7 +7,7 @@
 - 対象ソース: [analysis/source-sha256.json](analysis/source-sha256.json)（拡張 28 件 + 契約の相手である `ddq` 側 4 件）
 - 設計（なぜそうしたか）: [../revision-study.md](../revision-study.md)
 
-リポジトリルートから機構ファイルを配置して HTML を生成する。
+リポジトリルートから機構ファイルを配置して HTML・PDF を生成する。
 
 ```powershell
 cli\target\release\ddq.exe update docs\revision-impl
@@ -18,7 +18,8 @@ cli\target\release\ddq.exe pdf   docs\revision-impl
 `ddq` は同じテンプレート版でビルドしたものを使用する。図は Lua フィルタが扱う通常の
 `mermaid` コードブロックを使用し、`execute.eval: false` を維持する。
 
-出力は `_book/index.html`。機構ファイル、`_book/`、図キャッシュは
+出力は `_book/index.html` と `design-doc.pdf`。付録（`book.appendices`）を使う本の
+PDF は**テンプレート 2.4.0 以降**で出せる。機構ファイル、`_book/`、図キャッシュは
 リポジトリの除外規則に従って管理対象外とする。
 
 ## 基準版を更新するとき

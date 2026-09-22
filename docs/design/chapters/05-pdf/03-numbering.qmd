@@ -54,5 +54,33 @@
 サンプルで必ず PDF を出して確かめる。
 :::
 
+### 付録（`book.appendices`） {#sec-pdf-appendix}
+
+`_quarto.yml` で `book.appendices` を使うと、Quarto は本文の最後に
+`#show: appendices.with("付録", hide-parent: true)` を出す。これは「ここから後ろは
+付録」という show rule で、**Quarto 既定の typst テンプレートにはこの関数がある**が、
+本テンプレートは様式を自前に置き換えているため `lib.typ` に用意してある
+（2.4.0 で追加。無いと `unknown variable: appendices` で組版が止まる）。
+
+`appendices` が行うことは 4 つである。
+
+1. 章カウンタを 0 に戻し、章番号を「付録A」「付録B」…、節以下を「A.1」「A.1.1」に切り替える
+2. `appendix-state` を立てる。図表番号の接頭辞（`_section-prefix`）と見出し参照が
+   これを見て「表 A-1」「表 A.1-1」「付録B」「B.1節」に切り替わる
+3. `hide-parent` のとき、Quarto が直後に置く番号なしの h1（「付録」）を消す。
+   章が「付録A」と名乗るので、その上にもう一段の見出しは要らない
+4. 同じ見出しを目次からも外す（`show … : set heading(outlined: false)`。
+   これが無いと、消したはずの「付録」が目次に残る）
+
+::: {.tbl caption="本文と付録の採番" label="tbl-appendix-numbering" widths="30,35,35"}
+| 対象 | 本文 | 付録 |
+|---|---|---|
+| 章 | `1.` | `付録A` |
+| 節・項 | `1.1` / `1.1.1` | `A.1` / `A.1.1` |
+| 図表（章直下） | 表 1-1 | 表 A-1 |
+| 図表（節の中） | 表 1.1-1 | 表 A.1-1 |
+| 見出しへの参照 | 5章 / 5.3節 | 付録B / B.1節 |
+:::
+
 採番規則を変えたときは、HTML 側の `postprocess-html.js` も**同じ規則**に直す
 （@sec-html-postprocess）。

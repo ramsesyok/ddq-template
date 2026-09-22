@@ -352,13 +352,45 @@
   // 見出しより前（front matter 等）の図表でカウンタが空でも壊さない。
   let nums = heads.slice(0, calc.min(depth, heads.len()))
   if nums.len() == 0 { nums = (0,) }
-  // depth 個の "1" を "." で連結したパターン（例 depth=3 → "1.1.1"）で採番。
-  let pat = range(depth).map(_ => "1").join(".")
+  // depth 個を "." で連結したパターン（例 depth=3 → "1.1.1"）で採番。
+  // 付録（appendices）では章を英字にする（表 A-1 / 表 A.1-1）。
+  let head = if state("appendix-state", none).at(loc) != none { "A" } else { "1" }
+  let pat = ((head,) + range(depth - 1).map(_ => "1")).join(".")
   numbering(pat, ..nums)
 }
 
 // IPO の表番号用の接頭辞。図表番号と同じ「章.節.項…」（最大レベル5）を出す。
 #let _ipo-prefix(loc) = _section-prefix(loc)
+
+// ============================================================
+//  付録（_quarto.yml の book.appendices）
+//
+//  Quarto は本文の最後に
+//    #show: appendices.with("付録", hide-parent: true)
+//  を出す。「ここから後ろは付録」という show rule で、章番号を「付録A」「A.1」に
+//  切り替える。Quarto 既定の typst テンプレートはこの関数を持つが、本テンプレートは
+//  様式を自前に置き換えているため、ここで用意する（無いと
+//  「unknown variable: appendices」で組版が止まる）。
+//
+//  hide-parent: Quarto が直後に置く番号なしの h1（"付録"）を消す。章が「付録A」と
+//  名乗るので、その上にもう一段「付録」を出す必要がない。
+//
+//  appendix-state は Quarto の生成コード（式・callout・定理の採番）が読む状態で、
+//  図表番号の接頭辞（_section-prefix）もこれを見て「A.1」系に切り替える。
+// ============================================================
+#let appendices(title, hide-parent: false, body) = {
+  state("appendix-state", none).update(title)
+  // 章番号を 1 から数え直す（付録A・付録B…）
+  counter(heading).update(0)
+  set heading(numbering: (..n) => {
+    let nums = n.pos()
+    if nums.len() == 1 { numbering("付録A", nums.at(0)) } else { numbering("A.1.1.1", ..nums) }
+  })
+  // 目次からも外す（show-set。これが無いと、消したはずの「付録」が目次に残る）
+  show heading.where(level: 1, numbering: none): set heading(outlined: hide-parent == false)
+  show heading.where(level: 1, numbering: none): it => if hide-parent { none } else { it }
+  body
+}
 
 // 自前採番の表（.tbl・.ipo）を @tbl- で相互参照するためのヘルパ。
 // design-doc.lua が @tbl- 参照を #_xref("tbl-x") に置換して呼ぶ（Quarto の crossref は
@@ -673,11 +705,18 @@
     } else if el != none and el.func() == heading {
       // 見出し参照(@sec-x): レベル1 = 「5章」、レベル2以降 = 「5.3節」。
       // Quarto 既定の「チャプター 5 / セクション 5.3」を、番号＋章/節の後置表記に替える。
+      // 付録（appendices）は「付録B」「B.1節」。章は番号自体が名乗るので「章」を付けない。
       let loc = el.location()
       let nums = counter(heading).at(loc).slice(0, el.level)
-      let s = nums.map(n => str(n)).join(".")
-      let suffix = if el.level == 1 { "章" } else { "節" }
-      link(loc, [#s#suffix])
+      if state("appendix-state", none).at(loc) != none {
+        let pat = (("A",) + range(el.level - 1).map(_ => "1")).join(".")
+        let s = if el.level == 1 { numbering("付録A", ..nums) } else { numbering(pat, ..nums) + "節" }
+        link(loc, [#s])
+      } else {
+        let s = nums.map(n => str(n)).join(".")
+        let suffix = if el.level == 1 { "章" } else { "節" }
+        link(loc, [#s#suffix])
+      }
     } else { it }
   }
 

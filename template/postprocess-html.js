@@ -52,10 +52,23 @@ const root = process.argv[2] || process.env.QUARTO_PROJECT_OUTPUT_DIR || '_book'
 // chapters は「- パス.qmd」が1行1件で並ぶだけなので、簡易パースで足りる。
 // 章ファイルは .qmd と .md のどちらでもよい（実行コードセルを使わない章は .md にできる）。
 const conf = fs.readFileSync('_quarto.yml', 'utf8');
-const block = conf.match(/^\s*chapters:\s*$([\s\S]*?)^\S/m)
-  || conf.match(/^\s*chapters:\s*$([\s\S]*)/m);
-const order = [...(block?.[1] ?? '').matchAll(/^\s*-\s*(\S+\.(?:qmd|md))\s*$/gm)]
-  .map((m) => m[1].replace(/\.(?:qmd|md)$/, '.html'));
+
+/** `キー:` の下に続く「- パス.qmd」を html の名前にして返す。 */
+const listOf = (key) => {
+  const block = conf.match(new RegExp(String.raw`^\s*${key}:\s*$([\s\S]*?)^\s*\w+:`, 'm'))
+    || conf.match(new RegExp(String.raw`^\s*${key}:\s*$([\s\S]*)`, 'm'));
+  return [...(block?.[1] ?? '').matchAll(/^\s*-\s*(\S+\.(?:qmd|md))\s*$/gm)]
+    .map((m) => m[1].replace(/\.(?:qmd|md)$/, '.html'));
+};
+
+const chapters = listOf('chapters');
+// 付録（book.appendices）。Quarto は章番号を A・B… と振るが、**HTML の章タイトルには
+// chapter-number を出さず**「付録 A — 解析根拠」という文にしてしまう（id を付けた章では
+// 特に）。語は言語設定で変わるので、記号は _quarto.yml の並び順から決める。
+const appendixLetter = new Map(
+  listOf('appendices').map((f, i) => [f, String.fromCharCode(65 + i)])
+);
+const order = [...chapters, ...[...appendixLetter.keys()].filter((f) => !chapters.includes(f))];
 if (order.length === 0) {
   console.error('_quarto.yml の chapters を読めませんでした');
   process.exit(1);
@@ -72,11 +85,14 @@ const SP = String.raw`(?:\s|&nbsp;)*`;
 // <h1 class="title"> の直後に来ない。包みの span を読み飛ばせるようにしておく
 // （読み飛ばす側に chapter-number 自体を食わせないよう否定先読みで除く）。
 // これを怠ると章直下（節なし）の図表が「表 0-1」になる。
-const CHAP = String.raw`<h1 class="title">(?:<span(?![^>]*\bclass="chapter-number")[^>]*>)*(?:<span class="chapter-number">(\d+)</span>)?`;
-const HEAD = String.raw`<h[2-6][^>]*\bdata-number="([\d.]+)"`;
+// 付録（book.appendices）では Quarto が章番号を英字（A・B…）、節を "A.1" で出すので、
+// 数字だけでなく英大文字も拾う（図表番号は「表 A-1」「表 A.1-1」になる）。
+const CHAP = String.raw`<h1 class="title">(?:<span(?![^>]*\bclass="chapter-number")[^>]*>)*(?:<span class="chapter-number">([0-9A-Z]+)</span>)?`;
+const HEAD = String.raw`<h[2-6][^>]*\bdata-number="([0-9A-Z][0-9A-Z.]*)"`;
 // 「図 1.1: 」（Quarto 既定＝未処理）と「図 3.2-1　」（前回この後処理が書いた形）の
 // どちらにも一致させる（冪等性のため。ヘッダのコメント参照）。
-const NUM = String.raw`[\d.]+(?:-\d+)?(?::${SP}|　)`;
+// 付録の番号は英字で始まる（表 A-1 / 表 A.1-1）ので、数字だけに限定しない。
+const NUM = String.raw`[0-9A-Z][\d.A-Z]*(?:-\d+)?(?::${SP}|　)`;
 const CAP = String.raw`<figcaption[^>]*\bid="((?:fig|tbl)-[^"]*?)-caption-[^"]*"[^>]*>${SP}(図|表)${SP}${NUM}`;
 const CAP_TAIL = new RegExp(String.raw`(図|表)${SP}${NUM}$`);
 // 自前採番の表(.tbl/.ipo)のキャプション div（design-doc.lua が各パートの上に置く）。
@@ -86,7 +102,7 @@ const CAP_TAIL = new RegExp(String.raw`(図|表)${SP}${NUM}$`);
 // 続くことがあるので、追加クラスを許容して**そのまま書き戻す**。
 const SPLIT = String.raw`<div class="(split-caption[^"]*)"([^>]*)>([\s\S]*?)</div>`;
 // 前回この後処理が前置したラベル（「表 3-1　」）。剥がしてから付け直す。
-const SPLIT_LABEL = /^(?:図|表)\s*[\d.]+-\d+　/;
+const SPLIT_LABEL = /^(?:図|表)\s*[0-9A-Z][\d.A-Z]*-\d+　/;
 
 const numberOf = new Map();   // floatId -> "図 3.3-1"
 const fileOf = new Map();     // floatId -> 章 HTML の相対パス（他章からの参照の href を直すため）
@@ -99,7 +115,9 @@ for (const rel of order) {
   if (!fs.existsSync(file)) continue;
   const html = fs.readFileSync(file, 'utf8');
   const scan = new RegExp(`${CHAP}|${HEAD}|${CAP}|${SPLIT}`, 'g');
-  let chap = 0;
+  // 付録はファイル単位で記号が決まる（章タイトルから拾えないため）
+  const fileChap = appendixLetter.get(rel) ?? '0';
+  let chap = fileChap;
   // いま処理中の見出しの番号（data-number）。章直下（節なし）は空文字。
   // 図表番号は PDF と同じく見出しの深さ「章.節.項…」（最大レベル5）に追従する。
   let secKey = '';
@@ -111,14 +129,16 @@ for (const rel of order) {
 
   for (let m; (m = scan.exec(html)) !== null; ) {
     if (m[0].startsWith('<h1')) {               // 章タイトル（章番号を確定・節を戻す）
-      chap = Number(m[1]) || 0;
+      // 付録は "A" のような英字なので数値化しない（文字列のまま接頭辞に使う）。
+      // 章番号が無い（= 付録、または番号なし章）ときはファイル由来の値に戻す。
+      chap = m[1] || fileChap;
       secKey = '';
       continue;
     }
     if (m[2]) {                                 // 節以下の見出し
       // data-number="3.3.2" をそのまま接頭辞に使う（レベル5まで、以降は切る）。
       const parts = m[2].split('.').slice(0, 5);
-      chap = Number(parts[0]) || 0;
+      chap = parts[0] || fileChap;
       secKey = parts.join('.');
       continue;
     }
@@ -204,13 +224,16 @@ for (const [file, { html, repl }] of staged) {
   // 冪等性: 変換後は <span>10章</span> となり、番号の直後が </span> でなくなるので
   // 二度目の実行では一致しない（「10章章」にはならない）。
   out = out.replace(
-    /(<a href="([^"]*)"[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)<span>[^0-9<]*([\d.]+)<\/span>(<\/a>)/g,
+    /(<a href="([^"]*)"[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)<span>[^0-9A-Z<]*([0-9A-Z][\d.A-Z]*)<\/span>(<\/a>)/g,
     (whole, open, href, num, close) => {
       const frag = href.split('#')[1];
       if (frag && !frag.startsWith('sec-')) return whole;   // 図表など見出し以外の参照
-      const suffix = num.includes('.') ? '節' : '章';
+      // 付録（番号が英字で始まる）は「付録B」「B.1節」、本文は「5章」「5.3節」。
+      const label = num.includes('.')
+        ? `${num}節`
+        : /^[A-Z]/.test(num) ? `付録${num}` : `${num}章`;
       refCount += 1;
-      return `${open}<span>${num}${suffix}</span>${close}`;
+      return `${open}<span>${label}</span>${close}`;
     });
   fs.writeFileSync(file, out);
 }

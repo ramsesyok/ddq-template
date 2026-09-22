@@ -38,6 +38,17 @@ Typst 出力時も post-render は呼ばれる。`QUARTO_PROJECT_OUTPUT_FILES` �
 「空＝HTML なし」とは見なさない）。また、解決できない相互参照があっても異常終了しない。
 post-render の失敗は `quarto preview` 全体の失敗になり、執筆が止まるためである。
 
+### 付録の章記号は `_quarto.yml` から取る
+
+`book.appendices` を使うと Quarto は章番号を英字（A・B…）、節を `A.1` で出す。
+ところが**付録の章タイトルには `chapter-number` を出さず**、「付録 A — 解析根拠」という
+文にしてしまう（章に id を付けたときは特に）。「付録」という語は言語設定で変わるので、
+本文から記号を読むのは当てにならない。
+
+そこで付録の章記号は **`_quarto.yml` の `appendices:` の並び順**から決める（1 番目が A、
+2 番目が B）。節以下は `data-number="A.1"` がそのまま使えるので、そちらから取る。
+PDF 側（@sec-pdf-appendix）と同じ「表 A-1」「表 A.1-1」になる。
+
 ### 落とし穴 1: NBSP の形
 
 「図」と番号の間の NBSP は、book 出力では実体参照 `&nbsp;`、単一 HTML 出力では生の
