@@ -5,6 +5,7 @@
 
 mod assets;
 mod commands;
+mod doc;
 mod mermaid;
 mod plantuml;
 mod quarto;
@@ -41,6 +42,8 @@ enum Command {
     Diagrams(FolderArg),
     /// PlantUML のローカルサーバを起動する（執筆者がプレビューで ```plantuml を見るとき）
     Plantuml(PlantumlArgs),
+    /// 見出し・表・図の Quarto ラベル（改訂履歴のキー）を一覧・付与する
+    Tag(TagArgs),
     /// 発行者向けリリース一式（exe + 利用マニュアル + README + VSCode 拡張）を作る（保守者用）
     Release(ReleaseArgs),
     /// mermaid ソースを SVG に変換する（design-doc.lua が内部で呼ぶ）
@@ -98,6 +101,47 @@ struct ReleaseArgs {
 }
 
 #[derive(Args)]
+struct TagArgs {
+    #[command(subcommand)]
+    command: TagCommand,
+}
+
+#[derive(Subcommand)]
+enum TagCommand {
+    /// 見出し・表・図とラベルの有無を一覧する（ラベルが無いものには候補を出す）
+    List(TagListArgs),
+    /// 候補ラベルを元の文書に書き戻す
+    Apply(TagApplyArgs),
+}
+
+#[derive(Args)]
+struct TagListArgs {
+    /// 執筆フォルダ（_quarto.yml のあるフォルダ。省略時 docs）
+    writing_folder: Option<PathBuf>,
+    /// 機械可読な JSON で出す（VSCode 拡張・CI 向け）
+    #[arg(long)]
+    json: bool,
+    /// ラベルの無いものだけを出す
+    #[arg(long)]
+    unlabeled: bool,
+}
+
+#[derive(Args)]
+struct TagApplyArgs {
+    /// 執筆フォルダ（_quarto.yml のあるフォルダ。省略時 docs）
+    writing_folder: Option<PathBuf>,
+    /// ラベルの無いものすべてに候補を書き戻す
+    #[arg(long, conflicts_with = "from")]
+    all: bool,
+    /// `tag list --json` の出力（候補を人が直したもの）を読んで書き戻す
+    #[arg(long, value_name = "FILE")]
+    from: Option<PathBuf>,
+    /// 書き換えずに、何を書き戻すかだけ出す
+    #[arg(long)]
+    dry_run: bool,
+}
+
+#[derive(Args)]
 struct PlantumlArgs {
     #[command(subcommand)]
     command: PlantumlCommand,
@@ -148,6 +192,21 @@ fn main() -> anyhow::Result<()> {
         Command::Pdf(a) => commands::pdf::run(&writing_folder::resolve(a.writing_folder)?),
         Command::Diagrams(a) => commands::diagrams::run(&writing_folder::resolve(a.writing_folder)?),
         Command::Release(a) => commands::release::run(a.out_dir.as_deref(), a.with_sample, a.no_build),
+        Command::Tag(a) => match a.command {
+            TagCommand::List(t) => {
+                commands::tag::list(&writing_folder::resolve(t.writing_folder)?, t.json, t.unlabeled)
+            }
+            TagCommand::Apply(t) => {
+                if !t.all && t.from.is_none() {
+                    anyhow::bail!("--all か --from <FILE> のどちらかを指定してください");
+                }
+                commands::tag::apply(
+                    &writing_folder::resolve(t.writing_folder)?,
+                    t.from.as_deref(),
+                    t.dry_run,
+                )
+            }
+        },
         Command::Plantuml(a) => match a.command {
             PlantumlCommand::Serve(s) => commands::plantuml::serve(s.port, &s.bind),
         },
