@@ -37,7 +37,7 @@ dir
 フォルダにいる（発行者の作業場所）。見えない場合は移動する。
 
 ```bat
-cd C:\tools\quarto-template-2.2.1
+cd C:\tools\quarto-template-2.2.2
 ```
 
 執筆者の手元には `ddq.exe` は無い（HTML の確認は執筆フォルダの中で
