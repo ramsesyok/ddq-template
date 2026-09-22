@@ -10,10 +10,10 @@
 リポジトリルートから機構ファイルを配置して HTML を生成する。
 
 ```powershell
-cli\target\debug\ddq.exe update docs\ext-impl
+cli\target\debug\ddq.exe update docs\table-editor-impl
 $env:DDQ_MERMAID_ENGINE = 'merman'
-cli\target\debug\ddq.exe html docs\ext-impl
-python docs\ext-impl\analysis\check_output.py
+cli\target\debug\ddq.exe html docs\table-editor-impl
+python docs\table-editor-impl\analysis\check_output.py
 ```
 
 `ddq` は同じテンプレート版でビルドしたものを使用する。release ビルドを使う場合はパスを読み替える。図は Lua フィルタが扱う通常の `mermaid` コードブロックを使用し、`execute.eval: false` を維持する。

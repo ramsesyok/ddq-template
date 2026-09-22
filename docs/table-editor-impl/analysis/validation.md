@@ -8,7 +8,7 @@
 | PANDOC を明示し REQUIRE_PANDOC=1 で npm test | 17 ファイル、168 テスト成功。スキップなし。Vitest 4.1.10、表示時間1.45秒 |
 | npm run build | 成功、esbuild/Vite で host と Webview を生成 |
 | npm run check:offline | 3生成物と CSP の検査成功 |
-| node docs/ext-impl/analysis/probe.cjs | 成功、probe-results.json 参照 |
+| node docs/table-editor-impl/analysis/probe.cjs | 成功、probe-results.json 参照 |
 
 ビルドの初回は sandbox による親ディレクトリ参照拒否で失敗。権限を付けた同一ビルドの再実行で成功。npm の PATH 上のユーザー側ランチャーに不整合があり、C:/Program Files/nodejs を PATH の先頭に指定して実行した。ソースの修正はしていない。
 
