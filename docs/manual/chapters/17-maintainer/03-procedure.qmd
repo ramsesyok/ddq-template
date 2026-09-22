@@ -7,7 +7,7 @@
 
    ::: {.callout-important}
    **版を上げたら、本書と `README.md` の実行例に埋め込まれた版番号も揃える。**
-   展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-2.2.1` のような例が
+   展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-2.2.2` のような例が
    全体で30箇所ほどある。ずれていると、発行者が手元のフォルダ名と合わない手順を
    読むことになる。
 
@@ -26,7 +26,7 @@
 
    ```bat
    cd extension
-   npm version 2.2.1 --no-git-tag-version
+   npm version 2.2.2 --no-git-tag-version
    cd ..
    ```
    :::

@@ -437,7 +437,7 @@ quarto preview     # ブラウザでライブプレビュー（VSCode では Ctr
 ### 発行者側（リリース展開フォルダ `quarto-template-<版>/` から、絶対パスで実行）
 
 ```bat
-cd C:\tools\quarto-template-2.2.1
+cd C:\tools\quarto-template-2.2.2
 :: 設計書リポジトリを新規作成（執筆フォルダ docs）
 .\ddq init C:\work\order-design
 :: 同じリポジトリに 2 つ目の執筆フォルダを追加

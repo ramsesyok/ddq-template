@@ -89,6 +89,7 @@ const SPLIT = String.raw`<div class="(split-caption[^"]*)"([^>]*)>([\s\S]*?)</di
 const SPLIT_LABEL = /^(?:図|表)\s*[\d.]+-\d+　/;
 
 const numberOf = new Map();   // floatId -> "図 3.3-1"
+const fileOf = new Map();     // floatId -> 章 HTML の相対パス（他章からの参照の href を直すため）
 const staged = new Map();     // file -> { html, repl }
 
 // --- パス1: 章順に走査して番号を確定する ---
@@ -138,7 +139,7 @@ for (const rel of order) {
         // data-ref があれば id→番号を登録し、@tbl-x の参照（design-doc.lua が
         // 出す <a class="quarto-xref">）を pass2 で本文の表と同じ経路で解決させる。
         const refm = attrs.match(/data-ref="([^"]+)"/);
-        if (refm) numberOf.set(refm[1], splitLabel);
+        if (refm) { numberOf.set(refm[1], splitLabel); fileOf.set(refm[1], rel); }
       }
       // 続くパートも先頭と同じ番号。キャプション先頭に前置する（本文「（i／M）…」は残す）。
       const label = splitLabel || '表 ?';
@@ -153,6 +154,7 @@ for (const rel of order) {
     seq.set(key, n);
     const label = `${kind} ${prefix}-${n}`;
     numberOf.set(floatId, label);
+    fileOf.set(floatId, rel);
     // マッチした「図&nbsp;1.1: 」の部分だけを差し替える（キャプション本文は残す）
     repl.push([m.index, m.index + m[0].length, m[0].replace(CAP_TAIL, `${label}　`)]);
   }
@@ -169,6 +171,18 @@ for (const [file, { html, repl }] of staged) {
     const [s, e, text] = repl[i];
     out = out.slice(0, s) + text + out.slice(e);
   }
+  // 自前採番の表(.tbl/.ipo)への参照は design-doc.lua が href="#tbl-x"（同一ページ内）で
+  // 出す。表が別の章ファイルにあるとリンク切れになるので、パス1で控えた所在へ相対パスを
+  // 足す（Quarto 標準の相互参照は最初から "../x.html#fig-x" の形なので触らない）。
+  const relFile = path.relative(root, file).split(path.sep).join('/');
+  out = out.replace(
+    /(<a href=")(#(?:fig|tbl)-[^"]+)("[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)/g,
+    (whole, open, frag, close) => {
+      const target = fileOf.get(frag.slice(1));
+      if (!target || target === relFile) return whole;
+      const href = path.relative(path.dirname(relFile), target).split(path.sep).join('/');
+      return `${open}${href}${frag}${close}`;
+    });
   out = out.replace(
     /(<a href="[^"]*#((?:fig|tbl)-[^"]+)"[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)([\s\S]*?)(<\/a>)/g,
     (whole, open, id, _text, close) => {
