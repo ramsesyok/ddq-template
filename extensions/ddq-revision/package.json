@@ -1,0 +1,80 @@
+{
+  "name": "ddq-revision",
+  "displayName": "DDQ Revision",
+  "description": "Label tagging and revision history for design-doc-quarto-template (ddq)",
+  "version": "2.3.0",
+  "publisher": "ramsesyok",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ramsesyok/ddq-template",
+    "directory": "extensions/ddq-revision"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "preview": true,
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "ddqRevision.tags",
+        "title": "見出し・表・図のラベルを一覧する",
+        "category": "DDQ Revision"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "ddqRevision.tags",
+          "when": "explorerResourceIsFolder",
+          "group": "7_modification"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DDQ Revision",
+      "properties": {
+        "ddqRevision.ddqPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "`ddq` 実行ファイルのパス。空なら `PATH` から探す。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build:ext": "node esbuild.mjs",
+    "build:webview": "vite build",
+    "build": "npm run build:ext && npm run build:webview",
+    "watch:ext": "node esbuild.mjs --watch",
+    "watch:webview": "vite build --watch",
+    "test": "vitest run",
+    "test:host": "node tests/host/run.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json",
+    "check:offline": "node scripts/check-offline.mjs",
+    "check:audit": "npm audit --omit=dev --audit-level=low",
+    "verify": "npm run typecheck && npm test && npm run build && npm run check:offline && npm run check:audit",
+    "package": "npm run build && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vitejs/plugin-react": "^6.0.5",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.2",
+    "jsdom": "^26.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.3.0",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
+  }
+}

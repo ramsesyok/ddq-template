@@ -1,0 +1,70 @@
+{
+ "folder": "{{FOLDER}}",
+ "order": [
+  "index.qmd",
+  "chapters/01-overview/index.qmd"
+ ],
+ "items": [
+  {
+   "kind": "heading",
+   "level": 1,
+   "file": "index.qmd",
+   "line": 1,
+   "title": "本書について",
+   "label": null,
+   "suggested": "sec-02a174",
+   "edit": {
+    "file": "index.qmd",
+    "line": 1,
+    "col": 10,
+    "insert": "#sec-02a174 "
+   }
+  },
+  {
+   "kind": "heading",
+   "level": 1,
+   "file": "chapters/01-overview/index.qmd",
+   "line": 1,
+   "title": "概要",
+   "label": null,
+   "suggested": "sec-137d76",
+   "edit": {
+    "file": "chapters/01-overview/index.qmd",
+    "line": 1,
+    "col": 4,
+    "insert": " {#sec-137d76}"
+   }
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "file": "chapters/01-overview/index.qmd",
+   "line": 5,
+   "title": "目的",
+   "label": null,
+   "suggested": "sec-23ce55",
+   "edit": {
+    "file": "chapters/01-overview/index.qmd",
+    "line": 5,
+    "col": 5,
+    "insert": " {#sec-23ce55}"
+   }
+  },
+  {
+   "kind": "heading",
+   "level": 2,
+   "file": "chapters/01-overview/index.qmd",
+   "line": 9,
+   "title": "対象範囲",
+   "label": null,
+   "suggested": "sec-ea1178",
+   "edit": {
+    "file": "chapters/01-overview/index.qmd",
+    "line": 9,
+    "col": 7,
+    "insert": " {#sec-ea1178}"
+   }
+  }
+ ],
+ "warnings": []
+}
