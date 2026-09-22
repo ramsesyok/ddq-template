@@ -10,6 +10,13 @@
 | `ext-impl/` | DDQ Table Editor ソフトウェア実装仕様書（拡張・表編集・記法変換・変更影響・解析根拠） | VSCode 拡張の改修者 |
 | `presentation/` | 紹介スライド（revealjs。LT 版 5 分／ロング版 15〜20 分）。設計書ではないので `ddq` を使わず `quarto render` で出す | 発表者 |
 
+このほかに、実装前の検討書を単一の Markdown で置く（執筆フォルダではないので `ddq` は使わない）。
+内容が固まったら上の実装仕様書へ昇格させる。`cli/plantuml-study.md` も同じ位置づけである。
+
+| ファイル | 内容 |
+|---|---|
+| `revision-study.md` | ddq-revision（見出し・表・図のタグ付けと、ラベル単位の改訂履歴）の実現性検討と設計 |
+
 ビルドはリポジトリのルートから（`ddq` は `cli/` で `cargo build --release` したもの）。
 
 ```bat
