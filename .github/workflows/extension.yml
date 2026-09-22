@@ -70,6 +70,37 @@ jobs:
       - name: オフライン検査（実行時に通信しないこと）
         run: npm run check:offline
 
+  # 実拡張ホスト（本物の VSCode）で動かす検証。拡張が用意していれば走らせる。
+  # ランナーには VSCode が無いので @vscode/test-electron がテスト用の VSCode を取得する
+  # （配布物には入らない devDependency。利用者の環境は通信しない）。
+  # ddq.exe はここではビルドせず、実物の出力を採取した golden を返す差し替えを使う
+  # （ddq 本体の CI は ci.yml）。
+  host:
+    name: 実拡張ホスト (${{ matrix.ext }})
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: extensions/${{ matrix.ext }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ext: [ddq-revision]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: extensions/${{ matrix.ext }}/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - name: 検証用の VSCode をキャッシュ
+        uses: actions/cache@v4
+        with:
+          path: extensions/${{ matrix.ext }}/.vscode-test
+          key: vscode-test-${{ runner.os }}
+      - run: npm run test:host
+
   audit:
     name: 脆弱性チェック (${{ matrix.ext }})
     runs-on: ubuntu-latest
@@ -100,7 +131,7 @@ jobs:
   package:
     name: VSIX の生成 (${{ matrix.ext }})
     runs-on: ubuntu-latest
-    needs: [test, audit]
+    needs: [test, audit, host]
     defaults:
       run:
         working-directory: extensions/${{ matrix.ext }}

@@ -76,6 +76,8 @@ regress/
 # *.vsix はリリース時に ddq release が各拡張に作り、展開フォルダへコピーする。
 extensions/*/node_modules/
 extensions/*/out/
+# @vscode/test-electron が取得する検証用の VSCode（開発時のみ。配布物には入らない）
+extensions/*/.vscode-test/
 *.vsix
 
 # ==== リリースに同梱する外部バイナリ（cli/vendor/README.md。17MB あるので git 管理外） ====

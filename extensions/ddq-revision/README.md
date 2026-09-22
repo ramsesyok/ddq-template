@@ -49,13 +49,18 @@ F5 で拡張開発ホストを起動します。
 
 ```bash
 npm install
-npm run verify           # 型検査・テスト・ビルド・オフライン検査・脆弱性検査
-node tests/host/run.mjs  # 実拡張ホストでの検証（インストール済みの VSCode を使う）
+npm run verify      # 型検査・テスト・ビルド・オフライン検査・脆弱性検査
+npm run test:host   # 実拡張ホストでの検証
 ```
 
-`tests/host/run.mjs` は一時フォルダに検証用の執筆フォルダを作り、専用のプロファイルで
+`npm run test:host` は一時フォルダに検証用の執筆フォルダを作り、専用のプロファイルで
 VSCode を起動して、一覧が開くこと・書き戻しが当たること・Undo で戻ることを確かめます。
-`ddq.exe` は既定で `../../cli/target/release/` のものを使います（引数でも渡せます）。
+
+- **VSCode**: インストール済みのものがあればそれを使います（通信しません）。無い場合だけ
+  `@vscode/test-electron` がテスト用の VSCode を取得します（CI 用。`.vscode-test/` に入り、
+  **配布物には一切入りません**）
+- **ddq**: `../../cli/target/release/` にあればそれを、無ければ `tests/host/fake-ddq.mjs`
+  （実物の出力を採取した golden を返す差し替え）を使います。引数や `DDQ_BIN` でも渡せます
 
 版はテンプレートの版（`../../template/VERSION`）と揃えます。`ddq release` が照合し、
 違っていれば止まります。

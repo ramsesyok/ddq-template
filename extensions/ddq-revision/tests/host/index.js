@@ -30,10 +30,9 @@ function rowsFor(list, file) {
 }
 
 async function run() {
-    const folder = vscode.workspace.workspaceFolders[0].uri.fsPath;
-    const docs = path.join(folder, 'docs');
+    const docs = process.env.DOCS_DIR || path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'docs');
     const ddq = process.env.DDQ_BIN;
-    assert.ok(ddq && fs.existsSync(ddq), 'DDQ_BIN に ddq.exe のパスを渡してください');
+    assert.ok(ddq && fs.existsSync(ddq), 'DDQ_BIN に ddq のパスを渡してください');
 
     // 1) 一覧のパネルが開く
     await vscode.commands.executeCommand('ddqRevision.tags', vscode.Uri.file(docs));
@@ -45,7 +44,13 @@ async function run() {
     say(`一覧のパネルが開く（${tab.label}）`);
 
     // 2) ddq の一覧から書き戻す
-    const list = JSON.parse(execFileSync(ddq, ['tag', 'list', docs, '--json'], { encoding: 'utf8' }));
+    // 拡張と同じ起動のしかた（Windows の .cmd は cmd /c 経由でないと起動できない）
+    const argv = ['tag', 'list', docs, '--json'];
+    const [file, args] =
+        process.platform === 'win32' && /\.(cmd|bat)$/i.test(ddq)
+            ? ['cmd.exe', ['/c', ddq, ...argv]]
+            : [ddq, argv];
+    const list = JSON.parse(execFileSync(file, args, { encoding: 'utf8' }));
     const target = 'chapters/01-overview/index.qmd';
     const rows = rowsFor(list, target);
     assert.ok(rows.length >= 1, 'ラベル未付与の見出しが無い');

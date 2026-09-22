@@ -22,9 +22,13 @@ VSCode 拡張（`ddq-revision`）。このリポジトリの `extensions/ddq-rev
 ## 検証
 
 ```bash
-npm run verify           # 型検査・テスト・ビルド・オフライン検査・脆弱性検査
-node tests/host/run.mjs  # 実拡張ホスト（インストール済みの VSCode）で一覧・書き戻し・Undo を見る
+npm run verify      # 型検査・テスト・ビルド・オフライン検査・脆弱性検査
+npm run test:host   # 実拡張ホストで一覧・書き戻し・Undo を見る
 ```
+
+`test:host` の VSCode は「インストール済み → 無ければ `@vscode/test-electron` で取得」、
+ddq は「ビルド済み → 無ければ golden を返す差し替え」の順に決まる。どちらも開発時だけの
+話で、配布物（VSIX）には入らない。golden を採り直すときは README を参照。
 
 Webview の描画は jsdom のテスト（`src/webview/*.test.tsx`）で見る。「パネルが真っ白」は
 実拡張ホストの検証でもタブが開くだけで気付けないため。

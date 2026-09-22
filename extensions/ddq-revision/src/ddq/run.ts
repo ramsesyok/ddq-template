@@ -25,12 +25,28 @@ export function ddqCommand(configured: string | undefined): string {
     return trimmed === '' ? 'ddq' : trimmed;
 }
 
+/**
+ * 起動するもの（実行ファイルと引数）を決める。
+ *
+ * Windows の Node は、脆弱性対応（CVE-2024-27980）以降 `.cmd` / `.bat` を
+ * `execFile` で直接起動できない（EINVAL になる）。ラッパのバッチを
+ * `ddqRevision.ddqPath` に指定されることはあるので、その場合は `cmd /c` を通す。
+ */
+export function spawnArgs(command: string, args: string[]): [string, string[]] {
+    const isBatch = /\.(cmd|bat)$/i.test(command);
+    if (process.platform === 'win32' && isBatch) {
+        return ['cmd.exe', ['/c', command, ...args]];
+    }
+    return [command, args];
+}
+
 /** 標準出力を返す。終了コードが 0 でなければ `DdqError`。 */
 export function run(command: string, args: string[], cwd?: string): Promise<string> {
+    const [file, argv] = spawnArgs(command, args);
     return new Promise((resolve, reject) => {
         execFile(
-            command,
-            args,
+            file,
+            argv,
             // 設計書は 1000 ページ級になりうるので、既定の 1MB では足りない
             { cwd, maxBuffer: 64 * 1024 * 1024, windowsHide: true },
             (error, stdout, stderr) => {
