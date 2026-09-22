@@ -52,7 +52,7 @@ order-design/              … 設計書リポジトリ（clone するのはこ�
 機構ファイル（`design-doc.lua`・`design-doc.css`・`postprocess-html.js`・
 `mermaid-config.json` / `plantuml-config.puml`）は `ddq` に埋め込まれた原本の**写し**である。
 直接編集しても、発行者がテンプレートを更新（`ddq update`）したときや
-ビルドしたときに上書きされる。様式を変えたい場合は 17章を参照すること。
+ビルドしたときに上書きされる。様式を変えたい場合は 18章を参照すること。
 :::
 
 ### 生成物とバージョン管理

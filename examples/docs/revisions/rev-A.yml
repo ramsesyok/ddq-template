@@ -1,0 +1,39 @@
+# ddq rev diff が作り、人が note（修正内容）を書き足すファイル。
+# 改訂履歴の表は `ddq rev build` が revisions/history.qmd に生成する。
+#
+# これはサンプルなので手で書いてある。実際には次の順で作る（利用マニュアル 13 章）:
+#   ddq rev diff <執筆フォルダ> --write   → note を書く → ddq rev build <執筆フォルダ>
+rev: A
+date: 2026-04-20
+base: rev--
+scheme: alpha
+entries:
+  - label: sec-purpose
+    kind: changed
+    unit: heading
+    title: 目的
+    file: chapters/01-overview/01-purpose.qmd
+    note: |
+      出荷指示までを本システムの範囲に含めることを明記した。
+  - label: sec-availability
+    kind: changed
+    unit: heading
+    title: 可用性を最優先とする
+    file: chapters/02-design-policy/01-availability.qmd
+    note: |
+      単一障害点を作らない構成とする理由を、営業時間中の受注継続という
+      業務要件から書き直した。
+  - label: tbl-cond
+    kind: changed
+    unit: tbl
+    title: 設計条件
+    file: chapters/03-design-conditions/index.qmd
+    note: |
+      性能条件のピーク時受注量を 100 → 150 件/分に見直した（繁忙期の実績による）。
+  - label: sec-requirements
+    kind: added
+    unit: heading
+    title: プログラムに対する要求分析
+    file: chapters/05-requirements/index.qmd
+    note: |
+      要求分析の章を新規に追加した。

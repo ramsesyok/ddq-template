@@ -53,7 +53,7 @@ const AGENT_GUIDE: &str = "AGENT-GUIDE.md";
 
 /// VSCode 拡張を置くフォルダ。この下の 1 フォルダ = 1 拡張で、どれも同じ作法
 /// （`package.json` の name と version、`npm run package` で VSIX ができる）に揃える。
-/// 版はすべて template/VERSION と一致していなければならない（利用マニュアル 17 章）。
+/// 版はすべて template/VERSION と一致していなければならない（利用マニュアル 18 章）。
 const EXTENSIONS_DIR: &str = "extensions";
 
 pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<()> {
@@ -208,7 +208,7 @@ fn build_extensions(root: &Path, no_build: bool) -> Result<Vec<PathBuf>> {
 ///
 /// - `package.json` の name がフォルダ名と違えば止める（VSIX 名の先頭になるため）
 /// - `package.json` の version が template/VERSION と違えば止める
-///   （拡張の版はテンプレートの版に揃える。利用マニュアル 17 章）
+///   （拡張の版はテンプレートの版に揃える。利用マニュアル 18 章）
 /// - `no_build` でなければ `npm ci`（node_modules が無いときだけ）→ `npm run package`
 /// - どちらの場合も `<拡張>/<name>-<版>.vsix` が無ければエラー
 fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {

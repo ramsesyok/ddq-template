@@ -92,6 +92,8 @@ fn copy_manuscript(dest: &Path) {
         fs::copy(src.join(name), dest.join(name)).unwrap();
     }
     copy_tree(&src.join("chapters"), &dest.join("chapters"));
+    // 改訂履歴（index.qmd が revisions/history.qmd を include する）
+    copy_tree(&src.join("revisions"), &dest.join("revisions"));
     fs::create_dir_all(dest.join("diagrams")).unwrap();
     for e in fs::read_dir(src.join("diagrams")).unwrap() {
         let p = e.unwrap().path();

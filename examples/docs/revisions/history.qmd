@@ -1,0 +1,23 @@
+<!-- ddq rev build が生成する。手で編集しない（revisions/rev-*.yml を直す）。 -->
+
+::: {.content-visible when-format="typst"}
+::: {.tbl widths="14,8,22,8,48"}
+| 改訂日 | 記号 | 箇所 | 頁 | 修正内容 |
+|---|---|---|---|---|
+| 2026-04-20 | A | @sec-purpose | `#_xref-page("sec-purpose")`{=typst} | 出荷指示までを本システムの範囲に含めることを明記した。 |
+| 2026-04-20 | A | @sec-availability | `#_xref-page("sec-availability")`{=typst} | 単一障害点を作らない構成とする理由を、営業時間中の受注継続という<br>業務要件から書き直した。 |
+| 2026-04-20 | A | @tbl-cond | `#_xref-page("tbl-cond")`{=typst} | 性能条件のピーク時受注量を 100 → 150 件/分に見直した（繁忙期の実績による）。 |
+| 2026-04-20 | A | @sec-requirements | `#_xref-page("sec-requirements")`{=typst} | 要求分析の章を新規に追加した。 |
+:::
+:::
+
+::: {.content-visible unless-format="typst"}
+::: {.tbl widths="16,8,26,50"}
+| 改訂日 | 記号 | 箇所 | 修正内容 |
+|---|---|---|---|
+| 2026-04-20 | A | @sec-purpose | 出荷指示までを本システムの範囲に含めることを明記した。 |
+| 2026-04-20 | A | @sec-availability | 単一障害点を作らない構成とする理由を、営業時間中の受注継続という<br>業務要件から書き直した。 |
+| 2026-04-20 | A | @tbl-cond | 性能条件のピーク時受注量を 100 → 150 件/分に見直した（繁忙期の実績による）。 |
+| 2026-04-20 | A | @sec-requirements | 要求分析の章を新規に追加した。 |
+:::
+:::

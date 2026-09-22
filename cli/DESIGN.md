@@ -331,7 +331,7 @@ target\release\ddq.exe release            # 既定で ..\release\ に出力
 ```
 
 保守者の端末には Rust に加えて Node.js（20 以上）と npm が要る（VSIX のパッケージ。§3.2）。
-手順の正は利用マニュアル 17 章（`docs/manual/`）。
+手順の正は利用マニュアル 18 章（`docs/manual/`）。
 
 ### 7.6 CI（GitHub Actions, windows-latest）
 
@@ -522,7 +522,7 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 - [x] `design-doc.lua` の `render_mermaid()` を `DDQ_BIN` / PATH 探索に差し替え、エラーメッセージを更新
 - [x] `template/*.bat` `*.sh` `package.json` `package-lock.json` `node_modules` `puppeteer.json` を削除、`.gitignore` の `node_modules/` `puppeteer.json` を整理
 - [x] `template/release-README.md`（→ 後に `release-guide.typ` のスライドに置換）`README.md` `ADVANCED.md` `template/PIPELINE.md` §1・§5.1 の手順を `ddq` に書き換え
-- [x] 利用マニュアル（`manual/`）2・4・11・12・13 章を `ddq` に書き換え。「`quarto preview` の図は発行物と微妙に違い得る」を明記。多文書リポジトリの手順（`add` / `update --all`）を追加
+- [x] 利用マニュアル（`manual/`）2・4・11・12・14 章を `ddq` に書き換え。「`quarto preview` の図は発行物と微妙に違い得る」を明記。多文書リポジトリの手順（`add` / `update --all`）を追加
 - [x] scaffold の `.gitignore` から `node_modules/` `puppeteer.json` の項を外す（残しても害はない）
 - [x] `.github/workflows/ci.yml` 追加
 - [x] `cli/tools/regress.py` を作り、§12.2 の比較で合格条件を満たすことを確認（報告を `regress/report/` に残す）
