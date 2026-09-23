@@ -68,7 +68,7 @@ flowchart TD
 
 **確認済み（静的）**：`release::run` は CWD に `template/VERSION` と `docs/manual/_quarto.yml` があることを要求する。通常はマニュアルを update→PDF→HTMLの順に作る。VSIX は `extensions/` 直下で `package.json` を持つフォルダをすべて対象とし、フォルダ名順に処理する（現行は `ddq-revision`、`ddq-table-editor`）。各拡張の `name` がフォルダ名と一致し、`version` が埋込み版と一致することを検査してから、`node_modules` がなければ `npm ci`、その後 `npm run package` を実行する。対象フォルダが一つもなければエラーになる。[E-0013](appendix-evidence.qmd#ev-e-0013)
 
-**確認済み（静的）**：出力は `<out-dir>/quarto-template-<埋込み版>/` と同名ZIP。既存の同名配布フォルダは削除して再作成し、実行中のddq自身、README、AGENT-GUIDE、`THIRD-PARTY-NOTICES.md`、jar、はじめかたPDF、マニュアルPDF／HTML、拡張ごとのVSIXを集める。重いビルドの前に `THIRD-PARTY-NOTICES.md` の存在と、先頭に記録した入力（`Cargo.lock`・`mermaid.min.js`・`plantuml.jar`・拡張の `package-lock.json`）のSHA-1（テキストは改行をLFに揃えて計算）が今のファイルと一致することを確かめ、違えば止める。`--with-sample` では `examples/docs` を `docs/` としてコピーし、生成物・PDF側補助・図キャッシュを除く。除外条件はコピー中のファイル名／接頭辞に適用される。[E-0013](appendix-evidence.qmd#ev-e-0013)
+**確認済み（静的）**：出力は `<out-dir>/quarto-template-<埋込み版>/` と同名ZIP。既存の同名配布フォルダは削除して再作成し、実行中のddq自身、README、AGENT-GUIDE、`LICENSE`、`THIRD-PARTY-NOTICES.md`、jar、はじめかたPDF、マニュアルPDF／HTML、拡張ごとのVSIXを集める。重いビルドの前に `THIRD-PARTY-NOTICES.md` の存在と、先頭に記録した入力（`Cargo.lock`・`mermaid.min.js`・`plantuml.jar`・拡張の `package-lock.json`）のSHA-1（テキストは改行をLFに揃えて計算）が今のファイルと一致することを確かめ、違えば止める。`--with-sample` では `examples/docs` を `docs/` としてコピーし、生成物・PDF側補助・図キャッシュを除く。除外条件はコピー中のファイル名／接頭辞に適用される。[E-0013](appendix-evidence.qmd#ev-e-0013)
 
 **確認済み（静的）**：`--no-build` はマニュアルとVSIXの作成を省略するが、存在・name・版の検査は残り、はじめかたPDFは引き続き `quarto typst compile` で作る。jarの版はMANIFESTから表示用に読むだけで、MIT版であることの自動検証はしない。ZIPは書いた後に読み直し、全エントリの名前とバイト数を書いた内容と照合する。書込み途中の失敗や不一致では zip を削除する。バイト列そのものの比較や、同梱物が最新であることの確認ではない。[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)
 

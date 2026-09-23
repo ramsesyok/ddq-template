@@ -64,7 +64,7 @@
 - 配布物に入る第三者のソフトウェアは、ddq.exe に静的リンクする Rust のクレート188件（proc-macro 等のビルド時だけのものは除く）、mermaid とそのバンドルの依存78件、plantuml.jar、VSIX の Webview にバンドルする React 3件である。いずれも許容的なライセンスで、MPL-2.0 は3件（cssparser・dtoa-short・selectors。改変なし、入手先を明記）、DOMPurify は MPL-2.0 と Apache-2.0 から Apache-2.0 を選ぶ。merman の各クレートは移植元のライセンスを `THIRD_PARTY_LICENSES/` に持ち、ratex-katex-fonts は KaTeX のフォント（SIL OFL 1.1）を ddq.exe に埋め込む
 - **従来の配布物にはこれらのライセンス表示が無かった**。`cli/tools/third_party.py` が `THIRD-PARTY-NOTICES.md` を作り、`ddq release` が同梱する（入力のハッシュが合わなければ止まる）。`tests/third_party.rs` が CI で古さを検出する
 
-**残る判断**：このリポジトリ自身（ddq 本体・テンプレート）のライセンスが定まっていない（ルートに LICENSE が無く、`cli/Cargo.toml` に `license` が無い。VSCode 拡張は MIT と表示している）。配布物の受け手が利用条件を知るために、保守者が決めて明記する。依存の法的評価は行っていない。
+このリポジトリ自身（ddq 本体・テンプレート）のライセンスは未定だったが、保守者の判断で **MIT** とした（ルートの `LICENSE`、`cli/Cargo.toml` の `license`。VSCode 拡張と同じ）。配布物に入る第三者のもの（上記）は MIT の本体と組み合わせて配布でき（MPL-2.0 はファイル単位で元のライセンスのまま、OFL のフォントはソフトウェアへの同梱を認める）、それぞれのライセンスに従う。`ddq release` は `LICENSE` も同梱する。弁護士等による法的評価は行っていない。
 
 ### U-0004：配布工程の動的確認 {#u-0004 .unnumbered}
 

@@ -3,7 +3,7 @@
 //!
 //! 作るもの（cli/DESIGN.md §3.2）:
 //!   <out-dir>/quarto-template-<版>/      ddq.exe / plantuml.jar / はじめかた.pdf / README.md / AGENT-GUIDE.md /
-//!                                        THIRD-PARTY-NOTICES.md / manual/
+//!                                        LICENSE / THIRD-PARTY-NOTICES.md / manual/
 //!                                        / ddq-table-editor-<版>.vsix（VSCode 拡張）
 //!   <out-dir>/quarto-template-<版>.zip
 //! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
@@ -55,6 +55,9 @@ const AGENT_GUIDE: &str = "AGENT-GUIDE.md";
 /// 第三者のソフトウェアのライセンス表示（リポジトリ直下。`cli/tools/third_party.py` が作る生成物）。
 /// 先頭に入力のハッシュがあり、入力が変わったのに作り直していなければ止める（古い表示を配らない）
 const THIRD_PARTY: &str = "THIRD-PARTY-NOTICES.md";
+
+/// このリポジトリ（ddq 本体・テンプレート）のライセンス（MIT。リポジトリ直下）
+const LICENSE: &str = "LICENSE";
 
 /// VSCode 拡張を置くフォルダ。この下の 1 フォルダ = 1 拡張で、どれも同じ作法
 /// （`package.json` の name と version、`npm run package` で VSIX ができる）に揃える。
@@ -117,6 +120,8 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     // AI エージェント向けの記法要約。発行者が設計書リポジトリの AGENTS.md / スキルに取り込む
     fs::copy(repo.join(AGENT_GUIDE), stage.join(AGENT_GUIDE))
         .with_context(|| format!("{AGENT_GUIDE} をコピーできません"))?;
+    fs::copy(repo.join(LICENSE), stage.join(LICENSE))
+        .with_context(|| format!("{LICENSE} をコピーできません"))?;
     fs::copy(repo.join(THIRD_PARTY), stage.join(THIRD_PARTY))
         .with_context(|| format!("{THIRD_PARTY} をコピーできません"))?;
     copy_plantuml_jar(&repo, &stage)?;
@@ -151,7 +156,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     println!("  フォルダ: {}", stage.display());
     println!("  zip     : {}（{count} ファイル）", zip_path.display());
     println!(
-        "  内容: {} / plantuml.jar / はじめかた.pdf / README / AGENT-GUIDE / THIRD-PARTY-NOTICES / manual（PDF + HTML）/ {}{}",
+        "  内容: {} / plantuml.jar / はじめかた.pdf / README / AGENT-GUIDE / LICENSE / THIRD-PARTY-NOTICES / manual（PDF + HTML）/ {}{}",
         exe_name.display(),
         vsix_names.join(" / "),
         if with_sample {

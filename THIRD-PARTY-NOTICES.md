@@ -3,8 +3,9 @@
 <!-- ddq-third-party inputs: cli/Cargo.lock=a32559f9cf9e8648085b71a21b59f133802ee8e5 template/vendor/mermaid.min.js=0a6b4761f8ad1e3d42fe17e66033fa5cf2785ae1 cli/vendor/plantuml.jar=ef49f4f313d06de6575dcaa67361df432c028048 extensions/ddq-revision/package-lock.json=656afd57d3d475ff73fb3697a23ff0697be453f0 extensions/ddq-table-editor/package-lock.json=f1957c5ca479a19489c0db4e636219608af50943 -->
 <!-- 生成物。手で直さない（python cli/tools/third_party.py で作り直す） -->
 
-この配布物（quarto-template）には、次の第三者のソフトウェアが含まれる。
-各ソフトウェアの著作権は、それぞれの著作者に帰属する。
+この配布物（quarto-template）の ddq 本体とテンプレートは MIT ライセンスである（同梱の LICENSE）。
+あわせて次の第三者のソフトウェアが含まれる。これらはそれぞれのライセンスに従い、著作権は
+それぞれの著作者に帰属する。
 
 ## 一覧
 

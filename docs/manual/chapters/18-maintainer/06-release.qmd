@@ -33,6 +33,7 @@ quarto-template-<版>/
 ├── はじめかた.pdf       … 発行者向けの最初の一歩（template/release-guide.typ から生成）
 ├── README.md           … テンプレートの概要と作業の流れ
 ├── AGENT-GUIDE.md      … AI エージェント向けの執筆ガイド（リポジトリ直下の同名ファイルの写し）
+├── LICENSE             … このテンプレートのライセンス（MIT。リポジトリ直下の同名ファイルの写し）
 ├── THIRD-PARTY-NOTICES.md … 第三者のソフトウェアのライセンス表示（リポジトリ直下の同名ファイルの写し）
 ├── ddq-table-editor-<版>.vsix … VSCode 拡張（.tbl の視覚編集。執筆者へ配る）
 └── manual/利用マニュアル.pdf, manual/html/   … 本書（発行者が読む・執筆者へ配る）
