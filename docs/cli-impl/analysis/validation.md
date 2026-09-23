@@ -73,3 +73,10 @@ design-doc.lua のキャッシュキーを版・設定・エンジン指定を�
 cargo test（unit 61 / commands 7 / plantuml 2 / rev 12 / tag 10）と DDQ_E2E=1 の e2e 3件が成功。
 docs/cli-impl で、版上げ時の削除（8件）、再ビルドでの再利用、素の quarto render での設定変更・エンジン指定による別キー、
 空キャッシュの描き直しを観測した。
+
+## 2026-09-23 の追補（発行時の環境照合、2.4.2）
+
+図キャッシュの先頭コメントにブラウザの実体・フォントの指紋を記録し、発行時に `ddq identity` と照合するようにした。
+cargo test（unit 66 / commands 8 / plantuml 2 / rev 12 / tag 10）、DDQ_E2E=1 の e2e 3件、merman golden 1件が成功。
+一時的な執筆フォルダで、フォント・ブラウザ・PlantUML の版・ローカルのフォント・描いたサーバの記録を書き換えると
+発行時に描き直し、DDQ_DIAGRAM_CACHE=keep とサーバ無しのプレビューでは描き直さないことを観測した。

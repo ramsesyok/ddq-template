@@ -27,7 +27,7 @@ tempfile = "3"
 winreg = "0.56"
 # Win32_Globalization … 非 ASCII パスの検査（writing_folder）。
 # Win32_System_JobObjects / Win32_System_Threading / Win32_Security … PlantUML サーバの JVM を ddq の終了に道連れにする Job Object（plantuml）。
-windows-sys = { version = "0.61", features = ["Win32_Globalization", "Win32_Foundation", "Win32_System_JobObjects", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_Security"] }
+windows-sys = { version = "0.61", features = ["Win32_Globalization", "Win32_Foundation", "Win32_System_JobObjects", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_Security", "Win32_Storage_FileSystem"] }
 
 [profile.release]
 strip = true

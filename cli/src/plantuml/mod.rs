@@ -434,14 +434,35 @@ pub fn load_config(dir: &Path) -> String {
     })
 }
 
-/// SVG 先頭に入れる 1 行（どのサーバ・版で焼いたか。mermaid の `<!-- ddq … -->` と同じ）
+/// SVG 先頭に入れる 1 行（どのサーバ・版で焼いたか。mermaid の `<!-- ddq … -->` と同じ）。
+/// ローカルのサーバ（この端末の Java）はこの端末のフォントで組むので、フォントの指紋も残す
+/// （design-doc.lua の puml_header と同じ形。発行時の描き直しの判定に使う）。
 pub fn svg_header(url: &str, version: Option<&str>) -> String {
+    let fonts = if is_local_url(url) {
+        format!(" fonts={}", crate::fonts::fingerprint())
+    } else {
+        String::new()
+    };
     format!(
-        "<!-- ddq {} engine=plantuml plantuml={} server={} -->\n",
+        "<!-- ddq {} engine=plantuml plantuml={} server={}{} -->\n",
         assets::VERSION,
         version.unwrap_or("?"),
-        url
+        url,
+        fonts
     )
+}
+
+/// この端末で動くサーバか（`127.x.x.x` / `localhost`）。design-doc.lua の puml_is_local と同じ判定。
+pub fn is_local_url(url: &str) -> bool {
+    let host = url
+        .split("://")
+        .nth(1)
+        .unwrap_or(url)
+        .split(['/', ':'])
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    host == "localhost" || host.starts_with("127.")
 }
 
 // ------------------------------------------------------------
@@ -749,7 +770,30 @@ pub fn start_local(port: u16) -> Result<LocalServer> {
 
 #[cfg(test)]
 mod tests {
-    use super::{assemble_source, parse_response, server_from_quarto_yml, split_url};
+    use super::{
+        assemble_source, is_local_url, parse_response, server_from_quarto_yml, split_url, svg_header,
+    };
+
+    #[test]
+    fn local_servers_are_recognised() {
+        // design-doc.lua の puml_is_local と同じ判定
+        assert!(is_local_url("http://127.0.0.1:18080"));
+        assert!(is_local_url("http://127.0.0.2:5000/"));
+        assert!(is_local_url("http://LOCALHOST:8080"));
+        assert!(!is_local_url("http://plantuml.lan:8080"));
+        assert!(!is_local_url("http://10.0.0.5:8080"));
+        assert!(!is_local_url("http://127example.com"));
+    }
+
+    #[test]
+    fn header_records_fonts_only_for_local_servers() {
+        assert!(svg_header("http://127.0.0.1:18080", Some("1.2026.8")).contains(" fonts="));
+        let lan = svg_header("http://plantuml.lan:8080", None);
+        assert!(
+            lan.contains("plantuml=? server=http://plantuml.lan:8080 -->"),
+            "{lan}"
+        );
+    }
 
     #[test]
     fn quarto_yml_key() {

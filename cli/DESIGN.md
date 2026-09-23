@@ -5,7 +5,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 利用手順は利用マニュアル（`docs/manual/`）、様式・変換の内部はテンプレート設計書（`docs/design/`）。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
-- 対象版: テンプレート 2.4.1（PlantUML 対応。§13）
+- 対象版: テンプレート 2.4.2（PlantUML 対応。§13）
 
 ---
 
@@ -254,7 +254,9 @@ auto:
 ### 5.4 出力規約
 
 - mermaid-cli と同じく `<svg style="… background-color: transparent;">` を付与（`-b` 既定 `transparent`）。
-- 先頭に `<!-- ddq <版> engine=browser|merman mermaid=<mermaid版 or merman版> -->` を 1 行入れる
+- 先頭に `<!-- ddq <版> engine=browser mermaid=<版> browser=<実体/版> fonts=<指紋> -->`
+  （merman なら `engine=merman merman=<版>`）を 1 行入れる。`browser=` は Windows では実行ファイルの
+  版情報（`msedge/153.0.4234.48`）、取れなければ大きさと更新日時。`fonts=` は `fonts::fingerprint`（2.4.2 から）
   （どのエンジンで焼いたかを後から判別するため。フィルタの `svg_size()` は `viewBox` を正規表現で読むので影響なし）。
 - 失敗した入力は 0 バイトのファイルを**作らない**（フィルタは「ファイルが存在するか」で成否を見る）。
 - 失敗した図の出力先に前回の SVG があれば**消す**（`ddq diagrams` の静的図で、直し損ねた図が古い絵のまま発行物に入らないように。2.4.1 から）。
@@ -267,6 +269,19 @@ exe はキーの計算に関与しない。キーは SHA-1 の先頭 16 桁で�
 （2.4.1 から。以前は図のソースだけの 8 桁で、設定やエンジンを変えても古い絵を使い回した）。
 版の違うキャッシュは `ddq update` が版を上げるときに消す（`update::prune_diagram_cache`）。
 存在だけでなく先頭に `<svg` があることを見るので、書きかけ・空のファイルは描き直す。
+
+**環境の照合（2.4.2 から）**。ブラウザの実体・端末のフォント・PlantUML サーバの版は図を変えるが、
+キーには入れない（プレビューで ddq もサーバも無しにキャッシュを使えなくなるため）。代わりに SVG の
+先頭コメントに記録し、**発行時だけ**フィルタが「いまの環境」と比べて、違えば描き直す。
+
+- いまの環境は隠しコマンド `ddq identity` が JSON で返す（`version`・`mermaid`＝`Engine::label` と同じ文字列・
+  `fonts`）。フィルタは 1 回の実行で 1 度だけ呼ぶ（約 0.1 秒。キャッシュを使うときだけ）
+- mermaid: 先頭行が `<!-- ddq <version> <mermaid> -->` と一致すれば使う
+- PlantUML: サーバの版（`/serverinfo`）が同じで、ローカルのサーバならローカルで描いたものかつ `fonts=` が同じ、
+  LAN のサーバなら同じ URL のもの（ローカルは毎回空きポートなので URL は比べない）
+- フォントの指紋は OS のフォントフォルダのファイル名とバイト数の SHA-1 先頭 8 桁。無関係なフォントの追加でも
+  変わるが、1 回描き直すだけで済む
+- `DDQ_DIAGRAM_CACHE=keep` なら照合しない（接続環境のキャッシュをオフライン環境へ持ち込むとき）
 
 ---
 
@@ -570,7 +585,7 @@ design-doc.lua ──┤                                        … POST /render
 | 構文エラー | サーバは 200 で「エラー内容を描いた SVG」を返す。`X-PlantUML-Diagram-Error` / `-Line` ヘッダで判定し、その図は書かない。行番号は連結した設定の行数を差し引いて原稿の行に戻す |
 | 共通設定 | `plantuml-config.puml`（機構ファイル 5 本目）。`-config` はサーバに渡せないので、中身を `@start…` の直後に**連結して送る**。連結後のソースとテンプレートの版をハッシュするので、設定を変えるとキャッシュが自動で無効になる（2.4.1 から mermaid も同じ）。サーバはキーに入れない（LAN とローカルを切り替えても描き直さない）既定: `!pragma layout smetana`、`defaultFontName "Yu Gothic"`、`backgroundColor transparent` |
 | 改行 | CRLF を LF に揃えてから連結する（CRLF だと `@startuml\n` に当たらず設定が連結されない。実測） |
-| キャッシュ | `diagrams/puml-<sha1 16 桁>.svg`（+ 送ったソース `.puml`）。git 管理外（`**/diagrams/puml-*`）。SVG 先頭に `<!-- ddq <版> engine=plantuml plantuml=<版> server=<url> -->` |
+| キャッシュ | `diagrams/puml-<sha1 16 桁>.svg`（+ 送ったソース `.puml`）。git 管理外（`**/diagrams/puml-*`）。SVG 先頭に `<!-- ddq <版> engine=plantuml plantuml=<版> server=<url> fonts=<指紋> -->`（`fonts=` はローカルのサーバのとき。発行時の照合は §5.5） |
 | フォント | SVG の `<text>` は `textLength` で幅が固定され、Typst（resvg）はそれを尊重する（実測）。サーバ側と Typst 側でフォントが違っても箱からはみ出さず、違いは行の高さだけ。`Yu Gothic` は Windows のローカルと発行者の Typst が同じ実体を引くための既定 |
 | レイアウト | `!pragma layout smetana` 固定（決定 17）。Windows 版 jar は `%TEMP%\_graphviz\dot.exe`（2.44.1）を内蔵展開するので既定は本物の dot だが、Linux サーバには無い |
 

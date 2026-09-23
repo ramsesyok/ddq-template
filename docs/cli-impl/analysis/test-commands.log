@@ -1,25 +1,25 @@
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.36s
      Running unittests src\main.rs (target\debug\deps\ddq-ae884a3b6bf6ba49.exe)
 
-running 61 tests
-test commands::rev::tests::dates_are_computed_without_a_date_crate ... ok
-test commands::rev::tests::place_and_page_columns ... ok
+running 66 tests
 test commands::rev::tests::multiline_notes_become_br ... ok
-test doc::diff::tests::image_figure_is_its_own_unit ... ok
+test commands::rev::tests::place_and_page_columns ... ok
+test commands::rev::tests::dates_are_computed_without_a_date_crate ... ok
 test doc::diff::tests::ipo_inner_headings_do_not_become_units ... ok
-test doc::diff::tests::added_and_removed ... ok
+test doc::diff::tests::image_figure_is_its_own_unit ... ok
 test doc::diff::tests::body_change_belongs_to_the_nearest_heading ... ok
+test doc::diff::tests::tilde_fences_are_skipped_when_ordering ... ok
 test doc::diff::tests::rename_only ... ok
+test doc::diff::tests::table_change_does_not_touch_the_heading ... ok
+test doc::diff::tests::added_and_removed ... ok
 test doc::diff::tests::crlf_never_counts_as_a_change ... ok
 test doc::diff::tests::removed_keeps_its_place_in_document_order ... ok
-test doc::diff::tests::tilde_fences_are_skipped_when_ordering ... ok
-test doc::diff::tests::table_change_does_not_touch_the_heading ... ok
+test doc::diff::tests::unlabeled_units_are_reported ... ok
 test doc::diff::tests::pipe_table_rows_belong_to_the_table ... ok
 test doc::diff::tests::unlabeled_pipe_table_rows_stay_with_the_heading ... ok
-test doc::diff::tests::unlabeled_units_are_reported ... ok
-test doc::labels::tests::crlf_lines_keep_their_ending ... ok
-test doc::labels::tests::candidates_do_not_collide ... ok
 test doc::diff::tests::whitespace_only_change_is_ignored_unless_strict ... ok
+test doc::labels::tests::candidates_do_not_collide ... ok
+test doc::labels::tests::crlf_lines_keep_their_ending ... ok
 test doc::labels::tests::heading_with_existing_attrs ... ok
 test doc::labels::tests::heading_without_attrs ... ok
 test doc::labels::tests::labelled_items_are_left_alone ... ok
@@ -29,13 +29,13 @@ test doc::labels::tests::validity_check ... ok
 test doc::labels::tests::tbl_gets_label_attribute ... ok
 test doc::project::tests::appendices_follow_the_chapters ... ok
 test doc::project::tests::chapters_include_parts_but_not_part_titles ... ok
-test doc::project::tests::include_lines_are_recognised ... ok
 test doc::project::tests::chapters_stops_at_dedent ... ok
+test doc::project::tests::include_lines_are_recognised ... ok
 test doc::project::tests::logical_splices_includes_in_place ... ok
 test doc::project::tests::nested_include_resolves_against_the_chapter_dir ... ok
 test doc::revfile::tests::reads_a_hand_written_file ... ok
-test doc::revfile::tests::round_trip ... ok
 test doc::revfile::tests::symbol_order_is_by_length_then_text ... ok
+test doc::revfile::tests::round_trip ... ok
 test doc::revfile::tests::symbols_advance ... ok
 test doc::units::tests::attr_value_handles_similar_keys ... ok
 test doc::units::tests::definition_list_is_not_a_caption ... ok
@@ -49,27 +49,33 @@ test doc::units::tests::images_inside_a_fig_block_are_not_counted_twice ... ok
 test doc::units::tests::pipe_caption_with_a_foreign_id_is_warned ... ok
 test doc::units::tests::pipe_table_caption_after_blank_line ... ok
 test doc::units::tests::pipe_table_caption_directly_above_or_below ... ok
-test doc::units::tests::tbl_without_caption_is_warned ... ok
 test doc::units::tests::tbl_ipo_and_fig_blocks ... ok
+test doc::units::tests::tbl_without_caption_is_warned ... ok
 test doc::units::tests::two_ids_are_warned_even_if_one_is_a_label ... ok
 test mermaid::browser::tests::file_url_encodes_spaces_and_non_ascii ... ok
+test fonts::tests::missing_folders_are_fine ... ok
 test mermaid::tests::adds_style_when_missing ... ok
 test mermaid::tests::appends_to_existing_style ... ok
 test plantuml::tests::fence_detection ... ok
 test plantuml::tests::quarto_yml_key ... ok
+test plantuml::tests::local_servers_are_recognised ... ok
 test plantuml::tests::response_parsing ... ok
-test plantuml::tests::source_assembly ... ok
 test plantuml::tests::url_split ... ok
+test plantuml::tests::source_assembly ... ok
 test writing_folder::tests::japanese_is_encodable_but_emoji_is_not ... ok
-test mermaid::browser::tests::page_does_not_close_script_early ... ok
+test plantuml::tests::header_records_fonts_only_for_local_servers ... ok
+test mermaid::browser::tests::identity_falls_back_to_size_and_time ... ok
+test fonts::tests::changes_when_a_font_is_added_or_replaced ... ok
 test zip_archive::tests::round_trip_and_mismatch_is_rejected ... ok
+test mermaid::browser::tests::page_does_not_close_script_early ... ok
 
-test result: ok. 61 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 66 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
      Running tests\commands.rs (target\debug\deps\commands-4910e8131b77bfe8.exe)
 
-running 7 tests
+running 8 tests
 test version_matches_template_version ... ok
+test identity_reports_what_the_svg_header_will_say ... ok
 test update_rejects_folder_without_quarto_yml ... ok
 test init_rejects_dot_names ... ok
 test setup_rejects_different_template_version ... ok
@@ -77,7 +83,7 @@ test update_prunes_diagram_cache_only_when_the_version_changes ... ok
 test diagrams_removes_the_old_svg_of_a_broken_mermaid ... ok
 test init_then_add_then_update_all ... ok
 
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
 
      Running tests\plantuml.rs (target\debug\deps\plantuml-4f2627075c78b9dc.exe)
 
@@ -85,38 +91,38 @@ running 2 tests
 test serve_answers_serverinfo_and_stops_with_parent ... ok
 test diagrams_renders_puml_and_rejects_syntax_error ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.68s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.54s
 
      Running tests\rev.rs (target\debug\deps\rev-8845797f38f9855c.exe)
 
 running 12 tests
 test build_without_any_revision_file_explains_what_to_do ... ok
 test next_proposes_symbol_and_base ... ok
-test build_warns_about_empty_notes_and_check_fails ... ok
-test strict_reports_whitespace_only_changes ... ok
-test diff_classifies_every_kind_of_change ... ok
-test build_makes_the_history_table ... ok
 test next_without_tags_has_no_base ... ok
+test build_makes_the_history_table ... ok
+test strict_reports_whitespace_only_changes ... ok
 test unlabeled_units_are_reported ... ok
+test diff_classifies_every_kind_of_change ... ok
+test build_warns_about_empty_notes_and_check_fails ... ok
 test write_with_json_prints_only_json ... ok
 test appendices_are_part_of_the_document ... ok
-test write_creates_the_revision_file_and_keeps_notes ... ok
 test write_keeps_notes_of_entries_that_left_the_diff ... ok
+test write_creates_the_revision_file_and_keeps_notes ... ok
 
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.52s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.51s
 
      Running tests\tag.rs (target\debug\deps\tag-6bf869a89cd5d7dd.exe)
 
 running 10 tests
-test crlf_files_keep_their_line_endings ... ok
 test list_finds_units_and_suggests_labels ... ok
 test apply_needs_all_or_from ... ok
 test dry_run_does_not_touch_files ... ok
+test crlf_files_keep_their_line_endings ... ok
 test duplicate_labels_are_warned ... ok
-test candidates_are_stable_between_runs ... ok
-test apply_all_is_idempotent_and_keeps_the_document_readable ... ok
 test apply_from_accepts_a_hand_edited_label ... ok
+test apply_all_is_idempotent_and_keeps_the_document_readable ... ok
+test candidates_are_stable_between_runs ... ok
 test apply_from_rejects_broken_or_duplicate_labels ... ok
 test headings_with_other_ids_are_left_alone ... ok
 
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s

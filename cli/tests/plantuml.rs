@@ -90,6 +90,11 @@ fn diagrams_renders_puml_and_rejects_syntax_error() {
             svg.contains("engine=plantuml plantuml="),
             "{name}: エンジンの記録が無い"
         );
+        // ローカルのサーバで描いたので、端末のフォントの指紋も残る（発行時の描き直しの判定に使う）
+        assert!(
+            svg.lines().next().unwrap().contains(" fonts="),
+            "{name}: フォントの指紋が無い"
+        );
         assert!(svg.contains("<svg"), "{name}: SVG ではない");
         // 共通設定（Yu Gothic）が連結されて効いている
         assert!(

@@ -55,6 +55,7 @@
 | 執筆フォルダ | CLI明示値 → CWD基準の `docs`。`_quarto.yml` の存在を確認 |
 | `DDQ_BIN` | Quarto起動時に `current_exe` で上書き。Luaはこの値 → PATHの `ddq` |
 | `DDQ_MERMAID_ENGINE` | `browser`／`merman` を明示。未設定時のみ自動選択 |
+| `DDQ_DIAGRAM_CACHE` | `keep` ならフィルタが発行時の環境照合をせずキャッシュを使う（オフラインへの持込み用） |
 | `EXECUTABLE_BROWSER` | 明示パス → Windows App Paths → Windows既知パス。非Windowsの自動探索は明示パスのみ |
 | `DDQ_JAVA` | 明示値 → `JAVA_HOME/bin/java` → PATH → Windows JavaSoftレジストリ → 既知パス |
 | `DDQ_PLANTUML_JAR` | 明示値 → ddq実行ファイル隣の `plantuml.jar` → `PLANTUML_JAR` |
@@ -74,11 +75,13 @@
 
 **確認済み（静的・限定実行）**：Luaがキャッシュ名を決め、ddq自身はキーを計算しない。キーは `cache_key` が作るSHA-1の先頭16桁で、`.template-version` の版を必ず含む。Mermaidは加えて `DDQ_MERMAID_ENGINE`（未設定なら `auto`）、`mermaid-config.json` の中身、図ソースを、PlantUMLは改行整形・設定連結後のソースを混ぜる。PlantUMLサーバとその版、自動選択の結果（どのブラウザか）はキーに含まない。再利用は、ファイルの先頭4,096バイトに `<svg` がある場合に限る。2.4.0までは図ソース（PlantUMLは連結後のソース）だけの8桁で、存在すれば再利用していた。[E-0012](appendix-evidence.qmd#ev-e-0012)
 
-**確認済み（静的）**：新規生成時のコメントは、Mermaidでは `ddq <版> engine=browser mermaid=<版>` または `engine=merman merman=<版>`、PlantUMLでは `engine=plantuml plantuml=<版または?> server=<URL>` を含む。これは生成経路の記録であり、キャッシュ有効性の検査には使わない。PlantUMLサーバのURLは配布されるSVGにも残る。[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)
+**確認済み（静的・限定実行）**：新規生成時のコメントは、Mermaidでは `ddq <版> engine=browser mermaid=<版> browser=<実体/版> fonts=<指紋>` または `engine=merman merman=<版>`、PlantUMLでは `engine=plantuml plantuml=<版または?> server=<URL>` と、ローカルのサーバなら ` fonts=<指紋>` を含む（2.4.2）。発行時（`MERMAID_SVG=1` か Typst）は、フィルタがキャッシュの先頭行を `ddq identity` の結果と比べる。Mermaidは先頭行の完全一致、PlantUMLはサーバの版の一致に加え、ローカルなら記録がローカルでフォントの指紋が一致、LANならURLの一致を要求し、外れれば描き直す。プレビューでは比べない。`DDQ_DIAGRAM_CACHE=keep` なら発行時も比べない。`ddq identity` が使えなければ照合しない。PlantUMLサーバのURLは配布されるSVGにも残る。[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)、[E-0026](appendix-evidence.qmd#ev-e-0026)
 
 **確認済み（限定実行）**：`docs/cli-impl` で、版を上げる update がキャッシュ8件を消すこと、再ビルドでSVGが再生成されないこと、素の `quarto render` で `mermaid-config.json` を変えると別のキーになること、`DDQ_MERMAID_ENGINE` の明示で別のキーになること、空にしたキャッシュが描き直されることを観測した。`ddq pdf`／`ddq html` は機構の完全一致を要求するため、`mermaid-config.json` は版の更新以外では変わらない。
 
-**推定（変更影響）**：ブラウザの入替え、PlantUMLサーバの切替え・版上げ、フォントの変更は、同じ版の中ではキーに現れず、既存キャッシュのため差が見えない可能性がある。比較時は `diagrams/mmd-*`／`puml-*` を消してから再生成する。[U-0007](07-issues-unknowns.qmd#u-0007)
+**確認済み（限定実行）**：一時的な執筆フォルダで、フォントの指紋・ブラウザの版・PlantUMLサーバの版・フォント（ローカル）・描いたサーバ（LAN→ローカル）の記録をそれぞれ書き換えると発行時に描き直され、`DDQ_DIAGRAM_CACHE=keep` とプレビューでは描き直されないことを観測した。
+
+**推定（変更影響）**：フォントの指紋はフォントフォルダのファイル名とバイト数から作るため、同じ大きさでの差し替えは検出しない。LANのサーバ側のフォント変更も検出しない。[U-0007](07-issues-unknowns.qmd#u-0007)
 
 ## ラベル・改訂ファイルの形式 {#sec-revision-contract}
 

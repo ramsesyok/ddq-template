@@ -106,6 +106,42 @@ local function cached_svg(p)
   return head:find('<svg', 1, true) ~= nil
 end
 
+-- 図の出来上がりは、キーに入れたもの（版・設定・ソース）のほかに、描く端末の環境にも
+-- 左右される: ブラウザの実体（更新・入れ替え）、端末のフォント、PlantUML サーバの版。
+-- これらはキーに入れず（プレビューでも ddq やサーバ無しでキャッシュを使えるように）、
+-- SVG の先頭コメントに記録しておき、**発行時に**いまの環境と違えば描き直す。
+-- いまの環境は ddq に聞く（`ddq identity`。1 回の実行で 1 度だけ）。聞けなければ判定しない。
+-- DDQ_DIAGRAM_CACHE=keep なら照合しない（接続環境で作ったキャッシュを、ブラウザの無い
+-- オフライン環境へ持ち込んで同じ絵のまま使うとき。利用マニュアル 11 章）。
+local KEEP_CACHE = os.getenv('DDQ_DIAGRAM_CACHE') == 'keep'
+local IDENTITY
+local function ddq_identity()
+  if IDENTITY == nil then
+    local ok, out = pcall(pandoc.pipe, DDQ, { 'identity' }, '')
+    local ok2, id = false, nil
+    if ok then ok2, id = pcall(pandoc.json.decode, out) end
+    IDENTITY = (ok2 and type(id) == 'table') and id or false
+  end
+  return IDENTITY or nil
+end
+
+-- SVG の 1 行目（ddq / フィルタが書く `<!-- ddq … -->`）
+local function svg_header(p)
+  local f = io.open(p, 'rb')
+  if not f then return '' end
+  local line = f:read('*l') or ''
+  f:close()
+  return (line:gsub('\r$', ''))
+end
+
+-- mermaid のキャッシュが、いまの環境で描いたものと同じか（エンジン・mermaid.js・ブラウザ・フォント）
+local function mermaid_env_matches(svg)
+  if KEEP_CACHE then return true end
+  local id = ddq_identity()
+  if not id then return true end
+  return svg_header(svg) == '<!-- ddq ' .. id.version .. ' ' .. id.mermaid .. ' -->'
+end
+
 local function render_mermaid(code)
   -- エンジン（browser / merman）で出来上がりが違う。自動選択の結果はここでは分からないので、
   -- 明示されていればその値、無ければ 'auto' をキーに混ぜる。
@@ -114,7 +150,8 @@ local function render_mermaid(code)
     conf and (read_file(conf) or '') or '', code)
   local svg = DIAG .. '/mmd-' .. hash .. '.svg'
   local rel = diag_rel() .. '/mmd-' .. hash .. '.svg'
-  if cached_svg(svg) then return rel, svg end
+  -- ここに来るのは発行時（SVG 化するとき）だけなので、環境の照合もここで行う
+  if cached_svg(svg) and mermaid_env_matches(svg) then return rel, svg end
   pandoc.system.make_directory(DIAG, true)
   local mmd = DIAG .. '/mmd-' .. hash .. '.mmd'
   local f = assert(io.open(mmd, 'w')); f:write(code); f:close()
@@ -375,14 +412,44 @@ local function puml_render(server, src, injected)
 end
 
 -- フェンス → diagrams/puml-<hash>.svg。成功なら (相対パス, 絶対パス)、失敗なら (nil, 理由)。
+-- この端末で動くサーバか（127.x.x.x / localhost）。Rust の plantuml::is_local_url と同じ判定。
+-- ローカルのサーバはこの端末のフォントで組むので、フォントの指紋も照合する。
+local function puml_is_local(url)
+  local host = ((url or ''):match('^%a+://([^/:]+)') or ''):lower()
+  return host == 'localhost' or host:match('^127%.') ~= nil
+end
+
+-- PlantUML のキャッシュが、いま使うサーバで描いたものと同じか（発行時だけ照合する）。
+--   - サーバの版（/serverinfo）が同じ
+--   - ローカルのサーバなら: ローカルで描いたもので、フォントの指紋が同じ
+--     （ローカルのサーバはビルドごとに空きポートで上がるので、URL は比べない）
+--   - LAN のサーバなら: 同じ URL のサーバで描いたもの
+local function puml_env_matches(svg, server)
+  if KEEP_CACHE then return true end
+  local head = svg_header(svg)
+  if (head:match(' plantuml=(%S+)') or '') ~= (server.version or '?') then return false end
+  local url = head:match(' server=(%S+)') or ''
+  if puml_is_local(server.url) then
+    if not puml_is_local(url) then return false end
+    local id = ddq_identity()
+    return not id or head:match(' fonts=(%S+)') == id.fonts
+  end
+  return url == server.url
+end
+
 local function render_plantuml(code)
   local src, injected = puml_source(code)
   -- src は共通設定（plantuml-config.puml）を連結済み。サーバはキーに入れない
-  -- （LAN とローカルを切り替えても描き直さない。サーバの版の違いは版上げ時の update で消える）。
+  -- （プレビューではサーバ無しでもキャッシュを見せたいので、サーバの違いは発行時に先頭コメントで照合する）。
   local hash = cache_key('plantuml', src)
   local svg = DIAG .. '/puml-' .. hash .. '.svg'
   local rel = diag_rel() .. '/puml-' .. hash .. '.svg'
-  if cached_svg(svg) then return rel, svg end
+  if cached_svg(svg) then
+    -- 執筆者プレビューはそのまま使う（サーバが無くても図が見える）
+    if not WANT_SVG then return rel, svg end
+    local server = puml_find_server()
+    if not server or puml_env_matches(svg, server) then return rel, svg end
+  end
   local server = puml_find_server()
   if not server then
     return nil, 'PlantUML サーバが見つかりません。\n' .. table.concat(puml_tried, '\n')
@@ -393,8 +460,12 @@ local function render_plantuml(code)
   -- 送ったソースも残す（mermaid の .mmd と同じ。図が変なときに手で再現できる）
   local f = assert(io.open(DIAG .. '/puml-' .. hash .. '.puml', 'wb')); f:write(src); f:close()
   local ver = (read_file(ROOT .. '/.template-version') or '?'):gsub('%s+$', '')
+  -- ローカルのサーバで描いたときはフォントの指紋も残す（Rust の plantuml::svg_header と同じ形）
+  local fonts = ''
+  local id = puml_is_local(server.url) and ddq_identity()
+  if id then fonts = ' fonts=' .. id.fonts end
   local header = '<!-- ddq ' .. ver .. ' engine=plantuml plantuml=' .. (server.version or '?') ..
-    ' server=' .. server.url .. ' -->\n'
+    ' server=' .. server.url .. fonts .. ' -->\n'
   f = assert(io.open(svg, 'wb')); f:write(header .. out); f:close()
   return rel, svg
 end
