@@ -7,6 +7,8 @@ mod assets;
 mod commands;
 mod doc;
 mod fonts;
+#[cfg(windows)]
+mod job;
 mod mermaid;
 mod plantuml;
 mod quarto;
@@ -235,6 +237,16 @@ struct MermaidArgs {
     /// SVG の背景色（mermaid-cli の -b と同じ）
     #[arg(short, long, default_value = "transparent")]
     background: String,
+}
+
+/// 待ち時間の上限を環境変数（秒）から読む。無い・読めない・0 なら既定値。
+pub(crate) fn timeout_from_env(name: &str, default_secs: u64) -> std::time::Duration {
+    let secs = std::env::var(name)
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .filter(|&n| n > 0)
+        .unwrap_or(default_secs);
+    std::time::Duration::from_secs(secs)
 }
 
 fn main() -> anyhow::Result<()> {

@@ -57,6 +57,8 @@
 | `DDQ_MERMAID_ENGINE` | `browser`／`merman` を明示。未設定時のみ自動選択 |
 | `DDQ_DIAGRAM_CACHE` | `keep` ならフィルタが発行時の環境照合をせずキャッシュを使う（オフラインへの持込み用） |
 | `EXECUTABLE_BROWSER` | 明示パス → Windows App Paths → Windows既知パス。非Windowsの自動探索は明示パスのみ |
+| `DDQ_BROWSER_TIMEOUT` | ブラウザの起動から結果の取得までの待ちの上限（秒）。既定60。遅い端末・試験用 |
+| `DDQ_PLANTUML_STARTUP_TIMEOUT` | PicoWeb の起動待ちの上限（秒）。既定30。遅い端末・試験用 |
 | `DDQ_JAVA` | 明示値 → `JAVA_HOME/bin/java` → PATH → Windows JavaSoftレジストリ → 既知パス |
 | `DDQ_PLANTUML_JAR` | 明示値 → ddq実行ファイル隣の `plantuml.jar` → `PLANTUML_JAR` |
 | PlantUMLサーバ | Rustは `DDQ_PLANTUML_SERVER` → `PLANTUML_SERVER` → `_quarto.yml` の最初の有効設定を一つ選ぶ。そのprobe失敗後は既定ローカルへ |

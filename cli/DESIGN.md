@@ -231,7 +231,10 @@ auto:
              --remote-debugging-port=0 about:blank
    ```
    起動した子プロセスの終了は成否に使わない（Edge は即終了する）。
-3. `<profile>/DevToolsActivePort`（ポートと `/devtools/browser/<id>`）が書かれるのを待ち（上限 60 秒）、
+   Windows では起動直後に子を Job Object（`crate::job`、KILL_ON_JOB_CLOSE）に入れる。ブラウザは
+   子の下にレンダラ等の孫を作り、子を kill するだけでは孫が ddq の標準出力を握ったまま残る
+   （フィルタの `pandoc.pipe` が待ち続ける。2026-09-23 の故障注入で実測）。
+3. `<profile>/DevToolsActivePort`（ポートと `/devtools/browser/<id>`）が書かれるのを待ち（上限 60 秒。`DDQ_BROWSER_TIMEOUT` で変えられる）、
    WebSocket で接続する。
 4. **図ごとに** `Target.createTarget` → `Target.attachToTarget(flatten)` → `Page.enable` →
    `Page.navigate` → `Page.loadEventFired` を待つ → `Runtime.evaluate("window.__ddqRender(<source>)",
@@ -239,7 +242,11 @@ auto:
    「Execution context was destroyed」になるので load を待つ。
    同じページで続けて描かないのは、mermaid が図をまたいで持つ連番（sequenceDiagram の
    actor id など）が前の図に依存し、mermaid-cli（1 図 1 ページ）と出力が変わるため。
-5. `Browser.close` で閉じる（閉じないと headless プロセスが残る）。一時フォルダは削除する。
+5. `Browser.close` で閉じる（閉じないと headless プロセスが残る）。続けて起動した子を kill し、Job Object を
+   閉じて子孫をすべて終わらせてから、一時フォルダを削除する（放されるまで最大 3 秒待ち直す）。
+   `Browser.close` は非同期なので、先に消そうとすると profile を握られて削除に失敗し、%TEMP% に
+   `ddq-mermaid-*` が 1 回ごとに溜まっていた（調査端末で 1,157 件）。ddq が強制終了されたときは
+   子孫は Job Object で終わるが、一時フォルダは残る
 
 複数入力でも起動は 1 回（1 図 ≒ 1.5 秒、22 図 ≒ 3 秒）。
 
@@ -379,6 +386,8 @@ cli/src/
 │   ├── html.rs  pdf.rs  diagrams.rs  release.rs  tag.rs
 │   └── mermaid.rs     … hidden サブコマンド（引数→ renderer 呼び出し）
 ├── assets.rs          … include_dir! の窓口（機構ファイル名の定数、書き出し関数）
+├── job.rs             … Job Object（Windows。JVM とヘッドレスブラウザを子孫ごと終わらせる）
+├── fonts.rs           … 端末のフォントの指紋（図キャッシュの照合）
 ├── writing_folder.rs  … 執筆フォルダの検証・列挙（_quarto.yml の有無、コードページで表せない文字の検査）
 ├── quarto.rs          … quarto の起動（env 付与、終了コード → anyhow::Error）
 ├── mermaid/
@@ -605,6 +614,8 @@ design-doc.lua ──┤                                        … POST /render
   親（ddq）が異常終了しても JVM を残さないよう、**Job Object（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`）**に入れる
   （`windows-sys` の `Win32_System_JobObjects` `Win32_System_Threading` `Win32_Security`）。
   Job Object に入れられなかったときは、その場で JVM を kill してからエラーを返す（まだ Drop の持ち主がいない）。
+  Job Object の処理は `src/job.rs`（ブラウザと共用）。ハンドルは Drop で閉じる。起動待ちの上限は
+  `DDQ_PLANTUML_STARTUP_TIMEOUT`（秒）で変えられる。
 - HTTP は手書き（`TcpStream`、HTTP/1.1、`Connection: close`、chunked 対応）。新しいクレートは足さない。
 
 ### 13.4 コマンド

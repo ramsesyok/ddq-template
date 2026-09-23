@@ -23,8 +23,12 @@ use tungstenite::{Message, WebSocket};
 
 use crate::assets;
 
-/// ブラウザの起動から結果の取得までの上限
-const TIMEOUT: Duration = Duration::from_secs(60);
+/// ブラウザの起動から結果の取得までの上限（既定 60 秒）。遅い端末や試験のために
+/// `DDQ_BROWSER_TIMEOUT`（秒）で変えられる。1 回の実行で 1 度だけ読む。
+fn timeout() -> Duration {
+    static T: std::sync::OnceLock<Duration> = std::sync::OnceLock::new();
+    *T.get_or_init(|| crate::timeout_from_env("DDQ_BROWSER_TIMEOUT", 60))
+}
 
 /// ブラウザを探す。`EXECUTABLE_BROWSER` → レジストリ App Paths → 既知パス。Edge を Chrome より先に。
 pub fn find() -> Option<PathBuf> {
@@ -168,6 +172,11 @@ pub fn render(
 
     // 起動した子プロセスは（Edge だと）すぐ終わることがあるので、その終了は成否に使わない。
     let mut launcher = launch(browser, &profile)?;
+    // ブラウザは起動した子の下にレンダラ等の孫を作る。子を kill するだけでは孫が残り、ddq の
+    // 標準出力を握ったまま生き続ける（フィルタが pandoc.pipe で ddq を待つので、ビルドが止まる）。
+    // Job Object に入れ、抜けるとき（成功・エラー・ddq の強制終了）に子孫ごと終わらせる。
+    #[cfg(windows)]
+    let mut job = crate::job::attach_or_kill(&mut launcher)?;
     let outcome = (|| {
         let mut cdp = Cdp::connect(&wait_for_devtools_endpoint(&profile, &mut launcher)?)?;
         let page_url = file_url(&page);
@@ -180,9 +189,23 @@ pub fn render(
         results
     })();
     let _ = launcher.kill();
-    // ブラウザが profile を握ったまま終了処理中でも、一時フォルダの削除失敗は無視してよい
-    let _ = work.close();
+    // 先にブラウザの子孫をすべて終わらせてから一時フォルダを消す。Browser.close は非同期で、
+    // 消す時点でまだ profile を握っていると削除に失敗し、%TEMP% に ddq-mermaid-* が 1 回ごとに
+    // 溜まっていた（U-0002 の調査で 1,000 件以上を確認）。
+    #[cfg(windows)]
+    job.close();
+    remove_dir_patiently(work);
     outcome
+}
+
+/// 一時フォルダを消す。終わったばかりのプロセスがファイルを放すまで、少しだけ待ち直す。
+/// 消せなくてもエラーにはしない（変換の結果には関係しない）。
+fn remove_dir_patiently(work: tempfile::TempDir) {
+    let path = work.keep();
+    let t0 = Instant::now();
+    while fs::remove_dir_all(&path).is_err() && path.exists() && t0.elapsed() < Duration::from_secs(3) {
+        thread::sleep(Duration::from_millis(100));
+    }
 }
 
 /// 変換ページ。mermaid-cli（src/index.js）と同じ手順で SVG 文字列を作る関数
@@ -256,10 +279,10 @@ fn wait_for_devtools_endpoint(profile: &Path, launcher: &mut std::process::Child
                 return Ok(format!("ws://127.0.0.1:{port}{}", path.trim()));
             }
         }
-        if started.elapsed() > TIMEOUT {
+        if started.elapsed() > timeout() {
             bail!(
                 "ブラウザが {} 秒以内に DevTools を開きませんでした",
-                TIMEOUT.as_secs()
+                timeout().as_secs()
             );
         }
         // 起動プロセスが異常終了していれば待っても無駄
@@ -290,8 +313,8 @@ impl Cdp {
             .and_then(|s| s.split('/').next())
             .context("DevTools の URL が不正です")?;
         let stream = TcpStream::connect(host_port).context("DevTools に接続できません")?;
-        stream.set_read_timeout(Some(TIMEOUT))?;
-        stream.set_write_timeout(Some(TIMEOUT))?;
+        stream.set_read_timeout(Some(timeout()))?;
+        stream.set_write_timeout(Some(timeout()))?;
         let (ws, _) =
             tungstenite::client(url, stream).map_err(|e| anyhow!("DevTools の handshake に失敗: {e}"))?;
         Ok(Self { ws, next_id: 0 })
@@ -328,7 +351,7 @@ impl Cdp {
                 "expression": expression,
                 "awaitPromise": true,
                 "returnByValue": true,
-                "timeout": TIMEOUT.as_millis() as u64,
+                "timeout": timeout().as_millis() as u64,
             }),
             Some(&session),
         );
@@ -358,8 +381,8 @@ impl Cdp {
             if value["method"].as_str() == Some(event) && value["sessionId"].as_str() == Some(session_id) {
                 return Ok(());
             }
-            if started.elapsed() > TIMEOUT {
-                bail!("{event} が {} 秒以内に来ませんでした", TIMEOUT.as_secs());
+            if started.elapsed() > timeout() {
+                bail!("{event} が {} 秒以内に来ませんでした", timeout().as_secs());
             }
         }
     }
@@ -400,8 +423,8 @@ impl Cdp {
                 }
                 return Ok(value["result"].clone());
             }
-            if started.elapsed() > TIMEOUT {
-                bail!("{method} の応答が {} 秒以内に来ませんでした", TIMEOUT.as_secs());
+            if started.elapsed() > timeout() {
+                bail!("{method} の応答が {} 秒以内に来ませんでした", timeout().as_secs());
             }
         }
     }

@@ -51,7 +51,7 @@ flowchart TB
 
 **確認済み（静的）**：通常のコマンド処理、図の描画、フォルダ更新は直列で進む。非同期ランタイムや自前のジョブキューはない。Mermaid の `Job` は入力／出力 `PathBuf` の対であり、ブラウザ経路は一つのバッチで一度起動し、図ごとに新しい CDP target を作る。merman は同一プロセスで Renderer を共用し順に描画する。[E-0009](appendix-evidence.qmd#ev-e-0009)
 
-**確認済み（静的）**：`Session::External` は URL と任意の版だけを保持し、外部サーバを終了しない。`Session::Local` は `LocalServer` を所有する。通常のスコープ終了・エラー伝播で `Drop` が Java を kill/wait し、Windows では Job Object を閉じる。Java の stderr を読み続けるスレッドが一つ作られる。OSからの強制終了や初期化途中の失敗は `Drop` だけでは説明できないため、[U-0002](07-issues-unknowns.qmd#u-0002) を参照する。[E-0011](appendix-evidence.qmd#ev-e-0011)
+**確認済み（静的）**：`Session::External` は URL と任意の版だけを保持し、外部サーバを終了しない。`Session::Local` は `LocalServer` を所有する。通常のスコープ終了・エラー伝播で `Drop` が Java を kill/wait し、Windows では Job Object を閉じる。Java の stderr を読み続けるスレッドが一つ作られる。Windows では、JVM とヘッドレスブラウザの起動直後に `crate::job` の Job Object（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`）へ入れる。ハンドルは Drop で閉じるので、成功・エラーでの早期リターン・ddq 自身の強制終了のいずれでも、子とその孫がまとめて終わる。入れられなかった場合は子を kill してからエラーを返す。これらは故障注入で実行確認した（[U-0002](07-issues-unknowns.qmd#u-0002)）。[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0029](appendix-evidence.qmd#ev-e-0029)
 
 **確認済み（静的）**：`doc::gitsrc` は `git` を同期の子プロセスとして一回ずつ起動し、標準出力を読み切ってから次へ進む。旧版の各ファイルは `git show` を一ファイル一回呼び、結果を `GitFolder` 内の `RefCell<HashMap>` に保持する。スレッドは作らない。[E-0022](appendix-evidence.qmd#ev-e-0022)
 

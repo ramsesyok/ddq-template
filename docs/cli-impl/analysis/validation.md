@@ -87,3 +87,11 @@ v2.4.2 の配布で通常の `ddq release` を実行し、50ファイルの ZIP�
 同梱 ddq.exe での init を確認した（オプション付き・異常系は未実施）。
 rev diff の警告を「tag apply で付くもの」と「既存の ID を手で付け替えるもの」に分けた。
 cargo test（unit 66 / commands 8 / rev 13 / tag 10）が成功。
+
+## 2026-09-23 の追補（U-0001・U-0002）
+
+U-0001: Windows 11（ACP 932）、Edge 153.0.4234.48、Quarto 1.9.38、Java 17.0.2、PlantUML 1.2026.8、git 2.44 で
+`DDQ_E2E=1 cargo test --locked --offline` を実行し全件成功（browser golden の厳格比較、E2E、PlantUML 統合を含む。skip なし）。
+U-0002: tests/faults.rs（7件）で故障注入。修正前に、ブラウザの孫プロセスの残存と、成功時も %TEMP% に
+ddq-mermaid-* が残ること（1,157件）を観測し、Job Object（src/job.rs）と削除順の修正で解消した。
+修正後は全件成功し、browser golden・E2E の実行で ddq-mermaid-* は増えなかった。
