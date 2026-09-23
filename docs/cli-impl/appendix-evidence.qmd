@@ -2,7 +2,7 @@
 
 ## 共通の識別条件
 
-基準はコミット `02672eb3054d0f6b7139e21b31d91aba7dd57595`、ブランチmain、2026-09-21時点のワークツリー。調査開始時に追跡ファイル差分はなく、`.claude/` は未追跡かつ対象外だった。以下のパスはリポジトリ相対である。静的根拠はソースに記述された処理を支え、実際の全入力での成功を支えるものではない。
+基準はコミット `281d62f1338d1de7f6660c1a47e1e84e72edda1b`（テンプレート2.4.0）、ブランチmain、2026-09-23時点のワークツリー。初版の基準 `02672eb3054d0f6b7139e21b31d91aba7dd57595`（2.2.1）からの差分を確認して更新した。調査開始時に追跡ファイル差分はなく、`.claude/` は未追跡かつ対象外だった。以下のパスはリポジトリ相対である。静的根拠はソースに記述された処理を支え、実際の全入力での成功を支えるものではない。
 
 `analysis/source-sha256.json` にCLIソース、テスト、主要境界ファイルおよびローカルjarのSHA-256を記録した。依存のlicense宣言は `analysis/dependencies.json`、実行条件は `analysis/validation.md` に記録している。正式文書の主張の再確認に必要なパスとシンボルは以下に収録する。
 
@@ -10,11 +10,11 @@
 
 ### E-0001：対象版・ビルド宣言 {#ev-e-0001 .unnumbered}
 
-**確認済み／種別：Git・設定・ソース**。`cli/Cargo.toml` のpackage/dependencies/target/profile、`cli/Cargo.lock`、`template/VERSION`、`cli/build.rs::main / locked_version`。Rustの要求版・feature・解決版、表示版の生成経路を確認。GitのHEAD／branch／statusも確認した。package 0.0.0とテンプレート2.2.1を区別する。
+**確認済み／種別：Git・設定・ソース**。`cli/Cargo.toml` のpackage/dependencies/target/profile、`cli/Cargo.lock`、`template/VERSION`、`cli/build.rs::main / locked_version`。Rustの要求版・feature・解決版、表示版の生成経路を確認。GitのHEAD／branch／statusも確認した。package 0.0.0とテンプレート2.4.0を区別する。
 
 ### E-0002：CLIとモジュール構成 {#ev-e-0002 .unnumbered}
 
-**確認済み／種別：ソース**。`cli/src/main.rs::Cli / Command / main` と各Args、`cli/src/commands/mod.rs`。全10コマンドの入口、hidden mermaid、引数の既定・排他、Resultの伝播を確認。`cli/src/**/*.rs` の自前処理全体とCargo直接依存を調べ、DB・GUIを実装していないという適用範囲判断に用いた。外部依存内部はこの負の判断に含めない。
+**確認済み／種別：ソース**。`cli/src/main.rs::Cli / Command / main` と各Args、`cli/src/commands/mod.rs`。トップレベル12コマンド（`plantuml`・`tag`・`rev` はサブコマンドを持つ）の入口、hidden mermaid、引数の既定・排他、`tag apply` の --all／--from 必須検査、Resultの伝播を確認。`cli/src/**/*.rs` の自前処理全体とCargo直接依存を調べ、DB・GUIを実装していないという適用範囲判断に用いた。外部依存内部はこの負の判断に含めない。
 
 ### E-0003：埋込み資産と生成物 {#ev-e-0003 .unnumbered}
 
@@ -58,7 +58,7 @@
 
 ### E-0013：release工程 {#ev-e-0013 .unnumbered}
 
-**確認済み／種別：ソース・設定**。`cli/src/commands/release.rs::run / copy_plantuml_jar / jar_version / build_extension / npm / build_release_guide / copy_tree`、`extension/package.json` のname/version/scripts.package。CWD検査、manual順序、stage削除、current_exeコピー、同梱物、除外条件、--no-build、jar版の表示のみという範囲を確認。今回は配布工程を実行していない。
+**確認済み／種別：ソース・設定**。`cli/src/commands/release.rs::run / copy_plantuml_jar / jar_version / build_extensions / build_extension / npm / build_release_guide / copy_tree`、`extensions/ddq-table-editor/package.json` と `extensions/ddq-revision/package.json` のname/version/scripts.package。CWD検査、manual順序、拡張フォルダの列挙とフォルダ名順、name＝フォルダ名と版の照合、stage削除、current_exeコピー、同梱物、除外条件、--no-build、jar版の表示のみという範囲を確認。今回は配布工程を実行していない。
 
 ### E-0014：ZIP生成と検証 {#ev-e-0014 .unnumbered}
 
@@ -66,20 +66,36 @@
 
 ### E-0015：CI・版管理境界 {#ev-e-0015 .unnumbered}
 
-**確認済み／種別：設定・手順文書**。`.github/workflows/ci.yml`、ルート `.gitignore`、`template/scaffold/repo/gitignore`、`docs/manual/chapters/17-maintainer/06-release.qmd`。Windows CIの依存版・コマンド・環境変数と、原本リポジトリ／文書リポジトリの生成物管理の差を確認。CI実行結果や公開リリースの同一性は調べていない。
+**確認済み／種別：設定・手順文書**。`.github/workflows/ci.yml`、`.github/workflows/extension.yml`、ルート `.gitignore`、`template/scaffold/repo/gitignore`、`docs/manual/chapters/18-maintainer/06-release.qmd`（初版時は17章）。Windows CIの依存版・コマンド・環境変数、拡張CIの matrix と版照合と、原本リポジトリ／文書リポジトリの生成物管理の差を確認。CI実行結果や公開リリースの同一性は調べていない。
 
 ### E-0016：テスト・回帰ツール {#ev-e-0016 .unnumbered}
 
-**確認済み／種別：テストソース**。`cli/tests/commands.rs`、`golden.rs::fixtures / run_ddq / geometry / roughly_same_size`、`e2e.rs::skip_without_quarto / build_and_check / QUARTO_LOCK`、`plantuml.rs::skip / diagrams_renders_puml_and_rejects_syntax_error / serve_answers_serverinfo_and_stops_with_parent`、`common/mod.rs`、`cli/tools/regress.py::Builder / capture / compare`。22組のgolden入力、skipと厳格化、幾何比較の限界、PDF/HTML検証、旧版比較の採取物を確認した。
+**確認済み／種別：テストソース**。`cli/tests/commands.rs`、`tag.rs::fixture` と9テスト、`rev.rs::repo / edit / git_available` と10テスト、`golden.rs::fixtures / run_ddq / geometry / roughly_same_size`、`e2e.rs::skip_without_quarto / build_and_check / QUARTO_LOCK`、`plantuml.rs::skip / diagrams_renders_puml_and_rejects_syntax_error / serve_answers_serverinfo_and_stops_with_parent`、`common/mod.rs`、`cli/tools/regress.py::Builder / capture / compare`。22組のgolden入力、skipと厳格化、幾何比較の限界、PDF/HTML検証、旧版比較の採取物を確認した。
 
 ### E-0017：今回の限定実行 {#ev-e-0017 .unnumbered}
 
-**確認済み／種別：実行観測**。2026-09-21、Windows、CWD=`cli`、Cargo 1.98.1。`cargo test --locked --offline --bin ddq --test commands` は終了0、unit 10件とcommands 4件が成功。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。
+**確認済み／種別：実行観測**。2026-09-23、Windows、CWD=`cli`、Cargo 1.98.1、git有り。`cargo test --locked --offline --bin ddq --test commands --test tag --test rev` は終了0、unit 50件、commands 4件、rev 10件、tag 9件が成功。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。加えて、debugビルドの ddq 2.4.0 で一時Gitリポジトリ（`chapters:` と `appendices:` を持つ執筆フォルダ、`rev-A` タグ）を作り、付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、`--write --json` で JSON が出ないことを観測した。本書自身に対する `tag list --json` の `order` にも付録が含まれなかった。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。初版（2026-09-21、2.2.1）では unit 10件と commands 4件、merman 1件を同条件で確認した。
 
 ### E-0018：依存のローカル同定 {#ev-e-0018 .unnumbered}
 
-**確認済み／種別：lockfile・ローカルmanifest・バイナリ内メタデータ**。`cli/Cargo.lock` とCargo registryの各 `<name>-<version>/Cargo.toml` のlicense宣言を照合。結果は `analysis/dependencies.json`。`cli/vendor/plantuml.jar` は17,744,555 bytes、`META-INF/MANIFEST.MF` の `Implementation-Version: 1.2026.8` を確認した。Build-Jdk-Spec 21はビルドJDKのメタデータで、実行JDKの最低版と同一視しない。`template/vendor/mermaid.min.js` の `version:"11.16.0"` と `assets::mermaid_js_version` の抽出方式を確認。license原文全量やupstreamとの改変差分は未確認。
+**確認済み／種別：lockfile・ローカルmanifest・バイナリ内メタデータ**。`cli/Cargo.lock` とCargo registryの各 `<name>-<version>/Cargo.toml` のlicense宣言を照合。結果は `analysis/dependencies.json`。2.3.0で追加された直接依存 `sha1` はlockfileで0.11.0に解決し、registryのmanifestでlicense宣言を確認した。`cli/vendor/plantuml.jar` は17,744,555 bytes、`META-INF/MANIFEST.MF` の `Implementation-Version: 1.2026.8` を確認した。Build-Jdk-Spec 21はビルドJDKのメタデータで、実行JDKの最低版と同一視しない。`template/vendor/mermaid.min.js` の `version:"11.16.0"` と `assets::mermaid_js_version` の抽出方式を確認。license原文全量やupstreamとの改変差分は未確認。
 
 ### E-0019：資料の差異 {#ev-e-0019 .unnumbered}
 
-**確認済み／種別：既存設計書とソースの比較**。`cli/DESIGN.md` §5.4／§7.2／§7.5、`cli/plantuml-study.md`、`commands/release.rs::run`、`mermaid/mod.rs::Engine::label / render_jobs`、`plantuml/mod.rs::LocalServer::start`、`Cargo.toml`。設計案・PoC・現在の実装を区別し、releaseの作業ディレクトリ、直接依存、SVG版表記、エラー後の既存出力、stderr保持の差を第7章に整理した。
+**確認済み／種別：既存設計書とソースの比較**。`cli/DESIGN.md` §5.4／§7.2／§7.5、`cli/plantuml-study.md`、`commands/release.rs::run`、`mermaid/mod.rs::Engine::label / render_jobs`、`plantuml/mod.rs::LocalServer::start`、`Cargo.toml`。設計案・PoC・現在の実装を区別し、releaseの作業ディレクトリ、直接依存、SVG版表記、エラー後の既存出力、stderr保持の差を第7章に整理した。本版では `cli/DESIGN.md` §14.3／§15.3、`commands/rev.rs::today` と `doc/mod.rs` のコメントを `doc::project::chapters_of`、`doc::diff::units_of` と照合した差も加えた。
+
+### E-0020：論理文書とラベル付与 {#ev-e-0020 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/doc/mod.rs::Doc / scan_folder`、`doc/project.rs::Source / Folder / order / order_of / logical / walk / include_path / chapters_of / join_rel / read_text`、`doc/units.rs::Kind / Warning / Item / Edit / scan / push_div / heading / caption_line / attr_value`、`doc/labels.rs::suggest / candidate / edit_for / apply_to_line / valid`、`commands/tag.rs::list / apply / from_file / label_in / print_table`、`cli/tests/tag.rs`。章と include の展開規則、付録を読まないこと、拾う記法と除外範囲、候補の決定性と桁の延長、文字数単位の挿入、CRLF保持、`--from` の事前検証、書込み単位を確認した。`Warning::BareFigure` の生成箇所がないことは全ソース検索で確認した。
+
+### E-0021：差分・改訂ファイル・履歴表 {#ev-e-0021 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/commands/rev.rs::next / next_of / diff_cmd / write_revision / build / history_qmd / Row / includes_history / today / civil_from_days`、`doc/diff.rs::Unit / Entry / Change / units_of / normalize / compare / order_of / label_on_line`、`doc/revfile.rs::Revision / RevEntry / next_symbol / symbol_key / load_all / load / parse / scalar / to_yaml / quote`、`cli/tests/rev.rs`。記号の採番と書きかけの扱い、帰属規則、正規化、removed の挿入位置、note・date・stale の引継ぎ、固定YAML形式、PDF/HTMLの二表、警告と `--check`、`--write` 優先、UTCの日付計算を確認した。
+
+### E-0022：Git との境界 {#ev-e-0022 .unnumbered}
+
+**確認済み／種別：ソース**。`cli/src/doc/gitsrc.rs::git / Repo::of / resolve / revision_tags / at`、`GitFolder`（`Source` 実装）。`-c core.quotepath=off`、`rev-parse --show-toplevel／--show-prefix`、`<ref>^{commit}` の解決、`ls-tree` による存在確認後の `git show`、BOM除去、結果のキャッシュ、同期の子プロセス呼出しを確認した。Git の版差・設定差による挙動は U-0008 で未確認とする。
+
+### E-0023：テンプレート側の境界（2.2.2～2.4.0） {#ev-e-0023 .unnumbered}
+
+**確認済み／種別：Git差分・設定・ソース**。`git log 02672eb..281d62f` と `git diff` で `cli/`、`template/`、`.github/`、`extensions/*/package.json` の変更を棚卸しした。`template/scaffold/content/index.qmd` の `revisions/history.qmd` include、`template/scaffold/content/revisions/history.qmd`、`template/lib.typ` の `_xref-page` と付録対応、`template/postprocess-html.js` の別章参照・付録対応、`template/VERSION` の2.4.0を確認した。Typst・HTML後処理の内部動作は本書の対象外とし、CLIとの接点だけを扱う。

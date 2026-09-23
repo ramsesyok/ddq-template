@@ -1,9 +1,7 @@
-warn: could not canonicalize path C:\Users\ramse
-   Compiling ddq v0.0.0 (C:\Users\ramse\Projects\design-doc-quarto-template\cli)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.84s
-     Running tests\golden.rs (target\debug\deps\golden-211303bf7dafb06e.exe)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.37s
+     Running tests\golden.rs (target\debug\deps\golden-6e2c7bbd09237601.exe)
 
 running 1 test
 test merman_engine_renders_all_without_foreign_object ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.95s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.60s

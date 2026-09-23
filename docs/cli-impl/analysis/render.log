@@ -1,21 +1,12 @@
-
-[1/9] index.qmd
-
-[2/9] 01-overview.qmd
-
-[3/9] 02-architecture.qmd
-
-[4/9] 03-behavior.qmd
-
-[5/9] 04-data-interfaces.qmd
-
-[6/9] 05-build-environment.qmd
-
-[7/9] 06-maintenance.qmd
-
-[8/9] 07-issues-unknowns.qmd
-
-[9/9] appendix-evidence.qmd
+[1/9] index.qmd
+[2/9] 01-overview.qmd
+[3/9] 02-architecture.qmd
+[4/9] 03-behavior.qmd
+[5/9] 04-data-interfaces.qmd
+[6/9] 05-build-environment.qmd
+[7/9] 06-maintenance.qmd
+[8/9] 07-issues-unknowns.qmd
+[9/9] appendix-evidence.qmd
 
 Running script 'postprocess-html.js'
 OK -> C:\Users\ramse\Projects\design-doc-quarto-template\docs\cli-impl\_book (図表 0 件 / 参照 0 件を章.節.項…-連番に変換)
