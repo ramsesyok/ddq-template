@@ -11,6 +11,7 @@ entries:
     unit: heading
     title: 目的
     file: chapters/01-overview/01-purpose.qmd
+    line: 1
     note: |
       目的の記述に背景を補足した。
   - label: sec-fc37ef
@@ -18,6 +19,7 @@ entries:
     unit: heading
     title: 可用性を最も重視する
     file: chapters/02-design-policy/01-availability.qmd
+    line: 1
     note: |
       標題の言い回しを見直した
       （内容の変更は無い）。
@@ -26,6 +28,7 @@ entries:
     unit: heading
     title: 他システムとは疎結合とする
     file: chapters/02-design-policy/03-loose-coupling.qmd
+    line: 1
     note: |
       疎結合の方針は第4章に統合したため削除。
   - label: sec-observability
@@ -33,6 +36,7 @@ entries:
     unit: heading
     title: 監視できることを設計に織り込む
     file: chapters/02-design-policy/04-observability.qmd
+    line: 1
     note: |
       監視に関する方針を新規に追加。
   - label: tbl-cond
@@ -40,5 +44,6 @@ entries:
     unit: tbl
     title: 設計条件
     file: chapters/03-design-conditions/index.qmd
+    line: 12
     note: |
       性能条件のピーク時受注量を 100 → 150 件/分に見直した。

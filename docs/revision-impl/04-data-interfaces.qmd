@@ -66,6 +66,7 @@
 | `entries[].kind` | string | `changed`/`added`/`removed`/`renamed` |
 | `entries[].unit` | string | `heading`/`tbl`/`ipo`/`pipe`/`fig` |
 | `entries[].title` / `file` | string | 表示用の名称と場所 |
+| `entries[].line` | number | `file` での行（1 始まり。removed は旧版での行）。「箇所」「差分」の移り先。無ければ先頭 |
 | `entries[].note` | string | 修正内容（人が書く。複数行可） |
 | `entries[].stale` | bool | 差分から消えたがメモが残っているもの |
 :::

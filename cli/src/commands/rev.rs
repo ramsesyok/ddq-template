@@ -215,7 +215,9 @@ fn write_revision(
             kind: e.kind.as_str().to_string(),
             unit: e.unit.to_string(),
             title: e.title.clone().unwrap_or_default(),
+            // removed は新版に場所が無いので、旧版の場所を書く（拡張が差分の左側で開く）
             file: e.file.clone().or_else(|| e.file_old.clone()).unwrap_or_default(),
+            line: e.line.or(e.line_old),
             note,
             stale: false,
         });

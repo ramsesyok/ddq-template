@@ -18,6 +18,7 @@
 //!     unit: heading          # heading | tbl | ipo | pipe | fig
 //!     title: 目的
 //!     file: chapters/01-overview/01-purpose.qmd
+//!     line: 12               # file での行（1 始まり）。removed は旧版での行
 //!     note: |
 //!       対象システムに○○を追加
 //! ```
@@ -54,6 +55,9 @@ pub struct RevEntry {
     pub unit: String,
     pub title: String,
     pub file: String,
+    /// `file` での行（1 始まり）。removed は旧版での行。取り直した時点の値で、
+    /// 拡張がその場所を開くのに使うだけ（改訂履歴の表には出ない）
+    pub line: Option<usize>,
     /// 修正内容（人が書く）
     pub note: String,
     /// 再取得で差分から消えたが、メモが残っているもの（人が消すまで残す）
@@ -213,6 +217,7 @@ pub fn parse(text: &str) -> Revision {
                     "unit" => entry.unit = value,
                     "title" => entry.title = value,
                     "file" => entry.file = value,
+                    "line" => entry.line = value.parse().ok(),
                     "note" => entry.note = value,
                     "stale" => entry.stale = value == "true",
                     _ => {}
@@ -310,6 +315,9 @@ pub fn to_yaml(rev: &Revision) -> String {
         if !e.file.is_empty() {
             s.push_str(&format!("    file: {}\n", quote(&e.file)));
         }
+        if let Some(line) = e.line {
+            s.push_str(&format!("    line: {line}\n"));
+        }
         if e.stale {
             s.push_str("    stale: true\n");
         }
@@ -361,6 +369,7 @@ mod tests {
                     unit: "heading".into(),
                     title: "目的".into(),
                     file: "chapters/01/01-purpose.qmd".into(),
+                    line: Some(12),
                     note: "対象システムに○○を追加\n2 行目も書ける".into(),
                     stale: false,
                 },
@@ -370,6 +379,7 @@ mod tests {
                     unit: "fig".into(),
                     title: "ネットワーク: 構成".into(),
                     file: String::new(),
+                    line: None,
                     note: String::new(),
                     stale: true,
                 },
@@ -380,6 +390,8 @@ mod tests {
         assert_eq!(back.base_commit, "3c1f8a2");
         assert_eq!(back.entries.len(), 2);
         assert_eq!(back.entries[0].note, "対象システムに○○を追加\n2 行目も書ける");
+        assert_eq!(back.entries[0].line, Some(12));
+        assert_eq!(back.entries[1].line, None);
         assert_eq!(back.entries[1].title, "ネットワーク: 構成");
         assert!(back.entries[1].stale);
         assert_eq!(back.entries[1].note, "");

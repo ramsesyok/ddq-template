@@ -81,6 +81,8 @@ pub struct Entry {
     /// 旧版での場所（added は None）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_old: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line_old: Option<usize>,
     /// ファイルをまたいで移動したときの旧ファイル（履歴には載せず、UI の情報として出す）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub moved_from: Option<String>,
@@ -306,6 +308,7 @@ pub fn compare(
                 file: Some(n.file.clone()),
                 line: Some(n.line),
                 file_old: None,
+                line_old: None,
                 moved_from: None,
             },
             Some(o) => {
@@ -327,6 +330,7 @@ pub fn compare(
                     file: Some(n.file.clone()),
                     line: Some(n.line),
                     file_old: Some(o.file.clone()),
+                    line_old: Some(o.line),
                     moved_from: (o.file != n.file).then(|| o.file.clone()),
                 }
             }
@@ -349,6 +353,7 @@ pub fn compare(
             file: None,
             line: None,
             file_old: Some(o.file.clone()),
+            line_old: Some(o.line),
             moved_from: None,
         };
         // 旧版で直前にあり、かつ一覧に載っているラベルの後ろに置く。
