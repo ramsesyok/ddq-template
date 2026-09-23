@@ -260,21 +260,85 @@ export async function openDiff(folder: string, revision: Revision, label: string
         right = entry.kind === 'removed' ? empty(entry.file) : fileUri;
     }
     const title = `${entry.title || entry.label}（${revision.base || revision.baseCommit} ↔ 作業ツリー）`;
+    // 「箇所」（reveal）と同じく編集画面の隣に出す。編集画面に重ねると、メモを書きながら見られない
     await vscode.commands.executeCommand('vscode.diff', left, right, title, {
-        preview: true
+        preview: true,
+        viewColumn: vscode.ViewColumn.Beside,
+        preserveFocus: true
     });
 }
 
-/** 内蔵 Git 拡張の API で、その版のファイルを指す URI を作る。 */
+/** 案内のボタン。 */
+const OPEN_REPOSITORY = 'リポジトリを開いて差分を見る';
+const OPEN_SETTING = '設定を開く';
+
+/**
+ * 内蔵 Git 拡張の API で、その版のファイルを指す URI を作る。
+ *
+ * `git:` URI は Git 拡張が**そのリポジトリを開いているとき**しか読めない。執筆フォルダだけを
+ * VSCode で開くと、リポジトリの本体はその上にあり、設定 `git.openRepositoryInParentFolders`
+ * が `never`（または `prompt` の通知を見逃した）だと開かれない。そのまま差分を開くと
+ * 「ファイルが見つからない」としか出ないので、先に確かめて案内する。
+ */
 async function gitUri(fileUri: vscode.Uri, ref: string): Promise<vscode.Uri | undefined> {
     const extension = vscode.extensions.getExtension('vscode.git');
     if (!extension) {
         vscode.window.showErrorMessage('内蔵の Git 拡張が無効です。差分を出せません。');
         return undefined;
     }
-    const git = await extension.activate();
-    return git.getAPI(1).toGitUri(fileUri, ref);
+    const git = (await extension.activate()).getAPI(1);
+    if (!(await repositoryOf(git, fileUri))) return undefined;
+    return git.toGitUri(fileUri, ref);
 }
+
+/** Git 拡張がそのファイルのリポジトリを開いているか。無ければ案内し、望まれれば開く。 */
+async function repositoryOf(git: GitApi, fileUri: vscode.Uri): Promise<boolean> {
+    if (git.state !== 'initialized') {
+        // 起動直後はリポジトリの探索が終わっていない
+        await new Promise<void>((resolve) => {
+            const sub = git.onDidChangeState((state) => {
+                if (state === 'initialized') {
+                    sub.dispose();
+                    resolve();
+                }
+            });
+        });
+    }
+    if (git.getRepository(fileUri)) return true;
+
+    const choice = await vscode.window.showWarningMessage(
+        '内蔵の Git 拡張がこの文書のリポジトリを開いていないため、基準の版を読めません。',
+        {
+            modal: true,
+            detail:
+                '執筆フォルダだけを VSCode で開いていると、その上にあるリポジトリは設定 ' +
+                'git.openRepositoryInParentFolders が "always" でない限り開かれません' +
+                '（"prompt" のときは通知で「はい」を押す必要があります）。'
+        },
+        OPEN_REPOSITORY,
+        OPEN_SETTING
+    );
+    if (choice === OPEN_REPOSITORY) {
+        // 設定に関係なく開く（このウィンドウの間だけ。ソース管理ビューにも出る）
+        if (await git.openRepository(fileUri)) return true;
+        vscode.window.showErrorMessage('リポジトリを開けませんでした。Git の出力を確認してください。');
+    } else if (choice === OPEN_SETTING) {
+        await vscode.commands.executeCommand(
+            'workbench.action.openSettings',
+            'git.openRepositoryInParentFolders'
+        );
+    }
+    return false;
+}
+
+/** 内蔵 Git 拡張の API のうち、ここで使うもの（vscode/extensions/git/src/api/git.d.ts）。 */
+type GitApi = {
+    readonly state: 'uninitialized' | 'initialized';
+    readonly onDidChangeState: vscode.Event<'uninitialized' | 'initialized'>;
+    toGitUri(uri: vscode.Uri, ref: string): vscode.Uri;
+    getRepository(uri: vscode.Uri): unknown | null;
+    openRepository(root: vscode.Uri): Promise<unknown | null>;
+};
 
 /** Webview の HTML（タグ付け画面と共通の 1 バンドルを、data-view で切り替える）。 */
 export function html(webview: vscode.Webview, extensionUri: vscode.Uri, view: 'tags' | 'revision'): string {
