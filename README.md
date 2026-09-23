@@ -50,6 +50,8 @@ C:\tools\
     ├── はじめかた.pdf        ← 発行者向けの最初の一歩（8 枚のスライド）
     ├── README.md            ← このファイル
     ├── AGENT-GUIDE.md       ← AI エージェント向けの執筆ガイド（設計書リポジトリの AGENTS.md やスキルに取り込む）
+    ├── LICENSE              ← このテンプレート（ddq 本体を含む）のライセンス（MIT）
+    ├── THIRD-PARTY-NOTICES.md ← 同梱・内蔵している第三者のソフトウェアのライセンス表示
     ├── ddq-table-editor-2.4.2.vsix ← VSCode 拡張（表の視覚編集。執筆者へ配る）
     └── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
 
@@ -170,3 +172,10 @@ cd C:\tools\quarto-template-2.4.2
 記法の実例と、様式を変更したときの確認用に使います。サンプル文書を増やすときは
 `examples/` に執筆フォルダを足します。`docs/` はテンプレート自身の文書（利用マニュアル・
 設計書）を執筆フォルダとして並べた**設計リポジトリ**です。
+
+## ライセンス
+
+このテンプレート（ddq 本体・機構ファイル・雛形・VSCode 拡張）は [MIT ライセンス](LICENSE) である。
+ddq.exe が内蔵する Rust のライブラリと mermaid、同梱の plantuml.jar、VSCode 拡張がバンドルする React は、
+それぞれのライセンスに従う（[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)）。
+テンプレートで書いた設計書（原稿・図・PDF・HTML）は、書いた人のものであり、このライセンスの対象ではない。

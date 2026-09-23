@@ -2,7 +2,8 @@
 //! テンプレートのリポジトリのルートで実行する（template/VERSION と docs/manual/ があること）。
 //!
 //! 作るもの（cli/DESIGN.md §3.2）:
-//!   <out-dir>/quarto-template-<版>/      ddq.exe / plantuml.jar / はじめかた.pdf / README.md / AGENT-GUIDE.md / manual/
+//!   <out-dir>/quarto-template-<版>/      ddq.exe / plantuml.jar / はじめかた.pdf / README.md / AGENT-GUIDE.md /
+//!                                        LICENSE / THIRD-PARTY-NOTICES.md / manual/
 //!                                        / ddq-table-editor-<版>.vsix（VSCode 拡張）
 //!   <out-dir>/quarto-template-<版>.zip
 //! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
@@ -51,6 +52,13 @@ const PLANTUML_JAR_DEST: &str = "plantuml.jar";
 /// AI エージェント向け執筆ガイド（リポジトリ直下。リリース直下に同名で置く）
 const AGENT_GUIDE: &str = "AGENT-GUIDE.md";
 
+/// 第三者のソフトウェアのライセンス表示（リポジトリ直下。`cli/tools/third_party.py` が作る生成物）。
+/// 先頭に入力のハッシュがあり、入力が変わったのに作り直していなければ止める（古い表示を配らない）
+const THIRD_PARTY: &str = "THIRD-PARTY-NOTICES.md";
+
+/// このリポジトリ（ddq 本体・テンプレート）のライセンス（MIT。リポジトリ直下）
+const LICENSE: &str = "LICENSE";
+
 /// VSCode 拡張を置くフォルダ。この下の 1 フォルダ = 1 拡張で、どれも同じ作法
 /// （`package.json` の name と version、`npm run package` で VSIX ができる）に揃える。
 /// 版はすべて template/VERSION と一致していなければならない（利用マニュアル 18 章）。
@@ -73,6 +81,9 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     };
     let stage = out_root.join(&name);
     println!("リリースを作成: {name}");
+    // ライセンス表示が入力（Cargo.lock・mermaid.min.js・plantuml.jar・拡張の lock）と合っていること。
+    // 重いビルドの前に確かめる
+    check_third_party(&repo)?;
 
     // 1) 利用マニュアル。PDF → HTML の順（両方 _book/ を使い、後の方が残る）
     let manual = repo.join(MANUAL_DIR);
@@ -109,6 +120,10 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     // AI エージェント向けの記法要約。発行者が設計書リポジトリの AGENTS.md / スキルに取り込む
     fs::copy(repo.join(AGENT_GUIDE), stage.join(AGENT_GUIDE))
         .with_context(|| format!("{AGENT_GUIDE} をコピーできません"))?;
+    fs::copy(repo.join(LICENSE), stage.join(LICENSE))
+        .with_context(|| format!("{LICENSE} をコピーできません"))?;
+    fs::copy(repo.join(THIRD_PARTY), stage.join(THIRD_PARTY))
+        .with_context(|| format!("{THIRD_PARTY} をコピーできません"))?;
     copy_plantuml_jar(&repo, &stage)?;
     build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
     fs::copy(&manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
@@ -141,7 +156,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     println!("  フォルダ: {}", stage.display());
     println!("  zip     : {}（{count} ファイル）", zip_path.display());
     println!(
-        "  内容: {} / plantuml.jar / はじめかた.pdf / README / AGENT-GUIDE / manual（PDF + HTML）/ {}{}",
+        "  内容: {} / plantuml.jar / はじめかた.pdf / README / AGENT-GUIDE / LICENSE / THIRD-PARTY-NOTICES / manual（PDF + HTML）/ {}{}",
         exe_name.display(),
         vsix_names.join(" / "),
         if with_sample {
@@ -338,4 +353,101 @@ fn copy_tree(
         })?;
     }
     Ok(())
+}
+
+/// `THIRD-PARTY-NOTICES.md` があり、先頭に記録した入力のハッシュが今のファイルと一致するか。
+fn check_third_party(repo: &Path) -> Result<()> {
+    let path = repo.join(THIRD_PARTY);
+    let text = fs::read_to_string(&path).with_context(|| {
+        format!(
+            "{} がありません。リポジトリのルートで `python cli/tools/third_party.py` を実行して作ってください",
+            path.display()
+        )
+    })?;
+    let stale = stale_third_party_inputs(repo, &text)?;
+    if !stale.is_empty() {
+        bail!(
+            "{THIRD_PARTY} が古くなっています（作ったあとに変わった入力: {}）。\n  \
+             リポジトリのルートで `python cli/tools/third_party.py` を実行して作り直し、コミットしてください",
+            stale.join(", ")
+        );
+    }
+    Ok(())
+}
+
+/// ライセンス表示の先頭行 `<!-- ddq-third-party inputs: <path>=<sha1> … -->` のうち、今の
+/// ファイルと一致しないもの（無くなったものも含む）を返す。
+fn stale_third_party_inputs(repo: &Path, text: &str) -> Result<Vec<String>> {
+    let line = text
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("<!-- ddq-third-party inputs:"))
+        .with_context(|| format!("{THIRD_PARTY} に入力の記録（ddq-third-party inputs）がありません"))?;
+    let mut stale = Vec::new();
+    for pair in line.trim_end_matches("-->").split_whitespace() {
+        let (rel, want) = pair
+            .split_once('=')
+            .with_context(|| format!("{THIRD_PARTY} の入力の記録を読めません: {pair}"))?;
+        let now = fs::read(repo.join(rel))
+            .map(|b| input_sha1(rel, &b))
+            .unwrap_or_default();
+        if now != want {
+            stale.push(rel.to_string());
+        }
+    }
+    Ok(stale)
+}
+
+/// 入力のハッシュ（cli/tools/third_party.py の sha1 と同じ規則。tests/third_party.rs も同じ）。
+/// テキストは改行を LF に揃えてから取る（Cargo.lock は checkout の設定で CRLF にも LF にもなる）。
+/// jar はそのまま。
+fn input_sha1(rel: &str, bytes: &[u8]) -> String {
+    use sha1::{Digest, Sha1};
+    let digest = if rel.ends_with(".jar") {
+        Sha1::digest(bytes)
+    } else {
+        let mut lf = Vec::with_capacity(bytes.len());
+        for (i, &b) in bytes.iter().enumerate() {
+            if !(b == b'\r' && bytes.get(i + 1) == Some(&b'\n')) {
+                lf.push(b);
+            }
+        }
+        Sha1::digest(&lf)
+    };
+    digest.iter().map(|x| format!("{x:02x}")).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn third_party_notices_must_match_their_inputs() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join("Cargo.lock"), "a").unwrap();
+        // sha1("a")
+        let head =
+            "# x\n\n<!-- ddq-third-party inputs: Cargo.lock=86f7e437faa5a7fce15d1ddcb9eaeaea377667b8 -->\n";
+        assert!(stale_third_party_inputs(tmp.path(), head).unwrap().is_empty());
+        fs::write(tmp.path().join("Cargo.lock"), "b").unwrap();
+        assert_eq!(
+            stale_third_party_inputs(tmp.path(), head).unwrap(),
+            ["Cargo.lock"]
+        );
+        fs::remove_file(tmp.path().join("Cargo.lock")).unwrap();
+        assert_eq!(
+            stale_third_party_inputs(tmp.path(), head).unwrap(),
+            ["Cargo.lock"]
+        );
+        assert!(stale_third_party_inputs(tmp.path(), "# 記録なし\n").is_err());
+    }
+
+    #[test]
+    fn text_inputs_are_hashed_with_lf() {
+        // checkout の改行設定（CRLF / LF）でハッシュが変わらない。jar はそのまま
+        assert_eq!(
+            input_sha1("cli/Cargo.lock", b"a\r\nb\n"),
+            input_sha1("cli/Cargo.lock", b"a\nb\n")
+        );
+        assert_ne!(input_sha1("x.jar", b"a\r\nb\n"), input_sha1("x.jar", b"a\nb\n"));
+    }
 }

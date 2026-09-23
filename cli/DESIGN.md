@@ -93,6 +93,8 @@ quarto-template-<版>/
 ├── plantuml.jar         … PlantUML（MIT 版）。ddq が exe の隣から探す（2.2.0 から。§13）
 ├── README.md            … リポジトリの README
 ├── AGENT-GUIDE.md       … AI エージェント向けの執筆ガイド（リポジトリ直下の同名ファイル）
+├── LICENSE              … このリポジトリのライセンス（MIT。リポジトリ直下）
+├── THIRD-PARTY-NOTICES.md … 第三者のソフトウェアのライセンス表示（リポジトリ直下の生成物。下記）
 ├── はじめかた.pdf        … 最初の一歩（template/release-guide.typ を Quarto 同梱の Typst で PDF に。
 │                            Marp は npm 依存なので使わない）
 ├── ddq-table-editor-<版>.vsix … VSCode 拡張（2.1.0 から。extensions/ の各拡張を `npm run package` したもの）
@@ -102,6 +104,15 @@ quarto-template-<版>/
 ```
 
 `template/` は release に**含めない**（すべて exe に埋め込まれている）。
+
+**第三者のライセンス表示（`THIRD-PARTY-NOTICES.md`）**。配布物には ddq.exe に静的リンクする Rust のクレート、
+ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm の依存）、plantuml.jar、VSIX の Webview に
+バンドルする React が入る。これらのライセンス表示を `python cli/tools/third_party.py` がリポジトリ直下に作る
+（本文はローカルの Cargo レジストリ・npm パッケージ・`java -jar plantuml.jar -license` から取る。merman の
+`THIRD_PARTY_LICENSES/`、ratex-katex-fonts の KaTeX フォント（SIL OFL 1.1）も含む）。先頭に入力
+（`Cargo.lock`・`mermaid.min.js`・`plantuml.jar`・拡張の `package-lock.json`）の SHA-1 を書き、`ddq release` と
+`tests/third_party.rs` が照合する。依存を変えたら作り直してコミットする（しないとリリースと CI が止まる）。
+テキストの入力は改行を LF に揃えてからハッシュする（`Cargo.lock` は checkout の設定で CRLF にもなる）。
 
 VSIX は `ddq release` が `extension/` で `npm ci`（`node_modules/` が無いときだけ）→
 `npm run package` を実行して作る（`--no-build` なら既存の VSIX を使う）。

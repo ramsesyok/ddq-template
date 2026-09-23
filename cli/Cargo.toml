@@ -5,6 +5,8 @@ version = "0.0.0"          # 表示する版は ../template/VERSION（build.rs �
 edition = "2024"
 rust-version = "1.95"
 publish = false
+# リポジトリ直下の LICENSE。同梱・内蔵する第三者のものは THIRD-PARTY-NOTICES.md
+license = "MIT"
 
 [dependencies]
 anyhow = "1"

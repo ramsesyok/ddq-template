@@ -42,7 +42,7 @@ cli\target\release\ddq.exe release
 | Mermaid JS | 11.16.0（埋込み文字列から抽出） | `template/vendor/mermaid.min.js`。ブラウザ描画の固定入力 |
 | PlantUML jar | 1.2026.8（ローカルMANIFEST） | `cli/vendor/plantuml.jar` はGit管理外。配布時に外部ファイルとしてコピー |
 
-**確認済み（ローカル資料）**：直接依存のlicense宣言はローカルCargo registryのmanifestから採取し、`analysis/dependencies.json` に残した。CLI本体のmanifestには `[patch]` 指定がない。jarのMANIFEST版とCI取得名が一致することは確認したが、版一致だけでは取得元・配布種別・改変有無を証明できない。OSSの全NOTICE、推移依存の法的評価、EOL調査は行っていない。[E-0018](appendix-evidence.qmd#ev-e-0018)、[U-0003](07-issues-unknowns.qmd#u-0003)
+**確認済み（ローカル資料）**：直接依存のlicense宣言はローカルCargo registryのmanifestから採取し、`analysis/dependencies.json` に残した。CLI本体のmanifestには `[patch]` 指定がない。jarは公式リリースの `plantuml-mit-1.2026.8.jar` と SHA-256 が一致し、`mermaid.min.js` は npm の `mermaid@11.16.0` の `dist/mermaid.min.js` と SHA-256 が一致した。配布物に入る第三者のソフトウェアのライセンス表示は `THIRD-PARTY-NOTICES.md`（`cli/tools/third_party.py` の生成物）にまとめた。推移依存の法的評価とEOL調査は行っていない。[E-0018](appendix-evidence.qmd#ev-e-0018)、[E-0030](appendix-evidence.qmd#ev-e-0030)、[U-0003](07-issues-unknowns.qmd#u-0003)
 
 ## テストの期待値と今回の結果 {#sec-79af3b}
 
@@ -51,6 +51,7 @@ cli\target\release\ddq.exe release
 | binary内unit | 背景style、file URL、script escape、PlantUML設定・HTTP・フェンス、Windows ACP、`doc` の走査・include展開・候補・差分帰属・改訂ファイル往復・記号採番、日付計算 | **確認済み**：68件成功（初版時10件）。ACP固有テストはCP932以外で早期return |
 | `tests/commands.rs` | init/add/update/setup、版違い拒否、表示版、`.`／`..` の拒否、版上げ時のキャッシュ削除、失敗した静的図の前回SVG削除、`ddq identity` | **確認済み**：8件成功 |
 | `tests/tag.rs` | 一覧と候補、apply の冪等性、候補の安定、dry-run、CRLF保持、`--from` の受理と拒否、重複警告、引数必須、既存の別形式 ID | **確認済み**：10件成功 |
+| `tests/third_party.rs` | `THIRD-PARTY-NOTICES.md` の入力のハッシュが今のファイルと一致すること（依存の変更に追随しているか） | **確認済み**：1件成功 |
 | `tests/rev.rs` | 一時Gitリポジトリでの next、全種別の差分、strict、未ラベル、`--write` の note 引継ぎと stale、build の表と警告・`--check`、`--write --json`、付録、既存の別形式 ID の案内 | **確認済み**：13件成功（git有り、skipなし） |
 | `tests/golden.rs` merman | 22図の生成、コメント、foreignObject不在、text存在 | **確認済み**：1テスト成功 |
 | golden browser | pathの乱数成分等を除いた数値列の比較。loose時は数値個数とviewBox 25%以内 | **確認済み**：1件成功（厳格比較、Edge 153.0.4234.48、22組） |

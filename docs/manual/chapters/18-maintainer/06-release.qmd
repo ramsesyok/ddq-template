@@ -33,6 +33,8 @@ quarto-template-<版>/
 ├── はじめかた.pdf       … 発行者向けの最初の一歩（template/release-guide.typ から生成）
 ├── README.md           … テンプレートの概要と作業の流れ
 ├── AGENT-GUIDE.md      … AI エージェント向けの執筆ガイド（リポジトリ直下の同名ファイルの写し）
+├── LICENSE             … このテンプレートのライセンス（MIT。リポジトリ直下の同名ファイルの写し）
+├── THIRD-PARTY-NOTICES.md … 第三者のソフトウェアのライセンス表示（リポジトリ直下の同名ファイルの写し）
 ├── ddq-table-editor-<版>.vsix … VSCode 拡張（.tbl の視覚編集。執筆者へ配る）
 └── manual/利用マニュアル.pdf, manual/html/   … 本書（発行者が読む・執筆者へ配る）
 ```
@@ -43,6 +45,22 @@ quarto-template-<版>/
 `AGENT-GUIDE.md` は、AI エージェントに原稿を書かせる発行者向けの要約である（本書 4章・6〜12章・15章の
 内容を 1 ファイルに圧縮したもの）。設計書リポジトリの `AGENTS.md` / `CLAUDE.md` に貼るか、スキルの参照資料として
 使う。記法を変えたときは本書とあわせて更新する（@sec-where）。
+
+### 第三者のライセンス表示を作り直す
+
+リリースには、ddq.exe が内蔵する Rust のクレートと mermaid、同梱の plantuml.jar、VSCode 拡張が
+バンドルする React が入る。そのライセンス表示 `THIRD-PARTY-NOTICES.md`（リポジトリ直下）を、
+**依存を変えたとき**（`cli/Cargo.lock`・`template/vendor/mermaid.min.js`・`cli/vendor/plantuml.jar`・
+拡張の `package-lock.json`）に作り直してコミットする。
+
+```bat
+:: このリポジトリのルートで実行する（Python・Cargo・npm・Java が要る）
+python cli/tools/third_party.py
+```
+
+作り直していないと `ddq release` が止まり（「THIRD-PARTY-NOTICES.md が古くなっています」）、CI の
+`cargo test` も落ちる。plantuml.jar は公式の MIT 版と同一であることを確かめてから置く
+（`cli/vendor/README.md`）。
 
 ### 閉域（オフライン）環境向けに作る
 
