@@ -5,7 +5,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 利用手順は利用マニュアル（`docs/manual/`）、様式・変換の内部はテンプレート設計書（`docs/design/`）。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
-- 対象版: テンプレート 2.4.2（PlantUML 対応。§13）
+- 対象版: テンプレート 2.4.3（PlantUML 対応。§13）
 
 ---
 
@@ -105,6 +105,9 @@ quarto-template-<版>/
 
 `template/` は release に**含めない**（すべて exe に埋め込まれている）。
 
+一式は隣の作業フォルダ（`quarto-template-<版>.building`）に集め、全部そろってから前回の配布フォルダと入れ替える。
+途中で失敗しても前回の配布フォルダは壊れない（以前は先に消してから集めたので、jar が無いと中途半端な配布フォルダが残った）。
+
 **第三者のライセンス表示（`THIRD-PARTY-NOTICES.md`）**。配布物には ddq.exe に静的リンクする Rust のクレート、
 ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm の依存）、plantuml.jar、VSIX の Webview に
 バンドルする React が入る。これらのライセンス表示を `python cli/tools/third_party.py` がリポジトリ直下に作る
@@ -194,6 +197,14 @@ Windows では Quarto → Lua フィルタへ渡るパスが ANSI コードペ�
 コードページに無い文字（絵文字・U+301C・é など）は復元できず Quarto 自身も扱えないため、`init` / `add` / `html` / `pdf` は
 `quarto` を起動する前に `writing_folder::ensure_encodable`（`WideCharToMultiByte` + `WC_NO_BEST_FIT_CHARS`）で検査し、
 該当文字を示して停止する。Windows 以外は検査しない。
+
+**パスの長さ（2.4.3 から）**。同じ検査で、執筆フォルダのパスが 200 文字（UTF-16）を超えたら止める。Windows の既定
+（LongPathsEnabled=0）で測ると、約 211 文字で HTML が Quarto の「unable to open database file」（`.quarto/` の
+データベースのパスが長すぎる）、約 231 文字で PDF も失敗し、259 文字以上は Quarto を起動できない（os error 267）。
+ddq 自身のファイル操作は長いパスでも動く（Rust の std が長いパスの API を使う）。
+
+**出力先（2.4.3 から）**。`pdf` / `html` は `_quarto.yml` の `output-dir`（PDF は `_quarto-publish.yml` を優先）を
+`quarto::output_dir` で読む。以前は `_book` 決め打ちで、変えると PDF を取り出せなかった。
 
 ### メッセージ
 
@@ -628,6 +639,10 @@ design-doc.lua ──┤                                        … POST /render
   Job Object の処理は `src/job.rs`（ブラウザと共用）。ハンドルは Drop で閉じる。起動待ちの上限は
   `DDQ_PLANTUML_STARTUP_TIMEOUT`（秒）で変えられる。
 - HTTP は手書き（`TcpStream`、HTTP/1.1、`Connection: close`、chunked 対応）。新しいクレートは足さない。
+  応答は Content-Length か chunked の終端で読み終える（`Connection: close` を無視して閉じないサーバ・プロキシで
+  時間切れまで待たないため）。宣言より短い応答はエラー。プロキシは使わない（直接つなぐ）。
+- フィルタの curl には `--noproxy`（127.0.0.1・localhost・::1 と利用者の `NO_PROXY`）を渡す。`http_proxy` の
+  ある端末で、ローカルのサーバ宛てがプロキシへ送られて描けなかったため（2.4.3 から）。
 
 ### 13.4 コマンド
 
@@ -755,6 +770,9 @@ rev build … revisions/*.yml から改訂履歴の表（revisions/history.qmd�
 差し替えるだけで、組み立てのコードは 1 つである。
 
 ### 15.2 Git の扱い（`doc::gitsrc`）
+
+浅いクローン（`git clone --depth`）では止める（`Repo::ensure_full_history`）。`rev-*` タグと過去の版が無く、
+「タグが無い＝最初の改訂」と判断して既にある記号をもう一度出してしまうため。`git fetch --unshallow --tags` を案内する。
 
 libgit2 は使わず `git` の子プロセスで済ませる。踏んだ落とし穴が 2 つある:
 

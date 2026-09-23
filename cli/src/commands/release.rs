@@ -96,7 +96,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         html::run(&manual)?;
     }
     let manual_pdf = manual.join("design-doc.pdf");
-    let manual_html = manual.join("_book");
+    let manual_html = quarto::output_dir(&manual, None);
     if !manual_pdf.is_file() || !manual_html.join("index.html").is_file() {
         bail!(
             "{MANUAL_DIR}/design-doc.pdf または {MANUAL_DIR}/_book/index.html がありません（--no-build を外してください）"
@@ -106,43 +106,26 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     // 1b) VSCode 拡張（VSIX）。マニュアルと同じく --no-build なら既にあるものを使う
     let vsixes = build_extensions(&repo.join(EXTENSIONS_DIR), no_build)?;
 
-    // 2) 集める（毎回作り直す）
+    // 2) 集める（毎回作り直す）。いったん隣の作業フォルダに集め、全部そろってから前回の配布フォルダと
+    //    入れ替える。途中で失敗しても（jar が無い・はじめかた.pdf を作れない など）前回の配布フォルダは
+    //    そのまま残り、中途半端な配布フォルダはできない（docs/cli-impl U-0004 の試験で見つけた）。
+    let building = out_root.join(format!("{name}.building"));
+    if building.exists() {
+        fs::remove_dir_all(&building).with_context(|| format!("{} を消せません", building.display()))?;
+    }
+    let (exe_name, vsix_names) =
+        match assemble(&repo, &building, &manual_pdf, &manual_html, &vsixes, with_sample) {
+            Ok(v) => v,
+            Err(e) => {
+                let _ = fs::remove_dir_all(&building);
+                return Err(e);
+            }
+        };
     if stage.exists() {
         fs::remove_dir_all(&stage).with_context(|| format!("{} を消せません", stage.display()))?;
     }
-    fs::create_dir_all(stage.join("manual"))?;
-    let exe_name = quarto::self_exe()?
-        .file_name()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| "ddq.exe".into());
-    fs::copy(quarto::self_exe()?, stage.join(&exe_name)).context("exe をコピーできません")?;
-    fs::copy(repo.join("README.md"), stage.join("README.md")).context("README.md をコピーできません")?;
-    // AI エージェント向けの記法要約。発行者が設計書リポジトリの AGENTS.md / スキルに取り込む
-    fs::copy(repo.join(AGENT_GUIDE), stage.join(AGENT_GUIDE))
-        .with_context(|| format!("{AGENT_GUIDE} をコピーできません"))?;
-    fs::copy(repo.join(LICENSE), stage.join(LICENSE))
-        .with_context(|| format!("{LICENSE} をコピーできません"))?;
-    fs::copy(repo.join(THIRD_PARTY), stage.join(THIRD_PARTY))
-        .with_context(|| format!("{THIRD_PARTY} をコピーできません"))?;
-    copy_plantuml_jar(&repo, &stage)?;
-    build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
-    fs::copy(&manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
-    copy_tree(&manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
-    let mut vsix_names: Vec<String> = Vec::new();
-    for vsix in &vsixes {
-        let vsix_name = vsix.file_name().context("VSIX のファイル名")?;
-        fs::copy(vsix, stage.join(vsix_name)).context("VSIX をコピーできません")?;
-        vsix_names.push(vsix_name.to_string_lossy().into_owned());
-    }
-    if with_sample {
-        copy_tree(
-            &repo.join(SAMPLE_DIR),
-            &stage.join("docs"),
-            &SAMPLE_EXCLUDE_DIRS,
-            &SAMPLE_EXCLUDE_FILES,
-            &SAMPLE_EXCLUDE_PREFIXES,
-        )?;
-    }
+    fs::rename(&building, &stage)
+        .with_context(|| format!("{} を {} にできません", building.display(), stage.display()))?;
 
     // 3) zip
     let zip_path = out_root.join(format!("{name}.zip"));
@@ -166,6 +149,51 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         }
     );
     Ok(())
+}
+
+/// 配布する一式を `stage` に集める。戻り値は (exe の名前, 同梱した VSIX の名前)。
+fn assemble(
+    repo: &Path,
+    stage: &Path,
+    manual_pdf: &Path,
+    manual_html: &Path,
+    vsixes: &[PathBuf],
+    with_sample: bool,
+) -> Result<(PathBuf, Vec<String>)> {
+    fs::create_dir_all(stage.join("manual"))?;
+    let exe_name = quarto::self_exe()?
+        .file_name()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| "ddq.exe".into());
+    fs::copy(quarto::self_exe()?, stage.join(&exe_name)).context("exe をコピーできません")?;
+    fs::copy(repo.join("README.md"), stage.join("README.md")).context("README.md をコピーできません")?;
+    // AI エージェント向けの記法要約。発行者が設計書リポジトリの AGENTS.md / スキルに取り込む
+    fs::copy(repo.join(AGENT_GUIDE), stage.join(AGENT_GUIDE))
+        .with_context(|| format!("{AGENT_GUIDE} をコピーできません"))?;
+    fs::copy(repo.join(LICENSE), stage.join(LICENSE))
+        .with_context(|| format!("{LICENSE} をコピーできません"))?;
+    fs::copy(repo.join(THIRD_PARTY), stage.join(THIRD_PARTY))
+        .with_context(|| format!("{THIRD_PARTY} をコピーできません"))?;
+    copy_plantuml_jar(repo, stage)?;
+    build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
+    fs::copy(manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
+    copy_tree(manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
+    let mut vsix_names: Vec<String> = Vec::new();
+    for vsix in vsixes {
+        let vsix_name = vsix.file_name().context("VSIX のファイル名")?;
+        fs::copy(vsix, stage.join(vsix_name)).context("VSIX をコピーできません")?;
+        vsix_names.push(vsix_name.to_string_lossy().into_owned());
+    }
+    if with_sample {
+        copy_tree(
+            &repo.join(SAMPLE_DIR),
+            &stage.join("docs"),
+            &SAMPLE_EXCLUDE_DIRS,
+            &SAMPLE_EXCLUDE_FILES,
+            &SAMPLE_EXCLUDE_PREFIXES,
+        )?;
+    }
+    Ok((exe_name, vsix_names))
 }
 
 /// plantuml.jar をリリース直下に同梱する。無ければ止める（PlantUML 図の無い組織でも、

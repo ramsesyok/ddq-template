@@ -301,7 +301,24 @@ local puml_server = nil
 local puml_tried = {}
 
 -- curl を起動する。成功なら stdout、失敗なら nil と説明。
+-- curl にプロキシを使わせない宛先。この端末のサーバ（ddq が上げたローカルの PicoWeb）は、
+-- 環境変数 http_proxy / HTTP_PROXY があると curl がプロキシへ送ってしまい届かない
+-- （社内でプロキシを設定した端末で起きる。docs/cli-impl U-0006 の試験で確認。ddq 自身の
+-- 到達確認はプロキシを使わないので、ddq は「届く」と判断したのに描けない、という食い違いになる）。
+-- 利用者が NO_PROXY / no_proxy に書いた宛先はそのまま活かす（--noproxy は環境変数を置き換えるため）。
+local function noproxy_list()
+  local list = { '127.0.0.1', 'localhost', '::1' }
+  for _, name in ipairs({ 'NO_PROXY', 'no_proxy' }) do
+    local v = os.getenv(name)
+    if v and v ~= '' then table.insert(list, v) end
+  end
+  return table.concat(list, ',')
+end
+
 local function curl(args, input)
+  local full = { '--noproxy', noproxy_list() }
+  for _, a in ipairs(args) do table.insert(full, a) end
+  args = full
   local ok, out = pcall(pandoc.pipe, 'curl', args, input or '')
   if ok then return out end
   if type(out) == 'table' then

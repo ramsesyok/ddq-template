@@ -74,6 +74,8 @@ pub fn next(dir: &Path, json: bool) -> Result<()> {
 
 fn next_of(dir: &Path) -> Result<Next> {
     let repo = Repo::of(dir)?;
+    // 浅いクローンではタグが無く「最初の改訂」と誤って判断するので、先に止める
+    repo.ensure_full_history()?;
     let tags = repo.revision_tags()?;
     let mut symbols: Vec<String> = tags
         .iter()

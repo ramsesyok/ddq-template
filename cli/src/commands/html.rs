@@ -20,7 +20,7 @@ pub fn run(dir: &Path) -> Result<()> {
     drop(session);
     println!(
         "OK: {}（直接開くと全文検索は使えません）",
-        dir.join("_book").join("index.html").display()
+        quarto::output_dir(dir, None).join("index.html").display()
     );
     Ok(())
 }

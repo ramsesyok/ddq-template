@@ -26,6 +26,8 @@ cli\target\release\ddq.exe release
 :::
 
 出力は `release/quarto-template-<版>/`（展開済み）と同名の `.zip` である。
+隣の作業フォルダ（`quarto-template-<版>.building`）に集め、全部そろってから前回の配布フォルダと
+入れ替えるので、途中で失敗しても（jar が無い など）前回の配布フォルダは壊れない。
 
 ```text
 quarto-template-<版>/

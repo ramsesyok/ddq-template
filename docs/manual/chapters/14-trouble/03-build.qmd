@@ -6,7 +6,7 @@
 | PDF を作り直したら HTML が消えた           | 仕様である。PDF → HTML の順に作り直す（12章）                        |
 | 図（mermaid）が PDF に出ない                | ビルドのエラーを読む。`ddq pdf` から実行しているか（11章）          |
 | PlantUML 図がプレビューで橙色の枠（ソース表示）になる | PlantUML サーバに届いていない。`_quarto.yml` の `plantuml-server:` か、`ddq plantuml serve` の起動を確認する（8章・11章） |
-| `PlantUML の図を描けませんでした` で PDF が止まる | 同上。`ddq pdf` から実行していれば Java か `plantuml.jar` が見つかっていない（11章）。`Syntax Error` なら図の記法の誤り（示された行を直す） |
+| `PlantUML の図を描けませんでした` で PDF が止まる | 同上。社内プロキシの環境変数（`http_proxy` など）を設定している端末で LAN のサーバを使うなら、そのサーバを `NO_PROXY` に加える（11章）。`ddq pdf` から実行していれば Java か `plantuml.jar` が見つかっていない（11章）。`Syntax Error` なら図の記法の誤り（示された行を直す） |
 | コールアウトのアイコンが豆腐（□）になる    | `typst compile` を直接使っている。`ddq pdf` から出力する（12章）     |
 | 図表番号が「図 1.1」形式のまま               | 後処理が走っていない。`_quarto.yml` の `post-render` と `postprocess-html.js` の有無を確認する（発行者に `ddq update` を依頼） |
 | 表番号が「表 3-1　表 3-1　…」と重なる         | 古い機構ファイルを使っている。発行者に `ddq update` を依頼する       |

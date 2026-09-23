@@ -63,6 +63,21 @@ impl Repo {
         })
     }
 
+    /// 浅いクローン（`git clone --depth`）なら止める。履歴と `rev-*` タグが手元に無いので、
+    /// 「タグが無い＝最初の改訂」と誤って判断し、既にある記号（rev-A など）をもう一度出してしまう
+    /// （docs/cli-impl U-0008 の試験で確認）。
+    pub fn ensure_full_history(&self) -> Result<()> {
+        let shallow = git(&self.root, &["rev-parse", "--is-shallow-repository"])?;
+        if shallow.trim() == "true" {
+            bail!(
+                "{} は浅いクローン（--depth 付きの clone）で、過去の版と改訂タグがありません。\n  \
+                 `git fetch --unshallow --tags` を実行して、履歴とタグを取ってから使ってください",
+                self.root.display()
+            );
+        }
+        Ok(())
+    }
+
     /// ref（タグ・ブランチ・コミット ID・`HEAD~3` など）をコミット ID に解決する。
     pub fn resolve(&self, r#ref: &str) -> Result<String> {
         let sha = git(

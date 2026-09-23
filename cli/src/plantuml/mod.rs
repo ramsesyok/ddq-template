@@ -230,6 +230,7 @@ fn has_plantuml_fence(text: &str) -> bool {
 // ------------------------------------------------------------
 
 /// 応答（状態コード・ヘッダ（小文字キー）・本文）
+#[derive(Debug)]
 pub struct Response {
     pub status: u16,
     pub headers: Vec<(String, String)>,
@@ -296,10 +297,65 @@ fn request(
     if let Some((_, b)) = body {
         s.write_all(b)?;
     }
+    // 応答が揃った時点で読むのをやめる。`Connection: close` を送っても接続を閉じないサーバ・
+    // プロキシがあり、閉じるのを待つと応答が揃っているのに時間切れ（描画なら 120 秒）まで止まる
+    // （docs/cli-impl U-0006 の試験で確認）。揃ったかは Content-Length か chunked の終端で判断し、
+    // どちらも無い応答だけは従来どおり接続が閉じるまで読む。
     let mut raw = Vec::new();
-    s.read_to_end(&mut raw)
-        .with_context(|| format!("{url} からの応答を読めません"))?;
+    let mut buf = [0u8; 16 * 1024];
+    loop {
+        match s.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => {
+                raw.extend_from_slice(&buf[..n]);
+                if response_complete(&raw) {
+                    break;
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(e) => return Err(e).with_context(|| format!("{url} からの応答を読めません")),
+        }
+    }
     parse_response(&raw)
+}
+
+/// 最終の応答（1xx を除く）の本文まで揃ったか。揃ったと言えなければ false（閉じるまで読む）。
+fn response_complete(raw: &[u8]) -> bool {
+    let Some((headers, body)) = final_head(raw) else {
+        return false;
+    };
+    let header = |name: &str| headers.iter().find(|(k, _)| k == name).map(|(_, v)| v.as_str());
+    if header("transfer-encoding").is_some_and(|v| v.to_ascii_lowercase().contains("chunked")) {
+        return dechunk(body).is_ok();
+    }
+    match header("content-length").and_then(|v| v.parse::<usize>().ok()) {
+        Some(len) => body.len() >= len,
+        None => false,
+    }
+}
+
+/// ヘッダ（小文字のキー, 値）
+type Headers = Vec<(String, String)>;
+
+/// 最終の応答のヘッダ（小文字のキー）と、その後ろの本文。ヘッダが揃っていなければ None。
+fn final_head(raw: &[u8]) -> Option<(Headers, &[u8])> {
+    let mut rest = raw;
+    loop {
+        let end = find(rest, b"\r\n\r\n")?;
+        let head = std::str::from_utf8(&rest[..end]).ok()?;
+        rest = &rest[end + 4..];
+        let status: u16 = head.split_whitespace().nth(1)?.parse().ok()?;
+        if (100..200).contains(&status) {
+            continue;
+        }
+        let headers = head
+            .split("\r\n")
+            .skip(1)
+            .filter_map(|l| l.split_once(':'))
+            .map(|(k, v)| (k.trim().to_ascii_lowercase(), v.trim().to_string()))
+            .collect();
+        return Some((headers, rest));
+    }
 }
 
 fn parse_response(raw: &[u8]) -> Result<Response> {
@@ -326,7 +382,19 @@ fn parse_response(raw: &[u8]) -> Result<Response> {
         let chunked = headers
             .iter()
             .any(|(k, v)| k == "transfer-encoding" && v.to_ascii_lowercase().contains("chunked"));
-        let body = if chunked { dechunk(rest)? } else { rest.to_vec() };
+        let length = headers
+            .iter()
+            .find(|(k, _)| k == "content-length")
+            .and_then(|(_, v)| v.parse::<usize>().ok());
+        let body = match (chunked, length) {
+            (true, _) => dechunk(rest)?,
+            // 宣言より短ければ途中で切れている（壊れた SVG を図として使わない）
+            (false, Some(len)) if rest.len() < len => {
+                bail!("応答が途中で切れています（{} / {len} バイト）", rest.len())
+            }
+            (false, Some(len)) => rest[..len].to_vec(),
+            (false, None) => rest.to_vec(),
+        };
         return Ok(Response {
             status,
             headers,
@@ -713,8 +781,162 @@ pub fn start_local(port: u16) -> Result<LocalServer> {
 #[cfg(test)]
 mod tests {
     use super::{
-        assemble_source, is_local_url, parse_response, server_from_quarto_yml, split_url, svg_header,
+        assemble_source, is_local_url, parse_response, render, request, server_from_quarto_yml, split_url,
+        svg_header,
     };
+    use std::{
+        io::{Read, Write},
+        net::TcpListener,
+        thread,
+        time::{Duration, Instant},
+    };
+
+    /// 1 回だけ応答する偽の HTTP サーバ（docs/cli-impl U-0006）。要求を読み、`response` を返し、
+    /// `hold` の間は接続を閉じない。`response` が None なら何も返さず `hold` の間黙っている。
+    fn fake_server(response: Option<Vec<u8>>, hold: Duration) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        thread::spawn(move || {
+            let (mut s, _) = listener.accept().unwrap();
+            s.set_read_timeout(Some(Duration::from_millis(500))).unwrap();
+            let mut buf = [0u8; 65536];
+            let _ = s.read(&mut buf);
+            if let Some(r) = response {
+                let _ = s.write_all(&r);
+            }
+            thread::sleep(hold);
+        });
+        url
+    }
+
+    fn resp(head: &str, body: &[u8]) -> Option<Vec<u8>> {
+        let mut v = head.replace('\n', "\r\n").into_bytes();
+        v.extend_from_slice(b"\r\n");
+        v.extend_from_slice(body);
+        Some(v)
+    }
+
+    #[test]
+    fn complete_response_is_not_held_by_a_server_that_keeps_the_connection() {
+        // Connection: close を無視して閉じないサーバでも、揃った時点で読み終える
+        let svg = b"<svg>ok</svg>";
+        let url = fake_server(
+            resp(&format!("HTTP/1.1 200 OK\nContent-Length: {}\n", svg.len()), svg),
+            Duration::from_secs(10),
+        );
+        let t0 = Instant::now();
+        let r = request(&url, "GET", "/serverinfo", None, Duration::from_secs(5)).unwrap();
+        assert_eq!(r.body, svg);
+        assert!(
+            t0.elapsed() < Duration::from_secs(2),
+            "閉じるのを待った: {:?}",
+            t0.elapsed()
+        );
+    }
+
+    #[test]
+    fn chunked_response_is_not_held_either() {
+        let url = fake_server(
+            resp(
+                "HTTP/1.1 200 OK\nTransfer-Encoding: chunked\n",
+                b"5\r\n<svg>\r\n0\r\n\r\n",
+            ),
+            Duration::from_secs(10),
+        );
+        let t0 = Instant::now();
+        let r = request(&url, "GET", "/", None, Duration::from_secs(5)).unwrap();
+        assert_eq!(r.body, b"<svg>");
+        assert!(t0.elapsed() < Duration::from_secs(2));
+    }
+
+    #[test]
+    fn server_errors_are_reported() {
+        let url = fake_server(
+            resp("HTTP/1.1 500 Internal Server Error\nContent-Length: 0\n", b""),
+            Duration::ZERO,
+        );
+        assert!(format!("{:#}", render(&url, "a -> b").unwrap_err()).contains("HTTP 500"));
+
+        let url = fake_server(
+            resp(
+                "HTTP/1.1 200 OK\nX-PlantUML-Diagram-Error: Syntax Error?\nX-PlantUML-Diagram-Error-Line: 3\nContent-Length: 5\n",
+                b"<svg>",
+            ),
+            Duration::ZERO,
+        );
+        let e = format!("{:#}", render(&url, "a -> b").unwrap_err());
+        assert!(e.contains("Syntax Error?") && e.contains("3 行目"), "{e}");
+
+        // 200 でも SVG でない（プロキシのエラーページなど）
+        let url = fake_server(
+            resp("HTTP/1.1 200 OK\nContent-Length: 15\n", b"Access denied\r\n"),
+            Duration::ZERO,
+        );
+        assert!(format!("{:#}", render(&url, "a -> b").unwrap_err()).contains("SVG ではありません"));
+    }
+
+    #[test]
+    fn truncated_responses_are_errors() {
+        // 宣言より短いまま閉じた
+        let url = fake_server(
+            resp("HTTP/1.1 200 OK\nContent-Length: 100\n", b"<svg>"),
+            Duration::ZERO,
+        );
+        let e = format!(
+            "{:#}",
+            request(&url, "GET", "/", None, Duration::from_secs(5)).unwrap_err()
+        );
+        assert!(e.contains("途中で切れています"), "{e}");
+        // chunked の途中で閉じた
+        let url = fake_server(
+            resp("HTTP/1.1 200 OK\nTransfer-Encoding: chunked\n", b"a\r\n<svg"),
+            Duration::ZERO,
+        );
+        assert!(request(&url, "GET", "/", None, Duration::from_secs(5)).is_err());
+    }
+
+    #[test]
+    fn continue_then_ok() {
+        let mut both = b"HTTP/1.1 100 Continue\r\n\r\n".to_vec();
+        both.extend_from_slice(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\n<svg>");
+        let url = fake_server(Some(both), Duration::from_secs(10));
+        let r = request(
+            &url,
+            "POST",
+            "/render",
+            Some(("application/json", b"{}")),
+            Duration::from_secs(5),
+        )
+        .unwrap();
+        assert_eq!((r.status, r.body.as_slice()), (200, b"<svg>".as_slice()));
+    }
+
+    #[test]
+    fn silent_and_missing_servers_fail_within_the_timeout() {
+        // 受け付けたが何も返さない
+        let url = fake_server(None, Duration::from_secs(10));
+        let t0 = Instant::now();
+        assert!(request(&url, "GET", "/", None, Duration::from_secs(1)).is_err());
+        assert!(t0.elapsed() < Duration::from_secs(4), "{:?}", t0.elapsed());
+        // 誰も待っていないポート
+        let port = TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let t0 = Instant::now();
+        assert!(
+            request(
+                &format!("http://127.0.0.1:{port}"),
+                "GET",
+                "/",
+                None,
+                Duration::from_secs(2)
+            )
+            .is_err()
+        );
+        assert!(t0.elapsed() < Duration::from_secs(4));
+    }
 
     #[test]
     fn local_servers_are_recognised() {

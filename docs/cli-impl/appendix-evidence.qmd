@@ -127,3 +127,19 @@
 ### E-0030：配布する外部資産の由来とライセンス表示（U-0003） {#ev-e-0030 .unnumbered}
 
 **確認済み／種別：公開メタデータとの照合・ソース・実行観測**。2026-09-23。`gh api repos/plantuml/plantuml/releases/tags/v1.2026.8` が返す資産 `plantuml-mit-1.2026.8.jar` の digest（sha256:3629c9cd017c7f73e6450396eea0040216c7e1eef8473ce33cc1aad469dab2f9、17,744,555 バイト）と、`cli/vendor/plantuml.jar` および `release/quarto-template-2.4.2/plantuml.jar` の SHA-256 が一致した。`java -jar plantuml.jar -license` は MIT License を表示した。jsDelivr のメタデータ（`data.jsdelivr.com/v1/packages/npm/mermaid@11.16.0`）が返す `/dist/mermaid.min.js` の SHA-256（base64: dNfEbavKMowilHM5EKiqHtDDdFF3bo1Sldo4ordY+5s=、3,565,102 バイト）と `template/vendor/mermaid.min.js` が一致した。Rust の依存は `cargo tree -e normal --target x86_64-pc-windows-msvc` で、mermaid の依存は一時フォルダへの `npm install --ignore-scripts --omit=dev mermaid@11.16.0` で、拡張のバンドル物は `src/webview` の import から棚卸しした。`cli/tools/third_party.py`、`cli/src/commands/release.rs::check_third_party / stale_third_party_inputs / input_sha1`、`cli/tests/third_party.rs`、`THIRD-PARTY-NOTICES.md`（269件、本文191種）。`ddq release --no-build` で ZIP に `LICENSE`（このリポジトリの MIT）と `THIRD-PARTY-NOTICES.md` が入ること（52ファイル）、記録を書き換えると「古くなっています」で止まること、ファイルが無いと止まることを観測した。
+
+### E-0031：配布工程の試験（U-0004） {#ev-e-0031 .unnumbered}
+
+**確認済み／種別：テストソース・実行観測**。`cli/tests/release.rs`（`fake_repo` と9テスト）、`cli/src/commands/release.rs::run / assemble`。release が求める形の小さなリポジトリ（ダミーのマニュアル・2つの拡張とVSIX・jar・入力のハッシュが合うライセンス表示・サンプル）を一時フォルダに組み立て、`ddq release --no-build` を実行した。はじめかた.pdf は本物の `quarto typst compile` で作る。修正前は `missing_jar_stops_before_touching_the_stage` が「失敗したのに前回の配布フォルダを消した」で失敗した。修正後は9件とも成功した。
+
+### E-0032：改訂履歴の実運用の試験（U-0008） {#ev-e-0032 .unnumbered}
+
+**確認済み／種別：テストソース・実行観測**。`cli/tests/rev_ops.rs`（4テスト）、`cli/src/doc/gitsrc.rs::Repo::ensure_full_history`、`commands/rev.rs::next_of`。修正前、`git clone --depth 1` した作業ツリーで `rev next` が「次の改訂記号: A」「比較基準の候補: ありません」と答えることを観測した（元のリポジトリには rev-A・rev-B がある）。修正後は止まり、`git fetch --unshallow --tags` の後は C・rev-B を返す。見出し2,041件の文書で `rev diff --json` が約1.5秒（デバッグビルド）で11件の changed と1件の removed を返した。
+
+### E-0033：HTTP・プロキシ・output-dir・長いパス（U-0006） {#ev-e-0033 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/plantuml/mod.rs::request / response_complete / final_head / parse_response` と単体テスト（偽の HTTP サーバで9種の応答）、`template/design-doc.lua::noproxy_list / curl`、`cli/src/quarto.rs::output_dir`、`cli/src/writing_folder.rs::ensure_short_enough / MAX_FOLDER_CHARS`、`cli/tests/commands.rs::too_long_paths_are_refused_with_a_reason`。プロキシは、`http_proxy=http://127.0.0.1:9`（存在しないプロキシ）を設定した端末で、Windows の curl 8.21.0 と Git の curl 8.6.0 がともに 127.0.0.1 宛てを送れず（終了コード7）、`NO_PROXY` を足すと届くことを確かめ、v2.4.2 の ddq では PlantUML の図が描けず、修正後は描けることを観測した。output-dir を `build` にした文書で、修正前は `ddq pdf` が「指定されたパスが見つかりません」で止まり、修正後は取り出せた。長いパスは Windows 11（LongPathsEnabled=0）で、執筆フォルダが191文字で成功、211文字で HTML が「unable to open database file」、231文字で PDF も失敗、259文字以上は os error 267 だった。
+
+### E-0034：性能の基準値（U-0005） {#ev-e-0034 .unnumbered}
+
+**確認済み／種別：実行観測**。2026-09-23、リリースビルドの ddq（2.4.2 相当）、Windows 11、Edge 153、Quarto 1.9.38。ddq を起動して経過時間と ddq プロセス自身のピークワーキングセットを測った（子のQuarto・ブラウザ・Javaは含まない）。サンプル文書 `examples/docs` の写し（qmd 72・mermaid 22・PlantUML 1）で、HTML はキャッシュ無し36.7秒・キャッシュ有り14.2秒、PDF はキャッシュ有り5.5〜5.6秒、ピークは6MB。mermaid 100図（4種の図を25枚ずつ）の一括変換は、ブラウザで27.0秒・16MB、内蔵レンダラで0.4秒・18MB。1図だけの変換はブラウザで0.9秒、内蔵レンダラで0.1秒。1台での1回の測定で、ばらつきは評価していない。

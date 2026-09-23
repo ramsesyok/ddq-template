@@ -12,7 +12,7 @@
 | PDF側4本 | setup → Quarto publish／Typst | `lib.typ`、`typst-template.typ`、`typst-show.typ`、`_quarto-publish.yml` を上書き |
 | 静的図 | 執筆者の `.mmd/.puml` → diagrams → `.svg` | 同名SVGを上書き。失敗した図の前回SVGは削除する |
 | フェンス図キャッシュ | Lua → `diagrams/mmd-*`、`puml-*` → Lua／Quarto | ソースとSVGを保存。下記の内容キーで再利用。版を上げる update が削除する |
-| `_book/`、`design-doc.pdf` | Quarto → pdfのコピー／release | PDFは `_book` 直下に一件。HTMLとPDFは同じ出力領域を利用 |
+| 出力先（既定 `_book/`）、`design-doc.pdf` | Quarto → pdfのコピー／release | 出力先は `output-dir`（PDF は publish の profile を優先）。PDFはその直下に一件。HTMLとPDFは同じ出力領域を利用 |
 | 原稿中のラベル | 執筆者／`tag apply` → tag・rev・Quarto相互参照 | `{#sec-…}`、`label="tbl-…"`、`{#tbl-…}`、`{#fig-…}`。一度付けたら改訂履歴のキーとして不変に扱う |
 | `revisions/rev-<記号>.yml` | `rev diff --write` → 執筆者（note記入）→ `rev build`／VSCode拡張 | 改訂履歴の正本。確定は `rev-<記号>` タグの有無で判断。下記の固定形式 |
 | `revisions/history.qmd` | 雛形（空）／`rev build` → `index.qmd` の include → Quarto | 生成物。常に上書き。手で編集しない |

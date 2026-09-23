@@ -64,7 +64,10 @@ pub fn populate(dir: &Path, no_render: bool) -> Result<()> {
     if !no_render {
         println!("疎通確認のため HTML を一度 render します...");
         quarto::render(dir, &["--to", "html"], &[])?;
-        println!("OK -> {}", dir.join("_book").join("index.html").display());
+        println!(
+            "OK -> {}",
+            quarto::output_dir(dir, None).join("index.html").display()
+        );
     }
     Ok(())
 }

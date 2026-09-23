@@ -243,6 +243,24 @@ fn setup_rejects_different_template_version() {
     );
 }
 
+#[cfg(windows)]
+#[test]
+fn too_long_paths_are_refused_with_a_reason() {
+    // Windows の既定では、長いパスの執筆フォルダは Quarto のビルドが分かりにくく失敗する。
+    // 作る前に理由付きで止める（docs/cli-impl U-0006）
+    let tmp = tempfile::tempdir().unwrap();
+    let base = tmp.path().to_string_lossy().encode_utf16().count();
+    let repo = tmp.path().join("x".repeat(210usize.saturating_sub(base)));
+    let out = ddq(&["init", &repo.to_string_lossy(), "--no-render"]);
+    assert!(!out.status.success(), "長すぎるパスで init できてしまった");
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("パスが長すぎます") && err.contains("上限 200 文字"),
+        "{err}"
+    );
+    assert!(!repo.join("docs").exists(), "止めたのに作った");
+}
+
 #[test]
 fn init_rejects_dot_names() {
     // `.` / `..` は repo 自身や親を指すので、執筆フォルダ名として受け付けない

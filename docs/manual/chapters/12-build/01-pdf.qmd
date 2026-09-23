@@ -5,7 +5,7 @@
 リリースを展開したフォルダで次を実行する。
 
 ```bat
-cd C:\tools\quarto-template-2.4.2
+cd C:\tools\quarto-template-2.4.3
 .\ddq pdf C:\work\order-design\docs
 ```
 
@@ -26,7 +26,8 @@ OK -> C:\work\order-design\docs\design-doc.pdf
    このとき mermaid 図はベクター SVG に焼き込まれる。
 3. できあがった PDF が `<執筆フォルダ>\design-doc.pdf` に取り出される。
 
-PDF は 2 か所にできる。`_book\<output-file>.pdf` は Quarto が作るもので、名前は
+PDF は 2 か所にできる。`_book\<output-file>.pdf` は Quarto が作るもので（`_quarto.yml` の `project:` の
+`output-dir` を変えていればその場所）、名前は
 `_quarto.yml` の `book.output-file`（無ければ `title`）で決まる。**客先へ渡す発行版は
 こちらを使う**（資料番号入りの名前にしておく）。`design-doc.pdf` はそれを `ddq` が固定名で
 コピーした中間版で、リポジトリにコミットしてレビューの基準にする（@sec-quarto-yml）。
