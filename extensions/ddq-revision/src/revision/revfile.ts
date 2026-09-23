@@ -27,6 +27,8 @@ export type RevEntry = {
     unit: string;
     title: string;
     file: string;
+    /** `file` での行（1 始まり）。removed は旧版での行。取り直した時点の値で、場所を開くのに使う */
+    line?: number;
     /** 修正内容（人が書く） */
     note: string;
     /** 再取得で差分から消えたが、メモが残っているもの */
@@ -139,6 +141,11 @@ export function parse(text: string): Revision {
                     case 'file':
                         entry.file = value;
                         break;
+                    case 'line': {
+                        const n = Number.parseInt(value, 10);
+                        if (Number.isInteger(n) && n > 0) entry.line = n;
+                        break;
+                    }
                     case 'note':
                         entry.note = value;
                         break;
@@ -174,6 +181,7 @@ export function toYaml(rev: Revision): string {
         s += `    unit: ${e.unit}\n`;
         s += `    title: ${quote(e.title)}\n`;
         if (e.file !== '') s += `    file: ${quote(e.file)}\n`;
+        if (e.line !== undefined) s += `    line: ${e.line}\n`;
         if (e.stale) s += '    stale: true\n';
         if (e.note === '') {
             s += '    note: ""\n';

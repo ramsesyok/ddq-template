@@ -37,6 +37,7 @@ const revision: Revision = {
             unit: 'heading',
             title: '目的',
             file: 'chapters/01-overview/01-purpose.qmd',
+            line: 5,
             note: '',
             stale: false
         },
@@ -157,7 +158,8 @@ describe('RevisionEditor', () => {
         act(() => links[0].dispatchEvent(new MouseEvent('click', { bubbles: true })));
         expect(posted.at(-1)).toEqual({
             type: 'reveal',
-            file: 'chapters/01-overview/01-purpose.qmd'
+            file: 'chapters/01-overview/01-purpose.qmd',
+            line: 5
         });
     });
 

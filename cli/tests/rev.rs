@@ -162,6 +162,10 @@ fn diff_classifies_every_kind_of_change() {
     let removed = &v["entries"][1];
     assert_eq!(removed["title"], "対象範囲");
     assert_eq!(removed["file_old"], "chapters/01-overview/index.qmd");
+    assert_eq!(removed["line_old"], 9, "旧版での行");
+    assert!(removed.get("line").is_none());
+    assert_eq!(renamed["line"], 5, "新版での行");
+    assert_eq!(renamed["line_old"], 5);
 }
 
 #[test]
@@ -221,6 +225,12 @@ fn write_creates_the_revision_file_and_keeps_notes() {
     assert!(text.contains("rev: B") && text.contains("base: rev-A"));
     assert!(text.contains("base_commit: "), "解決した SHA も残す");
     assert!(text.contains("label: tbl-cond"));
+    // 拡張がその場所を開くための行（removed は旧版での行）
+    assert!(text.contains("  - label: sec-terms\n    kind: added\n    unit: heading\n    title: 用語\n    file: chapters/01-overview/index.qmd\n    line: 9\n"), "{text}");
+    assert!(
+        text.contains("title: 対象範囲\n    file: chapters/01-overview/index.qmd\n    line: 9\n"),
+        "{text}"
+    );
 
     // 人がメモを書く
     fs::write(

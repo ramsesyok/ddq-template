@@ -214,7 +214,8 @@ function EntryRow(props: { entry: RevEntry; fixed: boolean; onNote: (note: strin
             <td className="place">
                 <a
                     onClick={() =>
-                        !gone && editorApi().postMessage({ type: 'reveal', file: entry.file })
+                        !gone &&
+                        editorApi().postMessage({ type: 'reveal', file: entry.file, line: entry.line })
                     }
                     className={gone ? 'gone' : ''}
                     title={gone ? '新版には無い（削除）' : 'その場所を開く'}

@@ -11,7 +11,15 @@ import * as vscode from 'vscode';
 
 import { DdqError, ddqCommand, run, runJson, versionOf } from './ddq/run';
 import type { TagList } from './ddq/types';
-import { EMPTY_SCHEME, RevisionEditorProvider, html, openDiff, write, writingFolderOf } from './revision/provider';
+import {
+    EMPTY_SCHEME,
+    RevisionEditorProvider,
+    html,
+    openDiff,
+    reveal as revealEntry,
+    write,
+    writingFolderOf
+} from './revision/provider';
 import { parse } from './revision/revfile';
 import { characterOffset, checkRows, rowKey, sortForApply, type Row } from './tagging/labels';
 import type { FromWebviewMessage, ToWebviewMessage } from './tagging/messages';
@@ -85,6 +93,19 @@ export function activate(context: vscode.ExtensionContext) {
                 const entry = revision.entries[index];
                 if (!entry) return false;
                 await openDiff(writingFolderOf(target), revision, entry.label);
+                return true;
+            }
+        )
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            'ddqRevision.internal.reveal',
+            async (uri: string, index: number) => {
+                const target = vscode.Uri.parse(uri);
+                const document = await vscode.workspace.openTextDocument(target);
+                const entry = parse(document.getText()).entries[index];
+                if (!entry) return false;
+                await revealEntry(writingFolderOf(target), entry.file, entry.line);
                 return true;
             }
         )

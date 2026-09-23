@@ -257,6 +257,7 @@ entries:
     kind: changed          # changed | added | removed | renamed | global
     title: 目的            # 表示用。build 時に最新の名称へ同期（removed は旧名を保持）
     file: chapters/01-overview/01-purpose.qmd
+    line: 12               # file での行（1 始まり）。拡張が場所・差分を開くときに移る先
     note: |
       対象システムに○○を追加
   - label: fig-net
@@ -272,6 +273,7 @@ entries:
   - 新版側（作業ツリー）のコミット ID は `rev build` の時点では存在しないので持たない。タグ付けが人手である限り後から書き戻せないが、**次の改訂の `base_commit` がその値になる**ため履歴を遡れば確定できる。
 - `rev diff` の再取得時は `label` をキーに既存 `note` を引き継ぐ。差分から消えたエントリ（変更を戻した等）は note があれば残して `stale: true` を付け、UI で灰色表示（人が消す）。
 - `global` エントリは `--include-global` を付けたときだけ生成（既定オフ）。
+- `line` は `rev diff --write` の時点の行で、本文を直すと古くなる（「差分を取り直す」で更新）。removed は `file` と同じく**旧版での行**を書く。改訂履歴の表には出さない。無い（古い）ファイルは先頭を開く。
 
 ### 5.6 生成物（`ddq rev build`）
 

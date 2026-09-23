@@ -28,12 +28,14 @@ describe('ddq が書いたファイル', () => {
         expect(first.unit).toBe('heading');
         expect(first.title).toBe('目的');
         expect(first.file).toBe('chapters/01-overview/01-purpose.qmd');
+        expect(first.line).toBe(1);
         expect(first.note).toBe('目的の記述に背景を補足した。');
         expect(first.stale).toBe(false);
 
         // 削除された見出しは旧版の名称を残す
         const removed = rev.entries.find((e) => e.kind === 'removed');
         expect(removed?.title).toBe('他システムとは疎結合とする');
+        expect(rev.entries.find((e) => e.label === 'tbl-cond')?.line).toBe(12);
     });
 
     it('書き戻すと同じ文字列になる（差分を汚さない）', () => {
@@ -73,6 +75,12 @@ describe('parse', () => {
         expect(rev.base).toBe('rev--');
         expect(rev.entries).toHaveLength(1);
         expect(rev.entries[0].note).toBe('文言を直した');
+    });
+
+    it('line の無い古いファイルは line 無しのまま往復する', () => {
+        const old = parse(golden.replace(/^ {4}line: \d+\n/gm, ''));
+        expect(old.entries.every((e) => e.line === undefined)).toBe(true);
+        expect(toYaml(old)).not.toContain('line:');
     });
 
     it('CRLF でも読める', () => {

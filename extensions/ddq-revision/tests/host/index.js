@@ -16,6 +16,7 @@
  *   4. `ddq rev diff --write` が作った yml が Custom Editor で開くこと
  *   5. 画面で書いたメモが ddq の読める形で文書に入り、`ddq rev build` が表に出すこと
  *   6. 差分ボタンで VSCode の差分エディタが編集画面の隣に開くこと（左 git: / 右 作業ツリー）
+ *   7. 「箇所」「差分」がその行へ移ること（削除は旧版の側）
  */
 const assert = require('node:assert');
 const { execFileSync } = require('node:child_process');
@@ -130,17 +131,32 @@ async function revisionEditor(docs, ddq) {
     git(['commit', '-qm', '初版']);
     git(['tag', 'rev-A']);
 
-    // 本文を直してから差分を取る
+    // 本文を直してから差分を取る（変更 2 件と削除 1 件。行へ移れることも見るため）
     const target = path.join(docs, 'chapters', '01-overview', 'index.qmd');
     fs.writeFileSync(
         target,
-        fs.readFileSync(target, 'utf8').replace('導入の本文。', '導入の本文を直した。')
+        fs
+            .readFileSync(target, 'utf8')
+            .replace('導入の本文。', '導入の本文を直した。')
+            .replace('目的の本文。', '目的の本文を直した。')
+            .replace(/## 対象範囲[^\n]*\n\n範囲の本文。\n/, '')
     );
     execFileSync(ddq, ['rev', 'diff', docs, '--write'], { encoding: 'utf8' });
 
     const yml = path.join(docs, 'revisions', 'rev-B.yml');
     assert.ok(fs.existsSync(yml), 'rev-B.yml ができていない');
     say('ddq rev diff --write で改訂ファイルができる');
+
+    // 1 行ずつに行番号が入る（removed は旧版での行）
+    const blocks = fs.readFileSync(yml, 'utf8').replace(/\r\n/g, '\n').split('\n  - label: ').slice(1);
+    const indexOf = (title) => blocks.findIndex((b) => b.includes(`\n    title: ${title}\n`));
+    const purpose = indexOf('目的');
+    const scope = indexOf('対象範囲');
+    assert.ok(purpose >= 0 && blocks[purpose].includes('\n    kind: changed\n'), blocks.join('---'));
+    assert.ok(scope >= 0 && blocks[scope].includes('\n    kind: removed\n'), blocks.join('---'));
+    assert.ok(blocks[purpose].includes('\n    line: 5\n'), `目的の行が無い: ${blocks[purpose]}`);
+    assert.ok(blocks[scope].includes('\n    line: 9\n'), `対象範囲の旧版での行が無い: ${blocks[scope]}`);
+    say('改訂ファイルに行番号が入る（削除は旧版での行）');
 
     await vscode.commands.executeCommand(
         'vscode.openWith',
@@ -200,6 +216,43 @@ async function revisionEditor(docs, ddq) {
     const original = await vscode.workspace.openTextDocument(diffTab.input.original);
     assert.ok(original.getText().length > 0, '旧版の中身が空');
     say('差分ボタンで VSCode の差分エディタが編集画面の隣に開く（左 git: / 右 作業ツリー）');
+
+    // 差分エディタのその側のエディタ。差分エディタの左右は visibleTextEditors に出るが、
+    // viewColumn は undefined になる（ふつうのエディタと見分けられるのはそこだけ）
+    const sideOf = (scheme) =>
+        vscode.window.visibleTextEditors.find(
+            (e) => e.viewColumn === undefined && e.document.uri.scheme === scheme
+        );
+
+    // 変更: 右（新版）がその行に移る
+    await vscode.commands.executeCommand('ddqRevision.internal.openDiff', doc.uri.toString(), purpose);
+    await new Promise((r) => setTimeout(r, 1500));
+    const editors = () =>
+        vscode.window.visibleTextEditors
+            .map((e) => `${e.viewColumn}:${e.document.uri.scheme}:${e.document.uri.path}@${e.selection.active.line}`)
+            .join(' | ');
+    assert.strictEqual(sideOf('file')?.selection.active.line, 4, `差分の右が 5 行目に移らない: ${editors()}`);
+    say('変更の差分は新版の側がその行へ移る');
+
+    // 削除: 左（旧版）がその行に移る
+    await vscode.commands.executeCommand('ddqRevision.internal.openDiff', doc.uri.toString(), scope);
+    await new Promise((r) => setTimeout(r, 1500));
+    assert.strictEqual(sideOf('git')?.selection.active.line, 8, '差分の左が旧版の 9 行目に移らない');
+    say('削除の差分は旧版の側がその行へ移る');
+
+    // 箇所: 本文がその行で開く
+    const revealed = await vscode.commands.executeCommand('ddqRevision.internal.reveal', doc.uri.toString(), purpose);
+    assert.ok(revealed, 'reveal が行を見つけない');
+    await new Promise((r) => setTimeout(r, 1000));
+    const active = vscode.window.visibleTextEditors.find(
+        (e) =>
+            e.document.uri.scheme === 'file' &&
+            e.document.uri.fsPath.toLowerCase() === target.toLowerCase() &&
+            e.viewColumn !== undefined &&
+            e.viewColumn !== editorGroup.viewColumn
+    );
+    assert.strictEqual(active?.selection.active.line, 4, `箇所が 5 行目で開かない: ${editors()}`);
+    say('箇所を押すと本文がその行で開く');
 }
 
 module.exports.run = () =>

@@ -216,16 +216,18 @@ async function tagState(folder: string, uri: vscode.Uri): Promise<Partial<Editor
     }
 }
 
-async function reveal(folder: string, file: string, line?: number) {
+export async function reveal(folder: string, file: string, line?: number) {
     if (file === '') return;
     try {
         const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(folder, file)));
-        const at = new vscode.Position(Math.max(0, (line ?? 1) - 1), 0);
-        await vscode.window.showTextDocument(doc, {
+        const at = lineRange(line ?? 1);
+        const editor = await vscode.window.showTextDocument(doc, {
             viewColumn: vscode.ViewColumn.Beside,
-            selection: new vscode.Selection(at, at),
+            selection: at,
             preserveFocus: true
         });
+        // 見出し・表の始まりを画面の上端に出す（既に開いているファイルでも動かす）
+        editor.revealRange(at, vscode.TextEditorRevealType.AtTop);
     } catch {
         vscode.window.showErrorMessage(`${file} を開けません。`);
     }
@@ -236,6 +238,9 @@ async function reveal(folder: string, file: string, line?: number) {
  *
  * 左右の URI は種別で使い分ける（§5.8 の表）。旧版に無いファイル（added）の `git:` URI は
  * `openTextDocument` が例外になるので、その側は空を返す自前スキームにする。
+ *
+ * yml に行（`line`）があればその行へ移る。`vscode.diff` の `selection` は右（新版）にしか
+ * 効かないので、removed（行は旧版のもの）は開いたあとで左のエディタを動かす。
  */
 export async function openDiff(folder: string, revision: Revision, label: string) {
     const entry = revision.entries.find((e) => e.label === label);
@@ -260,12 +265,39 @@ export async function openDiff(folder: string, revision: Revision, label: string
         right = entry.kind === 'removed' ? empty(entry.file) : fileUri;
     }
     const title = `${entry.title || entry.label}（${revision.base || revision.baseCommit} ↔ 作業ツリー）`;
+    const at = entry.line !== undefined ? lineRange(entry.line) : undefined;
+    const removed = entry.kind === 'removed';
     // 「箇所」（reveal）と同じく編集画面の隣に出す。編集画面に重ねると、メモを書きながら見られない
     await vscode.commands.executeCommand('vscode.diff', left, right, title, {
         preview: true,
         viewColumn: vscode.ViewColumn.Beside,
-        preserveFocus: true
+        preserveFocus: true,
+        selection: removed ? undefined : at
     });
+    if (removed && at) await revealIn(left, at);
+}
+
+/** その行（1 始まり）の先頭。 */
+function lineRange(line: number): vscode.Range {
+    const at = new vscode.Position(Math.max(0, line - 1), 0);
+    return new vscode.Range(at, at);
+}
+
+/**
+ * 開いたばかりの差分エディタの片側を、その行へ動かす。差分エディタの左右はどちらも
+ * `visibleTextEditors` に出るが、中身（git: の読み込み）が済むまで少し遅れることがある。
+ */
+async function revealIn(uri: vscode.Uri, at: vscode.Range) {
+    const key = uri.toString();
+    for (let i = 0; i < 20; i++) {
+        const editor = vscode.window.visibleTextEditors.find((e) => e.document.uri.toString() === key);
+        if (editor) {
+            editor.selection = new vscode.Selection(at.start, at.start);
+            editor.revealRange(at, vscode.TextEditorRevealType.AtTop);
+            return;
+        }
+        await new Promise((r) => setTimeout(r, 50));
+    }
 }
 
 /** 案内のボタン。 */

@@ -82,6 +82,8 @@ sequenceDiagram
 
 `file` が空のエントリ（場所が分からないもの）は差分を出せないので、警告を出して何もしない。
 
+確認済み（実行）：`line` があればその行へ移る。`vscode.diff` の `selection` は右（新版）にしか効かないので、removed は開いたあとで左の `git:` エディタを `visibleTextEditors` から探して動かす。「箇所」（`reveal`）も同じ行を選択して画面の上端に出す。`npm run test:host` で変更・削除・箇所の 3 通りを確かめている。
+
 ## 新しい改訂を始める {#sec-behavior-new}
 
 確認済み（静的）：`newRevision` は `ddq rev next --json` で記号と基準を決める。基準のタグが無ければ `showInputBox` で尋ね、空なら中止する。書きかけの改訂があるときは「その続きを開く」と知らせる（新しい記号は作らない）。`rev diff --write` を実行したあと `vscode.openWith` でカスタムエディタとして開き、ddq の出力のうち「警告」で始まる行があれば警告として出す。[E-0002](appendix-evidence.qmd#ev-e-0002)
