@@ -124,7 +124,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     if stage.exists() {
         fs::remove_dir_all(&stage).with_context(|| format!("{} を消せません", stage.display()))?;
     }
-    fs::rename(&building, &stage)
+    rename_patiently(&building, &stage, std::time::Duration::from_secs(10))
         .with_context(|| format!("{} を {} にできません", building.display(), stage.display()))?;
 
     // 3) zip
@@ -149,6 +149,20 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         }
     );
     Ok(())
+}
+
+/// フォルダの名前を変える。中のファイルを誰かが開いている間（Windows では書いたばかりの exe を
+/// ウイルス対策・検索インデクサが少しの間つかむ）は「アクセスが拒否されました」で失敗するので、
+/// `limit` まで待ち直す（v2.4.4 の配布作成で実際に起き、数秒後には変えられた）。
+fn rename_patiently(from: &Path, to: &Path, limit: std::time::Duration) -> std::io::Result<()> {
+    let t0 = std::time::Instant::now();
+    loop {
+        match fs::rename(from, to) {
+            Ok(()) => return Ok(()),
+            Err(_) if t0.elapsed() < limit => std::thread::sleep(std::time::Duration::from_millis(200)),
+            Err(e) => return Err(e),
+        }
+    }
 }
 
 /// 配布する一式を `stage` に集める。戻り値は (exe の名前, 同梱した VSIX の名前)。
@@ -467,6 +481,34 @@ mod tests {
             ["Cargo.lock"]
         );
         assert!(stale_third_party_inputs(tmp.path(), "# 記録なし\n").is_err());
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn rename_waits_for_a_file_held_open_inside() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+        let from = tmp.path().join("stage.building");
+        let to = tmp.path().join("stage");
+        fs::create_dir_all(&from).unwrap();
+        fs::write(from.join("ddq.exe"), b"exe").unwrap();
+        // ウイルス対策のように、共有を許さずに中のファイルを開いておく（フォルダの名前を変えられない）
+        let held = fs::OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(from.join("ddq.exe"))
+            .unwrap();
+        assert!(
+            rename_patiently(&from, &to, std::time::Duration::ZERO).is_err(),
+            "開いている間は 1 回では変えられない（試験の前提）"
+        );
+        let release = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(800));
+            drop(held);
+        });
+        rename_patiently(&from, &to, std::time::Duration::from_secs(10)).unwrap();
+        release.join().unwrap();
+        assert!(to.join("ddq.exe").is_file());
     }
 
     #[test]
