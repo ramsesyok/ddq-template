@@ -50,7 +50,7 @@
 
 ### E-0011：PlantUMLプロセス寿命 {#ev-e-0011 .unnumbered}
 
-**確認済み／種別：ソース**。`cli/src/plantuml/mod.rs::LocalServer::start / wait`、`Drop for LocalServer`、`job::attach / Handle::close`、`Session::env`、`start_local`、`commands/plantuml.rs::serve`。空きポート、stderrのwebPort、30秒定数、読取スレッド、kill/wait、Windows Job Objectを確認。同期read_line、Vec蓄積、attach失敗時の専用cleanup欠落は静的事実で、障害の動的実証はない。
+**確認済み／種別：ソース**。`cli/src/plantuml/mod.rs::LocalServer::start / wait`、`Drop for LocalServer`、`job::attach / Handle::close`、`Session::env`、`start_local`、`commands/plantuml.rs::serve`。空きポート、stderrのwebPort、30秒定数、読取スレッドとチャネル・`recv_timeout`、起動後の `io::sink`、attach失敗時のkill/wait、Windows Job Objectを確認。起動経路は `tests/plantuml.rs`（Java有り）で実行した。無出力のJVMやattach失敗の故障注入はしていない。
 
 ### E-0012：Luaとの境界・キャッシュ {#ev-e-0012 .unnumbered}
 
@@ -62,7 +62,7 @@
 
 ### E-0014：ZIP生成と検証 {#ev-e-0014 .unnumbered}
 
-**確認済み／種別：ソース**。`cli/src/zip_archive.rs::create / verify`。ファイルのみを名前順にDeflateし、トップフォルダ名を付け、ZIPを開き直してエントリ数を比較する。verify内の不一致／読込み失敗では削除する。途中の書込みエラーすべてに共通する削除処理ではない。UTF-8名のフラグ設定はzipクレートに委譲しており、今回ZIP実物のビット検査はしていない。
+**確認済み／種別：ソース**。`cli/src/zip_archive.rs::create / verify`。ファイルのみを名前順にDeflateし、トップフォルダ名を付け、ZIPを開き直して全エントリの名前とバイト数を書いた内容と比較する。書込み途中の失敗、verify内の不一致／読込み失敗のいずれでも削除する。単体テストで往復と不一致時の削除を確認した。UTF-8名のフラグ設定はzipクレートに委譲しており、今回ZIP実物のビット検査はしていない。
 
 ### E-0015：CI・版管理境界 {#ev-e-0015 .unnumbered}
 
@@ -74,7 +74,7 @@
 
 ### E-0017：今回の限定実行 {#ev-e-0017 .unnumbered}
 
-**確認済み／種別：実行観測**。2026-09-23、Windows、CWD=`cli`、Cargo 1.98.1、git有り。`cargo test --locked --offline --bin ddq --test commands --test tag --test rev` は終了0、unit 50件、commands 4件、rev 10件、tag 9件が成功。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。加えて、debugビルドの ddq 2.4.0 で一時Gitリポジトリ（`chapters:` と `appendices:` を持つ執筆フォルダ、`rev-A` タグ）を作り、付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、`--write --json` で JSON が出ないことを観測した。本書自身に対する `tag list --json` の `order` にも付録が含まれなかった。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。初版（2026-09-21、2.2.1）では unit 10件と commands 4件、merman 1件を同条件で確認した。
+**確認済み／種別：実行観測**。2026-09-23、Windows、CWD=`cli`、Cargo 1.98.1、git有り。`cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml` は終了0、unit 61件、commands 5件、plantuml 2件、rev 12件、tag 10件が成功（第7章の修正後）。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。加えて、debugビルドの ddq 2.4.0 で一時Gitリポジトリ（`chapters:` と `appendices:` を持つ執筆フォルダ、`rev-A` タグ）を作り、付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、`--write --json` で JSON が出ないことを観測した。本書自身に対する `tag list --json` の `order` にも付録が含まれなかった。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。初版（2026-09-21、2.2.1）では unit 10件と commands 4件、merman 1件を同条件で確認した。
 
 ### E-0018：依存のローカル同定 {#ev-e-0018 .unnumbered}
 
@@ -99,3 +99,7 @@
 ### E-0023：テンプレート側の境界（2.2.2～2.4.0） {#ev-e-0023 .unnumbered}
 
 **確認済み／種別：Git差分・設定・ソース**。`git log 02672eb..281d62f` と `git diff` で `cli/`、`template/`、`.github/`、`extensions/*/package.json` の変更を棚卸しした。`template/scaffold/content/index.qmd` の `revisions/history.qmd` include、`template/scaffold/content/revisions/history.qmd`、`template/lib.typ` の `_xref-page` と付録対応、`template/postprocess-html.js` の別章参照・付録対応、`template/VERSION` の2.4.0を確認した。Typst・HTML後処理の内部動作は本書の対象外とし、CLIとの接点だけを扱う。
+
+### E-0024：第7章の注意点の修正 {#ev-e-0024 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/plantuml/mod.rs::LocalServer::start`（読取スレッド・`mpsc`・`recv_timeout`・`io::sink`・attach失敗時のkill/wait）、`commands/init.rs::run`（`.`／`..`）、`zip_archive.rs::create / verify`（名前・バイト数、途中失敗時の削除）、`doc/project.rs::chapters_of`（`appendices:`）、`doc/units.rs::scan / image`、`doc/diff.rs::units_of / table_rows / order_of`、`commands/rev.rs::today / utc_today / diff_cmd`、`main.rs::RevDiffArgs`、`cli/Cargo.toml`（`Win32_System_SystemInformation`）。対応するテストは `units`・`diff`・`project`・`zip_archive` の単体テスト、`tests/commands.rs::init_rejects_dot_names`、`tests/rev.rs::write_with_json_prints_only_json / appendices_are_part_of_the_document`。ローカル日付の境界（JST 0:00～8:59）と、無出力JVM・attach失敗の故障注入は実行していない。

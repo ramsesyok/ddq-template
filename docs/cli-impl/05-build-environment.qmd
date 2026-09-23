@@ -8,12 +8,12 @@
 # リポジトリルートから
 Set-Location cli
 cargo build --locked --release
-cargo test --locked --offline --bin ddq --test commands --test tag --test rev
+cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml
 cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact
 Set-Location ..
 ```
 
-`--offline` は依存が既に取得済みの場合の再現指定である。上記のテスト2コマンドは今回実行した（`tests/rev.rs` は PATH 上の git を使い、無ければ skip する）。releaseビルドと次の配布物生成は再現手順として示すもので、今回の実行成功を意味しない。[E-0017](appendix-evidence.qmd#ev-e-0017)
+`--offline` は依存が既に取得済みの場合の再現指定である。上記のテスト2コマンドは今回実行した（`tests/rev.rs` は PATH 上の git、`tests/plantuml.rs` は Java と `cli/vendor/plantuml.jar` を使い、無ければ skip する）。releaseビルドと次の配布物生成は再現手順として示すもので、今回の実行成功を意味しない。[E-0017](appendix-evidence.qmd#ev-e-0017)
 
 ```powershell
 # release は必ずリポジトリルートで実行する
@@ -48,16 +48,16 @@ cli\target\release\ddq.exe release
 
 | 検証 | 既存コードでの期待 | 今回の観測 |
 |---|---|---|
-| binary内unit | 背景style、file URL、script escape、PlantUML設定・HTTP・フェンス、Windows ACP、`doc` の走査・include展開・候補・差分帰属・改訂ファイル往復・記号採番、日付計算 | **確認済み**：50件成功（初版時10件）。ACP固有テストはCP932以外で早期return |
-| `tests/commands.rs` | init/add/update/setup、版違い拒否、表示版 | **確認済み**：4件成功 |
-| `tests/tag.rs` | 一覧と候補、apply の冪等性、候補の安定、dry-run、CRLF保持、`--from` の受理と拒否、重複警告、引数必須 | **確認済み**：9件成功 |
-| `tests/rev.rs` | 一時Gitリポジトリでの next、全種別の差分、strict、未ラベル、`--write` の note 引継ぎと stale、build の表と警告・`--check` | **確認済み**：10件成功（git有り、skipなし） |
+| binary内unit | 背景style、file URL、script escape、PlantUML設定・HTTP・フェンス、Windows ACP、`doc` の走査・include展開・候補・差分帰属・改訂ファイル往復・記号採番、日付計算 | **確認済み**：61件成功（初版時10件）。ACP固有テストはCP932以外で早期return |
+| `tests/commands.rs` | init/add/update/setup、版違い拒否、表示版、`.`／`..` の拒否 | **確認済み**：5件成功 |
+| `tests/tag.rs` | 一覧と候補、apply の冪等性、候補の安定、dry-run、CRLF保持、`--from` の受理と拒否、重複警告、引数必須、既存の別形式 ID | **確認済み**：10件成功 |
+| `tests/rev.rs` | 一時Gitリポジトリでの next、全種別の差分、strict、未ラベル、`--write` の note 引継ぎと stale、build の表と警告・`--check`、`--write --json`、付録 | **確認済み**：12件成功（git有り、skipなし） |
 | `tests/golden.rs` merman | 22図の生成、コメント、foreignObject不在、text存在 | **確認済み**：1テスト成功 |
 | golden browser | pathの乱数成分等を除いた数値列の比較。loose時は数値個数とviewBox 25%以内 | **未確認**：今回未実行 |
-| `tests/plantuml.rs` | 静的puml、構文エラー、serve起動・親終了後の停止 | **未確認**：今回未実行 |
+| `tests/plantuml.rs` | 静的puml、構文エラー、serve起動・親終了後の停止 | **確認済み**：2件成功（Java 17、ローカルjar） |
 | `tests/e2e.rs` | ASCII／非ASCIIパス、PDF、SVG件数、HTML内参照と検索索引。サンプルの `revisions/` も複写 | **未確認**：今回未実行 |
 | `tools/regress.py` | 機構hash、Typst、ページ画像、PDF文字、HTML、SVGの比較 | **未確認**：今回未実行。旧bat比較には過去版資産も必要 |
 
-期待値は静的確認、実行結果は2026-09-23、Windows／Cargo **1.98.1**、Python **3.12.0**、Quarto **1.9.38** の調査環境での観測である。初めの4行は同一のcargo testコマンドで実行し、mermanを別コマンドで確認した。74件成功は全E2E成功やブラウザとの幾何一致を意味しない。[E-0016](appendix-evidence.qmd#ev-e-0016)、[E-0017](appendix-evidence.qmd#ev-e-0017)
+期待値は静的確認、実行結果は2026-09-23、Windows／Cargo **1.98.1**、Python **3.12.0**、Quarto **1.9.38** の調査環境での観測である。unit・commands・tag・rev・plantuml は同一のcargo testコマンドで実行し、mermanを別コマンドで確認した。91件成功は全E2E成功やブラウザとの幾何一致を意味しない。[E-0016](appendix-evidence.qmd#ev-e-0016)、[E-0017](appendix-evidence.qmd#ev-e-0017)
 
 **確認済み（静的）**：E2E／PlantUMLテストの厳格化は `DDQ_E2E` の値が `1` かではなく、環境変数が存在するかで判定する。browser goldenはブラウザ未検出時に早期returnするため、通常のテスト成功表示だけでブラウザ経路を検証済みと判断しない。[E-0016](appendix-evidence.qmd#ev-e-0016)

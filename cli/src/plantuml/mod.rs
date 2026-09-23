@@ -17,10 +17,11 @@
 
 use std::{
     env, fs,
-    io::{BufRead, BufReader, Read, Write},
+    io::{self, BufRead, BufReader, Read, Write},
     net::{TcpStream, ToSocketAddrs},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
+    sync::mpsc::{self, RecvTimeoutError},
     thread,
     time::{Duration, Instant},
 };
@@ -472,41 +473,72 @@ impl LocalServer {
             .spawn()
             .with_context(|| format!("java を起動できません: {}", java.display()))?;
         // 親が落ちても JVM を残さない（§ 冒頭）。起動直後に入れる。
+        // 入れられなかったら、ここで上げた JVM を自分で片付けてから返す（まだ Drop の持ち主がいない）。
         #[cfg(windows)]
-        let job = job::attach(&child)?;
-
-        // PicoWeb は起動時に webPort= / webAddress= を stderr に出す。1 行目を待ってポートを知る。
-        let stderr = child.stderr.take().expect("stderr は piped");
-        let mut reader = BufReader::new(stderr);
-        let mut actual = 0u16;
-        let mut line = String::new();
-        let mut early = String::new();
-        while reader.read_line(&mut line).unwrap_or(0) > 0 {
-            if let Some(p) = line.trim().strip_prefix("webPort=") {
-                actual = p.parse().unwrap_or(0);
-                break;
+        let job = match job::attach(&child) {
+            Ok(job) => job,
+            Err(e) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(e);
             }
-            early.push_str(&line);
-            line.clear();
-            if t0.elapsed() > STARTUP_TIMEOUT {
-                break;
+        };
+
+        // stderr は専用のスレッドで読み続ける（読まないとパイプが詰まって JVM が止まる）。
+        // 起動を待つ間だけ行を渡し、受け手がいなくなったら残りは捨てる（溜め込まない）。
+        let stderr = child.stderr.take().expect("stderr は piped");
+        let (tx, rx) = mpsc::channel::<String>();
+        thread::spawn(move || {
+            let mut reader = BufReader::new(stderr);
+            let mut line = String::new();
+            loop {
+                line.clear();
+                match reader.read_line(&mut line) {
+                    Ok(0) => return,
+                    Ok(_) if tx.send(line.clone()).is_ok() => {}
+                    _ => break,
+                }
+            }
+            let _ = io::copy(&mut reader, &mut io::sink());
+        });
+
+        // PicoWeb は起動時に webPort= / webAddress= を stderr に出す。その行を待ってポートを知る。
+        // 待つのは STARTUP_TIMEOUT まで（JVM が何も出さなくても、改行を出さなくても打ち切る）。
+        let mut actual = 0u16;
+        let mut early = String::new();
+        let mut timed_out = false;
+        loop {
+            match rx.recv_timeout(STARTUP_TIMEOUT.saturating_sub(t0.elapsed())) {
+                Ok(line) => {
+                    if let Some(p) = line.trim().strip_prefix("webPort=") {
+                        actual = p.parse().unwrap_or(0);
+                        break;
+                    }
+                    early.push_str(&line);
+                }
+                Err(RecvTimeoutError::Timeout) => {
+                    timed_out = true;
+                    break;
+                }
+                Err(RecvTimeoutError::Disconnected) => break,
             }
         }
+        drop(rx);
         if actual == 0 {
             let _ = child.kill();
             let _ = child.wait();
+            let why = if timed_out {
+                format!("{} 秒以内に起動しませんでした", STARTUP_TIMEOUT.as_secs())
+            } else {
+                "起動しませんでした".to_string()
+            };
             bail!(
-                "PlantUML サーバ（PicoWeb）が起動しませんでした。\n  java: {}\n  jar : {}\n  {}",
+                "PlantUML サーバ（PicoWeb）が{why}。\n  java: {}\n  jar : {}\n  {}",
                 java.display(),
                 jar.display(),
                 early.trim()
             );
         }
-        // 残りの stderr は捨て続ける（読まないとパイプが詰まって JVM が止まる）
-        thread::spawn(move || {
-            let mut sink = Vec::new();
-            let _ = reader.read_to_end(&mut sink);
-        });
 
         let url = format!("http://{bind}:{actual}");
         let version = loop {

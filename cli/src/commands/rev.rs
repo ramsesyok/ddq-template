@@ -167,9 +167,12 @@ pub fn diff_cmd(dir: &Path, base: Option<&str>, json: bool, strict: bool, write:
 
     if write {
         let path = write_revision(dir, &n.rev, &n.scheme, &base_ref, &base_commit, &result)?;
-        println!("{} を更新しました（{} 件）", path.display(), result.entries.len());
-        report(&result);
-        return Ok(());
+        // --json と併せたときは、標準出力を JSON だけにする（書いた先は JSON の外に出さない）
+        if !json {
+            println!("{} を更新しました（{} 件）", path.display(), result.entries.len());
+            report(&result);
+            return Ok(());
+        }
     }
     if json {
         println!("{}", serde_json::to_string_pretty(&result)?);
@@ -390,9 +393,34 @@ fn includes_history(dir: &Path) -> bool {
     fs::read_to_string(dir.join("index.qmd")).is_ok_and(|t| t.contains(HISTORY))
 }
 
-/// 今日（ローカル時刻）を `YYYY-MM-DD` で。
+/// 今日（ローカル時刻）を `YYYY-MM-DD` で。改訂日は執筆者の暦日でなければならない
+/// （UTC にすると、日本では 0:00〜8:59 に作った改訂が前日の日付になる）。
 fn today() -> String {
-    // 依存を増やさないため、OS の日付コマンドではなく UNIX 時刻から素朴に計算する。
+    // Windows は OS からローカルの暦日を取る（日付のクレートを増やさない）。
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::{Foundation::SYSTEMTIME, System::SystemInformation::GetLocalTime};
+        let mut t: SYSTEMTIME = unsafe { std::mem::zeroed() };
+        unsafe { GetLocalTime(&mut t) };
+        format!("{:04}-{:02}-{:02}", t.wYear, t.wMonth, t.wDay)
+    }
+    // それ以外は date コマンドに聞き、取れなければ UTC で代える。
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("date")
+            .arg("+%Y-%m-%d")
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .filter(|s| s.len() == 10)
+            .unwrap_or_else(utc_today)
+    }
+}
+
+/// 今日（UTC）を `YYYY-MM-DD` で。ローカルの暦日が取れないときの代わり。
+#[cfg_attr(windows, allow(dead_code))]
+fn utc_today() -> String {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
@@ -403,6 +431,7 @@ fn today() -> String {
 }
 
 /// 1970-01-01 からの日数を暦日に直す（Howard Hinnant の days_from_civil の逆）。
+#[cfg_attr(windows, allow(dead_code))]
 fn civil_from_days(z: i64) -> (i64, u32, u32) {
     let z = z + 719_468;
     let era = z.div_euclid(146_097);

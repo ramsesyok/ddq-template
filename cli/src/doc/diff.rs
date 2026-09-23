@@ -116,6 +116,36 @@ pub fn units_of(lines: &[Line]) -> (BTreeMap<String, Unit>, Vec<Unlabeled>, Vec<
         }
     }
 
+    // パイプ表の行は、ラベルのあるキャプションのユニットに寄せる。キャプションは表の前にも
+    // 後にも書けるので、行の並びとは別に先に対応を作っておく（添字 → ラベル）。
+    let mut pipe_rows: HashMap<usize, String> = HashMap::new();
+    for (i, line) in lines.iter().enumerate() {
+        if let Some(item) = items_at.get(&(line.file.as_str(), line.no))
+            && item.kind == Kind::Pipe
+            && let Some(label) = &item.label
+        {
+            if units.contains_key(label) {
+                dups.push(format!(
+                    "ラベルが重複しています: {label}（{}:{}）",
+                    line.file, line.no
+                ));
+            }
+            units.insert(
+                label.clone(),
+                Unit {
+                    kind: item.kind,
+                    title: item.title.clone(),
+                    file: line.file.clone(),
+                    line: line.no,
+                    body: String::new(),
+                },
+            );
+            for row in table_rows(lines, i) {
+                pipe_rows.insert(row, label.clone());
+            }
+        }
+    }
+
     // 開いている見出しユニット（深さ, ラベル）と、開いているブロックユニット。
     let mut heads: Vec<(u8, Option<String>)> = Vec::new();
     let mut block: Option<(String, usize)> = None; // (ラベル or 空, div の深さ)
@@ -127,7 +157,7 @@ pub fn units_of(lines: &[Line]) -> (BTreeMap<String, Unit>, Vec<Unlabeled>, Vec<
         }
     };
 
-    for line in lines {
+    for (idx, line) in lines.iter().enumerate() {
         let trimmed = line.text.trim();
         let item = items_at.get(&(line.file.as_str(), line.no));
 
@@ -192,6 +222,32 @@ pub fn units_of(lines: &[Line]) -> (BTreeMap<String, Unit>, Vec<Unlabeled>, Vec<
                 }
                 continue;
             }
+            // 行頭の画像の図（`![…](…){#fig-x}`）。1 行で完結するユニット
+            Some(item) if item.kind == Kind::Fig && trimmed.starts_with("![") => {
+                if let Some(label) = &item.label {
+                    if units.contains_key(label) {
+                        dups.push(format!(
+                            "ラベルが重複しています: {label}（{}:{}）",
+                            line.file, line.no
+                        ));
+                    }
+                    units.insert(
+                        label.clone(),
+                        Unit {
+                            kind: item.kind,
+                            title: item.title.clone(),
+                            file: line.file.clone(),
+                            line: line.no,
+                            body: String::new(),
+                        },
+                    );
+                    order.push(label.clone());
+                    // パスや属性の変更も改訂（キャプションの変更は renamed になる）
+                    push(&mut units, label, &line.text);
+                    continue;
+                }
+                // ラベルの無い画像（bare-figure など）は地の文として見出しに帰属させる
+            }
             // 表・図のブロックの開き
             Some(item) if matches!(item.kind, Kind::Tbl | Kind::Ipo | Kind::Fig) => {
                 depth += 1;
@@ -232,20 +288,10 @@ pub fn units_of(lines: &[Line]) -> (BTreeMap<String, Unit>, Vec<Unlabeled>, Vec<
                 }
                 continue;
             }
-            // パイプ表のキャプション行。前後の表の行もこのユニットに寄せたいが、
-            // 行の順序が前後するので、キャプション行だけを見出しから抜いて自分の本文にする。
+            // パイプ表のキャプション行。ユニットは先に作ってある（表の行が前に来ることがあるため）。
+            // キャプション行そのものは本文に入れない（文言の変更は renamed で出る）。
             Some(item) if item.kind == Kind::Pipe => {
                 if let Some(label) = &item.label {
-                    units.insert(
-                        label.clone(),
-                        Unit {
-                            kind: item.kind,
-                            title: item.title.clone(),
-                            file: line.file.clone(),
-                            line: line.no,
-                            body: String::new(),
-                        },
-                    );
                     order.push(label.clone());
                     continue;
                 }
@@ -259,7 +305,13 @@ pub fn units_of(lines: &[Line]) -> (BTreeMap<String, Unit>, Vec<Unlabeled>, Vec<
             _ => {}
         }
 
-        // 地の文（パイプ表の行を含む）は直近の見出しに帰属する。
+        // ラベルのあるパイプ表の行は、その表のユニットに帰属する。
+        if let Some(label) = pipe_rows.get(&idx) {
+            push(&mut units, label, &line.text);
+            continue;
+        }
+
+        // 地の文（ラベルの無いパイプ表の行を含む）は直近の見出しに帰属する。
         if let Some((_, Some(head))) = heads.last() {
             let head = head.clone();
             push(&mut units, &head, &line.text);
@@ -377,17 +429,54 @@ pub fn compare(
     entries
 }
 
+/// キャプション行 `lines[i]` に付くパイプ表の行の添字。`units::scan` の `touches_table` と
+/// 同じく、空行 1 つまでを挟んだ直前・直後の表を見る（同じファイルの中だけ）。
+fn table_rows(lines: &[Line], i: usize) -> Vec<usize> {
+    let file = &lines[i].file;
+    let at = |n: usize| lines.get(n).filter(|l| &l.file == file);
+    let is_row = |n: usize| at(n).is_some_and(|l| l.text.trim_start().starts_with('|'));
+    let blank = |n: usize| at(n).is_some_and(|l| l.text.trim().is_empty());
+    let mut rows = Vec::new();
+
+    // 上（表 → キャプション）
+    let mut j = i;
+    if j > 0 && !is_row(j - 1) && blank(j - 1) {
+        j -= 1;
+    }
+    while j > 0 && is_row(j - 1) {
+        j -= 1;
+        rows.push(j);
+    }
+    // 下（キャプション → 表）。上に表があればそちらが優先（Pandoc も直前の表に付ける）
+    if rows.is_empty() {
+        let mut k = i + 1;
+        if !is_row(k) && blank(k) {
+            k += 1;
+        }
+        while is_row(k) {
+            rows.push(k);
+            k += 1;
+        }
+    }
+    rows
+}
+
 /// `units_of` が返す BTreeMap は文書順ではないので、順序は別に取る。
 pub fn order_of(lines: &[Line]) -> Vec<String> {
     let mut seen = Vec::new();
-    let mut in_fence = false;
+    // コードフェンスの内側は読まない。`units::scan` と同じく、開いた記号と同じ記号で閉じる
+    // （``` と ~~~ のどちらでも、表の中の ``` で誤って閉じない）。
+    let mut fence: Option<String> = None;
     for line in lines {
         let t = line.text.trim();
-        if t.starts_with("```") {
-            in_fence = !in_fence;
+        if let Some(open) = &fence {
+            if t.starts_with(open.as_str()) && t.trim_end_matches(open.chars().next().unwrap()).is_empty() {
+                fence = None;
+            }
             continue;
         }
-        if in_fence {
+        if let Some(mark) = units::fence_mark(t) {
+            fence = Some(mark);
             continue;
         }
         if let Some(l) = label_on_line(t)
@@ -506,6 +595,46 @@ mod tests {
         let d = diff(old, new, false);
         assert_eq!(d.len(), 1);
         assert_eq!(d[0].label, "tbl-ipo");
+    }
+
+    #[test]
+    fn pipe_table_rows_belong_to_the_table() {
+        // 表 → 空行 → キャプションの書き方。行の変更は表のラベルに付き、見出しには付かない
+        let old = "# 章 {#sec-a}\n\n本文。\n\n| a |\n|---|\n| 1 |\n\n: 表 {#tbl-p}\n";
+        let new = "# 章 {#sec-a}\n\n本文。\n\n| a |\n|---|\n| 2 |\n\n: 表 {#tbl-p}\n";
+        let d = diff(old, new, false);
+        assert_eq!(d.len(), 1, "{d:?}");
+        assert_eq!((d[0].label.as_str(), d[0].kind), ("tbl-p", Change::Changed));
+
+        // キャプションが表の前にある書き方でも同じ
+        let old = "# 章 {#sec-a}\n\n: 表 {#tbl-p}\n\n| a |\n|---|\n| 1 |\n";
+        let new = "# 章 {#sec-a}\n\n: 表 {#tbl-p}\n\n| a |\n|---|\n| 2 |\n";
+        let d = diff(old, new, false);
+        assert_eq!(d.len(), 1, "{d:?}");
+        assert_eq!(d[0].label, "tbl-p");
+    }
+
+    #[test]
+    fn unlabeled_pipe_table_rows_stay_with_the_heading() {
+        let old = "# 章 {#sec-a}\n\n| a |\n|---|\n| 1 |\n\n: 表\n";
+        let new = "# 章 {#sec-a}\n\n| a |\n|---|\n| 2 |\n\n: 表\n";
+        assert_eq!(diff(old, new, false)[0].label, "sec-a");
+    }
+
+    #[test]
+    fn image_figure_is_its_own_unit() {
+        let old = "# 章 {#sec-a}\n\n![構成](a.svg){#fig-x}\n";
+        let new = "# 章 {#sec-a}\n\n![構成](b.svg){#fig-x}\n";
+        let d = diff(old, new, false);
+        assert_eq!(d.len(), 1, "{d:?}");
+        assert_eq!((d[0].label.as_str(), d[0].unit), ("fig-x", "fig"));
+    }
+
+    #[test]
+    fn tilde_fences_are_skipped_when_ordering() {
+        // ~~~ の中のラベルらしき文字列は順序に数えない
+        let text = "~~~\n# 例 {#sec-b}\n~~~\n\n# 本物 {#sec-a}\n\n# 次 {#sec-b}\n";
+        assert_eq!(order_of(&lines(text)), ["sec-a", "sec-b"]);
     }
 
     #[test]

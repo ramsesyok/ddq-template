@@ -19,7 +19,11 @@ const REPO_FILES: [(&str, &str); 3] = [
 
 pub fn run(repo: &Path, writing_folder_name: &str, no_render: bool) -> Result<()> {
     let repo = writing_folder::absolute(repo)?;
-    if writing_folder_name.is_empty() || writing_folder_name.contains(['/', '\\']) {
+    // `.` / `..` は区切り文字を含まないが repo 直下の 1 フォルダではない（repo 自身や親を指す）
+    if writing_folder_name.is_empty()
+        || writing_folder_name.contains(['/', '\\'])
+        || matches!(writing_folder_name.trim(), "." | "..")
+    {
         bail!("執筆フォルダ名が不正です: {writing_folder_name}（フォルダ名だけを指定してください）");
     }
     let content_dir = repo.join(writing_folder_name);

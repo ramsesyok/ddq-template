@@ -165,6 +165,19 @@ fn setup_rejects_different_template_version() {
 }
 
 #[test]
+fn init_rejects_dot_names() {
+    // `.` / `..` は repo 自身や親を指すので、執筆フォルダ名として受け付けない
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    for name in [".", ".."] {
+        let out = ddq(&["init", &repo.to_string_lossy(), name, "--no-render"]);
+        assert!(!out.status.success(), "{name} を受け付けてしまった");
+        assert!(String::from_utf8_lossy(&out.stderr).contains("執筆フォルダ名が不正"));
+    }
+    assert!(!repo.join("_quarto.yml").exists() && !tmp.path().join("_quarto.yml").exists());
+}
+
+#[test]
 fn update_rejects_folder_without_quarto_yml() {
     let tmp = tempfile::tempdir().unwrap();
     let out = ddq(&["update", &tmp.path().to_string_lossy()]);

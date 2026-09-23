@@ -19,7 +19,8 @@ pub enum Kind {
     Ipo,
     /// 素のパイプ表のキャプション行（`: 説明 {#tbl-x}`）。ラベルは `tbl-`
     Pipe,
-    /// 図ブロック（`::: {#fig-x}`）。この記法は ID が必須なので常にラベル有り
+    /// 図。`::: {#fig-x}` ブロック（ID 必須なので常にラベル有り）か、行頭の画像
+    /// `![キャプション](パス){#fig-x}`（ラベルの無いものは `bare-figure` の警告）
     Fig,
 }
 
@@ -166,6 +167,30 @@ pub fn scan(rel: &str, text: &str) -> Vec<Item> {
             continue;
         }
 
+        // 行頭の画像。`{#fig-x}` があれば図のユニット。キャプションがあって ID が無いものは
+        // 番号の付かない図なので警告だけ出す（ID を足すと以降の図番号がずれるので機械では足さない）。
+        if let Some((alt, attrs)) = image(line) {
+            let (label, warning) = classify_ids(attrs.as_deref(), Kind::Fig.prefix());
+            let warning = match (&label, warning) {
+                (None, None) if !alt.is_empty() => Some(Warning::BareFigure),
+                (_, w) => w,
+            };
+            if label.is_some() || warning.is_some() {
+                items.push(Item {
+                    kind: Kind::Fig,
+                    level: None,
+                    file: rel.to_string(),
+                    line: no,
+                    title: (!alt.is_empty()).then_some(alt),
+                    label,
+                    suggested: None,
+                    edit: None,
+                    warning,
+                });
+            }
+            continue;
+        }
+
         // パイプ表のキャプション行（`: 説明 {#tbl-x}`）。Pandoc は表の直後にも直前にも
         // 書けるので、空行 1 つを挟んだ前後のどちらかに表があるときだけ拾う。
         if touches_table(&lines, i)
@@ -237,8 +262,22 @@ fn push_div(rel: &str, no: usize, attrs: &str, items: &mut Vec<Item>) -> bool {
     true
 }
 
+/// 行頭の画像 `![キャプション](パス){属性}` を (キャプション, 属性) に分ける。
+pub fn image(line: &str) -> Option<(String, Option<String>)> {
+    let rest = line.trim_start().strip_prefix("![")?;
+    let close = rest.find("](")?;
+    let alt = rest[..close].trim().to_string();
+    let after = &rest[close + 2..];
+    let paren = after.find(')')?;
+    let tail = after[paren + 1..].trim();
+    let attrs = split_trailing_attrs(tail)
+        .filter(|(before, _)| before.trim().is_empty())
+        .map(|(_, a)| a.to_string());
+    Some((alt, attrs))
+}
+
 /// コードフェンスの開き記号（``` / ~~~ 以上）。
-fn fence_mark(trimmed: &str) -> Option<String> {
+pub fn fence_mark(trimmed: &str) -> Option<String> {
     for c in ['`', '~'] {
         let n = trimmed.chars().take_while(|&x| x == c).count();
         if n >= 3 {
@@ -471,6 +510,27 @@ mod tests {
         let items = scan("a.qmd", "| a |\n|---|\n\n: 仕様 {#spec}\n");
         assert_eq!(items[0].kind, Kind::Pipe);
         assert_eq!(items[0].warning, Some(Warning::ForeignId));
+    }
+
+    #[test]
+    fn image_figures() {
+        let t = "![ネットワーク構成](x.svg){#fig-net width=80%}\n\n![構成図](y.svg)\n\n![](deco.png)\n";
+        let items = scan("a.qmd", t);
+        assert_eq!(
+            kinds(&items),
+            [
+                ("fig", 1, Some("ネットワーク構成"), Some("fig-net")),
+                ("fig", 3, Some("構成図"), None)
+            ]
+        );
+        // キャプションだけの画像は番号の付かない図。警告のみ（キャプションの無い画像は拾わない）
+        assert_eq!(items[1].warning, Some(Warning::BareFigure));
+    }
+
+    #[test]
+    fn images_inside_a_fig_block_are_not_counted_twice() {
+        let items = scan("a.qmd", "::: {#fig-net}\n![キャプション](x.svg)\n:::\n");
+        assert_eq!(kinds(&items), [("fig", 1, None, Some("fig-net"))]);
     }
 
     #[test]
