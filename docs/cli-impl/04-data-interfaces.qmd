@@ -26,7 +26,7 @@
 | ID | 送信／呼出元 → 受信／実行先 | 入力と結果 | 失敗の扱い |
 |---|---|---|---|
 | IF-01 | `quarto::render` → Quarto | `render`引数、CWD、環境変数。stdout/stderrは継承 | 子の非成功をanyhowへ変換 |
-| IF-02 | Lua `render_mermaid` → `ddq mermaid` | `pandoc.pipe`で入力・出力パス、JSON設定、背景色 | プロセス成功とSVG存在の両方が必要 |
+| IF-02 | Lua `prerender_mermaid`／`render_mermaid`、Rust `mermaid::prerender` → `ddq mermaid` | 入力・出力パス（一括は複数組）、JSON設定、背景色。一括のキーは Lua と Rust で同じ規則 | 一括の失敗は無視し、図ごとの呼び出しでプロセス成功とSVG存在の両方を要求 |
 | IF-03 | `browser::Cdp` → Edge/Chrome | ローカルWebSocket上のJSON、図ソース→JSON中のSVG | 通信／ページ例外はバッチ全体のエラー、図構文エラーは図単位 |
 | IF-04 | Rust `plantuml`／Lua → PlantUML | HTTP GET `/serverinfo`、POST `/render`。UTF-8 JSON→SVG | HTTP状態・エラーヘッダ・本文を確認 |
 | IF-05 | `release` → npm／Quarto Typst／ZIP | 拡張ごとのVSIXビルド、案内PDFコンパイル、ファイル群の圧縮 | 各段階で停止。全体の巻戻しなし |

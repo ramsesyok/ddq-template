@@ -8,11 +8,13 @@ use std::{fs, path::Path};
 
 use anyhow::{Context, Result, bail};
 
-use crate::{commands::setup, plantuml, quarto, writing_folder};
+use crate::{commands::setup, mermaid, plantuml, quarto, writing_folder};
 
 pub fn run(dir: &Path) -> Result<()> {
     writing_folder::ensure_encodable(dir)?;
     setup::run(dir)?;
+    // 文書中の mermaid を Quarto の前にまとめて描く（フィルタは章ごとにしか束ねられない）
+    mermaid::prerender::run(dir);
     let session = plantuml::ensure(dir)?;
     quarto::render(dir, &["--to", "typst", "--profile", "publish"], &session.env())?;
     drop(session);

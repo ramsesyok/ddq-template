@@ -9,6 +9,7 @@
 
 pub mod browser;
 pub mod merman_engine;
+pub mod prerender;
 
 use std::{env, fs, path::PathBuf};
 

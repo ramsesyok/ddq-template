@@ -52,7 +52,7 @@ flowchart TD
 
 図は静的確認済みの成功経路。各段階のエラーは呼出元へ伝播する。通常のエラーでローカルセッションがスコープを抜けると `Drop` が走る。[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0011](appendix-evidence.qmd#ev-e-0011)
 
-**確認済み（静的・限定実行）**：PDF は `--to typst --profile publish`、HTML は `--to html` を渡す。出力先は `_quarto.yml` の `output-dir`（PDF は `_quarto-publish.yml` の指定を優先。既定 `_book`）を `quarto::output_dir` が読む。HTMLでは `MERMAID_SVG=1` により図をSVG化する。PDFは出力先の直下の拡張子PDFを大小文字を区別せず収集し、ちょうど一件の場合だけ `design-doc.pdf` にコピーする。ゼロ件・複数件ならエラーになる。2.4.2までは `_book` 決め打ちで、output-dir を変えると取り出せなかった（U-0006で修正）。[E-0007](appendix-evidence.qmd#ev-e-0007)
+**確認済み（静的・限定実行）**：PDF は `--to typst --profile publish`、HTML は `--to html` を渡す。出力先は `_quarto.yml` の `output-dir`（PDF は `_quarto-publish.yml` の指定を優先。既定 `_book`）を `quarto::output_dir` が読む。HTMLでは `MERMAID_SVG=1` により図をSVG化する。どちらも Quarto の前に `mermaid::prerender` が文書全体の mermaid を1回の変換で描き、フィルタと同じ名前でキャッシュに置く（2.4.4）。PDFは出力先の直下の拡張子PDFを大小文字を区別せず収集し、ちょうど一件の場合だけ `design-doc.pdf` にコピーする。ゼロ件・複数件ならエラーになる。2.4.2までは `_book` 決め打ちで、output-dir を変えると取り出せなかった（U-0006で修正）。[E-0007](appendix-evidence.qmd#ev-e-0007)
 
 **確認済み（静的）**：`plantuml::ensure` はまず最上位の設定済みサーバを probe し、失敗したら既定 `http://127.0.0.1:18080` を試す。その後で原稿中のPlantUMLフェンスを調べ、不要なら `Session::None`、必要なら空きポートでローカル起動する。したがって図がない文書でもサーバのprobeは先に発生する。静的 `.puml` だけを処理する diagrams は、None の場合もローカル起動する。[E-0008](appendix-evidence.qmd#ev-e-0008)、[E-0010](appendix-evidence.qmd#ev-e-0010)
 

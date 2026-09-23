@@ -2,7 +2,7 @@
   "name": "ddq-revision",
   "displayName": "DDQ Revision",
   "description": "Label tagging and revision history for design-doc-quarto-template (ddq)",
-  "version": "2.4.3",
+  "version": "2.4.4",
   "publisher": "ramsesyok",
   "license": "MIT",
   "repository": {

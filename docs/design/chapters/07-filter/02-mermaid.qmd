@@ -22,6 +22,9 @@ SVG 化はフィルタが外部コマンドを `pandoc.pipe` で呼んで行う�
   再変換しない（キャッシュ）。`mmd-*` は `.gitignore` 済みである。ハッシュ（SHA-1 の先頭 16 桁）には
   図のソースに加えてテンプレートの版・`mermaid-config.json` の中身・`DDQ_MERMAID_ENGINE` を混ぜる
   ので、設定やエンジンを変えると描き直される。版を上げる `ddq update` は古いキャッシュを消す。
+- 図は**まとめて描く**。`ddq html` / `ddq pdf` が Quarto の前に文書全体の mermaid を 1 回の `ddq mermaid` で
+  描き（ブラウザの起動は 1 回）、フィルタは同じ名前のキャッシュを使う。素の `quarto render` では、
+  フィルタが章ファイルごとにまとめて描く（ファイルが 2 段のフィルタを返し、1 段目が `Pandoc` で集める）。
 - どのエンジン・ブラウザ（版）・フォントで焼いたかは SVG 先頭のコメントに残る。発行時は
   `ddq identity` が返すいまの環境と比べ、違えば描き直す（`DDQ_DIAGRAM_CACHE=keep` なら比べない）。ブラウザ経路は端末の
   Edge / Chrome を headless で使い、`vendor/mermaid.min.js`（版固定）で描かせる。

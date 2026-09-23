@@ -31,7 +31,7 @@ PDF と HTML で図を一致させ、図表番号に載せるためである。�
 生成された SVG（`<執筆フォルダ>/diagrams/mmd-*.svg`）の 1 行目に記録される。
 
 ```text
-<!-- ddq 2.4.3 engine=browser mermaid=11.16.0 browser=msedge/153.0.4234.48 fonts=a9d68470 -->
+<!-- ddq 2.4.4 engine=browser mermaid=11.16.0 browser=msedge/153.0.4234.48 fonts=a9d68470 -->
 ```
 
 `engine=merman` なら内蔵レンダラで描かれている。`browser=` は描いたブラウザとその版、

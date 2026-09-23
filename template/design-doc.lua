@@ -142,18 +142,70 @@ local function mermaid_env_matches(svg)
   return svg_header(svg) == '<!-- ddq ' .. id.version .. ' ' .. id.mermaid .. ' -->'
 end
 
-local function render_mermaid(code)
-  -- エンジン（browser / merman）で出来上がりが違う。自動選択の結果はここでは分からないので、
-  -- 明示されていればその値、無ければ 'auto' をキーに混ぜる。
+-- 1 図分のキャッシュの置き場所。`fresh` は、いまの環境で描いた SVG が既にあるか。
+-- エンジン（browser / merman）で出来上がりが違う。自動選択の結果はここでは分からないので、
+-- 明示されていればその値、無ければ 'auto' をキーに混ぜる。
+local function mermaid_target(code)
   local conf = mermaid_conf_path()
   local hash = cache_key('mermaid', os.getenv('DDQ_MERMAID_ENGINE') or 'auto',
     conf and (read_file(conf) or '') or '', code)
-  local svg = DIAG .. '/mmd-' .. hash .. '.svg'
-  local rel = diag_rel() .. '/mmd-' .. hash .. '.svg'
+  local t = {
+    conf = conf,
+    svg = DIAG .. '/mmd-' .. hash .. '.svg',
+    rel = diag_rel() .. '/mmd-' .. hash .. '.svg',
+    mmd = DIAG .. '/mmd-' .. hash .. '.mmd',
+  }
   -- ここに来るのは発行時（SVG 化するとき）だけなので、環境の照合もここで行う
-  if cached_svg(svg) and mermaid_env_matches(svg) then return rel, svg end
+  t.fresh = cached_svg(t.svg) and mermaid_env_matches(t.svg)
+  return t
+end
+
+-- 文書の中のまだ描いていない mermaid を、ddq mermaid の 1 回の呼び出しでまとめて描く。
+-- ddq mermaid はブラウザを 1 回だけ起動して全部を描くので、図ごとに呼ぶより速い
+-- （実測: 1 図ずつだと 1 図 0.9 秒、100 図の一括で 1 図 0.27 秒。ブラウザの起動が大半）。
+-- 失敗しても止めない: 描けなかった図は、この後の CodeBlock で 1 図ずつ描き直し、そこで
+-- 図ごとの分かりやすいエラーを出す。Windows のコマンドラインの長さ（32767 文字）に
+-- 収まるよう、長くなったら分けて呼ぶ。
+local BATCH_CHARS = 24000
+local function prerender_mermaid(codes)
+  local jobs, seen = {}, {}
+  for _, code in ipairs(codes) do
+    local t = mermaid_target(code)
+    if not t.fresh and not seen[t.svg] then
+      seen[t.svg] = true
+      t.code = code
+      table.insert(jobs, t)
+    end
+  end
+  if #jobs == 0 then return end
   pandoc.system.make_directory(DIAG, true)
-  local mmd = DIAG .. '/mmd-' .. hash .. '.mmd'
+  local conf = jobs[1].conf
+  local function run(batch)
+    local args = { 'mermaid', '-i' }
+    for _, t in ipairs(batch) do table.insert(args, t.mmd) end
+    table.insert(args, '-o')
+    for _, t in ipairs(batch) do table.insert(args, t.svg) end
+    table.insert(args, '-b'); table.insert(args, 'transparent')
+    if conf then table.insert(args, '-c'); table.insert(args, conf) end
+    pcall(pandoc.pipe, DDQ, args, '')
+  end
+  local batch, chars = {}, 0
+  for _, t in ipairs(jobs) do
+    local f = assert(io.open(t.mmd, 'w')); f:write(t.code); f:close()
+    local len = #t.mmd + #t.svg + 8
+    if #batch > 0 and chars + len > BATCH_CHARS then
+      run(batch); batch, chars = {}, 0
+    end
+    table.insert(batch, t); chars = chars + len
+  end
+  run(batch)
+end
+
+local function render_mermaid(code)
+  local t = mermaid_target(code)
+  local conf, svg, rel, mmd = t.conf, t.svg, t.rel, t.mmd
+  if t.fresh then return rel, svg end
+  pandoc.system.make_directory(DIAG, true)
   local f = assert(io.open(mmd, 'w')); f:write(code); f:close()
   -- `ddq mermaid` を **シェルを介さず** 起動する（pandoc.pipe）。os.execute だと cmd.exe の
   -- 引用符の解釈（先頭が " で始まるコマンド行の扱い）に振り回されるため。
@@ -1228,3 +1280,42 @@ function Header(el)
     return {}
   end
 end
+
+-- ============================================================
+--  フィルタの順序: mermaid の一括変換 → 各要素の変換
+--
+--  上の要素ごとの関数（CodeBlock・Div など）はグローバルに定義しているが、グローバルの
+--  フィルタでは文書全体（Pandoc）が最後に回るので、図を先にまとめて描けない。そこで
+--  2 段のフィルタとして返す: 1 段目で文書中の mermaid をまとめて描き（キャッシュに置く）、
+--  2 段目で従来どおり要素ごとに変換する（CodeBlock はキャッシュを使うだけになる）。
+--  2 段目は、定義されたグローバル関数を要素名で集めて作る（関数を足したときに書き漏らさない）。
+-- ============================================================
+local function collect_mermaid(doc)
+  if not WANT_SVG then return nil end
+  local codes = {}
+  doc:walk({
+    CodeBlock = function(el)
+      if el.classes:includes('mermaid') then table.insert(codes, el.text) end
+    end,
+  })
+  prerender_mermaid(codes)
+  return nil
+end
+
+local ELEMENT_FILTERS = {
+  -- 文書・リスト
+  'Pandoc', 'Meta', 'Blocks', 'Inlines', 'Block', 'Inline',
+  -- ブロック要素
+  'BlockQuote', 'BulletList', 'CodeBlock', 'DefinitionList', 'Div', 'Figure', 'Header',
+  'HorizontalRule', 'LineBlock', 'OrderedList', 'Para', 'Plain', 'RawBlock', 'Table',
+  -- インライン要素
+  'Cite', 'Code', 'Emph', 'Image', 'LineBreak', 'Link', 'Math', 'Note', 'Quoted', 'RawInline',
+  'SmallCaps', 'SoftBreak', 'Space', 'Span', 'Str', 'Strikeout', 'Strong', 'Subscript',
+  'Superscript', 'Underline',
+}
+local element_filter = {}
+for _, name in ipairs(ELEMENT_FILTERS) do
+  if type(_ENV[name]) == 'function' then element_filter[name] = _ENV[name] end
+end
+
+return { { Pandoc = collect_mermaid }, element_filter }
