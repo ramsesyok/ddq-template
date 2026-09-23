@@ -80,3 +80,10 @@ docs/cli-impl で、版上げ時の削除（8件）、再ビルドでの再利�
 cargo test（unit 66 / commands 8 / plantuml 2 / rev 12 / tag 10）、DDQ_E2E=1 の e2e 3件、merman golden 1件が成功。
 一時的な執筆フォルダで、フォント・ブラウザ・PlantUML の版・ローカルのフォント・描いたサーバの記録を書き換えると
 発行時に描き直し、DDQ_DIAGRAM_CACHE=keep とサーバ無しのプレビューでは描き直さないことを観測した。
+
+## 2026-09-23 の追補（U-0004 の一部実行と rev diff の案内）
+
+v2.4.2 の配布で通常の `ddq release` を実行し、50ファイルの ZIP、同梱 ddq.exe の版、日本語名の UTF-8 フラグ、
+同梱 ddq.exe での init を確認した（オプション付き・異常系は未実施）。
+rev diff の警告を「tag apply で付くもの」と「既存の ID を手で付け替えるもの」に分けた。
+cargo test（unit 66 / commands 8 / rev 13 / tag 10）が成功。

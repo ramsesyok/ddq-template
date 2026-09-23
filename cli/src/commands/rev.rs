@@ -19,6 +19,7 @@ use crate::doc::{
     gitsrc::Repo,
     project::{self, Folder},
     revfile::{self, RevEntry, Revision, next_symbol, symbol_key},
+    units::Warning,
 };
 
 /// 生成物。`index.qmd` から include して使う。
@@ -449,13 +450,38 @@ fn report(result: &Diff) {
     for w in &result.warnings {
         println!("警告: {w}");
     }
-    if !result.unlabeled.is_empty() {
+    // `tag apply --all` で付くものと、既存の ID があって人が付け替えるしかないものとで案内を分ける
+    // （後者に `tag apply` を勧めても何も起きない）。
+    let (manual, auto): (Vec<_>, Vec<_>) = result.unlabeled.iter().partition(|u| u.warning.is_some());
+    if !auto.is_empty() {
         println!(
             "警告: ラベルの無い見出し・表・図が {} 件あります。先に `ddq tag apply <フォルダ> --all` を実行してください",
-            result.unlabeled.len()
+            auto.len()
         );
-        for u in result.unlabeled.iter().take(5) {
+        for u in auto.iter().take(5) {
             println!("  {}:{} {}", u.file, u.line, u.title.as_deref().unwrap_or(""));
+        }
+    }
+    if !manual.is_empty() {
+        println!(
+            "警告: 既存の ID があるためラベルを自動で付けられない見出し・表・図が {} 件あります。\
+             ID を sec-／tbl-／fig- で始まる 1 つの名前に手で付け替えてください（その ID へのリンクも直すこと）",
+            manual.len()
+        );
+        for u in manual.iter().take(5) {
+            let why = match u.warning {
+                Some(Warning::ForeignId) => "接頭辞の違う ID",
+                Some(Warning::MultipleIds) => "ID が複数",
+                Some(Warning::BareFigure) => "ID の無い画像",
+                Some(Warning::NoCaption) => "キャプション無し",
+                None => "",
+            };
+            println!(
+                "  {}:{} {}（{why}）",
+                u.file,
+                u.line,
+                u.title.as_deref().unwrap_or("")
+            );
         }
     }
 }

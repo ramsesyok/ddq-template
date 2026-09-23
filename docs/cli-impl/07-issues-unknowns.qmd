@@ -59,7 +59,7 @@
 
 ### U-0004：配布工程の動的確認 {#u-0004 .unnumbered}
 
-**未確認／優先度：高**。releaseは既存stageを削除し、manualとVSIXも更新するため、文書解析の検証では実行していない。専用の出力先を使い、通常／--no-build／--with-sample、欠損jar、版不一致、ZIP展開、日本語名、既存成果物の鮮度を確認する。
+**一部確認／優先度：中**。2026-09-23に v2.4.2 の配布で、通常の `ddq release`（マニュアルのPDF→HTML、2つのVSIX、jar、はじめかたPDF、ZIP）を `main` の `d4b275f` から実行し、終了0と50ファイルのZIPを確認した。同梱の `ddq.exe` が 2.4.2 を返すこと、日本語名の2エントリにUTF-8名フラグが立っていること、同梱の `ddq.exe` で作った執筆フォルダに新しい `design-doc.lua` と `.template-version` 2.4.2 が置かれることも確認した（[E-0027](appendix-evidence.qmd#ev-e-0027)）。`--no-build`、`--with-sample`、jarの欠損、拡張の name／版の不一致、全エントリの展開と内容照合、既存成果物が古い場合は、まだ実行していない。専用の出力先を使って確認する。
 
 ### U-0005：性能・最大規模 {#u-0005 .unnumbered}
 

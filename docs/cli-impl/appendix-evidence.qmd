@@ -58,7 +58,7 @@
 
 ### E-0013：release工程 {#ev-e-0013 .unnumbered}
 
-**確認済み／種別：ソース・設定**。`cli/src/commands/release.rs::run / copy_plantuml_jar / jar_version / build_extensions / build_extension / npm / build_release_guide / copy_tree`、`extensions/ddq-table-editor/package.json` と `extensions/ddq-revision/package.json` のname/version/scripts.package。CWD検査、manual順序、拡張フォルダの列挙とフォルダ名順、name＝フォルダ名と版の照合、stage削除、current_exeコピー、同梱物、除外条件、--no-build、jar版の表示のみという範囲を確認。今回は配布工程を実行していない。
+**確認済み／種別：ソース・設定**。`cli/src/commands/release.rs::run / copy_plantuml_jar / jar_version / build_extensions / build_extension / npm / build_release_guide / copy_tree`、`extensions/ddq-table-editor/package.json` と `extensions/ddq-revision/package.json` のname/version/scripts.package。CWD検査、manual順序、拡張フォルダの列挙とフォルダ名順、name＝フォルダ名と版の照合、stage削除、current_exeコピー、同梱物、除外条件、--no-build、jar版の表示のみという範囲を確認。通常の配布工程の実行はE-0027。
 
 ### E-0014：ZIP生成と検証 {#ev-e-0014 .unnumbered}
 
@@ -74,7 +74,7 @@
 
 ### E-0017：今回の限定実行 {#ev-e-0017 .unnumbered}
 
-**確認済み／種別：実行観測**。2026-09-23、Windows、CWD=`cli`、Cargo 1.98.1、git有り。`cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml` は終了0、unit 66件、commands 8件、plantuml 2件、rev 12件、tag 10件が成功（2.4.2）。`DDQ_E2E=1` の `--test e2e` も3件成功した。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。加えて、debugビルドの ddq 2.4.0 で一時Gitリポジトリ（`chapters:` と `appendices:` を持つ執筆フォルダ、`rev-A` タグ）を作り、付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、`--write --json` で JSON が出ないことを観測した。本書自身に対する `tag list --json` の `order` にも付録が含まれなかった。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。初版（2026-09-21、2.2.1）では unit 10件と commands 4件、merman 1件を同条件で確認した。
+**確認済み／種別：実行観測**。2026-09-23、Windows、CWD=`cli`、Cargo 1.98.1、git有り。`cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml` は終了0、unit 66件、commands 8件、plantuml 2件、rev 13件、tag 10件が成功（2.4.2）。`DDQ_E2E=1` の `--test e2e` も3件成功した。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。加えて、debugビルドの ddq 2.4.0 で一時Gitリポジトリ（`chapters:` と `appendices:` を持つ執筆フォルダ、`rev-A` タグ）を作り、付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、`--write --json` で JSON が出ないことを観測した。本書自身に対する `tag list --json` の `order` にも付録が含まれなかった。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。初版（2026-09-21、2.2.1）では unit 10件と commands 4件、merman 1件を同条件で確認した。
 
 ### E-0018：依存のローカル同定 {#ev-e-0018 .unnumbered}
 
@@ -111,3 +111,7 @@
 ### E-0026：発行時の環境照合（2.4.2） {#ev-e-0026 .unnumbered}
 
 **確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/fonts.rs::fingerprint / fingerprint_of / font_dirs / is_font`、`mermaid/browser.rs::identity / file_version`、`mermaid/mod.rs::Engine::label / choose_engine_quiet`、`commands/mermaid.rs::identity`、`main.rs::Command::Identity`、`plantuml/mod.rs::svg_header / is_local_url`、`template/design-doc.lua::ddq_identity / svg_header / mermaid_env_matches / puml_is_local / puml_env_matches / render_mermaid / render_plantuml`、`cli/Cargo.toml`（`Win32_Storage_FileSystem`）。テストは `fonts`・`browser`・`plantuml` の単体テスト、`tests/commands.rs::identity_reports_what_the_svg_header_will_say`、`tests/plantuml.rs`（`fonts=` の記録）、`DDQ_E2E=1` の `tests/e2e.rs`。一時的な執筆フォルダ（mermaid と PlantUML のフェンス、ローカルの PicoWeb）で、再ビルドでの再利用（ローカルのポートが変わっても）、各記録の書換えによる描き直し、`DDQ_DIAGRAM_CACHE=keep` とサーバ無しのプレビューで描き直さないことを観測した。
+
+### E-0027：配布工程の実行（v2.4.2） {#ev-e-0027 .unnumbered}
+
+**確認済み／種別：実行観測**。2026-09-23、Windows、`main` の `d4b275fc8950373887b86de42bf732a2b79de91e`（CI成功）。`cargo build --locked --release` の後、リポジトリルートで `cli\target\release\ddq.exe release` を実行し、終了0。マニュアルのPDF→HTML、`ddq-revision-2.4.2.vsix`・`ddq-table-editor-2.4.2.vsix` のパッケージ、`plantuml.jar`（1.2026.8）の同梱、`はじめかた.pdf` の作成を経て、`release/quarto-template-2.4.2.zip`（50ファイル、30,752,594バイト）ができた。同梱の `ddq.exe --version` は 2.4.2、日本語名の2エントリは UTF-8 名フラグ（bit 11）付き、同梱の `ddq.exe init` で作った執筆フォルダの `.template-version` は 2.4.2 で、`design-doc.lua` に発行時照合の処理があることを確認した。この ZIP を GitHub のリリース v2.4.2 に添付した。オプション付き・異常系、全エントリの展開照合は実行していない。
