@@ -125,6 +125,18 @@ fn from_file(path: &Path, doc: &doc::Doc) -> Result<Vec<Edit>> {
         if let Some(label) = &item.label {
             bail!("{}:{} には既にラベル {label} があります", e.file, e.line);
         }
+        // 既存の ID と並べると Pandoc は片方しか使わない（足したラベルがリンク先にならない）
+        if let Some(w) = item.warning {
+            bail!(
+                "{}:{} にはラベルを足せません（{}）。既存の ID を人が付け替えてください",
+                e.file,
+                e.line,
+                serde_json::to_value(w)
+                    .ok()
+                    .and_then(|v| v.as_str().map(str::to_string))
+                    .unwrap_or_default()
+            );
+        }
         let len = doc
             .lines
             .get(&e.file)
@@ -199,6 +211,8 @@ fn print_table(doc: &doc::Doc, unlabeled_only: bool) {
             (None, None, Some(w)) => match w {
                 doc::units::Warning::NoCaption => "キャプション無し（対象外）".into(),
                 doc::units::Warning::BareFigure => "ラベル不可（要手動）".into(),
+                doc::units::Warning::ForeignId => "既存の ID が接頭辞と違う（要手動）".into(),
+                doc::units::Warning::MultipleIds => "ID が複数ある（要手動）".into(),
             },
             _ => "—".into(),
         };

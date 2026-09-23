@@ -80,7 +80,7 @@
 
 ## ラベル・改訂ファイルの形式 {#sec-revision-contract}
 
-**確認済み（静的）**：`tag list --json` は `doc::Doc` をそのまま直列化する。`folder`、文書順の `order`、`items`、`warnings` を持ち、`items` の各要素は `kind`（`heading`／`tbl`／`ipo`／`pipe`／`fig`）、見出しのみ `level`、`file`（執筆フォルダ基準・`/` 区切り）、1 始まりの `line`、`title`、`label`、ラベルが無い場合の `suggested` と `edit`、対象外の理由 `warning` を持つ。`warning` の値は `no-caption` と `bare-figure` が定義されているが、現行の走査で生成されるのは `no-caption` だけである。`::: {#fig-…}` で包まれていない画像はそもそも拾わない。`edit.col` はバイト数ではなく文字数である。`tag apply --from` はこの JSON 全体、または `edit` の配列を受ける。[E-0020](appendix-evidence.qmd#ev-e-0020)
+**確認済み（静的）**：`tag list --json` は `doc::Doc` をそのまま直列化する。`folder`、文書順の `order`、`items`、`warnings` を持ち、`items` の各要素は `kind`（`heading`／`tbl`／`ipo`／`pipe`／`fig`）、見出しのみ `level`、`file`（執筆フォルダ基準・`/` 区切り）、1 始まりの `line`、`title`、`label`、ラベルが無い場合の `suggested` と `edit`、対象外の理由 `warning` を持つ。`warning` の値は `no-caption`、`bare-figure`、`foreign-id`、`multiple-ids` が定義されているが、`bare-figure` は現行の走査で生成されない。`::: {#fig-…}` で包まれていない画像はそもそも拾わない。`edit.col` はバイト数ではなく文字数である。`tag apply --from` はこの JSON 全体、または `edit` の配列を受ける。[E-0020](appendix-evidence.qmd#ev-e-0020)
 
 **確認済み（静的）**：`rev diff --json` は `base`、`base_commit`、`strict`、`entries`、`unlabeled`、`warnings` を出す。`entries` の要素は `label`、`kind`（`changed`／`added`／`removed`／`renamed`）、`unit`、`title`、改名時の `title_old`、新版の `file`／`line`、旧版の `file_old`／`line_old`、ファイル間移動時の `moved_from` である。`rev next --json` は `rev`、`base`、`base_commit`、`scheme`、`tags`、`drafts` を出す。[E-0021](appendix-evidence.qmd#ev-e-0021)
 

@@ -9,7 +9,7 @@
 export type Kind = 'heading' | 'tbl' | 'ipo' | 'pipe' | 'fig';
 
 /** ラベルを付けられない理由。 */
-export type Warning = 'no-caption' | 'bare-figure';
+export type Warning = 'no-caption' | 'bare-figure' | 'foreign-id' | 'multiple-ids';
 
 /** 1 行の中への文字列の挿入。`col` は行頭からの**文字数**（バイト数ではない）。 */
 export type Edit = {
@@ -71,5 +71,9 @@ export function warningLabel(warning: Warning): string {
       return 'キャプション無し（採番されないので対象外）';
     case 'bare-figure':
       return 'ラベル不可（::: {#fig-…} で包むと付けられる）';
+    case 'foreign-id':
+      return '既存の ID が sec-／tbl- で始まらない（付け替えは手で）';
+    case 'multiple-ids':
+      return 'ID が複数ある（Pandoc は最後の 1 つだけを使う。手で 1 つにする）';
   }
 }

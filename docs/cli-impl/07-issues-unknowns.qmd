@@ -40,35 +40,35 @@
 
 ## 残る不明・未確認事項 {#sec-23af83}
 
-### U-0001：外部描画の全経路 {#sec-5d7629 #u-0001 .unnumbered}
+### U-0001：外部描画の全経路 {#u-0001 .unnumbered}
 
 **未確認／優先度：高**。今回実行したのはunit・commands・tag・revとmerman goldenに限る。browser golden、PlantUML統合、ASCII／非ASCIIパスの全E2Eはソースを読んだが実行していない。依存環境ごとの差を評価するには、対象OS・ACP・フォント・ブラウザ版・Java／jar版を記録し、`DDQ_E2E` を設定して `cargo test --locked` を行う。browserのskipも別途確認する。
 
-### U-0002：プロセスの異常終了・起動失敗 {#sec-3bd9d9 #u-0002 .unnumbered}
+### U-0002：プロセスの異常終了・起動失敗 {#u-0002 .unnumbered}
 
 **未確認／優先度：高**。通常経路の所有権は追跡したが、Javaの無出力、Job Object登録失敗、CDP接続前の失敗、親の強制終了を網羅する動的観測はない。WindowsのJob Objectと非WindowsのDropは同じ保証ではない。隔離した試験用プロセスで故障注入し、プロセス・ポート・一時ファイルの残存を確認する。
 
-### U-0003：配布する外部資産の由来 {#sec-04b8bd #u-0003 .unnumbered}
+### U-0003：配布する外部資産の由来 {#u-0003 .unnumbered}
 
 **不明／優先度：配布前に高**。ローカルjarの版、READMEのMIT版配置方針、CIの取得名は確認したが、実物の取得元とライセンス種別を証明する情報は不足する。minified Mermaidのupstream差分と全推移依存のNOTICEも今回確認していない。取得元digestの照合、jarのライセンス表示、同梱資産とNOTICEの棚卸しで解消する。外部の公開ライセンスを現物へ無条件に当てはめない。
 
-### U-0004：配布工程の動的確認 {#sec-40caab #u-0004 .unnumbered}
+### U-0004：配布工程の動的確認 {#u-0004 .unnumbered}
 
 **未確認／優先度：高**。releaseは既存stageを削除し、manualとVSIXも更新するため、文書解析の検証では実行していない。専用の出力先を使い、通常／--no-build／--with-sample、欠損jar、版不一致、ZIP展開、日本語名、既存成果物の鮮度を確認する。
 
-### U-0005：性能・最大規模 {#sec-7efff7 #u-0005 .unnumbered}
+### U-0005：性能・最大規模 {#u-0005 .unnumbered}
 
 **不明／優先度：中**。現在の入力規模に対する性能目標、最大図サイズ、同時実行の運用要件はコードから決められない。既存設計書のPoCは過去の入力・環境の記録である。利用条件を定め、総処理時間、ピークメモリ、stderr量、キャッシュ有無を分けて計測する。
 
-### U-0006：OS・設定・HTTPの境界条件 {#sec-b847e9 #u-0006 .unnumbered}
+### U-0006：OS・設定・HTTPの境界条件 {#u-0006 .unnumbered}
 
 **未確認／優先度：中**。現行CIはWindows一本で、Linux/macOS、全ACP、長いパス、Quartoの異なるoutput-dir／profile、HTTPプロキシや異常応答を今回実行検証していない。ブラウザ探索、Job Object、file URL、簡易YAML読取り、HTTPパーサを対象ごとの試験へ分ける。Javaの対応下限も、診断メッセージの「8以上」とCIの17から全版互換と断定しない。
 
-### U-0007：キャッシュ更新と残存出力 {#sec-b8620f #u-0007 .unnumbered}
+### U-0007：キャッシュ更新と残存出力 {#u-0007 .unnumbered}
 
 **未確認／優先度：高**。キーに含む情報と古い出力の保持は静的確認したが、ハッシュ衝突・設定や版変更・部分失敗による実障害は再現していない。Mermaid設定変更、エンジン切替、PlantUMLサーバ版変更、既存SVGがある状態での構文エラーを入力にして再現する。改修する場合は、現在のキャッシュをどう無効化するかも決める。
 
-### U-0008：改訂履歴の実運用条件 {#sec-5c228f #u-0008 .unnumbered}
+### U-0008：改訂履歴の実運用条件 {#u-0008 .unnumbered}
 
 **未確認／優先度：中**。`rev` は一時リポジトリの統合テストと小規模な観測で確認した。大規模文書での処理時間、`core.autocrlf` の設定差、非ASCIIパスを含む `git ls-tree` 出力、shallow clone や到達不能な `base_commit`、ラベルの付け替えや手編集された改訂ファイルの扱いは実行検証していない。VSCode 拡張経由の呼出しは `docs/revision-impl` の範囲とする。実文書の複製に対し、これらの条件を一つずつ変えて `rev diff --json` と `rev build` の結果を比べる。
 

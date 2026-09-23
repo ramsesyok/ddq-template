@@ -261,6 +261,51 @@ fn apply_from_rejects_broken_or_duplicate_labels() {
 }
 
 #[test]
+fn headings_with_other_ids_are_left_alone() {
+    // `{#u-0001}` のような既存の ID に 2 つ目の ID を足すと、Pandoc は後ろの 1 つしか
+    // 使わず、足したラベルがリンク先にならない。候補を出さず、書き戻しもしない。
+    let tmp = tempfile::tempdir().unwrap();
+    fixture(tmp.path());
+    let dir = tmp.path().to_string_lossy().into_owned();
+    write(
+        tmp.path(),
+        "index.qmd",
+        "# 本書について\n\n### U-0001 {#u-0001 .unnumbered}\n\n### U-0002 {#sec-x #u-0002}\n",
+    );
+
+    let v: Value = serde_json::from_str(&stdout(&ddq(&["tag", "list", &dir, "--json"]))).unwrap();
+    let items = v["items"].as_array().unwrap();
+    let by_title = |t: &str| items.iter().find(|i| i["title"] == t).unwrap();
+    assert_eq!(by_title("U-0001")["warning"], "foreign-id");
+    assert_eq!(by_title("U-0002")["warning"], "multiple-ids");
+    for t in ["U-0001", "U-0002"] {
+        assert!(by_title(t)["label"].is_null() && by_title(t)["edit"].is_null());
+    }
+
+    // --all は既存の ID のある見出しに触らない
+    assert_ok(&ddq(&["tag", "apply", &dir, "--all"]));
+    let index = fs::read_to_string(tmp.path().join("index.qmd")).unwrap();
+    assert!(index.contains("### U-0001 {#u-0001 .unnumbered}\n"), "{index}");
+    assert!(index.contains("### U-0002 {#sec-x #u-0002}\n"), "{index}");
+
+    // --from で人が編集指示を作っても書き戻さない
+    let edits = tmp.path().join("edits.json");
+    fs::write(
+        &edits,
+        r##"[{"file":"index.qmd","line":3,"col":12,"insert":"#sec-u1 "}]"##,
+    )
+    .unwrap();
+    let out = ddq(&["tag", "apply", &dir, "--from", &edits.to_string_lossy()]);
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("foreign-id"));
+    assert!(
+        fs::read_to_string(tmp.path().join("index.qmd"))
+            .unwrap()
+            .contains("{#u-0001 .unnumbered}")
+    );
+}
+
+#[test]
 fn duplicate_labels_are_warned() {
     let tmp = tempfile::tempdir().unwrap();
     fixture(tmp.path());

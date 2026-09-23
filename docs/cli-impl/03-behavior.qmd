@@ -75,7 +75,7 @@ flowchart TD
 
 **確認済み（静的）**：`tag` と `rev` は原稿を UTF-8 テキストとして読み（BOM は除去）、Quarto は起動しない。論理文書の順序は `doc::project` が `_quarto.yml` の `chapters:` 配下にある `- <パス>.qmd|.md` を行ベースで拾い、行単独の `{{< include … >}}` をその場に再帰展開して作る。include の基準は入れ子でも章ファイルのディレクトリであり、循環と重複は警告にする。`_quarto.yml` が読めない、または `chapters:` から一件も拾えない場合は、配下の qmd/md をパス順に並べる。`chapters:` 範囲は字下げが戻った行で終わるため、`book.appendices` の付録ファイルは対象にならない（[第7章](07-issues-unknowns.qmd#sec-issues-unknowns)）。[E-0020](appendix-evidence.qmd#ev-e-0020)
 
-**確認済み（静的）**：`doc::units::scan` は行頭パターンだけで、見出し（`sec-`）、`.tbl`／`.ipo` div（`tbl-`）、表の前後に接するパイプ表キャプション行（`tbl-`）、`::: {#fig-…}`（`fig-`）を拾う。front matter、コードフェンス内、`.tbl`／`.ipo`／`#fig-` div 内の見出しは除外する。キャプションもラベルも無い `.tbl` は `no-caption` 警告で対象外とする。[E-0020](appendix-evidence.qmd#ev-e-0020)
+**確認済み（静的）**：`doc::units::scan` は行頭パターンだけで、見出し（`sec-`）、`.tbl`／`.ipo` div（`tbl-`）、表の前後に接するパイプ表キャプション行（`tbl-`）、`::: {#fig-…}`（`fig-`）を拾う。front matter、コードフェンス内、`.tbl`／`.ipo`／`#fig-` div 内の見出しは除外する。キャプションもラベルも無い `.tbl` は `no-caption` 警告で対象外とする。見出しとパイプ表キャプションは、ID がちょうど一つで種別の接頭辞で始まる場合だけラベルとみなす。接頭辞の違う ID が一つある場合は `foreign-id`、ID が二つ以上ある場合は `multiple-ids` の警告とし、候補を出さず書き戻しもしない（Pandoc は ID を一つしか使わず、二つ目を足すとリンク先にならないため）。[E-0020](appendix-evidence.qmd#ev-e-0020)
 
 **確認済み（静的・限定実行）**：`tag list` は、ラベルの無いものに候補と編集指示（ファイル・行・行頭からの**文字数**・挿入文字列）を付ける。候補は「ファイル相対パス・種別・正規化した文言」の SHA-1 先頭6桁で、既存ラベルと衝突すれば 8→10→40 桁に伸ばす。同じ入力なら同じ候補になる。`tag apply --all` は候補をすべて書き戻し、ファイルごとに行の後ろから挿入して、行末の CR を保持する。`--from` は `tag list --json` 全体または編集指示の配列を受け、行の不一致・既存ラベル・挿入位置超過・形式違反（接頭辞＋英数字・`-`・`_`）・重複のいずれかで、書込み前に全体を停止する。`--dry-run` は書き込まない。これらは `tests/tag.rs` で確認した。[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0017](appendix-evidence.qmd#ev-e-0017)
 
