@@ -1,6 +1,6 @@
 # 変更時の注意点 {#sec-maintenance}
 
-## 変更箇所から影響先へ
+## 変更箇所から影響先へ {#sec-bb476f}
 
 次表の依存関係は静的確認済み。検証欄は**今後の変更時に行う確認**であり、今回すべてを実施したという意味ではない。
 
@@ -12,19 +12,25 @@
 | PlantUML設定・通信 | `plantuml` → diagrams、Session → Lua `puml_source/puml_candidates/puml_render` | 設定連結、優先順位、HTTP200のエラー、改行、curlとの条件差 |
 | パス・探索 | `writing_folder` → init/add/pdf/html/update、Lua ROOT/diag_rel | ACP、入れ子、日本語、空白、除外フォルダ、誤更新範囲 |
 | Quartoプロファイル・出力先 | `quarto`、pdf `find_pdf` → publish設定 → releaseのmanualコピー | `_book`とPDF一件の前提。PDF→HTMLの順で両方を残す |
-| 配布構成・ZIP | `release` → assets案内PDF、extension、vendor、zip_archive | stage削除範囲、--no-buildの残る処理、同梱版、ZIP再展開 |
+| 配布構成・ZIP | `release` → assets案内PDF、`extensions/*`、vendor、zip_archive | stage削除範囲、--no-buildの残る処理、拡張ごとのname・版、ZIP再展開 |
+| 拾う単位・章構成の解釈 | `doc::units::scan`、`doc::project::chapters_of / walk`、`doc::diff::units_of / order_of` | tag と rev で同じ単位になること。新しい記法は scan と units_of の両方に入れる。`tests/tag.rs`・`tests/rev.rs` |
+| 候補ラベル・書き戻し | `doc::labels`、`commands::tag`、VSCode拡張 ddq-revision | 候補の決定性、`col` は文字数、CRLF保持、`--from` の検証。JSON形は拡張との契約 |
+| 差分・改訂ファイル・履歴表 | `doc::diff`、`doc::revfile`、`commands::rev`、`lib.typ` の `_xref-page` | 帰属の一意性、note と stale の引継ぎ、固定YAML形式の往復、PDF/HTMLの二表。JSONと yml は拡張との契約 |
+| Git 呼出し | `doc::gitsrc` | `core.quotepath=off`、`ls-tree` での存在確認、ref の `^{commit}` 解決 |
 
-根拠：[E-0002](appendix-evidence.qmd#ev-e-0002)～[E-0016](appendix-evidence.qmd#ev-e-0016)。
+根拠：[E-0002](appendix-evidence.qmd#ev-e-0002)～[E-0016](appendix-evidence.qmd#ev-e-0016)、[E-0020](appendix-evidence.qmd#ev-e-0020)～[E-0023](appendix-evidence.qmd#ev-e-0023)。
 
-## 互換性を左右する条件
+## 互換性を左右する条件 {#sec-fc762d}
 
 **確認済み（静的）**：機構ファイルを執筆先だけで変更すると、html/pdfの一致検査が止まる。共通設定を変更するときも `template/` の原本、版、再ビルド、update、cache再生成の連動を考慮する。`setup` に暗黙のupdateを追加すると、発行コマンドが版管理対象を変更しない現在の契約を変えてしまう。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0012](appendix-evidence.qmd#ev-e-0012)
 
-**確認済み（静的）**：Windowsのパス検査は `WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, ...)` で文字ごとに判定し、全OSで制御文字を拒否する。日本語が常に使えるという契約ではなく、端末のACPに依存する。検査を通すコマンドはinit/add/pdf/htmlであり、すべてのCLI操作の共通前処理ではない。実際のLuaでは `QUARTO_WIN_CODEPAGE` による復号も関わる。[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0012](appendix-evidence.qmd#ev-e-0012)
+**確認済み（静的）**：Windowsのパス検査は `WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, ...)` で文字ごとに判定し、全OSで制御文字を拒否する。日本語が常に使えるという契約ではなく、端末のACPに依存する。検査を通すコマンドはinit/add/pdf/htmlであり、すべてのCLI操作の共通前処理ではない。`tag`／`rev` はこの検査を行わず、Rust の UTF-8 パスと git の `core.quotepath=off` 出力で扱う。実際のLuaでは `QUARTO_WIN_CODEPAGE` による復号も関わる。[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0012](appendix-evidence.qmd#ev-e-0012)
 
-**確認済み（静的）**：`release` の入力には埋込み資産とディスク上のREADME・manual・VSIX・jarが混在する。古い実行ファイルでもディスクの `template/VERSION` は存在しか検査しない。配布名と拡張の比較は埋込み版が基準なので、ソース更新後の再ビルドを配布工程から外せない。[E-0013](appendix-evidence.qmd#ev-e-0013)
+**確認済み（静的）**：`release` の入力には埋込み資産とディスク上のREADME・manual・VSIX・jarが混在する。古い実行ファイルでもディスクの `template/VERSION` は存在しか検査しない。配布名と拡張の比較は埋込み版が基準なので、ソース更新後の再ビルドを配布工程から外せない。`extensions/` 直下に `package.json` を持つフォルダを置くと、それは自動的に同梱対象となり、name と版の一致が必須となる。[E-0013](appendix-evidence.qmd#ev-e-0013)
 
-## 待機時間・メモリ・資源解放
+**確認済み（静的）**：`tag` と `rev` のラベルは、改訂履歴の正本（`revisions/*.yml`）と生成表の相互参照キーを兼ねる。付与済みラベルを変更すると、`rev diff` は旧ラベルの `removed` と新ラベルの `added` として扱い、改名と識別しない。候補生成のハッシュ入力（パス・種別・文言）や桁数を変えても付与済みラベルは変わらないが、まだ書き戻していない候補は変わる。拡張が保持する候補との整合に注意する。[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0021](appendix-evidence.qmd#ev-e-0021)
+
+## 待機時間・メモリ・資源解放 {#sec-ab6c25}
 
 | 箇所 | コード上の値／挙動（確認済み） | 改修時に区別すること |
 |---|---|---|
@@ -34,12 +40,13 @@
 | PlantUML render | Rust接続／読書きtimeoutは各120秒 | Lua/curlはconnect 2秒、全体120秒で別条件 |
 | Mermaidバッチ | 全ソースと全結果をメモリに保持 | ストリーム処理ではない。大きい図・多数図の上限は未定義 |
 | Java stderr | threadがread_to_endでVecへ蓄積 | コメントの「捨て続ける」と異なり、バッファを保持する |
+| rev diff | 旧版はファイルごとに `git show` を起動し、全行と全ユニットの本文をメモリに保持 | 文書規模に比例する。行→項目の対応を作る際、ファイルごとに全行を走査し直す |
 
 根拠：[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)。性能目標・最大規模は [U-0005](07-issues-unknowns.qmd#u-0005) で不明としている。
 
 **確認済み（静的）**：browserでは通常の処理後に `Browser.close`、起動プロセスkill、一時フォルダcloseを試すが、cleanup失敗は無視する。PicoWebは通常のDropでkill/wait、Windowsは `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` を使う。すべての強制終了や初期化失敗で子が消えるという保証には広げない。[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0011](appendix-evidence.qmd#ev-e-0011)
 
-## 入力と外部接続の前提
+## 入力と外部接続の前提 {#sec-6de862}
 
 **確認済み（静的）**：通常のプロセス呼出しは引数列で渡し、Luaからの起動も `pandoc.pipe` を使う。Windowsのnpmだけは `cmd /C npm` を経由する。ブラウザには専用profileと `--no-sandbox` を指定する。PlantUMLの既定bindはloopbackであるが、serveの `--bind` は変更可能で、ddq側に認証やTLSを追加する処理はない。[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0013](appendix-evidence.qmd#ev-e-0013)
 

@@ -1,34 +1,47 @@
 # 対象と読み方 {#sec-overview}
 
-## 対象版と役割
+## 対象版と役割 {#sec-b2c38a}
 
-**確認済み（静的）**：ddq は Rust の単一実行ファイルであり、Quarto book と Typst を利用する設計書テンプレートの配置・発行を支援する。`cli/src/main.rs::main` が引数を解析し、`commands` に同期的に振り分ける。組版処理そのものは Quarto／Pandoc／Typst に委譲し、図変換は Mermaid と PlantUML で異なる経路を持つ。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0002](appendix-evidence.qmd#ev-e-0002)
+**確認済み（静的）**：ddq は Rust の単一実行ファイルであり、Quarto book と Typst を利用する設計書テンプレートの配置・発行を支援する。`cli/src/main.rs::main` が引数を解析し、`commands` に同期的に振り分ける。組版処理そのものは Quarto／Pandoc／Typst に委譲し、図変換は Mermaid と PlantUML で異なる経路を持つ。2.3.0 から、原稿をテキストとして読む `doc` 層を持ち、見出し・表・図のラベル付与（`tag`）と Git の版を比べる改訂履歴（`rev`）を提供する。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0002](appendix-evidence.qmd#ev-e-0002)
 
 | 識別項目 | 確認した値・条件 |
 |---|---|
-| リポジトリの版 | `02672eb3054d0f6b7139e21b31d91aba7dd57595`、`main` |
+| リポジトリの版 | `281d62f1338d1de7f6660c1a47e1e84e72edda1b`、`main` |
 | 調査開始時 | 追跡ファイルの差分なし。未追跡 `.claude/` は解析対象外 |
-| 表示版／機構版 | `template/VERSION` の `2.2.1` |
+| 表示版／機構版 | `template/VERSION` の `2.4.0` |
 | Cargo パッケージ | `ddq`、package version `0.0.0`、edition `2024`、rust-version `1.95` |
-| 調査基準日 | 2026-09-21 |
+| 調査基準日 | 2026-09-23（初版 2026-09-21） |
 
 上表は静的確認済み。表示版と Cargo の版は同一ではない。`build.rs` が `DDQ_VERSION` をコンパイル時に設定し、`assets::VERSION`、`--version`、配置先の `.template-version`、リリース名に使う。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0003](appendix-evidence.qmd#ev-e-0003)
 
-## 適用範囲
+## 適用範囲 {#sec-8c7067}
 
 | 範囲 | 調査の深さ／適用性 |
 |---|---|
 | `cli/src`、Cargo／ビルド設定 | 全自前 Rust ソースを読み、入口から主要な正常・異常経路を追跡 |
 | `cli/tests`、`cli/tools/regress.py` | 期待値、実行条件、回帰検証の境界を調査。実行範囲は第5章 |
-| `template`、CI、`extension/package.json` | CLI に埋め込む資産、Luaとの契約、発行・配布に関わる部分を確認 |
+| `template`、CI、`extensions/*/package.json` | CLI に埋め込む資産、Lua・`lib.typ` との契約、発行・配布に関わる部分を確認 |
 | 自前のDB・GUI | 適用なし。`cli/src` と直接依存にDB接続・スキーマ・GUIイベント処理はない。外部プロセス内部はこの判断の対象外 |
-| OSS内部、Typst組版詳細、VSCode拡張内部 | 詳細解析対象外。利用API・生成物・設定の境界のみ確認 |
+| OSS内部、Typst組版詳細、VSCode拡張内部 | 詳細解析対象外。利用API・生成物・設定の境界のみ確認。拡張側は `docs/table-editor-impl`・`docs/revision-impl` が扱う |
+| Git | `rev` が子プロセスとして呼ぶ範囲（引数・出力の解釈）のみ。Git自体の挙動は対象外 |
 | ブラウザ／Java／全E2E／リリースの実行 | 今回は未確認。静的追跡と既存テストの読解を実行成功と扱わない |
 
 境界と非該当の判断根拠は [E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0016](appendix-evidence.qmd#ev-e-0016)。外部実装の振る舞いまで網羅した解析ではない。
 
-## 読み始める場所と確度
+## 読み始める場所と確度 {#sec-045a84}
 
-コマンド追加は `main.rs::Command`、`main`、`commands/mod.rs` から始める。配置規則は `assets.rs` と `commands/setup.rs`、図変換は `mermaid/mod.rs` と `plantuml/mod.rs`、配布は `commands/release.rs` が入口になる。[E-0002](appendix-evidence.qmd#ev-e-0002)
+コマンド追加は `main.rs::Command`、`main`、`commands/mod.rs` から始める。配置規則は `assets.rs` と `commands/setup.rs`、図変換は `mermaid/mod.rs` と `plantuml/mod.rs`、配布は `commands/release.rs`、ラベルと改訂履歴は `commands/tag.rs`・`commands/rev.rs` と `doc/` が入口になる。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0020](appendix-evidence.qmd#ev-e-0020)
 
 本文の根拠IDは [解析根拠](appendix-evidence.qmd#sec-evidence) のパス・シンボルに対応する。パスはリポジトリルート基準で記載するため、HTMLだけを配布しても対象を特定できる。既存の `cli/DESIGN.md` は設計方針と過去の測定の資料として扱い、現行コードとの差は [既知の問題と未解明事項](07-issues-unknowns.qmd#sec-issues-unknowns) に残す。
+
+## 改版の反映範囲 {#sec-update-scope}
+
+**確認済み（静的）**：初版の基準 `02672eb`（2.2.1）から本版の基準 `281d62f`（2.4.0）までに、CLI とその境界へ次の変更が入った。本書はこれらを各章へ反映した。[E-0020](appendix-evidence.qmd#ev-e-0020)～[E-0023](appendix-evidence.qmd#ev-e-0023)
+
+| 版 | CLIと境界の変更 | 反映先 |
+|---|---|---|
+| 2.2.2 | `postprocess-html.js` で別章の `.tbl`／`.ipo` への参照を補正（機構の変更、Rust 側は変更なし） | 機構照合の対象として扱う |
+| 2.3.0 | `ddq tag`・`ddq rev` と `doc/` モジュール、直接依存 `sha1` を追加。`lib.typ` に改訂履歴の「頁」列用 `_xref-page` を追加。雛形 `index.qmd` が `revisions/history.qmd` を include。拡張を `extension/` から `extensions/<拡張>/` へ移し、release が複数VSIXを同梱 | 第2～7章 |
+| 2.4.0 | `lib.typ`（PDF側資産）と `postprocess-html.js`（機構）が `book.appendices` に対応。Rust 側は変更なし | 第4章、第7章（`tag`／`rev` は付録を読まない） |
+
+Mermaid・PlantUML・Quarto起動・パス検査・機構照合の Rust 実装に変更はない。これらを記述した節は、版表記と参照先の更新にとどめた。

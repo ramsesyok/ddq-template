@@ -64,7 +64,7 @@ expected = json.loads((root / "analysis/source-sha256.json").read_text(encoding=
 changed = [name for name, digest in expected.items()
            if hashlib.sha256((repo / name).read_bytes()).hexdigest() != digest]
 assert len(pages) == 9, len(pages)
-assert len(svgs) == 2, len(svgs)
+assert len(svgs) == 3, len(svgs)
 assert not errors, errors
 assert not changed, changed
 report = {

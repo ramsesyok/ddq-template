@@ -33,3 +33,23 @@ skillのcheck_spec.pyは成功。analysis/check_output.pyはHTML9ページ、表
 
 ブラウザでfile:///のHTMLを開く操作はURLポリシーで拒否された。
 他の経路で回避せず、目視確認は未実施とする。静的検査は画面上の折返し・余白の保証ではない。
+
+## 2026-09-23 の更新（2.4.0）
+
+基準をコミット `281d62f1338d1de7f6660c1a47e1e84e72edda1b`、テンプレート2.4.0 に更新した。
+Cargo 1.98.1、Quarto 1.9.38、Python 3.12.0、git 有り。CWD は cli。
+
+| コマンド | 結果 | 範囲と限界 |
+|---|---|---|
+| cargo test --locked --offline --bin ddq --test commands --test tag --test rev | 終了0、unit 50 / commands 4 / rev 10 / tag 9 成功 | quarto・ブラウザ・Java は不使用。rev は一時 Git リポジトリで実行（skip なし） |
+| cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact | 終了0、1成功、1対象外 | 初版と同じ範囲 |
+
+一時 Git リポジトリ（`chapters:` と `appendices:`、`rev-A` タグ）で debug ビルドの ddq 2.4.0 を実行し、
+付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、
+`rev diff --write --json` で JSON が出ないことを観測した。`tag list docs/cli-impl --json` の `order` にも
+`appendix-evidence.qmd` は含まれなかった。UTC 日付の境界（JST 0:00～8:59）は再現していない。
+
+`ddq update docs/cli-impl`（2.4.0）後、`DDQ_MERMAID_ENGINE=merman` で `ddq html docs/cli-impl` を実行し終了0（render.log）。
+check_output.py は HTML 9ページ、表14、図SVG3点（rev の流れ図を追加）、ローカルリンク切れ0、
+記録済みソースhash（56ファイル。2.3.0 以降の追加ファイルを含む）の差分0を確認した（output-audit.json）。
+ブラウザでの目視は初版と同じく未実施。release・E2E・browser golden・PlantUML 統合・regress.py は今回も未実施。
