@@ -34,7 +34,7 @@
 | `items[].label` | string \| null | 既に付いているラベル |
 | `items[].suggested` | string? | 候補ラベル（`ddq` が内容から決める） |
 | `items[].edit` | `{file,line,col,insert}`? | 書き戻しの指示。**`col` は行頭からの文字数** |
-| `items[].warning` | `no-caption`/`bare-figure`? | 候補を出せない理由 |
+| `items[].warning` | `no-caption`/`bare-figure`/`foreign-id`/`multiple-ids`? | 候補を出せない理由（`foreign-id` は接頭辞の違う既存 ID、`multiple-ids` は ID が複数） |
 | `warnings` | string[] | 走査の警告（重複ラベルなど） |
 :::
 

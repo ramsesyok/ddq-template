@@ -53,3 +53,8 @@ Cargo 1.98.1、Quarto 1.9.38、Python 3.12.0、git 有り。CWD は cli。
 check_output.py は HTML 9ページ、表14、図SVG3点（rev の流れ図を追加）、ローカルリンク切れ0、
 記録済みソースhash（56ファイル。2.3.0 以降の追加ファイルを含む）の差分0を確認した（output-audit.json）。
 ブラウザでの目視は初版と同じく未実施。release・E2E・browser golden・PlantUML 統合・regress.py は今回も未実施。
+
+## 2026-09-23 の追補（tag の ID 判定の修正）
+
+`tag` が接頭辞の違う既存 ID を持つ見出しに 2 つ目の ID を足していた不具合を直した（foreign-id／multiple-ids の警告を追加）。
+本書 07 章の U-0001～U-0008 に付いていた無効な `#sec-…` を外し、ソースhashを更新した。

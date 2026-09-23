@@ -53,6 +53,11 @@ pub enum Warning {
     NoCaption,
     /// `::: {#fig-}` で包まれていない図。包み直しは構造の書き換えになるので機械では行わない
     BareFigure,
+    /// 種別の接頭辞（`sec-` / `tbl-`）で始まらない ID が既にある（`{#u-0001}` など）。
+    /// Pandoc の ID は 1 つだけなので、ラベルを足すと既存のリンク先を壊す。付け替えは人が決める
+    ForeignId,
+    /// ID が 2 つ以上ある。Pandoc は最後の 1 つしか使わないので、どれもキーとして信用できない
+    MultipleIds,
 }
 
 /// 見出し・表・図 1 件。
@@ -146,16 +151,17 @@ pub fn scan(rel: &str, text: &str) -> Vec<Item> {
         }
 
         if let Some((level, title, attrs)) = heading(line) {
+            let (label, warning) = classify_ids(attrs.as_deref(), Kind::Heading.prefix());
             items.push(Item {
                 kind: Kind::Heading,
                 level: Some(level),
                 file: rel.to_string(),
                 line: no,
                 title: Some(title),
-                label: attrs.as_deref().and_then(|a| id_in(a, "sec-")),
+                label,
                 suggested: None,
                 edit: None,
-                warning: None,
+                warning,
             });
             continue;
         }
@@ -165,16 +171,17 @@ pub fn scan(rel: &str, text: &str) -> Vec<Item> {
         if touches_table(&lines, i)
             && let Some((title, attrs)) = caption_line(line)
         {
+            let (label, warning) = classify_ids(attrs.as_deref(), Kind::Pipe.prefix());
             items.push(Item {
                 kind: Kind::Pipe,
                 level: None,
                 file: rel.to_string(),
                 line: no,
                 title: Some(title),
-                label: attrs.as_deref().and_then(|a| id_in(a, "tbl-")),
+                label,
                 suggested: None,
                 edit: None,
-                warning: None,
+                warning,
             });
         }
     }
@@ -291,13 +298,28 @@ fn split_trailing_attrs(s: &str) -> Option<(&str, &str)> {
     Some((&s[..open], &s[open..]))
 }
 
-/// 属性の中の `#sec-x` / `#tbl-x` / `#fig-x` を拾う。
-fn id_in(attrs: &str, prefix: &str) -> Option<String> {
+/// 属性の中の ID（`#…`）をすべて拾う。
+fn ids_in(attrs: &str) -> Vec<&str> {
     attrs
         .split(|c: char| c.is_whitespace() || c == '{' || c == '}')
         .filter_map(|t| t.strip_prefix('#'))
-        .find(|t| t.starts_with(prefix))
-        .map(str::to_string)
+        .filter(|t| !t.is_empty())
+        .collect()
+}
+
+/// 見出し・パイプ表キャプションの ID から (ラベル, 警告) を決める。
+///
+/// ラベルとして使えるのは「ID がちょうど 1 つで、種別の接頭辞で始まる」ときだけ。
+/// 別の形の ID が既にあれば候補を出さない（2 つ目の ID を足すと Pandoc は後ろの
+/// 1 つしか使わず、足したラベルはリンク先にならない）。
+fn classify_ids(attrs: Option<&str>, prefix: &str) -> (Option<String>, Option<Warning>) {
+    let ids = attrs.map(ids_in).unwrap_or_default();
+    match ids.as_slice() {
+        [] => (None, None),
+        [id] if id.starts_with(prefix) => (Some(id.to_string()), None),
+        [_] => (None, Some(Warning::ForeignId)),
+        _ => (None, Some(Warning::MultipleIds)),
+    }
 }
 
 /// `::: {#fig-x …}` の id。
@@ -426,6 +448,29 @@ mod tests {
     fn tbl_without_caption_is_warned() {
         let items = scan("a.qmd", "::: {.tbl widths=\"10,30\"}\n| a |\n:::\n");
         assert_eq!(items[0].warning, Some(Warning::NoCaption));
+    }
+
+    #[test]
+    fn heading_with_a_foreign_id_is_not_a_candidate() {
+        // `{#u-0001}` のように接頭辞の違う ID があれば、ラベル無し扱いにせず警告にする
+        let items = scan("a.qmd", "### U-0001：外部描画 {#u-0001 .unnumbered}\n");
+        assert_eq!(items[0].label, None);
+        assert_eq!(items[0].warning, Some(Warning::ForeignId));
+    }
+
+    #[test]
+    fn two_ids_are_warned_even_if_one_is_a_label() {
+        // Pandoc は最後の ID しか使わないので、sec- があってもキーにしない
+        let items = scan("a.qmd", "### U-0001 {#sec-5d7629 #u-0001 .unnumbered}\n");
+        assert_eq!(items[0].label, None);
+        assert_eq!(items[0].warning, Some(Warning::MultipleIds));
+    }
+
+    #[test]
+    fn pipe_caption_with_a_foreign_id_is_warned() {
+        let items = scan("a.qmd", "| a |\n|---|\n\n: 仕様 {#spec}\n");
+        assert_eq!(items[0].kind, Kind::Pipe);
+        assert_eq!(items[0].warning, Some(Warning::ForeignId));
     }
 
     #[test]

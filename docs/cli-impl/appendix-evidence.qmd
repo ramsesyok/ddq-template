@@ -86,7 +86,7 @@
 
 ### E-0020：論理文書とラベル付与 {#ev-e-0020 .unnumbered}
 
-**確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/doc/mod.rs::Doc / scan_folder`、`doc/project.rs::Source / Folder / order / order_of / logical / walk / include_path / chapters_of / join_rel / read_text`、`doc/units.rs::Kind / Warning / Item / Edit / scan / push_div / heading / caption_line / attr_value`、`doc/labels.rs::suggest / candidate / edit_for / apply_to_line / valid`、`commands/tag.rs::list / apply / from_file / label_in / print_table`、`cli/tests/tag.rs`。章と include の展開規則、付録を読まないこと、拾う記法と除外範囲、候補の決定性と桁の延長、文字数単位の挿入、CRLF保持、`--from` の事前検証、書込み単位を確認した。`Warning::BareFigure` の生成箇所がないことは全ソース検索で確認した。
+**確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/doc/mod.rs::Doc / scan_folder`、`doc/project.rs::Source / Folder / order / order_of / logical / walk / include_path / chapters_of / join_rel / read_text`、`doc/units.rs::Kind / Warning / Item / Edit / scan / push_div / heading / caption_line / attr_value / ids_in / classify_ids`、`doc/labels.rs::suggest / candidate / edit_for / apply_to_line / valid`、`commands/tag.rs::list / apply / from_file / label_in / print_table`、`cli/tests/tag.rs`。章と include の展開規則、付録を読まないこと、拾う記法と除外範囲、候補の決定性と桁の延長、文字数単位の挿入、CRLF保持、`--from` の事前検証、書込み単位を確認した。`Warning::BareFigure` の生成箇所がないことは全ソース検索で確認した。
 
 ### E-0021：差分・改訂ファイル・履歴表 {#ev-e-0021 .unnumbered}
 
