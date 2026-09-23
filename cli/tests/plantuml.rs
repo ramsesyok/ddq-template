@@ -98,7 +98,9 @@ fn diagrams_renders_puml_and_rejects_syntax_error() {
         );
     }
 
-    // 構文エラー: 終了コード非 0、その図の SVG は作られない（エラー画像を残さない）
+    // 構文エラー: 終了コード非 0、その図の SVG は作られない（エラー画像を残さない）。
+    // 前回うまく描けた SVG が残っていても消す（古い絵のまま発行物に入らないように）
+    fs::write(diagrams.join("broken.svg"), "<svg>前回の絵</svg>").unwrap();
     fs::write(
         diagrams.join("broken.puml"),
         "class A {\nthis is not valid --> ]]\n",

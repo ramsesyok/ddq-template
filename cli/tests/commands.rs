@@ -146,6 +146,64 @@ fn init_then_add_then_update_all() {
 }
 
 #[test]
+fn update_prunes_diagram_cache_only_when_the_version_changes() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("order-design");
+    assert_ok(&ddq(&["init", &repo.to_string_lossy(), "--no-render"]));
+    let docs = repo.join("docs");
+    let diagrams = docs.join("diagrams");
+    fs::create_dir_all(&diagrams).unwrap();
+    let put = |name: &str| fs::write(diagrams.join(name), "<svg/>").unwrap();
+
+    // 同じ版での update（機構の修復）ではキャッシュを残す（描き直しは時間がかかる）
+    put("mmd-0123456789abcdef.svg");
+    assert_ok(&ddq(&["update", &docs.to_string_lossy()]));
+    assert!(diagrams.join("mmd-0123456789abcdef.svg").exists());
+
+    // 版が変わる update では、キャッシュ（mmd-* / puml-*）だけを消す。静的図には触らない
+    fs::write(docs.join(".template-version"), "0.0.0\n").unwrap();
+    put("puml-0123456789abcdef.svg");
+    put("puml-0123456789abcdef.puml");
+    put("network.svg");
+    put("network.mmd");
+    let out = ddq(&["update", &docs.to_string_lossy()]);
+    assert_ok(&out);
+    assert!(String::from_utf8_lossy(&out.stdout).contains("キャッシュ 3 件を削除"));
+    let mut left: Vec<String> = fs::read_dir(&diagrams)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    left.sort();
+    left.retain(|n| n != ".gitkeep"); // 雛形が置く
+    assert_eq!(left, ["network.mmd", "network.svg"]);
+}
+
+#[test]
+fn diagrams_removes_the_old_svg_of_a_broken_mermaid() {
+    // 内蔵レンダラ（merman）なら外部のブラウザ無しで確かめられる
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("order-design");
+    assert_ok(&ddq(&["init", &repo.to_string_lossy(), "--no-render"]));
+    let diagrams = repo.join("docs").join("diagrams");
+    fs::create_dir_all(&diagrams).unwrap();
+    fs::write(diagrams.join("ok.mmd"), "flowchart LR\n  A --> B\n").unwrap();
+    fs::write(diagrams.join("broken.mmd"), "flowchart LR\n  A --> \n  ((((\n").unwrap();
+    fs::write(diagrams.join("broken.svg"), "<svg>前回の絵</svg>").unwrap();
+
+    let out = Command::new(env!("CARGO_BIN_EXE_ddq"))
+        .args(["diagrams", &repo.join("docs").to_string_lossy()])
+        .env("DDQ_MERMAID_ENGINE", "merman")
+        .output()
+        .unwrap();
+    assert!(!out.status.success(), "壊れた図があるのに成功した");
+    assert!(diagrams.join("ok.svg").is_file(), "描けた図は書く");
+    assert!(
+        !diagrams.join("broken.svg").exists(),
+        "失敗した図の古い SVG が残っている"
+    );
+}
+
+#[test]
 fn setup_rejects_different_template_version() {
     let tmp = tempfile::tempdir().unwrap();
     let repo = tmp.path().join("order-design");

@@ -8,7 +8,7 @@
 |---|---|
 | リポジトリの版 | `281d62f1338d1de7f6660c1a47e1e84e72edda1b`、`main` |
 | 調査開始時 | 追跡ファイルの差分なし。未追跡 `.claude/` は解析対象外 |
-| 表示版／機構版 | `template/VERSION` の `2.4.0` |
+| 表示版／機構版 | `template/VERSION` の `2.4.1`（解析基準は2.4.0） |
 | Cargo パッケージ | `ddq`、package version `0.0.0`、edition `2024`、rust-version `1.95` |
 | 調査基準日 | 2026-09-23（初版 2026-09-21） |
 
@@ -42,6 +42,8 @@
 |---|---|---|
 | 2.2.2 | `postprocess-html.js` で別章の `.tbl`／`.ipo` への参照を補正（機構の変更、Rust 側は変更なし） | 機構照合の対象として扱う |
 | 2.3.0 | `ddq tag`・`ddq rev` と `doc/` モジュール、直接依存 `sha1` を追加。`lib.typ` に改訂履歴の「頁」列用 `_xref-page` を追加。雛形 `index.qmd` が `revisions/history.qmd` を include。拡張を `extension/` から `extensions/<拡張>/` へ移し、release が複数VSIXを同梱 | 第2～7章 |
-| 2.4.0 | `lib.typ`（PDF側資産）と `postprocess-html.js`（機構）が `book.appendices` に対応。Rust 側は変更なし | 第4章、第7章（`tag`／`rev` は付録を読まない） |
+| 2.4.0 | `lib.typ`（PDF側資産）と `postprocess-html.js`（機構）が `book.appendices` に対応。Rust 側は変更なし | 第4章 |
+| 2.4.0以降 | 第7章の注意点のうち tag／rev・PlantUML起動・init・zip の修正（版は据え置き） | 第3～7章、第7章「修正した点」 |
+| 2.4.1 | `design-doc.lua`（機構）の図キャッシュのキーを16桁にし、版・設定・エンジンを含める。`ddq update` が版上げ時にキャッシュを消す。静的図の失敗時に前回のSVGを消す | 第3・4・7章 |
 
 Mermaid・PlantUML・Quarto起動・パス検査・機構照合の Rust 実装に変更はない。これらを記述した節は、版表記と参照先の更新にとどめた。

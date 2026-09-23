@@ -37,9 +37,9 @@ Windows 同梱の `curl.exe` を `pandoc.pipe` で呼び、`POST /render`（JSON
 ### 共通設定は連結して送る
 
 `plantuml-config.puml`（機構ファイル）はサーバに `-config` で渡せないため、**中身を `@start…` の
-直後に連結してから送る**。`@startuml` が無ければ補う。連結後のソースを SHA-1 でハッシュして
-`diagrams/puml-<hash>.svg` に置くので、**設定を変えると図は自動で描き直される**（mermaid の
-`mermaid-config.json` には無い性質）。改行は LF に揃えてから連結する（CRLF だと `@startuml\n`
+直後に連結してから送る**。`@startuml` が無ければ補う。連結後のソースとテンプレートの版を SHA-1 で
+ハッシュして `diagrams/puml-<hash>.svg` に置くので、**設定を変えると図は自動で描き直される**
+（mermaid も同じ）。サーバはハッシュに入れない（LAN とローカルを切り替えても描き直さない）。改行は LF に揃えてから連結する（CRLF だと `@startuml\n`
 に当たらず設定が連結されない。実測）。
 
 既定の設定は `!pragma layout smetana`（Graphviz の Java 移植。dot の有無や版に依らず同じ配置）、

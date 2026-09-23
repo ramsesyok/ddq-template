@@ -74,7 +74,11 @@ pub fn run(dir: &Path) -> Result<()> {
             match plantuml::render(url, &plantuml::assemble_source(&code, &config)) {
                 Ok(svg) => fs::write(&output, format!("{header}{svg}"))
                     .with_context(|| format!("{} を書けません", output.display()))?,
-                Err(e) => failed.push(format!("  {}: {e:#}", input.display())),
+                Err(e) => {
+                    // 前回の SVG を残すと、直し損ねた図が古い絵のまま発行物に入る（mermaid と同じ）
+                    let _ = fs::remove_file(&output);
+                    failed.push(format!("  {}: {e:#}", input.display()))
+                }
             }
         }
         drop(session);

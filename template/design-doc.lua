@@ -84,11 +84,37 @@ local function mermaid_conf_path()
   return nil
 end
 
+-- 図のキャッシュ（diagrams/mmd-<key>.svg / puml-<key>.svg）のキー。
+-- 図のソースだけでなく、出来上がりを変えうるものをすべて混ぜる:
+--   テンプレートの版（フィルタ・ddq・レンダラの版を代表する）と、呼び出し側が渡す
+--   設定・エンジンなど。どれかが変われば別のファイル名になり、古い絵を使い回さない。
+-- 16 桁（64 bit）にするのは、文書内の図の数で偶然の衝突を無視できるようにするため。
+-- 版が上がったときに残る古いキャッシュは `ddq update` が消す。
+local function cache_key(...)
+  local ver = (read_file(ROOT .. '/.template-version') or '?'):gsub('%s+$', '')
+  local parts = { ver, ... }
+  return pandoc.utils.sha1(table.concat(parts, '\n\0\n')):sub(1, 16)
+end
+
+-- キャッシュの SVG が使えるか。存在だけでなく、中身が SVG であること
+-- （書きかけ・空のファイルを使い回さない）。
+local function cached_svg(p)
+  local f = io.open(p, 'rb')
+  if not f then return false end
+  local head = f:read(4096) or ''
+  f:close()
+  return head:find('<svg', 1, true) ~= nil
+end
+
 local function render_mermaid(code)
-  local hash = pandoc.utils.sha1(code):sub(1, 8)
+  -- エンジン（browser / merman）で出来上がりが違う。自動選択の結果はここでは分からないので、
+  -- 明示されていればその値、無ければ 'auto' をキーに混ぜる。
+  local conf = mermaid_conf_path()
+  local hash = cache_key('mermaid', os.getenv('DDQ_MERMAID_ENGINE') or 'auto',
+    conf and (read_file(conf) or '') or '', code)
   local svg = DIAG .. '/mmd-' .. hash .. '.svg'
   local rel = diag_rel() .. '/mmd-' .. hash .. '.svg'
-  if file_exists(svg) then return rel, svg end
+  if cached_svg(svg) then return rel, svg end
   pandoc.system.make_directory(DIAG, true)
   local mmd = DIAG .. '/mmd-' .. hash .. '.mmd'
   local f = assert(io.open(mmd, 'w')); f:write(code); f:close()
@@ -97,7 +123,6 @@ local function render_mermaid(code)
   -- ブラウザの探索（EXECUTABLE_BROWSER → Edge → Chrome）と内蔵レンダラへの
   -- フォールバックは ddq 側で行うので、ここは入出力と設定を渡すだけでよい。
   local args = { 'mermaid', '-i', mmd, '-o', svg, '-b', 'transparent' }
-  local conf = mermaid_conf_path()
   if conf then table.insert(args, '-c'); table.insert(args, conf) end
   local ok, err = pcall(pandoc.pipe, DDQ, args, '')
   if not ok or not file_exists(svg) then
@@ -352,10 +377,12 @@ end
 -- フェンス → diagrams/puml-<hash>.svg。成功なら (相対パス, 絶対パス)、失敗なら (nil, 理由)。
 local function render_plantuml(code)
   local src, injected = puml_source(code)
-  local hash = pandoc.utils.sha1(src):sub(1, 8)
+  -- src は共通設定（plantuml-config.puml）を連結済み。サーバはキーに入れない
+  -- （LAN とローカルを切り替えても描き直さない。サーバの版の違いは版上げ時の update で消える）。
+  local hash = cache_key('plantuml', src)
   local svg = DIAG .. '/puml-' .. hash .. '.svg'
   local rel = diag_rel() .. '/puml-' .. hash .. '.svg'
-  if file_exists(svg) then return rel, svg end
+  if cached_svg(svg) then return rel, svg end
   local server = puml_find_server()
   if not server then
     return nil, 'PlantUML サーバが見つかりません。\n' .. table.concat(puml_tried, '\n')

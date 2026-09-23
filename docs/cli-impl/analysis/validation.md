@@ -66,3 +66,10 @@ PlantUML の起動待ち・stderr・Job 登録失敗、init の `.`／`..`、ZIP
 `cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml` は終了0
 （unit 61 / commands 5 / plantuml 2 / rev 12 / tag 10）。plantuml は Java 17 とローカル jar で実行した。
 merman golden は1件成功。ローカル日付の境界と、無出力 JVM・Job 登録失敗の故障注入は未実施。
+
+## 2026-09-23 の追補（図キャッシュのキー、2.4.1）
+
+design-doc.lua のキャッシュキーを版・設定・エンジン指定を含む16桁にし、ddq update が版上げ時にキャッシュを消すようにした。
+cargo test（unit 61 / commands 7 / plantuml 2 / rev 12 / tag 10）と DDQ_E2E=1 の e2e 3件が成功。
+docs/cli-impl で、版上げ時の削除（8件）、再ビルドでの再利用、素の quarto render での設定変更・エンジン指定による別キー、
+空キャッシュの描き直しを観測した。

@@ -27,7 +27,7 @@
 
 **確認済み（静的）**：`add::run` は親から上に `.gitignore`、`.git`、`.svn`、`.hg` のいずれかを探し、追加先に `_quarto.yml` があれば拒否する。`populate` は content雛形の不足ファイルを作り、`update::run` で機構を上書きし、通常は `quarto render --to html` による疎通確認を行う。`--no-render` は最後の描画だけを省略する。init の再実行は原稿を保持するが、機構まで保持する操作ではない。[E-0005](appendix-evidence.qmd#ev-e-0005)
 
-**確認済み（静的）**：`update::run` は機構5本を書いた後、`.template-version` を書く。`--all` は指定先配下の `_quarto.yml` を探し、パス順に更新する。`_book`、`.quarto`、`node_modules`、`.git`、`target` は探索しないが、ddq専用の設定かどうかは判別しない。[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0006](appendix-evidence.qmd#ev-e-0006)
+**確認済み（静的）**：`update::run` は機構5本を書いた後、`.template-version` を書く。書く前の `.template-version` と埋込み版が違う（版を上げる）場合は、`diagrams/` 直下の `mmd-*`／`puml-*`（フィルタのキャッシュ）を消す。同じ版での再実行では消さない。`--all` は指定先配下の `_quarto.yml` を探し、パス順に更新する。`_book`、`.quarto`、`node_modules`、`.git`、`target` は探索しないが、ddq専用の設定かどうかは判別しない。[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0006](appendix-evidence.qmd#ev-e-0006)
 
 **確認済み（静的・限定実行）**：`setup::ensure_current` は `.template-version` を trim して埋込み版と比較し、機構5本を UTF-8文字列として完全比較する。版だけ合っていても、改行やローカル編集が違えば停止する。`setup::run` は検査成功後に PDF側4本を上書きする。機構を自動修復するのは update であり、setup/html/pdf は不一致を報告する。配置・不一致拒否は commands統合テストで確認した。[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0017](appendix-evidence.qmd#ev-e-0017)
 
@@ -57,9 +57,9 @@ flowchart TD
 
 ## 図の変換 {#sec-f938ca}
 
-**確認済み（静的）**：`diagrams::run` は `diagrams/` 直下だけを調べ、小文字拡張子 `.mmd`／`.puml` を同名 `.svg` に変換する。Luaキャッシュに使う `mmd-`／`puml-` で始まる名前は除外する。フォルダ欠落はエラー、対象ゼロは警告を出して成功する。このコマンドには setup の版・機構照合はない。[E-0008](appendix-evidence.qmd#ev-e-0008)
+**確認済み（静的）**：`diagrams::run` は `diagrams/` 直下だけを調べ、小文字拡張子 `.mmd`／`.puml` を同名 `.svg` に変換する。Luaキャッシュに使う `mmd-`／`puml-` で始まる名前は除外する。フォルダ欠落はエラー、対象ゼロは警告を出して成功する。変換に失敗した図は、出力先に前回の SVG があれば消す（Mermaid・PlantUML とも）。このコマンドには setup の版・機構照合はない。[E-0008](appendix-evidence.qmd#ev-e-0008)
 
-**確認済み（静的）**：Mermaidは `DDQ_MERMAID_ENGINE=browser|merman` を優先する。未設定なら browser が見つかったときに選び、見つからなければ merman を選ぶ。`auto` という文字列は有効値ではない。ブラウザを選択した後の起動・描画失敗から merman へ再試行する実装もない。入力ファイルは全件読んでから描画し、図単位の失敗は成功分を書いた後にまとめてエラーにする。CDP接続等のバッチ全体のエラーでは、書出し段階へ到達しない。[E-0009](appendix-evidence.qmd#ev-e-0009)
+**確認済み（静的）**：Mermaidは `DDQ_MERMAID_ENGINE=browser|merman` を優先する。未設定なら browser が見つかったときに選び、見つからなければ merman を選ぶ。`auto` という文字列は有効値ではない。ブラウザを選択した後の起動・描画失敗から merman へ再試行する実装もない。入力ファイルは全件読んでから描画し、図単位の失敗は成功分を書き、失敗した図の出力先にある前回の SVG を消してから、まとめてエラーにする。CDP接続等のバッチ全体のエラーでは、書出し段階へ到達しない。[E-0009](appendix-evidence.qmd#ev-e-0009)
 
 **確認済み（静的）**：PlantUMLは共通設定を図の開始行の直後へ連結して HTTP POST する。通常の `@startuml` 以外の `@start...` も保持する。本文の改行はLF化し、開始行がなければ `@startuml`／`@enduml` を補う。図単位の描画エラーは集約するが、ファイルの読書き失敗は即時伝播する。diagrams は Mermaidを先に処理するため、その失敗時はPlantUML部分を実行しない。[E-0008](appendix-evidence.qmd#ev-e-0008)、[E-0010](appendix-evidence.qmd#ev-e-0010)
 
@@ -108,4 +108,4 @@ flowchart TD
 
 **確認済み（静的）**：コマンドは `anyhow::Result<()>` を main に返す。外部コマンドの非成功をエラーに変換し、子の終了コードは診断に含めるが、その値をddqの終了コードとして転送する専用処理はない。引数の誤りはclap、業務処理の失敗はanyhowに委譲する。利用側はまず成功／非成功で判断する。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0007](appendix-evidence.qmd#ev-e-0007)
 
-**確認済み（静的）**：一連のファイル更新にトランザクションや巻戻しはない。update途中の失敗では機構の新旧混在、init/addの描画失敗では配置済みファイル、図変換失敗では成功分と古いSVG、PDF発行失敗では以前の `design-doc.pdf` が残り得る。release途中の失敗では不完全な配布フォルダが残る（ZIP は書込み途中の失敗でも削除する）。`tag apply` はファイル単位で書き込むため、途中の書込み失敗では書き込み済みのファイルだけが変わった状態になる（`--from` の検証は書込み前に全体で行う）。`rev diff --write`／`rev build` は一ファイルの上書きであり、一時ファイル経由の置換はしない。再実行前に終了状態と生成物を併せて確認する。[E-0005](appendix-evidence.qmd#ev-e-0005)～[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0021](appendix-evidence.qmd#ev-e-0021)
+**確認済み（静的）**：一連のファイル更新にトランザクションや巻戻しはない。update途中の失敗では機構の新旧混在、init/addの描画失敗では配置済みファイル、図変換失敗では成功分（失敗した図の前回SVGは消える。バッチ全体の失敗では前回の出力が残る）、PDF発行失敗では以前の `design-doc.pdf` が残り得る。release途中の失敗では不完全な配布フォルダが残る（ZIP は書込み途中の失敗でも削除する）。`tag apply` はファイル単位で書き込むため、途中の書込み失敗では書き込み済みのファイルだけが変わった状態になる（`--from` の検証は書込み前に全体で行う）。`rev diff --write`／`rev build` は一ファイルの上書きであり、一時ファイル経由の置換はしない。再実行前に終了状態と生成物を併せて確認する。[E-0005](appendix-evidence.qmd#ev-e-0005)～[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0021](appendix-evidence.qmd#ev-e-0021)
