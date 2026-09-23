@@ -23,7 +23,7 @@
 
 ## 作成・更新・版の検査 {#sec-dda2e3}
 
-**確認済み（静的）**：`init::run` はフォルダ名が空、または `/`・`\` を含む場合に拒否し、パス文字を検査する。repo直下の雛形は既存ファイルを保持し、README内の `{{CONTENT_DIR}}` を置換する。2.3.0 以降の content 雛形は `revisions/history.qmd`（コメント1行）を含み、`index.qmd` がそれを include する。その後 `add::populate` を直接呼ぶ。`git init` は実行せず、次の操作として表示する。[E-0005](appendix-evidence.qmd#ev-e-0005)
+**確認済み（静的）**：`init::run` はフォルダ名が空、または `/`・`\` を含む場合、または `.`／`..` の場合に拒否し、パス文字を検査する。repo直下の雛形は既存ファイルを保持し、README内の `{{CONTENT_DIR}}` を置換する。2.3.0 以降の content 雛形は `revisions/history.qmd`（コメント1行）を含み、`index.qmd` がそれを include する。その後 `add::populate` を直接呼ぶ。`git init` は実行せず、次の操作として表示する。[E-0005](appendix-evidence.qmd#ev-e-0005)
 
 **確認済み（静的）**：`add::run` は親から上に `.gitignore`、`.git`、`.svn`、`.hg` のいずれかを探し、追加先に `_quarto.yml` があれば拒否する。`populate` は content雛形の不足ファイルを作り、`update::run` で機構を上書きし、通常は `quarto render --to html` による疎通確認を行う。`--no-render` は最後の描画だけを省略する。init の再実行は原稿を保持するが、機構まで保持する操作ではない。[E-0005](appendix-evidence.qmd#ev-e-0005)
 
@@ -69,13 +69,13 @@ flowchart TD
 
 **確認済み（静的）**：出力は `<out-dir>/quarto-template-<埋込み版>/` と同名ZIP。既存の同名配布フォルダは削除して再作成し、実行中のddq自身、README、AGENT-GUIDE、jar、はじめかたPDF、マニュアルPDF／HTML、拡張ごとのVSIXを集める。`--with-sample` では `examples/docs` を `docs/` としてコピーし、生成物・PDF側補助・図キャッシュを除く。除外条件はコピー中のファイル名／接頭辞に適用される。[E-0013](appendix-evidence.qmd#ev-e-0013)
 
-**確認済み（静的）**：`--no-build` はマニュアルとVSIXの作成を省略するが、存在・name・版の検査は残り、はじめかたPDFは引き続き `quarto typst compile` で作る。jarの版はMANIFESTから表示用に読むだけで、MIT版であることの自動検証はしない。ZIPの検証はファイル数であり、内容全体の照合ではない。[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)
+**確認済み（静的）**：`--no-build` はマニュアルとVSIXの作成を省略するが、存在・name・版の検査は残り、はじめかたPDFは引き続き `quarto typst compile` で作る。jarの版はMANIFESTから表示用に読むだけで、MIT版であることの自動検証はしない。ZIPは書いた後に読み直し、全エントリの名前とバイト数を書いた内容と照合する。書込み途中の失敗や不一致では zip を削除する。バイト列そのものの比較や、同梱物が最新であることの確認ではない。[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)
 
 ## ラベル付与と改訂履歴 {#sec-4418e2}
 
-**確認済み（静的）**：`tag` と `rev` は原稿を UTF-8 テキストとして読み（BOM は除去）、Quarto は起動しない。論理文書の順序は `doc::project` が `_quarto.yml` の `chapters:` 配下にある `- <パス>.qmd|.md` を行ベースで拾い、行単独の `{{< include … >}}` をその場に再帰展開して作る。include の基準は入れ子でも章ファイルのディレクトリであり、循環と重複は警告にする。`_quarto.yml` が読めない、または `chapters:` から一件も拾えない場合は、配下の qmd/md をパス順に並べる。`chapters:` 範囲は字下げが戻った行で終わるため、`book.appendices` の付録ファイルは対象にならない（[第7章](07-issues-unknowns.qmd#sec-issues-unknowns)）。[E-0020](appendix-evidence.qmd#ev-e-0020)
+**確認済み（静的）**：`tag` と `rev` は原稿を UTF-8 テキストとして読み（BOM は除去）、Quarto は起動しない。論理文書の順序は `doc::project` が `_quarto.yml` の `chapters:` と `appendices:`（付録）の配下にある `- <パス>.qmd|.md` を行ベースで拾い、行単独の `{{< include … >}}` をその場に再帰展開して作る。include の基準は入れ子でも章ファイルのディレクトリであり、循環と重複は警告にする。範囲は字下げが戻った行で終わり、`chapters:` の直後の `appendices:` からは付録の範囲が始まる。`_quarto.yml` が読めない、または一件も拾えない場合は、配下の qmd/md をパス順に並べる。[E-0020](appendix-evidence.qmd#ev-e-0020)
 
-**確認済み（静的）**：`doc::units::scan` は行頭パターンだけで、見出し（`sec-`）、`.tbl`／`.ipo` div（`tbl-`）、表の前後に接するパイプ表キャプション行（`tbl-`）、`::: {#fig-…}`（`fig-`）を拾う。front matter、コードフェンス内、`.tbl`／`.ipo`／`#fig-` div 内の見出しは除外する。キャプションもラベルも無い `.tbl` は `no-caption` 警告で対象外とする。見出しとパイプ表キャプションは、ID がちょうど一つで種別の接頭辞で始まる場合だけラベルとみなす。接頭辞の違う ID が一つある場合は `foreign-id`、ID が二つ以上ある場合は `multiple-ids` の警告とし、候補を出さず書き戻しもしない（Pandoc は ID を一つしか使わず、二つ目を足すとリンク先にならないため）。[E-0020](appendix-evidence.qmd#ev-e-0020)
+**確認済み（静的）**：`doc::units::scan` は行頭パターンだけで、見出し（`sec-`）、`.tbl`／`.ipo` div（`tbl-`）、表の前後に接するパイプ表キャプション行（`tbl-`）、`::: {#fig-…}` と行頭の画像 `![…](…){#fig-…}`（`fig-`）を拾う。キャプションはあるが ID の無い画像は `bare-figure` の警告とし、候補を出さない（ID を足すと番号付きの図になり、以降の図番号がずれるため）。キャプションも ID も無い画像は拾わない。front matter、コードフェンス内、`.tbl`／`.ipo`／`#fig-` div 内の見出しは除外する。キャプションもラベルも無い `.tbl` は `no-caption` 警告で対象外とする。見出しとパイプ表キャプションは、ID がちょうど一つで種別の接頭辞で始まる場合だけラベルとみなす。接頭辞の違う ID が一つある場合は `foreign-id`、ID が二つ以上ある場合は `multiple-ids` の警告とし、候補を出さず書き戻しもしない（Pandoc は ID を一つしか使わず、二つ目を足すとリンク先にならないため）。[E-0020](appendix-evidence.qmd#ev-e-0020)
 
 **確認済み（静的・限定実行）**：`tag list` は、ラベルの無いものに候補と編集指示（ファイル・行・行頭からの**文字数**・挿入文字列）を付ける。候補は「ファイル相対パス・種別・正規化した文言」の SHA-1 先頭6桁で、既存ラベルと衝突すれば 8→10→40 桁に伸ばす。同じ入力なら同じ候補になる。`tag apply --all` は候補をすべて書き戻し、ファイルごとに行の後ろから挿入して、行末の CR を保持する。`--from` は `tag list --json` 全体または編集指示の配列を受け、行の不一致・既存ラベル・挿入位置超過・形式違反（接頭辞＋英数字・`-`・`_`）・重複のいずれかで、書込み前に全体を停止する。`--dry-run` は書き込まない。これらは `tests/tag.rs` で確認した。[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0017](appendix-evidence.qmd#ev-e-0017)
 
@@ -98,9 +98,9 @@ flowchart TD
 
 **確認済み（静的）**：`rev next` は `git tag --list rev-*` から記号を集め、長さ→文字列の順で並べる。改訂ファイルの `scheme` が無ければ、既存記号がすべて数字なら `numeric`、それ以外は `alpha` とする。タグの無い改訂ファイル（書きかけ）があればその記号を使い続け、無ければ次の記号（`A→B`、`Z→AA`、数値は +1）を出す。基準候補は最後のタグで、無い場合 `rev diff` は `--base` を要求する。[E-0021](appendix-evidence.qmd#ev-e-0021)
 
-**確認済み（静的・限定実行）**：`rev diff` は旧版と新版で同じ手順により論理文書を作り、ラベルごとの「ユニット」に切って本文を比べる。見出しは次の同位以上の見出しまで、`.tbl`／`.ipo`／`#fig-` はその div 内（属性行を含む）を本文とし、子ユニットの範囲は親に含めない。ラベルの無い見出し・表・図の中身は、ラベルを持つ直近の親見出しに帰属する。種別は `added`・`removed`・`changed`（本文の変化）・`renamed`（文言だけの変化）。比較前に改行コードは常に統一し、`--strict` が無ければ行内空白の連続と空行も無視する。出力順は新版の文書順で、`removed` は旧版で直前にあったラベルの後ろに挿す。[E-0021](appendix-evidence.qmd#ev-e-0021)
+**確認済み（静的・限定実行）**：`rev diff` は旧版と新版で同じ手順により論理文書を作り、ラベルごとの「ユニット」に切って本文を比べる。見出しは次の同位以上の見出しまで、`.tbl`／`.ipo`／`#fig-` はその div 内（属性行を含む）、画像の図はその1行、ラベルのあるパイプ表は接する表の行（空行1つまで挟んだ直前、無ければ直後）を本文とし、子ユニットの範囲は親に含めない。ラベルの無い見出し・表・図の中身は、ラベルを持つ直近の親見出しに帰属する。種別は `added`・`removed`・`changed`（本文の変化）・`renamed`（文言だけの変化）。比較前に改行コードは常に統一し、`--strict` が無ければ行内空白の連続と空行も無視する。出力順は新版の文書順で、`removed` は旧版で直前にあったラベルの後ろに挿す。[E-0021](appendix-evidence.qmd#ev-e-0021)
 
-**確認済み（静的・限定実行）**：`rev diff --write` は `revisions/rev-<記号>.yml` を作り直す。既存ファイルの `date` と、同じラベルの `note` を引き継ぐ。差分から外れたが `note` が空でない行は `stale: true` で残す。`--write` がある場合は `--json` を指定しても JSON を出さず、更新件数と警告を表示する（一時リポジトリで観測）。[E-0021](appendix-evidence.qmd#ev-e-0021)、[E-0017](appendix-evidence.qmd#ev-e-0017)
+**確認済み（静的・限定実行）**：`rev diff --write` は `revisions/rev-<記号>.yml` を作り直す。既存ファイルの `date` と、同じラベルの `note` を引き継ぐ。差分から外れたが `note` が空でない行は `stale: true` で残す。`--json` が無ければ更新件数と警告を表示し、`--json` があれば書き込んだ後に標準出力へ JSON だけを出す。[E-0021](appendix-evidence.qmd#ev-e-0021)、[E-0017](appendix-evidence.qmd#ev-e-0017)
 
 **確認済み（静的・限定実行）**：`rev build` は `revisions/rev-*.yml`（`.yaml` も可）を記号順に読み、`stale` を除く行を新版の文書順に並べて `revisions/history.qmd` を上書きする。表は PDF 用（`content-visible when-format="typst"`、「頁」列に `_xref-page`）と HTML 用の二つを出力する。「箇所」は現存ラベルなら `@ラベル` の相互参照、削除済みなら名称と「削除」の表記になる。`note` が空の行、または `index.qmd` に include が無い場合は警告を出し、`--check` の場合は非成功で終わる。改訂ファイルが一つも無ければエラーとなる。[E-0021](appendix-evidence.qmd#ev-e-0021)
 
@@ -108,4 +108,4 @@ flowchart TD
 
 **確認済み（静的）**：コマンドは `anyhow::Result<()>` を main に返す。外部コマンドの非成功をエラーに変換し、子の終了コードは診断に含めるが、その値をddqの終了コードとして転送する専用処理はない。引数の誤りはclap、業務処理の失敗はanyhowに委譲する。利用側はまず成功／非成功で判断する。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0007](appendix-evidence.qmd#ev-e-0007)
 
-**確認済み（静的）**：一連のファイル更新にトランザクションや巻戻しはない。update途中の失敗では機構の新旧混在、init/addの描画失敗では配置済みファイル、図変換失敗では成功分と古いSVG、PDF発行失敗では以前の `design-doc.pdf` が残り得る。release途中の失敗では不完全な配布フォルダが残り、ZIP書込み途中の全エラーを削除する仕組みはない。`tag apply` はファイル単位で書き込むため、途中の書込み失敗では書き込み済みのファイルだけが変わった状態になる（`--from` の検証は書込み前に全体で行う）。`rev diff --write`／`rev build` は一ファイルの上書きであり、一時ファイル経由の置換はしない。再実行前に終了状態と生成物を併せて確認する。[E-0005](appendix-evidence.qmd#ev-e-0005)～[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0021](appendix-evidence.qmd#ev-e-0021)
+**確認済み（静的）**：一連のファイル更新にトランザクションや巻戻しはない。update途中の失敗では機構の新旧混在、init/addの描画失敗では配置済みファイル、図変換失敗では成功分と古いSVG、PDF発行失敗では以前の `design-doc.pdf` が残り得る。release途中の失敗では不完全な配布フォルダが残る（ZIP は書込み途中の失敗でも削除する）。`tag apply` はファイル単位で書き込むため、途中の書込み失敗では書き込み済みのファイルだけが変わった状態になる（`--from` の検証は書込み前に全体で行う）。`rev diff --write`／`rev build` は一ファイルの上書きであり、一時ファイル経由の置換はしない。再実行前に終了状態と生成物を併せて確認する。[E-0005](appendix-evidence.qmd#ev-e-0005)～[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0021](appendix-evidence.qmd#ev-e-0021)

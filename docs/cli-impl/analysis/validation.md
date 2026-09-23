@@ -58,3 +58,11 @@ check_output.py は HTML 9ページ、表14、図SVG3点（rev の流れ図を�
 
 `tag` が接頭辞の違う既存 ID を持つ見出しに 2 つ目の ID を足していた不具合を直した（foreign-id／multiple-ids の警告を追加）。
 本書 07 章の U-0001～U-0008 に付いていた無効な `#sec-…` を外し、ソースhashを更新した。
+
+## 2026-09-23 の追補（第7章の注意点の修正）
+
+PlantUML の起動待ち・stderr・Job 登録失敗、init の `.`／`..`、ZIP の照合、付録、パイプ表の帰属、
+改訂日、`--write --json`、`~~~`、画像の図（bare-figure）を修正した。
+`cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml` は終了0
+（unit 61 / commands 5 / plantuml 2 / rev 12 / tag 10）。plantuml は Java 17 とローカル jar で実行した。
+merman golden は1件成功。ローカル日付の境界と、無出力 JVM・Job 登録失敗の故障注入は未実施。

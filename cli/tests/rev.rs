@@ -103,6 +103,65 @@ fn next_proposes_symbol_and_base() {
 }
 
 #[test]
+fn write_with_json_prints_only_json() {
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    edit(tmp.path());
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+
+    let out = ddq(&["rev", "diff", &docs, "--write", "--json"]);
+    assert_ok(&out);
+    // 標準出力はそのまま JSON として読める（「更新しました」の行が混ざらない）
+    let v: Value = serde_json::from_str(&stdout(&out)).expect("JSON だけが出るはず");
+    assert!(!v["entries"].as_array().unwrap().is_empty());
+    assert!(
+        tmp.path().join("docs/revisions/rev-B.yml").is_file(),
+        "書き込みも行う"
+    );
+}
+
+#[test]
+fn appendices_are_part_of_the_document() {
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    // 付録（book.appendices）を足して rev-A を打ち直し、付録の本文だけを変える
+    write(
+        tmp.path(),
+        "docs/_quarto.yml",
+        "project:\n  type: book\nbook:\n  chapters:\n    - index.qmd\n    - chapters/01-overview/index.qmd\n  appendices:\n    - appendix.qmd\n",
+    );
+    write(
+        tmp.path(),
+        "docs/appendix.qmd",
+        "# 解析根拠 {#sec-evidence}\n\n根拠の本文。\n",
+    );
+    assert!(git(tmp.path(), &["add", "-A"]));
+    assert!(git(tmp.path(), &["commit", "-qm", "付録"]));
+    assert!(git(tmp.path(), &["tag", "-f", "rev-A"]));
+    write(
+        tmp.path(),
+        "docs/appendix.qmd",
+        "# 解析根拠 {#sec-evidence}\n\n根拠の本文を直した。\n",
+    );
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+
+    let v: Value = serde_json::from_str(&stdout(&ddq(&["rev", "diff", &docs, "--json"]))).unwrap();
+    let labels: Vec<&str> = v["entries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["label"].as_str().unwrap())
+        .collect();
+    assert_eq!(labels, ["sec-evidence"]);
+}
+
+#[test]
 fn next_without_tags_has_no_base() {
     if !git_available() {
         return;

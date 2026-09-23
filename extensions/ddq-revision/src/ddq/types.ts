@@ -70,7 +70,7 @@ export function warningLabel(warning: Warning): string {
     case 'no-caption':
       return 'キャプション無し（採番されないので対象外）';
     case 'bare-figure':
-      return 'ラベル不可（::: {#fig-…} で包むと付けられる）';
+      return 'ラベル不可（{#fig-…} を付けると番号付きの図になり、図番号がずれるので手で）';
     case 'foreign-id':
       return '既存の ID が sec-／tbl- で始まらない（付け替えは手で）';
     case 'multiple-ids':

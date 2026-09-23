@@ -1,4 +1,4 @@
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.37s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
      Running tests\golden.rs (target\debug\deps\golden-6e2c7bbd09237601.exe)
 
 running 1 test

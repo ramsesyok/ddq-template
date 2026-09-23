@@ -181,7 +181,7 @@ struct RevDiffArgs {
     /// 空白・空行だけの違いも変更として扱う
     #[arg(long)]
     strict: bool,
-    /// 結果を revisions/rev-<記号>.yml に書く（既にあるメモは引き継ぐ）
+    /// 結果を revisions/rev-<記号>.yml に書く（既にあるメモは引き継ぐ。--json と併せると書いた後に JSON を出す）
     #[arg(long)]
     write: bool,
 }

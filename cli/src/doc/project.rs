@@ -213,30 +213,31 @@ fn include_path(line: &str) -> Option<String> {
 
 /// `_quarto.yml` から章ファイルのパスを取り出す。
 ///
-/// `chapters:` の下に続く「その行より深い字下げ」の範囲から `- <パス>.qmd|md` を拾う。
-/// `part:` で束ねた入れ子の `chapters:` も同じ範囲に入るので、これで両方拾える
-/// （`- part: "第I部"` の行はパスの形に合わないので自然に外れる）。
+/// `chapters:` と `appendices:`（付録。2.4.0 から）の下に続く「その行より深い字下げ」の
+/// 範囲から `- <パス>.qmd|md` を、書かれた順に拾う。`part:` で束ねた入れ子の `chapters:` も
+/// 同じ範囲に入るので、これで両方拾える（`- part: "第I部"` の行はパスの形に合わないので
+/// 自然に外れる）。
 fn chapters_of(conf: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut inside = None::<usize>;
     for line in conf.lines() {
         let trimmed = line.trim_start();
         let indent = line.len() - trimmed.len();
+        // 空行・コメントは範囲の一部として読み飛ばす。
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        // 字下げが戻ったら範囲の終わり。同じ行が次の範囲の始まり（`appendices:`）でありうる。
+        if inside.is_some_and(|start| indent <= start) {
+            inside = None;
+        }
         match inside {
             None => {
-                if trimmed.starts_with("chapters:") && !trimmed.starts_with('#') {
+                if trimmed.starts_with("chapters:") || trimmed.starts_with("appendices:") {
                     inside = Some(indent);
                 }
             }
-            Some(start) => {
-                // 空行・コメントは範囲の一部として読み飛ばす。字下げが戻ったら範囲の終わり。
-                if trimmed.is_empty() || trimmed.starts_with('#') {
-                    continue;
-                }
-                if indent <= start {
-                    inside = None;
-                    continue;
-                }
+            Some(_) => {
                 if let Some(rest) = trimmed.strip_prefix("- ")
                     && let Some(p) = as_doc_path(rest.trim())
                 {
@@ -299,6 +300,14 @@ mod tests {
     fn chapters_include_parts_but_not_part_titles() {
         let conf = "book:\n  title: x\n  chapters:\n    - index.qmd\n    - part: \"第I部\"\n      chapters:\n        - a/b.qmd\n        - c.md\n\nlang: ja\n";
         assert_eq!(chapters_of(conf), ["index.qmd", "a/b.qmd", "c.md"]);
+    }
+
+    #[test]
+    fn appendices_follow_the_chapters() {
+        // 付録（book.appendices）も文書の一部。chapters: の直後で字下げが同じでも拾う
+        let conf =
+            "book:\n  chapters:\n    - index.qmd\n    - a.qmd\n  appendices:\n    - app-a.qmd\n\nlang: ja\n";
+        assert_eq!(chapters_of(conf), ["index.qmd", "a.qmd", "app-a.qmd"]);
     }
 
     #[test]

@@ -313,7 +313,8 @@ PATH 上の古い `ddq` と release フォルダの新しい `ddq` が共存し�
 現行 bat の教訓をそのまま要件にする。
 
 - UTF-8 名フラグ（general purpose bit 11）を立てる（`manual/利用マニュアル.pdf` が化けない）
-- 書き終えたらエントリ数と staging のファイル数を照合し、不一致なら zip を削除してエラー
+- 書き終えたら読み直し、エントリの名前とバイト数を staging と照合し、不一致なら zip を削除してエラー。
+  書いている途中で失敗したときも書きかけの zip を削除する
 - 長いパスは `\\?\` プレフィックスで扱う（.NET の MAX_PATH 問題を持ち込まない）
 
 ### 7.4 版
@@ -576,11 +577,14 @@ design-doc.lua ──┤                                        … POST /render
   原稿に ```` ```plantuml ```` が無ければ何もしない（**PlantUML を使わない文書に Java を要求しない**）→ ローカルを空きポートで起動。
   URL は `DDQ_PLANTUML_SERVER` で quarto に渡す。
 - PicoWeb の起動（PoC-4 の実測に基づく）: `-picoweb:0:127.0.0.1` で起動すると実ポートが `webPort=<n>` として **stderr** に出る
-  （stdout は空。stdout を待つと永久に止まる）。読んだら残りは捨て続けるスレッドを置く（パイプ詰まり防止）。
+  （stdout は空。stdout を待つと永久に止まる）。stderr は専用スレッドで読み、起動待ちの間だけ行をチャネルで渡す。
+  待つ側は `recv_timeout` で 30 秒を上限にする（JVM が何も出さない・改行を出さないときも打ち切る）。
+  その後は `io::sink` に捨て続ける（パイプ詰まり防止。溜め込まない）。
   `/serverinfo` が 200 になるまで待つ（実測 0.2 秒、上限 30 秒）。
 - 停止: `/stopserver` は JVM を終了しない（実測）ので `kill`。Drop で必ず kill する。
   親（ddq）が異常終了しても JVM を残さないよう、**Job Object（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`）**に入れる
   （`windows-sys` の `Win32_System_JobObjects` `Win32_System_Threading` `Win32_Security`）。
+  Job Object に入れられなかったときは、その場で JVM を kill してからエラーを返す（まだ Drop の持ち主がいない）。
 - HTTP は手書き（`TcpStream`、HTTP/1.1、`Connection: close`、chunked 対応）。新しいクレートは足さない。
 
 ### 13.4 コマンド
@@ -630,6 +634,7 @@ design-doc.lua ──┤                                        … POST /render
 | IPO 図 | `::: {.ipo … label="…"}` | 同上（IPO は表番号を持つ） |
 | パイプ表 | 表の前後（空行 1 つまで可）の `: キャプション {#tbl-…}` | 属性の `#tbl-…` |
 | 図 | `::: {#fig-x}` | この記法は id 必須なので常に有り |
+| 図（画像） | 行頭の `![キャプション](パス){#fig-x}` | 属性の `#fig-…`。キャプションだけで ID の無い画像は `bare-figure` の警告（ID を足すと図番号がずれるので足さない）。キャプションも ID も無い画像は拾わない |
 
 走査から外すもの:
 
@@ -644,7 +649,7 @@ design-doc.lua ──┤                                        … POST /render
 
 ### 14.3 文書順（`doc::project`）
 
-`_quarto.yml` の `book.chapters`（`part:` の入れ子も含む）を起点に `{{< include >}}` を再帰展開する。
+`_quarto.yml` の `book.chapters`（`part:` の入れ子も含む）と `book.appendices`（付録。2.4.0 から）を書かれた順に起点として `{{< include >}}` を再帰展開する。
 **include のパスの基準は「`chapters:` に並べた章ファイルのあるディレクトリ」で、入れ子の include でも
 変わらない**（include 元ファイルの位置ではない）。執筆フォルダの `_quarto.yml` にも同じ注意書きがある。
 ここを取り違えると章の大半を取りこぼす（実際に踏んだ）。
@@ -726,6 +731,9 @@ libgit2 は使わず `git` の子プロセスで済ませる。踏んだ落と�
 変更は**最も深いユニットに一意に帰属**する。地の文は直近上位の見出し、表・図の中身は
 その表・図自身に付き、親の見出しには伝播しない（伝播させると改訂履歴に同じ変更が
 親子で二重に載る）。ラベルの無い表・図は、包んでいる見出しの本文に含める。
+パイプ表は、ラベルのあるキャプションに接する表の行（空行 1 つまで挟んだ直前、無ければ直後）を
+その表のユニットにする（キャプションは表の前にも後にも書けるので、行を読む前に対応を作る）。
+画像の図（`![…](…){#fig-x}`）はその 1 行がユニットである。
 
 判定は `changed` / `added` / `removed` / `renamed`（名称だけ変わった）。並びは新版の
 文書順で、`removed` は旧版で直前にあった項目の後ろに挿す。
