@@ -35,6 +35,9 @@ pub struct Unlabeled {
     pub file: String,
     pub line: usize,
     pub title: Option<String>,
+    /// ラベルを自動で付けられない理由（`foreign-id` / `multiple-ids` など）。無ければ `tag apply --all` で付く
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub warning: Option<units::Warning>,
 }
 
 /// 変更の種別。
@@ -215,6 +218,7 @@ pub fn units_of(lines: &[Line]) -> (BTreeMap<String, Unit>, Vec<Unlabeled>, Vec<
                             file: line.file.clone(),
                             line: line.no,
                             title: item.title.clone(),
+                            warning: item.warning,
                         });
                         // ラベルが無い見出しの中身は、その上の見出しに帰属させる
                         heads.push((level, heads.last().and_then(|(_, l)| l.clone())));
@@ -281,6 +285,7 @@ pub fn units_of(lines: &[Line]) -> (BTreeMap<String, Unit>, Vec<Unlabeled>, Vec<
                                 file: line.file.clone(),
                                 line: line.no,
                                 title: item.title.clone(),
+                                warning: item.warning,
                             });
                         }
                         block = Some((String::new(), depth - 1));
@@ -300,6 +305,7 @@ pub fn units_of(lines: &[Line]) -> (BTreeMap<String, Unit>, Vec<Unlabeled>, Vec<
                     file: line.file.clone(),
                     line: line.no,
                     title: item.title.clone(),
+                    warning: item.warning,
                 });
             }
             _ => {}

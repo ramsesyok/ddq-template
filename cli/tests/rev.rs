@@ -266,6 +266,42 @@ fn unlabeled_units_are_reported() {
     let un = v["unlabeled"].as_array().unwrap();
     assert_eq!(un.len(), 1);
     assert_eq!(un[0]["title"], "ラベルの無い節");
+    assert!(un[0].get("warning").is_none(), "tag apply で付くものに理由は無い");
+}
+
+#[test]
+fn headings_with_other_ids_get_a_manual_fix_hint() {
+    // `{#u-0001}` のような既存の ID がある見出しは `tag apply` では付かない。
+    // 案内を分け、そちらには手で付け替えるよう伝える
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    write(
+        tmp.path(),
+        "docs/chapters/01-overview/index.qmd",
+        "# 概要 {#sec-overview}\n\n導入の本文。\n\n## ラベルの無い節\n\n本文。\n\n### U-0001：未確認 {#u-0001 .unnumbered}\n\n本文。\n",
+    );
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+
+    let v: Value = serde_json::from_str(&stdout(&ddq(&["rev", "diff", &docs, "--json"]))).unwrap();
+    let un = v["unlabeled"].as_array().unwrap();
+    let foreign = un.iter().find(|u| u["title"] == "U-0001：未確認").unwrap();
+    assert_eq!(foreign["warning"], "foreign-id");
+
+    let out = stdout(&ddq(&["rev", "diff", &docs]));
+    let auto = out
+        .lines()
+        .find(|l| l.contains("tag apply"))
+        .expect("tag apply の案内が無い");
+    assert!(auto.contains("1 件"), "tag apply で付くのは 1 件だけ: {auto}");
+    let manual = out
+        .lines()
+        .find(|l| l.contains("既存の ID"))
+        .expect("手で付け替える案内が無い");
+    assert!(manual.starts_with("警告") && manual.contains("1 件"), "{manual}");
+    assert!(out.contains("U-0001：未確認（接頭辞の違う ID）"), "{out}");
 }
 
 #[test]
