@@ -2487,7 +2487,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 34
 
-対象: cssparser 0.36.0（LICENSE）、selectors 0.37.0（（MPL-2.0 の本文。パッケージに本文ファイルが無いため補った））、dompurify 3.4.15（LICENSE-MPL）
+対象: cssparser 0.36.0（LICENSE）、dtoa-short 0.3.5（LICENSE）、selectors 0.37.0（（MPL-2.0 の本文。パッケージに本文ファイルが無いため補った））、dompurify 3.4.15（LICENSE-MPL）
 
 ```text
 Mozilla Public License Version 2.0
@@ -2527,7 +2527,7 @@ Mozilla Public License Version 2.0
     means any form of the work other than Source Code Form.
 
 1.7. "Larger Work"
-    means a work that combines Covered Software with other material, in 
+    means a work that combines Covered Software with other material, in
     a separate file or files, that is not Covered Software.
 
 1.8. "License"
@@ -3516,386 +3516,6 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 58
 
-対象: dtoa-short 0.3.5（LICENSE）
-
-```text
-Mozilla Public License Version 2.0
-==================================
-
-1. Definitions
---------------
-
-1.1. "Contributor"
-    means each individual or legal entity that creates, contributes to
-    the creation of, or owns Covered Software.
-
-1.2. "Contributor Version"
-    means the combination of the Contributions of others (if any) used
-    by a Contributor and that particular Contributor's Contribution.
-
-1.3. "Contribution"
-    means Covered Software of a particular Contributor.
-
-1.4. "Covered Software"
-    means Source Code Form to which the initial Contributor has attached
-    the notice in Exhibit A, the Executable Form of such Source Code
-    Form, and Modifications of such Source Code Form, in each case
-    including portions thereof.
-
-1.5. "Incompatible With Secondary Licenses"
-    means
-
-    (a) that the initial Contributor has attached the notice described
-        in Exhibit B to the Covered Software; or
-
-    (b) that the Covered Software was made available under the terms of
-        version 1.1 or earlier of the License, but not also under the
-        terms of a Secondary License.
-
-1.6. "Executable Form"
-    means any form of the work other than Source Code Form.
-
-1.7. "Larger Work"
-    means a work that combines Covered Software with other material, in
-    a separate file or files, that is not Covered Software.
-
-1.8. "License"
-    means this document.
-
-1.9. "Licensable"
-    means having the right to grant, to the maximum extent possible,
-    whether at the time of the initial grant or subsequently, any and
-    all of the rights conveyed by this License.
-
-1.10. "Modifications"
-    means any of the following:
-
-    (a) any file in Source Code Form that results from an addition to,
-        deletion from, or modification of the contents of Covered
-        Software; or
-
-    (b) any new file in Source Code Form that contains any Covered
-        Software.
-
-1.11. "Patent Claims" of a Contributor
-    means any patent claim(s), including without limitation, method,
-    process, and apparatus claims, in any patent Licensable by such
-    Contributor that would be infringed, but for the grant of the
-    License, by the making, using, selling, offering for sale, having
-    made, import, or transfer of either its Contributions or its
-    Contributor Version.
-
-1.12. "Secondary License"
-    means either the GNU General Public License, Version 2.0, the GNU
-    Lesser General Public License, Version 2.1, the GNU Affero General
-    Public License, Version 3.0, or any later versions of those
-    licenses.
-
-1.13. "Source Code Form"
-    means the form of the work preferred for making modifications.
-
-1.14. "You" (or "Your")
-    means an individual or a legal entity exercising rights under this
-    License. For legal entities, "You" includes any entity that
-    controls, is controlled by, or is under common control with You. For
-    purposes of this definition, "control" means (a) the power, direct
-    or indirect, to cause the direction or management of such entity,
-    whether by contract or otherwise, or (b) ownership of more than
-    fifty percent (50%) of the outstanding shares or beneficial
-    ownership of such entity.
-
-2. License Grants and Conditions
---------------------------------
-
-2.1. Grants
-
-Each Contributor hereby grants You a world-wide, royalty-free,
-non-exclusive license:
-
-(a) under intellectual property rights (other than patent or trademark)
-    Licensable by such Contributor to use, reproduce, make available,
-    modify, display, perform, distribute, and otherwise exploit its
-    Contributions, either on an unmodified basis, with Modifications, or
-    as part of a Larger Work; and
-
-(b) under Patent Claims of such Contributor to make, use, sell, offer
-    for sale, have made, import, and otherwise transfer either its
-    Contributions or its Contributor Version.
-
-2.2. Effective Date
-
-The licenses granted in Section 2.1 with respect to any Contribution
-become effective for each Contribution on the date the Contributor first
-distributes such Contribution.
-
-2.3. Limitations on Grant Scope
-
-The licenses granted in this Section 2 are the only rights granted under
-this License. No additional rights or licenses will be implied from the
-distribution or licensing of Covered Software under this License.
-Notwithstanding Section 2.1(b) above, no patent license is granted by a
-Contributor:
-
-(a) for any code that a Contributor has removed from Covered Software;
-    or
-
-(b) for infringements caused by: (i) Your and any other third party's
-    modifications of Covered Software, or (ii) the combination of its
-    Contributions with other software (except as part of its Contributor
-    Version); or
-
-(c) under Patent Claims infringed by Covered Software in the absence of
-    its Contributions.
-
-This License does not grant any rights in the trademarks, service marks,
-or logos of any Contributor (except as may be necessary to comply with
-the notice requirements in Section 3.4).
-
-2.4. Subsequent Licenses
-
-No Contributor makes additional grants as a result of Your choice to
-distribute the Covered Software under a subsequent version of this
-License (see Section 10.2) or under the terms of a Secondary License (if
-permitted under the terms of Section 3.3).
-
-2.5. Representation
-
-Each Contributor represents that the Contributor believes its
-Contributions are its original creation(s) or it has sufficient rights
-to grant the rights to its Contributions conveyed by this License.
-
-2.6. Fair Use
-
-This License is not intended to limit any rights You have under
-applicable copyright doctrines of fair use, fair dealing, or other
-equivalents.
-
-2.7. Conditions
-
-Sections 3.1, 3.2, 3.3, and 3.4 are conditions of the licenses granted
-in Section 2.1.
-
-3. Responsibilities
--------------------
-
-3.1. Distribution of Source Form
-
-All distribution of Covered Software in Source Code Form, including any
-Modifications that You create or to which You contribute, must be under
-the terms of this License. You must inform recipients that the Source
-Code Form of the Covered Software is governed by the terms of this
-License, and how they can obtain a copy of this License. You may not
-attempt to alter or restrict the recipients' rights in the Source Code
-Form.
-
-3.2. Distribution of Executable Form
-
-If You distribute Covered Software in Executable Form then:
-
-(a) such Covered Software must also be made available in Source Code
-    Form, as described in Section 3.1, and You must inform recipients of
-    the Executable Form how they can obtain a copy of such Source Code
-    Form by reasonable means in a timely manner, at a charge no more
-    than the cost of distribution to the recipient; and
-
-(b) You may distribute such Executable Form under the terms of this
-    License, or sublicense it under different terms, provided that the
-    license for the Executable Form does not attempt to limit or alter
-    the recipients' rights in the Source Code Form under this License.
-
-3.3. Distribution of a Larger Work
-
-You may create and distribute a Larger Work under terms of Your choice,
-provided that You also comply with the requirements of this License for
-the Covered Software. If the Larger Work is a combination of Covered
-Software with a work governed by one or more Secondary Licenses, and the
-Covered Software is not Incompatible With Secondary Licenses, this
-License permits You to additionally distribute such Covered Software
-under the terms of such Secondary License(s), so that the recipient of
-the Larger Work may, at their option, further distribute the Covered
-Software under the terms of either this License or such Secondary
-License(s).
-
-3.4. Notices
-
-You may not remove or alter the substance of any license notices
-(including copyright notices, patent notices, disclaimers of warranty,
-or limitations of liability) contained within the Source Code Form of
-the Covered Software, except that You may alter any license notices to
-the extent required to remedy known factual inaccuracies.
-
-3.5. Application of Additional Terms
-
-You may choose to offer, and to charge a fee for, warranty, support,
-indemnity or liability obligations to one or more recipients of Covered
-Software. However, You may do so only on Your own behalf, and not on
-behalf of any Contributor. You must make it absolutely clear that any
-such warranty, support, indemnity, or liability obligation is offered by
-You alone, and You hereby agree to indemnify every Contributor for any
-liability incurred by such Contributor as a result of warranty, support,
-indemnity or liability terms You offer. You may include additional
-disclaimers of warranty and limitations of liability specific to any
-jurisdiction.
-
-4. Inability to Comply Due to Statute or Regulation
----------------------------------------------------
-
-If it is impossible for You to comply with any of the terms of this
-License with respect to some or all of the Covered Software due to
-statute, judicial order, or regulation then You must: (a) comply with
-the terms of this License to the maximum extent possible; and (b)
-describe the limitations and the code they affect. Such description must
-be placed in a text file included with all distributions of the Covered
-Software under this License. Except to the extent prohibited by statute
-or regulation, such description must be sufficiently detailed for a
-recipient of ordinary skill to be able to understand it.
-
-5. Termination
---------------
-
-5.1. The rights granted under this License will terminate automatically
-if You fail to comply with any of its terms. However, if You become
-compliant, then the rights granted under this License from a particular
-Contributor are reinstated (a) provisionally, unless and until such
-Contributor explicitly and finally terminates Your grants, and (b) on an
-ongoing basis, if such Contributor fails to notify You of the
-non-compliance by some reasonable means prior to 60 days after You have
-come back into compliance. Moreover, Your grants from a particular
-Contributor are reinstated on an ongoing basis if such Contributor
-notifies You of the non-compliance by some reasonable means, this is the
-first time You have received notice of non-compliance with this License
-from such Contributor, and You become compliant prior to 30 days after
-Your receipt of the notice.
-
-5.2. If You initiate litigation against any entity by asserting a patent
-infringement claim (excluding declaratory judgment actions,
-counter-claims, and cross-claims) alleging that a Contributor Version
-directly or indirectly infringes any patent, then the rights granted to
-You by any and all Contributors for the Covered Software under Section
-2.1 of this License shall terminate.
-
-5.3. In the event of termination under Sections 5.1 or 5.2 above, all
-end user license agreements (excluding distributors and resellers) which
-have been validly granted by You or Your distributors under this License
-prior to termination shall survive termination.
-
-************************************************************************
-*                                                                      *
-*  6. Disclaimer of Warranty                                           *
-*  -------------------------                                           *
-*                                                                      *
-*  Covered Software is provided under this License on an "as is"       *
-*  basis, without warranty of any kind, either expressed, implied, or  *
-*  statutory, including, without limitation, warranties that the       *
-*  Covered Software is free of defects, merchantable, fit for a        *
-*  particular purpose or non-infringing. The entire risk as to the     *
-*  quality and performance of the Covered Software is with You.        *
-*  Should any Covered Software prove defective in any respect, You     *
-*  (not any Contributor) assume the cost of any necessary servicing,   *
-*  repair, or correction. This disclaimer of warranty constitutes an   *
-*  essential part of this License. No use of any Covered Software is   *
-*  authorized under this License except under this disclaimer.         *
-*                                                                      *
-************************************************************************
-
-************************************************************************
-*                                                                      *
-*  7. Limitation of Liability                                          *
-*  --------------------------                                          *
-*                                                                      *
-*  Under no circumstances and under no legal theory, whether tort      *
-*  (including negligence), contract, or otherwise, shall any           *
-*  Contributor, or anyone who distributes Covered Software as          *
-*  permitted above, be liable to You for any direct, indirect,         *
-*  special, incidental, or consequential damages of any character      *
-*  including, without limitation, damages for lost profits, loss of    *
-*  goodwill, work stoppage, computer failure or malfunction, or any    *
-*  and all other commercial damages or losses, even if such party      *
-*  shall have been informed of the possibility of such damages. This   *
-*  limitation of liability shall not apply to liability for death or   *
-*  personal injury resulting from such party's negligence to the       *
-*  extent applicable law prohibits such limitation. Some               *
-*  jurisdictions do not allow the exclusion or limitation of           *
-*  incidental or consequential damages, so this exclusion and          *
-*  limitation may not apply to You.                                    *
-*                                                                      *
-************************************************************************
-
-8. Litigation
--------------
-
-Any litigation relating to this License may be brought only in the
-courts of a jurisdiction where the defendant maintains its principal
-place of business and such litigation shall be governed by laws of that
-jurisdiction, without reference to its conflict-of-law provisions.
-Nothing in this Section shall prevent a party's ability to bring
-cross-claims or counter-claims.
-
-9. Miscellaneous
-----------------
-
-This License represents the complete agreement concerning the subject
-matter hereof. If any provision of this License is held to be
-unenforceable, such provision shall be reformed only to the extent
-necessary to make it enforceable. Any law or regulation which provides
-that the language of a contract shall be construed against the drafter
-shall not be used to construe this License against a Contributor.
-
-10. Versions of the License
----------------------------
-
-10.1. New Versions
-
-Mozilla Foundation is the license steward. Except as provided in Section
-10.3, no one other than the license steward has the right to modify or
-publish new versions of this License. Each version will be given a
-distinguishing version number.
-
-10.2. Effect of New Versions
-
-You may distribute the Covered Software under the terms of the version
-of the License under which You originally received the Covered Software,
-or under the terms of any subsequent version published by the license
-steward.
-
-10.3. Modified Versions
-
-If you create software not governed by this License, and you want to
-create a new license for such software, you may create and use a
-modified version of this License if you rename the license and remove
-any references to the name of the license steward (except to note that
-such modified license differs from this License).
-
-10.4. Distributing Source Code Form that is Incompatible With Secondary
-Licenses
-
-If You choose to distribute Source Code Form that is Incompatible With
-Secondary Licenses under the terms of this version of the License, the
-notice described in Exhibit B of this License must be attached.
-
-Exhibit A - Source Code Form License Notice
--------------------------------------------
-
-  This Source Code Form is subject to the terms of the Mozilla Public
-  License, v. 2.0. If a copy of the MPL was not distributed with this
-  file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-If it is not possible or desirable to put the notice in a particular
-file, then You may include the notice in a location (such as a LICENSE
-file in a relevant directory) where a recipient would be likely to look
-for such a notice.
-
-You may add additional accurate notices of copyright ownership.
-
-Exhibit B - "Incompatible With Secondary Licenses" Notice
----------------------------------------------------------
-
-  This Source Code Form is "Incompatible With Secondary Licenses", as
-  defined by the Mozilla Public License, v. 2.0.
-```
-
-### 本文 59
-
 対象: dugong 0.8.0-alpha.6（LICENSE-APACHE）、dugong-graphlib 0.8.0-alpha.6（LICENSE-APACHE）、encoding_rs 0.8.41（LICENSE-APACHE）、htmlize 1.1.0（LICENSE-APACHE）、kurbo 0.13.1（LICENSE-APACHE）、manatee 0.8.0-alpha.6（LICENSE-APACHE）、merman 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/dompurify/LICENSE）、merman-render 0.8.0-alpha.6（LICENSE-APACHE）、multiversion 0.9.0（LICENSE-APACHE）、polycool 0.4.0（LICENSE-APACHE）、sys-locale 0.3.2（LICENSE-APACHE）、system-fonts 0.1.2（LICENSE-APACHE）、tinyvec 1.13.3（LICENSE-APACHE.md）、unicode-linebreak 0.1.5（LICENSE）、utf8_iter 1.0.4（LICENSE-APACHE）、@chevrotain/types 11.1.2（LICENSE.txt）、dompurify 3.4.15（LICENSE）
 
 ```text
@@ -4102,7 +3722,7 @@ Apache License
    limitations under the License.
 ```
 
-### 本文 60
+### 本文 59
 
 対象: dugong 0.8.0-alpha.6（LICENSE-MIT）、dugong-graphlib 0.8.0-alpha.6（LICENSE-MIT）、manatee 0.8.0-alpha.6（LICENSE-MIT）、merman 0.8.0-alpha.6（LICENSE-MIT）、merman-core 0.8.0-alpha.6（LICENSE-MIT）、merman-render 0.8.0-alpha.6（LICENSE-MIT）
 
@@ -4130,7 +3750,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 61
+### 本文 60
 
 対象: dugong 0.8.0-alpha.6（THIRD_PARTY_LICENSES/dagre/LICENSE）、dugong-graphlib 0.8.0-alpha.6（THIRD_PARTY_LICENSES/graphlib/LICENSE）
 
@@ -4156,7 +3776,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 62
+### 本文 61
 
 対象: encoding_rs 0.8.41（COPYRIGHT）
 
@@ -4180,7 +3800,7 @@ Test code within encoding_rs is dedicated to the Public Domain when so
 designated (see the individual files for PD/CC0-dedicated sections).
 ```
 
-### 本文 63
+### 本文 62
 
 対象: encoding_rs 0.8.41（LICENSE-MIT）、utf8_iter 1.0.4（LICENSE-MIT）
 
@@ -4212,7 +3832,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 64
+### 本文 63
 
 対象: encoding_rs 0.8.41（LICENSE-WHATWG）
 
@@ -4245,7 +3865,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 本文 65
+### 本文 64
 
 対象: equivalent 1.0.2（LICENSE-MIT）
 
@@ -4277,7 +3897,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 66
+### 本文 65
 
 対象: es-toolkit 1.52.0（LICENSE）
 
@@ -4305,7 +3925,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 67
+### 本文 66
 
 対象: es-toolkit 1.52.0（NOTICE）
 
@@ -4351,7 +3971,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 68
+### 本文 67
 
 対象: euclid 0.22.14（COPYRIGHT）
 
@@ -4363,7 +3983,7 @@ option. All files in the project carrying such notice may not be
 copied, modified, or distributed except according to those terms.
 ```
 
-### 本文 69
+### 本文 68
 
 対象: euclid 0.22.14（LICENSE-MIT）
 
@@ -4395,7 +4015,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 70
+### 本文 69
 
 対象: fancy-regex 0.14.0（LICENSE）
 
@@ -4423,7 +4043,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 71
+### 本文 70
 
 対象: flate2 1.1.10（LICENSE-MIT）
 
@@ -4455,7 +4075,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 72
+### 本文 71
 
 対象: foldhash 0.2.0（LICENSE）
 
@@ -4481,7 +4101,7 @@ the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-### 本文 73
+### 本文 72
 
 対象: fontdb 0.23.0（LICENSE）
 
@@ -4509,7 +4129,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 74
+### 本文 73
 
 対象: form_urlencoded 1.2.2（LICENSE-MIT）
 
@@ -4541,7 +4161,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 75
+### 本文 74
 
 対象: getrandom 0.4.3（LICENSE-APACHE）
 
@@ -4749,7 +4369,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### 本文 76
+### 本文 75
 
 対象: getrandom 0.4.3（LICENSE-MIT）
 
@@ -4782,7 +4402,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 77
+### 本文 76
 
 対象: granit-parser 1.0.0（LICENSE）
 
@@ -4804,7 +4424,7 @@ Modifications after commit `825edf857426d034954523fed19599635cbb5043` are Copyri
 Redistributions of this Work must include all inherited and new license notices, including the notices for Chen Yuheng, Ethiraric, and Bourumir Wyngs.
 ```
 
-### 本文 78
+### 本文 77
 
 対象: hachure-fill 0.5.2（LICENSE）
 
@@ -4832,7 +4452,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 79
+### 本文 78
 
 対象: hashbrown 0.17.1（LICENSE-MIT）
 
@@ -4864,7 +4484,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 80
+### 本文 79
 
 対象: heck 0.5.0（LICENSE-MIT）、unicode-normalization 0.1.25（LICENSE-MIT）、unicode-segmentation 1.13.3（LICENSE-MIT）、unicode-width 0.2.2（LICENSE-MIT）
 
@@ -4896,7 +4516,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 81
+### 本文 80
 
 対象: htmlize 1.1.0（LICENSE-MIT）
 
@@ -4924,7 +4544,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 82
+### 本文 81
 
 対象: http 1.5.0（LICENSE-APACHE）
 
@@ -5132,7 +4752,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### 本文 83
+### 本文 82
 
 対象: http 1.5.0（LICENSE-MIT）
 
@@ -5164,7 +4784,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 84
+### 本文 83
 
 対象: httparse 1.10.1（LICENSE-MIT）
 
@@ -5190,7 +4810,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 85
+### 本文 84
 
 対象: hybrid-array 0.4.15（LICENSE-MIT）
 
@@ -5222,7 +4842,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 86
+### 本文 85
 
 対象: iconv-lite 0.6.3（LICENSE）
 
@@ -5249,7 +4869,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 87
+### 本文 86
 
 対象: icu_collections 2.3.0（LICENSE）、icu_locale_core 2.3.0（LICENSE）、icu_normalizer 2.3.0（LICENSE）、icu_normalizer_data 2.3.0（LICENSE）、icu_properties 2.3.0（LICENSE）、icu_properties_data 2.3.0（LICENSE）、icu_provider 2.3.1（LICENSE）、litemap 0.8.3（LICENSE）、potential_utf 0.1.6（LICENSE）、tinystr 0.8.4（LICENSE）、writeable 0.6.4（LICENSE）、yoke 0.8.3（LICENSE）、zerofrom 0.1.8（LICENSE）、zerotrie 0.2.5（LICENSE）、zerovec 0.11.8（LICENSE）
 
@@ -5302,7 +4922,7 @@ Portions of ICU4X may have been adapted from ICU4C and/or ICU4J.
 ICU 1.8.1 to ICU 57.1 © 1995-2016 International Business Machines Corporation and others.
 ```
 
-### 本文 88
+### 本文 87
 
 対象: idna_adapter 1.2.2（LICENSE-MIT）
 
@@ -5334,7 +4954,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 89
+### 本文 88
 
 対象: import-meta-resolve 4.2.0（license）
 
@@ -5415,7 +5035,7 @@ IN THE SOFTWARE.
 """
 ```
 
-### 本文 90
+### 本文 89
 
 対象: include_dir 0.7.4（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -5443,7 +5063,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 91
+### 本文 90
 
 対象: indexmap 2.14.2（LICENSE-MIT）
 
@@ -5475,7 +5095,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 92
+### 本文 91
 
 対象: internmap 1.0.1（LICENSE）、internmap 2.0.3（LICENSE）
 
@@ -5495,7 +5115,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-### 本文 93
+### 本文 92
 
 対象: json5 1.3.1（LICENSE）
 
@@ -5523,7 +5143,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 94
+### 本文 93
 
 対象: katex 0.16.47（LICENSE）
 
@@ -5551,7 +5171,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 95
+### 本文 94
 
 対象: khroma 2.1.0（license）
 
@@ -5579,7 +5199,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 96
+### 本文 95
 
 対象: kurbo 0.13.1（LICENSE-MIT）、polycool 0.4.0（LICENSE-MIT）
 
@@ -5611,7 +5231,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 97
+### 本文 96
 
 対象: lalrpop-util 0.23.1（LICENSE-MIT）
 
@@ -5643,7 +5263,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 98
+### 本文 97
 
 対象: libm 0.2.16（LICENSE.txt）
 
@@ -5908,7 +5528,7 @@ have been licensed under extremely permissive terms.
 Copyright notices are retained in src/* files where relevant.
 ```
 
-### 本文 99
+### 本文 98
 
 対象: lodash-es 4.18.1（LICENSE）
 
@@ -5962,7 +5582,7 @@ licenses; we recommend you read them, as their terms may differ from the
 terms above.
 ```
 
-### 本文 100
+### 本文 99
 
 対象: lol_html 3.0.1（LICENSE）
 
@@ -5996,7 +5616,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 本文 101
+### 本文 100
 
 対象: manatee 0.8.0-alpha.6（THIRD_PARTY_LICENSES/cose-base-v1/LICENSE）、manatee 0.8.0-alpha.6（THIRD_PARTY_LICENSES/cose-base-v2/LICENSE）、cose-base 1.0.3（LICENSE）、cose-base 2.2.0（LICENSE）
 
@@ -6024,7 +5644,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 102
+### 本文 101
 
 対象: manatee 0.8.0-alpha.6（THIRD_PARTY_LICENSES/cytoscape-cose-bilkent/LICENSE）、cytoscape-cose-bilkent 4.1.0（LICENSE）
 
@@ -6050,7 +5670,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 103
+### 本文 102
 
 対象: manatee 0.8.0-alpha.6（THIRD_PARTY_LICENSES/cytoscape-fcose/LICENSE）、cytoscape-fcose 2.2.0（LICENSE）
 
@@ -6076,7 +5696,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 104
+### 本文 103
 
 対象: manatee 0.8.0-alpha.6（THIRD_PARTY_LICENSES/cytoscape/LICENSE）、cytoscape 3.34.3（LICENSE）
 
@@ -6102,7 +5722,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 105
+### 本文 104
 
 対象: manatee 0.8.0-alpha.6（THIRD_PARTY_LICENSES/layout-base-v1/LICENSE）、manatee 0.8.0-alpha.6（THIRD_PARTY_LICENSES/layout-base-v2/LICENSE）、layout-base 1.0.2（LICENSE）、layout-base 2.0.1（LICENSE）
 
@@ -6130,7 +5750,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 106
+### 本文 105
 
 対象: marked 16.4.2（LICENSE.md）
 
@@ -6181,7 +5801,7 @@ Redistribution and use in source and binary forms, with or without modification,
 This software is provided by the copyright holders and contributors “as is” and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the copyright owner or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.
 ```
 
-### 本文 107
+### 本文 106
 
 対象: memmap2 0.9.11（LICENSE-APACHE）
 
@@ -6389,7 +6009,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### 本文 108
+### 本文 107
 
 対象: memmap2 0.9.11（LICENSE-MIT）
 
@@ -6422,7 +6042,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 109
+### 本文 108
 
 対象: merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/mermaid/LICENSE）、merman-render 0.8.0-alpha.6（THIRD_PARTY_LICENSES/mermaid/LICENSE）、mermaid 11.16.0（LICENSE）
 
@@ -6450,7 +6070,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 110
+### 本文 109
 
 対象: merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/sanitize-url/LICENSE）、@braintree/sanitize-url 7.1.2（LICENSE）
 
@@ -6478,7 +6098,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 111
+### 本文 110
 
 対象: merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/zenuml-core/LICENSE）、merman-render 0.8.0-alpha.6（assets/zenuml/LICENSE）、merman-render 0.8.0-alpha.6（THIRD_PARTY_LICENSES/zenuml-core/LICENSE）
 
@@ -6506,7 +6126,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 112
+### 本文 111
 
 対象: merman-render 0.8.0-alpha.6（THIRD_PARTY_LICENSES/d3-shape/LICENSE）、d3-color 3.1.0（LICENSE）、d3-shape 3.2.0（LICENSE）、d3-time 3.1.0（LICENSE）
 
@@ -6526,7 +6146,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-### 本文 113
+### 本文 112
 
 対象: merman-render 0.8.0-alpha.6（THIRD_PARTY_LICENSES/fmin/LICENSE）
 
@@ -6560,7 +6180,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 本文 114
+### 本文 113
 
 対象: merman-render 0.8.0-alpha.6（THIRD_PARTY_LICENSES/rough-rs/LICENSE）
 
@@ -6588,7 +6208,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 115
+### 本文 114
 
 対象: merman-render 0.8.0-alpha.6（THIRD_PARTY_LICENSES/roughjs/LICENSE）、roughjs 4.6.6（LICENSE）
 
@@ -6616,7 +6236,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 116
+### 本文 115
 
 対象: merman-render 0.8.0-alpha.6（THIRD_PARTY_LICENSES/venn-js/LICENSE）、@upsetjs/venn.js 2.0.0（LICENSE）
 
@@ -6645,7 +6265,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 117
+### 本文 116
 
 対象: mime 0.3.17（LICENSE-MIT）
 
@@ -6671,7 +6291,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 118
+### 本文 117
 
 対象: mime_guess 2.0.5（LICENSE）
 
@@ -6699,7 +6319,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 119
+### 本文 118
 
 対象: multiversion 0.9.0（LICENSE-MIT）
 
@@ -6713,7 +6333,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 120
+### 本文 119
 
 対象: new_debug_unreachable 1.0.6（LICENSE-MIT）
 
@@ -6745,7 +6365,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 121
+### 本文 120
 
 対象: package-manager-detector 1.8.0（LICENSE）
 
@@ -6773,7 +6393,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 122
+### 本文 121
 
 対象: palette 0.7.7（LICENSE-MIT）、palette_math 0.7.7（LICENSE_MIT）
 
@@ -6801,7 +6421,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 123
+### 本文 122
 
 対象: path-data-parser 0.1.0（LICENSE）、points-on-curve 0.2.0（LICENSE）
 
@@ -6829,7 +6449,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 124
+### 本文 123
 
 対象: phf 0.11.3（LICENSE）、phf 0.13.1（LICENSE）、phf_generator 0.11.3（LICENSE）、phf_generator 0.13.1（LICENSE）、phf_shared 0.11.3（LICENSE）、phf_shared 0.13.1（LICENSE）
 
@@ -6856,7 +6476,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 125
+### 本文 124
 
 対象: points-on-path 0.2.1（LICENSE）
 
@@ -6884,7 +6504,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 126
+### 本文 125
 
 対象: precomputed-hash 0.1.1（LICENSE）
 
@@ -6912,7 +6532,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 127
+### 本文 126
 
 対象: pulldown-cmark 0.13.4（LICENSE）
 
@@ -6940,7 +6560,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 128
+### 本文 127
 
 対象: quick-xml 0.41.0（LICENSE-MIT.md）
 
@@ -6970,7 +6590,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 129
+### 本文 128
 
 対象: rand 0.10.2（COPYRIGHT）、rand 0.8.8（COPYRIGHT）、rand_core 0.6.4（COPYRIGHT）
 
@@ -6989,7 +6609,7 @@ The Rand project includes code from the Rust project
 published under these same licenses.
 ```
 
-### 本文 130
+### 本文 129
 
 対象: rand 0.10.2（LICENSE-APACHE）、rand 0.8.8（LICENSE-APACHE）
 
@@ -7172,7 +6792,7 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 END OF TERMS AND CONDITIONS
 ```
 
-### 本文 131
+### 本文 130
 
 対象: rand 0.10.2（LICENSE-MIT）、rand 0.8.8（LICENSE-MIT）、rand_core 0.6.4（LICENSE-MIT）
 
@@ -7205,7 +6825,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 132
+### 本文 131
 
 対象: rand_core 0.10.1（COPYRIGHT）
 
@@ -7221,7 +6841,7 @@ licensed under the Apache License, Version 2.0 <LICENSE-APACHE> or
 <LICENSE-MIT> or <http://opensource.org/licenses/MIT>, at your option.
 ```
 
-### 本文 133
+### 本文 132
 
 対象: rand_core 0.10.1（LICENSE-APACHE）、rand_core 0.6.4（LICENSE-APACHE）
 
@@ -7415,7 +7035,7 @@ APPENDIX: How to apply the Apache License to your work.
    identification within third-party archives.
 ```
 
-### 本文 134
+### 本文 133
 
 対象: rand_core 0.10.1（LICENSE-MIT）
 
@@ -7447,7 +7067,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 135
+### 本文 134
 
 対象: ratex-font 0.1.14（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -7475,7 +7095,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 136
+### 本文 135
 
 対象: ratex-font-loader 0.1.14（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -7503,7 +7123,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 137
+### 本文 136
 
 対象: ratex-katex-fonts 0.1.14（fonts/FONT_NOTICE.txt）
 
@@ -7522,7 +7142,7 @@ font licensing follows OFL as described in KaTeX's documentation and
 upstream repository.
 ```
 
-### 本文 138
+### 本文 137
 
 対象: ratex-katex-fonts 0.1.14（fonts/OFL.txt）
 
@@ -7539,7 +7159,7 @@ with others.
 
 The OFL allows the licensed fonts to be used, studied, modified and
 redistributed freely as long as they are not sold by themselves. The
-fonts, including any derivative works, can be bundled, embedded, 
+fonts, including any derivative works, can be bundled, embedded,
 redistributed and/or sold with any software provided that any reserved
 names are not used by derivative works. The fonts and derivatives,
 however, cannot be released under any other type of license. The
@@ -7614,7 +7234,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
-### 本文 139
+### 本文 138
 
 対象: ratex-katex-fonts 0.1.14（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -7642,7 +7262,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 140
+### 本文 139
 
 対象: ratex-layout 0.1.14（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -7670,7 +7290,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 141
+### 本文 140
 
 対象: ratex-lexer 0.1.14（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -7698,7 +7318,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 142
+### 本文 141
 
 対象: ratex-parser 0.1.14（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -7726,7 +7346,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 143
+### 本文 142
 
 対象: ratex-svg 0.1.14（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -7754,7 +7374,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 144
+### 本文 143
 
 対象: ratex-types 0.1.14（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -7782,7 +7402,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 145
+### 本文 144
 
 対象: ratex-unicode-font 0.1.14（（標準の MIT 本文。パッケージに本文ファイルが無いため補った））
 
@@ -7810,7 +7430,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 146
+### 本文 145
 
 対象: react 18.3.1（LICENSE）、react-dom 18.3.1（LICENSE）、scheduler 0.23.2（LICENSE）
 
@@ -7838,7 +7458,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 147
+### 本文 146
 
 対象: regex-syntax 0.8.11（src/unicode_tables/LICENSE-UNICODE）
 
@@ -7902,7 +7522,7 @@ use or other dealings in these Data Files or Software without prior
 written authorization of the copyright holder.
 ```
 
-### 本文 148
+### 本文 147
 
 対象: robust-predicates 3.0.3（LICENSE）
 
@@ -7933,7 +7553,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org>
 ```
 
-### 本文 149
+### 本文 148
 
 対象: roughr-merman 0.12.3（LICENSE）
 
@@ -7962,7 +7582,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 150
+### 本文 149
 
 対象: roxmltree 0.21.1（LICENSE-MIT）
 
@@ -7990,7 +7610,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 151
+### 本文 150
 
 対象: rust-embed 8.12.0（LICENSE）、rust-embed-utils 8.12.0（LICENSE）
 
@@ -8018,7 +7638,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 152
+### 本文 151
 
 対象: rw 1.3.3（LICENSE）
 
@@ -8051,7 +7671,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 本文 153
+### 本文 152
 
 対象: ryu-js 1.0.3（LICENSE-BOOST）
 
@@ -8081,7 +7701,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 154
+### 本文 153
 
 対象: safer-buffer 2.1.2（LICENSE）
 
@@ -8109,7 +7729,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 155
+### 本文 154
 
 対象: same-file 1.0.6（LICENSE-MIT）、winapi-util 0.1.11（LICENSE-MIT）
 
@@ -8137,7 +7757,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 156
+### 本文 155
 
 対象: scopeguard 1.2.0（LICENSE-MIT）
 
@@ -8169,7 +7789,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 157
+### 本文 156
 
 対象: sha1 0.11.0（LICENSE-MIT）、sha2 0.11.0（LICENSE-MIT）
 
@@ -8204,7 +7824,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 158
+### 本文 157
 
 対象: simd-adler32 0.3.10（LICENSE.md）
 
@@ -8232,7 +7852,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 159
+### 本文 158
 
 対象: simdutf8 0.1.5（LICENSE-MIT）
 
@@ -8258,7 +7878,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 160
+### 本文 159
 
 対象: siphasher 1.0.3（COPYING）
 
@@ -8272,7 +7892,7 @@ http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
 option.
 ```
 
-### 本文 161
+### 本文 160
 
 対象: slotmap 1.1.1（LICENSE）
 
@@ -8298,7 +7918,7 @@ the following restrictions:
  3. This notice may not be removed or altered from any source distribution.
 ```
 
-### 本文 162
+### 本文 161
 
 対象: smallvec 1.16.1（LICENSE-MIT）
 
@@ -8330,7 +7950,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 163
+### 本文 162
 
 対象: stable_deref_trait 1.2.1（LICENSE-MIT）
 
@@ -8362,7 +7982,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 164
+### 本文 163
 
 対象: strsim 0.11.1（LICENSE）
 
@@ -8392,7 +8012,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 165
+### 本文 164
 
 対象: stylis 4.4.0（LICENSE）
 
@@ -8420,7 +8040,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 166
+### 本文 165
 
 対象: svgtypes 0.16.1（LICENSE-MIT）、ttf-parser 0.25.1（LICENSE-MIT）
 
@@ -8446,7 +8066,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 167
+### 本文 166
 
 対象: synstructure 0.14.0（LICENSE）
 
@@ -8460,7 +8080,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 168
+### 本文 167
 
 対象: sys-locale 0.3.2（LICENSE-MIT）
 
@@ -8488,7 +8108,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 169
+### 本文 168
 
 対象: system-fonts 0.1.2（LICENSE-MIT）
 
@@ -8516,7 +8136,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 170
+### 本文 169
 
 対象: tempfile 3.27.0（LICENSE-MIT）
 
@@ -8548,7 +8168,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 171
+### 本文 170
 
 対象: terminal_size 0.4.4（LICENSE-MIT）
 
@@ -8574,7 +8194,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 172
+### 本文 171
 
 対象: tinyexec 1.3.1（LICENSE）
 
@@ -8602,7 +8222,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 173
+### 本文 172
 
 対象: tinyvec 1.13.3（LICENSE-MIT.md）
 
@@ -8614,7 +8234,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 174
+### 本文 173
 
 対象: tinyvec 1.13.3（LICENSE-ZLIB.md）
 
@@ -8632,7 +8252,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-### 本文 175
+### 本文 174
 
 対象: ts-dedent 2.3.0（LICENSE）
 
@@ -8660,7 +8280,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 176
+### 本文 175
 
 対象: tungstenite 0.30.0（LICENSE-MIT）
 
@@ -8687,7 +8307,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 177
+### 本文 176
 
 対象: typenum 1.20.1（LICENSE-APACHE）
 
@@ -8895,7 +8515,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### 本文 178
+### 本文 177
 
 対象: typenum 1.20.1（LICENSE-MIT）
 
@@ -8923,7 +8543,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 179
+### 本文 178
 
 対象: typenum 1.20.1（LICENSE）
 
@@ -8931,7 +8551,7 @@ SOFTWARE.
 MIT OR Apache-2.0
 ```
 
-### 本文 180
+### 本文 179
 
 対象: unicase 2.9.0（LICENSE-MIT）
 
@@ -8957,7 +8577,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 181
+### 本文 180
 
 対象: unicode-ident 1.0.26（LICENSE-UNICODE）
 
@@ -9003,7 +8623,7 @@ dealings in these Data Files or Software without prior written
 authorization of the copyright holder.
 ```
 
-### 本文 182
+### 本文 181
 
 対象: unicode-normalization 0.1.25（COPYRIGHT）、unicode-segmentation 1.13.3（COPYRIGHT）、unicode-width 0.2.2（COPYRIGHT）
 
@@ -9017,7 +8637,7 @@ notice may not be copied, modified, or distributed except
 according to those terms.
 ```
 
-### 本文 183
+### 本文 182
 
 対象: utf8_iter 1.0.4（COPYRIGHT）
 
@@ -9066,7 +8686,7 @@ licensed under the Apache License, Version 2.0 <LICENSE-APACHE> or
 <LICENSE-MIT> or <http://opensource.org/licenses/MIT>, at your option.
 ```
 
-### 本文 184
+### 本文 183
 
 対象: utf8parse 0.2.2（LICENSE-MIT）
 
@@ -9098,7 +8718,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 185
+### 本文 184
 
 対象: uuid 14.0.2（LICENSE.md）
 
@@ -9114,7 +8734,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### 本文 186
+### 本文 185
 
 対象: windows-link 0.2.1（license-apache-2.0）、windows-sys 0.61.2（license-apache-2.0）
 
@@ -9322,7 +8942,7 @@ Apache License
    limitations under the License.
 ```
 
-### 本文 187
+### 本文 186
 
 対象: windows-link 0.2.1（license-mit）、windows-sys 0.61.2（license-mit）
 
@@ -9350,7 +8970,7 @@ MIT License
     SOFTWARE
 ```
 
-### 本文 188
+### 本文 187
 
 対象: winreg 0.56.0（LICENSE）
 
@@ -9376,7 +8996,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 本文 189
+### 本文 188
 
 対象: zip 8.6.0（LICENSE）
 
@@ -9404,12 +9024,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 本文 190
+### 本文 189
 
 対象: zlib-rs 0.6.8（LICENSE）
 
 ```text
-(C) 2024 Trifecta Tech Foundation 
+(C) 2024 Trifecta Tech Foundation
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -9430,7 +9050,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-### 本文 191
+### 本文 190
 
 対象: zopfli 0.8.3（COPYING）
 

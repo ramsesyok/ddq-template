@@ -86,7 +86,9 @@ def license_texts(pkg_dir: Path, depth: int = 1) -> list[tuple[str, str]]:
     def visit(d: Path, level: int):
         for p in sorted(d.iterdir(), key=lambda p: p.name.lower()):
             if p.is_file() and LICENSE_FILE.match(p.name):
-                text = p.read_text(encoding="utf-8", errors="replace").replace("\r\n", "\n").strip()
+                text = p.read_text(encoding="utf-8", errors="replace").replace("\r\n", "\n")
+                # 行末の空白だけ落とす（本文の意味は変わらない。git diff --check を汚さない）
+                text = "\n".join(line.rstrip() for line in text.splitlines()).strip()
                 if text:
                     out.append((p.relative_to(pkg_dir).as_posix(), text))
             elif p.is_dir() and level < depth and p.name.lower() not in SKIP_DIRS:

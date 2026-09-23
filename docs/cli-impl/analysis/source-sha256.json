@@ -48,7 +48,7 @@
   "cli/tests/tag.rs": "f3359032a8e4024fbe10a44f2ead2fb47f358e970e9334a149074a0f56e95c8b",
   "cli/tests/third_party.rs": "40a30c6b56e68bb22cb072349855d15deadff3624069baf7ea001e1a9f77cbfd",
   "cli/tools/regress.py": "bbf8ed359b4f454332aba77993f81541439c80ab56abac76f1de43fcfe1c264f",
-  "cli/tools/third_party.py": "162b57a45993419b65d7cc766d8f28a6e719bcba6251645e679045077e31298a",
+  "cli/tools/third_party.py": "e606bc579d7f1f394d01b9223307194f370d1cdb9da9e70ff65539a38fdafb88",
   "cli/vendor/plantuml.jar": "3629c9cd017c7f73e6450396eea0040216c7e1eef8473ce33cc1aad469dab2f9",
   "cli/vendor/README.md": "a2d22000ca777daec54b4a51e10e3e33c6f6d4166d5be44bb5549df6f1ccd5d3",
   "extensions/ddq-revision/package.json": "e6d564ee86cb47c917cd655edb07be117cd09e70fa4c259d5ee6f69dad80c30d",
@@ -61,5 +61,5 @@
   "template/scaffold/content/revisions/history.qmd": "c84e82cbdd50c05af35380589b89fde02eecea18da246aea48a4a936cd47bfe6",
   "template/vendor/mermaid.min.js": "74d7c46dabca328c2294733910a8aa1ed0c37451776e8d5295da38a2b758fb9b",
   "template/VERSION": "7df73b8e407cc08ce7babfd544ab4ad92a7f62cf73a21468d2bfae85c0508c7c",
-  "THIRD-PARTY-NOTICES.md": "a9ae1cfc3f6edad837898b18175927b218aabc0433491578244a070a2494aea8"
+  "THIRD-PARTY-NOTICES.md": "7f26d93f8801d6033b382c23c7d99e97382fec8b373fc3361db9f22fa1973aee"
 }
