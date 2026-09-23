@@ -179,4 +179,3 @@ cd C:\tools\quarto-template-2.4.2
 ddq.exe が内蔵する Rust のライブラリと mermaid、同梱の plantuml.jar、VSCode 拡張がバンドルする React は、
 それぞれのライセンスに従う（[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)）。
 テンプレートで書いた設計書（原稿・図・PDF・HTML）は、書いた人のものであり、このライセンスの対象ではない。
-
