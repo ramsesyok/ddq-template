@@ -40,6 +40,66 @@ pub fn find() -> Option<PathBuf> {
     None
 }
 
+/// ブラウザの実体を表す短い文字列（`msedge/128.0.2739.67` など）。SVG の先頭コメントに残し、
+/// ブラウザが更新・入れ替えされたらキャッシュを描き直す判定に使う（cli/DESIGN.md §5.5）。
+/// Windows は実行ファイルの版情報から取る。取れなければ（他 OS も）大きさと更新日時の指紋。
+pub fn identity(exe: &Path) -> String {
+    let name = exe
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_lowercase())
+        .unwrap_or_else(|| "browser".into());
+    #[cfg(windows)]
+    if let Some(v) = file_version(exe) {
+        return format!("{name}/{v}");
+    }
+    let meta = std::fs::metadata(exe).ok();
+    let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+    let mtime = meta
+        .and_then(|m| m.modified().ok())
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    format!("{name}/{size:x}-{mtime:x}")
+}
+
+/// 実行ファイルの版（VS_FIXEDFILEINFO の FileVersion）。
+#[cfg(windows)]
+fn file_version(exe: &Path) -> Option<String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::{
+        GetFileVersionInfoSizeW, GetFileVersionInfoW, VS_FIXEDFILEINFO, VerQueryValueW,
+    };
+
+    let wide: Vec<u16> = exe.as_os_str().encode_wide().chain(Some(0)).collect();
+    unsafe {
+        let len = GetFileVersionInfoSizeW(wide.as_ptr(), std::ptr::null_mut());
+        if len == 0 {
+            return None;
+        }
+        let mut buf = vec![0u8; len as usize];
+        if GetFileVersionInfoW(wide.as_ptr(), 0, len, buf.as_mut_ptr().cast()) == 0 {
+            return None;
+        }
+        let root: [u16; 2] = [b'\\' as u16, 0];
+        let mut info: *mut core::ffi::c_void = std::ptr::null_mut();
+        let mut info_len = 0u32;
+        if VerQueryValueW(buf.as_ptr().cast(), root.as_ptr(), &mut info, &mut info_len) == 0
+            || info.is_null()
+            || (info_len as usize) < std::mem::size_of::<VS_FIXEDFILEINFO>()
+        {
+            return None;
+        }
+        let fi = &*(info as *const VS_FIXEDFILEINFO);
+        Some(format!(
+            "{}.{}.{}.{}",
+            fi.dwFileVersionMS >> 16,
+            fi.dwFileVersionMS & 0xffff,
+            fi.dwFileVersionLS >> 16,
+            fi.dwFileVersionLS & 0xffff
+        ))
+    }
+}
+
 #[cfg(windows)]
 fn find_windows() -> Option<PathBuf> {
     use winreg::{RegKey, enums::*};
@@ -364,6 +424,20 @@ fn file_url(p: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn identity_falls_back_to_size_and_time() {
+        // 版情報の無いファイル（ここではただのテキスト）は、大きさと更新日時の指紋になる
+        let tmp = tempfile::tempdir().unwrap();
+        let exe = tmp.path().join("MSEdge.exe");
+        fs::write(&exe, "not a real browser").unwrap();
+        let id = identity(&exe);
+        assert!(id.starts_with("msedge/"), "{id}");
+        assert!(id.contains('-'), "大きさ-更新日時: {id}");
+        // 中身が変われば（ブラウザの更新）別の文字列になる
+        fs::write(&exe, "a longer, updated browser binary").unwrap();
+        assert_ne!(id, identity(&exe));
+    }
 
     #[test]
     fn file_url_encodes_spaces_and_non_ascii() {

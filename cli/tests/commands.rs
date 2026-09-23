@@ -204,6 +204,27 @@ fn diagrams_removes_the_old_svg_of_a_broken_mermaid() {
 }
 
 #[test]
+fn identity_reports_what_the_svg_header_will_say() {
+    // design-doc.lua はこの JSON とキャッシュの 1 行目を比べる。merman なら環境に依らず決まる
+    let out = Command::new(env!("CARGO_BIN_EXE_ddq"))
+        .arg("identity")
+        .env("DDQ_MERMAID_ENGINE", "merman")
+        .output()
+        .unwrap();
+    assert_ok(&out);
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).expect("JSON のはず");
+    assert_eq!(v["version"], template_version());
+    assert!(
+        v["mermaid"]
+            .as_str()
+            .unwrap()
+            .starts_with("engine=merman merman=")
+    );
+    assert_eq!(v["fonts"].as_str().unwrap().len(), 8);
+    assert!(out.stderr.is_empty(), "フィルタが章ごとに呼ぶので、何も出さない");
+}
+
+#[test]
 fn setup_rejects_different_template_version() {
     let tmp = tempfile::tempdir().unwrap();
     let repo = tmp.path().join("order-design");

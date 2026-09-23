@@ -27,3 +27,21 @@ pub fn run(inputs: &[PathBuf], outputs: &[PathBuf], config: Option<&Path>, backg
     let config = mermaid::load_config(config)?;
     mermaid::render_jobs(&jobs, &config, background)
 }
+
+/// `ddq identity` — いまこの端末で図を描いたら SVG の先頭コメントに何が書かれるかを JSON で出す。
+/// design-doc.lua は発行時にキャッシュの先頭コメントとこれを比べ、違えば描き直す
+/// （ブラウザの更新・入れ替え、フォントの追加・差し替え。cli/DESIGN.md §5.5）。
+///
+/// ```json
+/// {"version": "2.4.2", "mermaid": "engine=browser mermaid=11.16.0 browser=msedge/… fonts=…", "fonts": "…"}
+/// ```
+pub fn identity() -> Result<()> {
+    let engine = mermaid::choose_engine_quiet()?;
+    let out = serde_json::json!({
+        "version": crate::assets::VERSION,
+        "mermaid": engine.label(),
+        "fonts": crate::fonts::fingerprint(),
+    });
+    println!("{out}");
+    Ok(())
+}

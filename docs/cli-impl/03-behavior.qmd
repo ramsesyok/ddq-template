@@ -18,6 +18,7 @@
 | 改訂履歴表 | `ddq rev build [folder] [--check]` | `--check` は警告で非成功 |
 | 配布物 | `ddq release [out-dir] [--with-sample] [--no-build]` | CWD はテンプレートのリポジトリルート |
 | 内部変換 | `ddq mermaid -i <inputs...> -o <outputs...> [-c JSON] [-b COLOR]` | 入出力は同数、背景既定は transparent |
+| 内部照会 | `ddq identity` | いまの環境（版・mermaid の見出し・フォントの指紋）を JSON で出す。フィルタが発行時に呼ぶ |
 
 表の構文・既定値は静的確認済み。`setup/html/pdf/diagrams` は表を短くするための併記であり、一つずつ選ぶ。`tag apply` の「--all か --from のどちらか」は clap ではなく `main` の分岐で検査する。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0020](appendix-evidence.qmd#ev-e-0020)
 

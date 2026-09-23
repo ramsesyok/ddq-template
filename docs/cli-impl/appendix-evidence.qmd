@@ -74,7 +74,7 @@
 
 ### E-0017：今回の限定実行 {#ev-e-0017 .unnumbered}
 
-**確認済み／種別：実行観測**。2026-09-23、Windows、CWD=`cli`、Cargo 1.98.1、git有り。`cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml` は終了0、unit 61件、commands 7件、plantuml 2件、rev 12件、tag 10件が成功（2.4.1）。`DDQ_E2E=1` の `--test e2e` も3件成功した。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。加えて、debugビルドの ddq 2.4.0 で一時Gitリポジトリ（`chapters:` と `appendices:` を持つ執筆フォルダ、`rev-A` タグ）を作り、付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、`--write --json` で JSON が出ないことを観測した。本書自身に対する `tag list --json` の `order` にも付録が含まれなかった。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。初版（2026-09-21、2.2.1）では unit 10件と commands 4件、merman 1件を同条件で確認した。
+**確認済み／種別：実行観測**。2026-09-23、Windows、CWD=`cli`、Cargo 1.98.1、git有り。`cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml` は終了0、unit 66件、commands 8件、plantuml 2件、rev 12件、tag 10件が成功（2.4.2）。`DDQ_E2E=1` の `--test e2e` も3件成功した。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。加えて、debugビルドの ddq 2.4.0 で一時Gitリポジトリ（`chapters:` と `appendices:` を持つ執筆フォルダ、`rev-A` タグ）を作り、付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、`--write --json` で JSON が出ないことを観測した。本書自身に対する `tag list --json` の `order` にも付録が含まれなかった。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。初版（2026-09-21、2.2.1）では unit 10件と commands 4件、merman 1件を同条件で確認した。
 
 ### E-0018：依存のローカル同定 {#ev-e-0018 .unnumbered}
 
@@ -107,3 +107,7 @@
 ### E-0025：図キャッシュのキーと失敗時の出力（2.4.1） {#ev-e-0025 .unnumbered}
 
 **確認済み／種別：ソース・テスト期待値・実行観測**。`template/design-doc.lua::cache_key / cached_svg / render_mermaid / render_plantuml`、`cli/src/commands/update.rs::run / prune_diagram_cache`、`mermaid/mod.rs::render_jobs`、`commands/diagrams.rs::run`、`template/VERSION`（2.4.1）。テストは `tests/commands.rs::update_prunes_diagram_cache_only_when_the_version_changes / diagrams_removes_the_old_svg_of_a_broken_mermaid`、`tests/plantuml.rs::diagrams_renders_puml_and_rejects_syntax_error`、`DDQ_E2E=1` の `tests/e2e.rs`（3件）。`docs/cli-impl` で、版上げ時のキャッシュ削除、再ビルドでの再利用、設定変更とエンジン指定による別キー、空キャッシュの描き直しを観測した。
+
+### E-0026：発行時の環境照合（2.4.2） {#ev-e-0026 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/fonts.rs::fingerprint / fingerprint_of / font_dirs / is_font`、`mermaid/browser.rs::identity / file_version`、`mermaid/mod.rs::Engine::label / choose_engine_quiet`、`commands/mermaid.rs::identity`、`main.rs::Command::Identity`、`plantuml/mod.rs::svg_header / is_local_url`、`template/design-doc.lua::ddq_identity / svg_header / mermaid_env_matches / puml_is_local / puml_env_matches / render_mermaid / render_plantuml`、`cli/Cargo.toml`（`Win32_Storage_FileSystem`）。テストは `fonts`・`browser`・`plantuml` の単体テスト、`tests/commands.rs::identity_reports_what_the_svg_header_will_say`、`tests/plantuml.rs`（`fonts=` の記録）、`DDQ_E2E=1` の `tests/e2e.rs`。一時的な執筆フォルダ（mermaid と PlantUML のフェンス、ローカルの PicoWeb）で、再ビルドでの再利用（ローカルのポートが変わっても）、各記録の書換えによる描き直し、`DDQ_DIAGRAM_CACHE=keep` とサーバ無しのプレビューで描き直さないことを観測した。

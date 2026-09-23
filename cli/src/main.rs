@@ -6,6 +6,7 @@
 mod assets;
 mod commands;
 mod doc;
+mod fonts;
 mod mermaid;
 mod plantuml;
 mod quarto;
@@ -51,6 +52,9 @@ enum Command {
     /// mermaid ソースを SVG に変換する（design-doc.lua が内部で呼ぶ）
     #[command(hide = true)]
     Mermaid(MermaidArgs),
+    /// 図の出来上がりを左右する環境（エンジン・ブラウザ・フォントの指紋）を JSON で出す（design-doc.lua が内部で呼ぶ）
+    #[command(hide = true)]
+    Identity,
 }
 
 #[derive(Args)]
@@ -280,5 +284,6 @@ fn main() -> anyhow::Result<()> {
         Command::Mermaid(a) => {
             commands::mermaid::run(&a.input, &a.output, a.config.as_deref(), &a.background)
         }
+        Command::Identity => commands::mermaid::identity(),
     }
 }

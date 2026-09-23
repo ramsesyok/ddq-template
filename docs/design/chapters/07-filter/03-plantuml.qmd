@@ -56,6 +56,8 @@ PlantUML の SVG は各 `<text>` に `textLength` を持ち、Typst（resvg）�
 
 SVG は `width` / `height` / `viewBox` を持つので、`svg_size()` と `fig_width()` は mermaid と
 共通で、`::: {#fig-x}` の採番・`@fig-x` の参照もそのまま効く。SVG 先頭には
-`<!-- ddq <版> engine=plantuml plantuml=<版> server=<url> -->` を残し、どのサーバで焼いたかを
-後から判別できるようにする。ddq 側（Java / jar の探索、PicoWeb の起動・停止、Job Object）は
+`<!-- ddq <版> engine=plantuml plantuml=<版> server=<url> fonts=<指紋> -->`（`fonts=` はローカルのサーバのとき）を残し、
+どのサーバで焼いたかを後から判別できるようにする。発行時はこれをいま使うサーバと比べ、版が違う・
+ローカルでフォントが違う・LAN で URL が違う場合は描き直す（プレビューでは比べず、サーバが無くても
+キャッシュを見せる。`DDQ_DIAGRAM_CACHE=keep` なら発行時も比べない）。ddq 側（Java / jar の探索、PicoWeb の起動・停止、Job Object）は
 `cli/DESIGN.md` §13 にある。

@@ -35,10 +35,12 @@ plantuml-server: http://plantuml.example.local:8080
 
 サーバの jar の版と、ローカルの `plantuml.jar` の版が違うと同じ原稿から違う図が出ることが
 ある。生成された SVG（`<執筆フォルダ>/diagrams/puml-*.svg`）の 1 行目に、どのサーバの
-どの版で描いたかが記録される。
+どの版で描いたかが記録される（ローカルのサーバなら `fonts=` に端末のフォントの指紋も）。
+発行時には、これと**いま使うサーバの版**（ローカルならフォントも、LAN なら URL も）を比べ、
+違えばその図を描き直す。プレビューではサーバが無くてもキャッシュをそのまま表示する。
 
 ```text
-<!-- ddq 2.4.1 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 -->
+<!-- ddq 2.4.2 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 fonts=a9d68470 -->
 ```
 
 ### ローカルで描く（Java の用意）
@@ -62,7 +64,7 @@ set "DDQ_JAVA=C:\Program Files\Eclipse Adoptium\jdk-17\bin\java.exe"
 執筆者がサーバを起動しておく。
 
 ```bat
-cd C:\tools\quarto-template-2.4.1
+cd C:\tools\quarto-template-2.4.2
 .\ddq plantuml serve
 ```
 

@@ -29,12 +29,30 @@ pub enum Engine {
 }
 
 impl Engine {
-    /// SVG 先頭コメント用の表示名
-    fn label(&self) -> String {
+    /// SVG 先頭コメント用の表示名。図の出来上がりを左右する環境をすべて含める。
+    /// design-doc.lua は発行時に、キャッシュの先頭コメントがこれと違えば描き直す
+    /// （`ddq identity` が同じ文字列を返す。cli/DESIGN.md §5.5）。
+    /// - browser: mermaid.js の版に加え、ブラウザの実体と端末のフォント（文字幅を測る）
+    /// - merman: 文字幅を内蔵の表で推定するので、merman の版だけ
+    pub fn label(&self) -> String {
         match self {
-            Engine::Browser(_) => format!("engine=browser mermaid={}", assets::mermaid_js_version()),
+            Engine::Browser(exe) => format!(
+                "engine=browser mermaid={} browser={} fonts={}",
+                assets::mermaid_js_version(),
+                browser::identity(exe),
+                crate::fonts::fingerprint()
+            ),
             Engine::Merman => format!("engine=merman merman={}", merman_engine::VERSION),
         }
+    }
+}
+
+/// `choose_engine` と同じ規則で決めるが、merman に落ちたときの通知を出さない
+/// （`ddq identity` 用。フィルタが章ごとに呼ぶので、毎回出ると煩い）。
+pub fn choose_engine_quiet() -> Result<Engine> {
+    match env::var("DDQ_MERMAID_ENGINE").ok().as_deref() {
+        None => Ok(browser::find().map(Engine::Browser).unwrap_or(Engine::Merman)),
+        Some(_) => choose_engine(),
     }
 }
 
