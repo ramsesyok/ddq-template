@@ -227,7 +227,10 @@ fn write_creates_the_revision_file_and_keeps_notes() {
     assert!(text.contains("label: tbl-cond"));
     // 拡張がその場所を開くための行（removed は旧版での行）
     assert!(text.contains("  - label: sec-terms\n    kind: added\n    unit: heading\n    title: 用語\n    file: chapters/01-overview/index.qmd\n    line: 9\n"), "{text}");
-    assert!(text.contains("title: 対象範囲\n    file: chapters/01-overview/index.qmd\n    line: 9\n"), "{text}");
+    assert!(
+        text.contains("title: 対象範囲\n    file: chapters/01-overview/index.qmd\n    line: 9\n"),
+        "{text}"
+    );
 
     // 人がメモを書く
     fs::write(
