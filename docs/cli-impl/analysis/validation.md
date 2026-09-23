@@ -95,3 +95,9 @@ U-0001: Windows 11（ACP 932）、Edge 153.0.4234.48、Quarto 1.9.38、Java 17.0
 U-0002: tests/faults.rs（7件）で故障注入。修正前に、ブラウザの孫プロセスの残存と、成功時も %TEMP% に
 ddq-mermaid-* が残ること（1,157件）を観測し、Job Object（src/job.rs）と削除順の修正で解消した。
 修正後は全件成功し、browser golden・E2E の実行で ddq-mermaid-* は増えなかった。
+
+## 2026-09-23 の追補（U-0003）
+
+plantuml.jar を公式の plantuml-mit-1.2026.8.jar の digest と、mermaid.min.js を npm の mermaid@11.16.0 と照合し、一致した。
+配布物に入る第三者のソフトウェアを棚卸しし（Rust 188 / mermaid 78 / React 3）、THIRD-PARTY-NOTICES.md を作って
+ddq release が同梱・照合するようにした。リポジトリ自身のライセンスは未定（保守者の判断待ち）。

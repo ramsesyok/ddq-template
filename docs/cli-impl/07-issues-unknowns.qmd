@@ -57,7 +57,14 @@
 
 ### U-0003：配布する外部資産の由来 {#u-0003 .unnumbered}
 
-**不明／優先度：配布前に高**。ローカルjarの版、READMEのMIT版配置方針、CIの取得名は確認したが、実物の取得元とライセンス種別を証明する情報は不足する。minified Mermaidのupstream差分と全推移依存のNOTICEも今回確認していない。取得元digestの照合、jarのライセンス表示、同梱資産とNOTICEの棚卸しで解消する。外部の公開ライセンスを現物へ無条件に当てはめない。
+**確認済み（一部は判断待ち）／優先度：低**。2026-09-23に次を確認した（[E-0030](appendix-evidence.qmd#ev-e-0030)）。
+
+- `cli/vendor/plantuml.jar`（v2.4.2 の配布物の jar も同じ）は、PlantUML 公式リリース v1.2026.8 の `plantuml-mit-1.2026.8.jar` と SHA-256（`3629c9cd…`）・大きさが一致し、`-license` の表示も MIT である。jar 自身が同梱物（Graphviz の一部、OpenIconic、Brotli、Twemoji など）の表示を持つ
+- `template/vendor/mermaid.min.js` は npm の `mermaid@11.16.0` の `dist/mermaid.min.js` と SHA-256・大きさが一致する（改変なし）
+- 配布物に入る第三者のソフトウェアは、ddq.exe に静的リンクする Rust のクレート188件（proc-macro 等のビルド時だけのものは除く）、mermaid とそのバンドルの依存78件、plantuml.jar、VSIX の Webview にバンドルする React 3件である。いずれも許容的なライセンスで、MPL-2.0 は3件（cssparser・dtoa-short・selectors。改変なし、入手先を明記）、DOMPurify は MPL-2.0 と Apache-2.0 から Apache-2.0 を選ぶ。merman の各クレートは移植元のライセンスを `THIRD_PARTY_LICENSES/` に持ち、ratex-katex-fonts は KaTeX のフォント（SIL OFL 1.1）を ddq.exe に埋め込む
+- **従来の配布物にはこれらのライセンス表示が無かった**。`cli/tools/third_party.py` が `THIRD-PARTY-NOTICES.md` を作り、`ddq release` が同梱する（入力のハッシュが合わなければ止まる）。`tests/third_party.rs` が CI で古さを検出する
+
+**残る判断**：このリポジトリ自身（ddq 本体・テンプレート）のライセンスが定まっていない（ルートに LICENSE が無く、`cli/Cargo.toml` に `license` が無い。VSCode 拡張は MIT と表示している）。配布物の受け手が利用条件を知るために、保守者が決めて明記する。依存の法的評価は行っていない。
 
 ### U-0004：配布工程の動的確認 {#u-0004 .unnumbered}
 

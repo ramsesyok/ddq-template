@@ -50,6 +50,7 @@ C:\tools\
     ├── はじめかた.pdf        ← 発行者向けの最初の一歩（8 枚のスライド）
     ├── README.md            ← このファイル
     ├── AGENT-GUIDE.md       ← AI エージェント向けの執筆ガイド（設計書リポジトリの AGENTS.md やスキルに取り込む）
+    ├── THIRD-PARTY-NOTICES.md ← 同梱・内蔵している第三者のソフトウェアのライセンス表示
     ├── ddq-table-editor-2.4.2.vsix ← VSCode 拡張（表の視覚編集。執筆者へ配る）
     └── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
 
