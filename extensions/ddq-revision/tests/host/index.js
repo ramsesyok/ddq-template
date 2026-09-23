@@ -15,7 +15,7 @@
  * 改訂履歴（実物の ddq があるときだけ）:
  *   4. `ddq rev diff --write` が作った yml が Custom Editor で開くこと
  *   5. 画面で書いたメモが ddq の読める形で文書に入り、`ddq rev build` が表に出すこと
- *   6. 差分ボタンで VSCode の差分エディタが開くこと（左 git: / 右 作業ツリー）
+ *   6. 差分ボタンで VSCode の差分エディタが編集画面の隣に開くこと（左 git: / 右 作業ツリー）
  */
 const assert = require('node:assert');
 const { execFileSync } = require('node:child_process');
@@ -178,17 +178,28 @@ async function revisionEditor(docs, ddq) {
     assert.ok(history.includes('導入の説明を補足した。'), `表にメモが出ていない: ${out}`);
     say('ddq rev build がそのメモを表に出す');
 
-    // 差分エディタ（左が git:、右が作業ツリー）
+    // 差分エディタ（左が git:、右が作業ツリー）。リポジトリは起動後に git init したので、
+    // Git 拡張が見つけていないと差分ボタンが案内（モーダル）を出して止まる。先に開いておく。
+    const gitApi = (await vscode.extensions.getExtension('vscode.git').activate()).getAPI(1);
+    assert.ok(await gitApi.openRepository(vscode.Uri.file(repo)), 'Git 拡張がリポジトリを開けない');
     await vscode.commands.executeCommand('ddqRevision.internal.openDiff', doc.uri.toString(), 0);
     await new Promise((r) => setTimeout(r, 1500));
-    const diffTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-    assert.ok(
-        diffTab.input instanceof vscode.TabInputTextDiff,
-        `差分エディタではない: ${diffTab.input && diffTab.input.constructor.name}`
+    // 差分は編集画面の隣のグループに出て、フォーカスは編集画面に残る
+    const groups = vscode.window.tabGroups.all;
+    const diffGroup = groups.find((g) => g.tabs.some((t) => t.input instanceof vscode.TabInputTextDiff));
+    assert.ok(diffGroup, '差分エディタが開いていない');
+    const diffTab = diffGroup.tabs.find((t) => t.input instanceof vscode.TabInputTextDiff);
+    const editorGroup = groups.find((g) =>
+        g.tabs.some((t) => t.input instanceof vscode.TabInputCustom && t.input.viewType === 'ddqRevision.editor')
     );
+    assert.ok(editorGroup && editorGroup !== diffGroup, '差分が編集画面と同じグループに重なった');
+    assert.strictEqual(vscode.window.tabGroups.activeTabGroup, editorGroup, 'フォーカスが編集画面から移った');
     assert.strictEqual(diffTab.input.original.scheme, 'git');
     assert.strictEqual(diffTab.input.modified.scheme, 'file');
-    say('差分ボタンで VSCode の差分エディタが開く（左 git: / 右 作業ツリー）');
+    // タブが開くだけでは「ファイルが見つからない」でも通るので、旧版の中身が読めることまで見る
+    const original = await vscode.workspace.openTextDocument(diffTab.input.original);
+    assert.ok(original.getText().length > 0, '旧版の中身が空');
+    say('差分ボタンで VSCode の差分エディタが編集画面の隣に開く（左 git: / 右 作業ツリー）');
 }
 
 module.exports.run = () =>
