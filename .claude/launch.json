@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "example-html",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "examples/docs/_book"],
+      "port": 8765
+    },
+    {
+      "name": "presentation",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8766", "--directory", "docs/presentation/_book"],
+      "port": 8766
+    }
+  ]
+}
