@@ -39,8 +39,11 @@ pub const LOCAL_BIND: &str = "127.0.0.1";
 pub const CONFIG_FILE: &str = "plantuml-config.puml";
 /// 到達確認の待ち時間
 const PROBE_TIMEOUT: Duration = Duration::from_secs(2);
-/// PicoWeb の起動待ちの上限（JVM 起動 + クラス読み込み。実測は 0.2 秒）
-const STARTUP_TIMEOUT: Duration = Duration::from_secs(30);
+/// PicoWeb の起動待ちの上限（既定 30 秒。JVM 起動 + クラス読み込みの実測は 0.2 秒）。
+/// 遅い端末や試験のために `DDQ_PLANTUML_STARTUP_TIMEOUT`（秒）で変えられる。
+fn startup_timeout() -> Duration {
+    crate::timeout_from_env("DDQ_PLANTUML_STARTUP_TIMEOUT", 30)
+}
 
 // ------------------------------------------------------------
 // 探索
@@ -475,7 +478,7 @@ pub struct LocalServer {
     url: String,
     version: Option<String>,
     #[cfg(windows)]
-    job: job::Handle,
+    job: crate::job::Handle,
 }
 
 impl LocalServer {
@@ -495,15 +498,9 @@ impl LocalServer {
             .with_context(|| format!("java を起動できません: {}", java.display()))?;
         // 親が落ちても JVM を残さない（§ 冒頭）。起動直後に入れる。
         // 入れられなかったら、ここで上げた JVM を自分で片付けてから返す（まだ Drop の持ち主がいない）。
+        // 起動待ちで失敗して抜けるときも、job の Drop が JVM の子孫ごと終わらせる。
         #[cfg(windows)]
-        let job = match job::attach(&child) {
-            Ok(job) => job,
-            Err(e) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(e);
-            }
-        };
+        let job = crate::job::attach_or_kill(&mut child)?;
 
         // stderr は専用のスレッドで読み続ける（読まないとパイプが詰まって JVM が止まる）。
         // 起動を待つ間だけ行を渡し、受け手がいなくなったら残りは捨てる（溜め込まない）。
@@ -524,12 +521,12 @@ impl LocalServer {
         });
 
         // PicoWeb は起動時に webPort= / webAddress= を stderr に出す。その行を待ってポートを知る。
-        // 待つのは STARTUP_TIMEOUT まで（JVM が何も出さなくても、改行を出さなくても打ち切る）。
+        // 待つのは startup_timeout() まで（JVM が何も出さなくても、改行を出さなくても打ち切る）。
         let mut actual = 0u16;
         let mut early = String::new();
         let mut timed_out = false;
         loop {
-            match rx.recv_timeout(STARTUP_TIMEOUT.saturating_sub(t0.elapsed())) {
+            match rx.recv_timeout(startup_timeout().saturating_sub(t0.elapsed())) {
                 Ok(line) => {
                     if let Some(p) = line.trim().strip_prefix("webPort=") {
                         actual = p.parse().unwrap_or(0);
@@ -549,7 +546,7 @@ impl LocalServer {
             let _ = child.kill();
             let _ = child.wait();
             let why = if timed_out {
-                format!("{} 秒以内に起動しませんでした", STARTUP_TIMEOUT.as_secs())
+                format!("{} 秒以内に起動しませんでした", startup_timeout().as_secs())
             } else {
                 "起動しませんでした".to_string()
             };
@@ -566,12 +563,12 @@ impl LocalServer {
             if let Ok(v) = probe(&url) {
                 break v;
             }
-            if t0.elapsed() > STARTUP_TIMEOUT {
+            if t0.elapsed() > startup_timeout() {
                 let _ = child.kill();
                 let _ = child.wait();
                 bail!(
                     "PlantUML サーバ（{url}）が {} 秒以内に応答しませんでした",
-                    STARTUP_TIMEOUT.as_secs()
+                    startup_timeout().as_secs()
                 );
             }
             thread::sleep(Duration::from_millis(50));
@@ -607,61 +604,6 @@ impl Drop for LocalServer {
         let _ = self.child.wait();
         #[cfg(windows)]
         self.job.close();
-    }
-}
-
-#[cfg(windows)]
-mod job {
-    //! Job Object（KILL_ON_JOB_CLOSE）。ハンドルを閉じると（= ddq が終わると）子も終わる。
-    use std::{os::windows::io::AsRawHandle, process::Child};
-
-    use anyhow::{Result, bail};
-    use windows_sys::Win32::{
-        Foundation::{CloseHandle, HANDLE},
-        System::JobObjects::{
-            AssignProcessToJobObject, CreateJobObjectW, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
-            JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JobObjectExtendedLimitInformation, SetInformationJobObject,
-        },
-    };
-
-    pub struct Handle(HANDLE);
-
-    // HANDLE は生ポインタだが、Job Object のハンドルはスレッド間で受け渡してよい
-    unsafe impl Send for Handle {}
-
-    impl Handle {
-        pub fn close(&mut self) {
-            if !self.0.is_null() {
-                unsafe { CloseHandle(self.0) };
-                self.0 = std::ptr::null_mut();
-            }
-        }
-    }
-
-    pub fn attach(child: &Child) -> Result<Handle> {
-        unsafe {
-            let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
-            if job.is_null() {
-                bail!("Job Object を作れません（CreateJobObjectW）");
-            }
-            let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
-            info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-            if SetInformationJobObject(
-                job,
-                JobObjectExtendedLimitInformation,
-                &info as *const _ as *const _,
-                std::mem::size_of_val(&info) as u32,
-            ) == 0
-            {
-                CloseHandle(job);
-                bail!("Job Object を設定できません（SetInformationJobObject）");
-            }
-            if AssignProcessToJobObject(job, child.as_raw_handle() as HANDLE) == 0 {
-                CloseHandle(job);
-                bail!("子プロセスを Job Object に入れられません（AssignProcessToJobObject）");
-            }
-            Ok(Handle(job))
-        }
     }
 }
 

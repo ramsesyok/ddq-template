@@ -42,7 +42,7 @@
 
 ### E-0009：Mermaid変換とブラウザ {#ev-e-0009 .unnumbered}
 
-**確認済み／種別：ソース**。`cli/src/commands/mermaid.rs::run`、`mermaid/mod.rs::Job / Engine / choose_engine / load_config / render_jobs / set_root_background`、`mermaid/browser.rs::find / find_windows / render / render_page / launch / wait_for_devtools_endpoint / Cdp / file_url`、`mermaid/merman_engine.rs::render / render_one`。バッチ、CDP、JSON、60秒定数、resvg_safe、コメント、cleanupを追跡。本文の1バッチ1ブラウザはこのAPI単位であり、文書全体で一回という意味ではない。
+**確認済み／種別：ソース**。`cli/src/commands/mermaid.rs::run`、`mermaid/mod.rs::Job / Engine / choose_engine / load_config / render_jobs / set_root_background`、`mermaid/browser.rs::find / find_windows / render / render_page / launch / wait_for_devtools_endpoint / Cdp / file_url`、`mermaid/merman_engine.rs::render / render_one`。バッチ、CDP、JSON、待ち時間（既定60秒、`DDQ_BROWSER_TIMEOUT`）、resvg_safe、コメント、Job Object と一時フォルダの後始末（`remove_dir_patiently`）を追跡。本文の1バッチ1ブラウザはこのAPI単位であり、文書全体で一回という意味ではない。
 
 ### E-0010：PlantUMLの選択・HTTP・入力 {#ev-e-0010 .unnumbered}
 
@@ -50,7 +50,7 @@
 
 ### E-0011：PlantUMLプロセス寿命 {#ev-e-0011 .unnumbered}
 
-**確認済み／種別：ソース**。`cli/src/plantuml/mod.rs::LocalServer::start / wait`、`Drop for LocalServer`、`job::attach / Handle::close`、`Session::env`、`start_local`、`commands/plantuml.rs::serve`。空きポート、stderrのwebPort、30秒定数、読取スレッドとチャネル・`recv_timeout`、起動後の `io::sink`、attach失敗時のkill/wait、Windows Job Objectを確認。起動経路は `tests/plantuml.rs`（Java有り）で実行した。無出力のJVMやattach失敗の故障注入はしていない。
+**確認済み／種別：ソース**。`cli/src/plantuml/mod.rs::LocalServer::start / wait`、`Drop for LocalServer`、`cli/src/job.rs::attach / attach_or_kill / Handle::close / Drop`、`Session::env`、`start_local`、`commands/plantuml.rs::serve`。空きポート、stderrのwebPort、待ち時間（既定30秒、`DDQ_PLANTUML_STARTUP_TIMEOUT`）、読取スレッドとチャネル・`recv_timeout`、起動後の `io::sink`、attach失敗時のkill/wait、Windows Job Objectを確認。起動経路は `tests/plantuml.rs`（Java有り）で実行した。無出力のJVMとattach失敗の故障注入はE-0029。
 
 ### E-0012：Luaとの境界・キャッシュ {#ev-e-0012 .unnumbered}
 
@@ -115,3 +115,11 @@
 ### E-0027：配布工程の実行（v2.4.2） {#ev-e-0027 .unnumbered}
 
 **確認済み／種別：実行観測**。2026-09-23、Windows、`main` の `d4b275fc8950373887b86de42bf732a2b79de91e`（CI成功）。`cargo build --locked --release` の後、リポジトリルートで `cli\target\release\ddq.exe release` を実行し、終了0。マニュアルのPDF→HTML、`ddq-revision-2.4.2.vsix`・`ddq-table-editor-2.4.2.vsix` のパッケージ、`plantuml.jar`（1.2026.8）の同梱、`はじめかた.pdf` の作成を経て、`release/quarto-template-2.4.2.zip`（50ファイル、30,752,594バイト）ができた。同梱の `ddq.exe --version` は 2.4.2、日本語名の2エントリは UTF-8 名フラグ（bit 11）付き、同梱の `ddq.exe init` で作った執筆フォルダの `.template-version` は 2.4.2 で、`design-doc.lua` に発行時照合の処理があることを確認した。この ZIP を GitHub のリリース v2.4.2 に添付した。オプション付き・異常系、全エントリの展開照合は実行していない。
+
+### E-0028：外部描画の全経路の実行（U-0001） {#ev-e-0028 .unnumbered}
+
+**確認済み／種別：実行観測**。2026-09-23、Windows 11 Home 10.0.26200（システムの ACP 932）、Edge 153.0.4234.48、Quarto 1.9.38、OpenJDK 17.0.2、PlantUML 1.2026.8、git 2.44.0、Cargo 1.98.1。CWD=`cli` で `DDQ_E2E=1 cargo test --locked --offline` を実行し終了0。unit、commands、e2e（ASCII／非ASCIIパスで PDF・HTML）、faults、golden（merman と browser）、plantuml、rev、tag がすべて成功し、skip の出力は無かった。browser golden は `DDQ_GOLDEN_LOOSE` 無しの厳格比較で22組の幾何が mermaid-cli の出力と一致した。1台だけの実行である。
+
+### E-0029：プロセスの異常系の故障注入（U-0002） {#ev-e-0029 .unnumbered}
+
+**確認済み／種別：テストソース・実行観測**。`cli/tests/faults.rs`（`Fakes::silent / failing / wait_until_beating / assert_nothing_left` と7テスト）、`cli/src/job.rs::tests`（`failed_attach_kills_the_child / closing_the_job_ends_the_child`）、`mermaid/browser.rs::render / remove_dir_patiently / timeout`、`plantuml/mod.rs::startup_timeout / LocalServer::start`、`main.rs::timeout_from_env`。偽物の .bat は `start /b` で孫を起こして1秒ごとにファイルへ書き足させ、ddq の終了後に書き足しが止まることで残存が無いことを判定する。修正前のコードでは、ブラウザ起動中の ddq の強制終了と無応答のブラウザの打ち切りで孫が残り（出力を握るため `Command::output` が60秒以上戻らなかった）、本物の Edge での成功時に `ddq-mermaid-*` と Edge の `*.tmp` が一時フォルダに残ることを観測した。修正後は7件とも成功し、browser golden と E2E を実行しても %TEMP% の `ddq-mermaid-*` は増えなかった。

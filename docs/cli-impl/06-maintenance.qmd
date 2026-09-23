@@ -34,9 +34,9 @@
 
 | 箇所 | コード上の値／挙動（確認済み） | 改修時に区別すること |
 |---|---|---|
-| browser | TIMEOUT=60秒。DevTools待ち、通信、イベント、評価に使用 | バッチ全体60秒の保証ではない。図数に応じて待機が反復する |
+| browser | 既定60秒（`DDQ_BROWSER_TIMEOUT` で変更可）。DevTools待ち、通信、イベント、評価に使用 | バッチ全体60秒の保証ではない。図数に応じて待機が反復する |
 | PlantUML probe | Rust接続／読書きtimeoutは各2秒 | 名前解決を含む総時間の期限ではない |
-| PicoWeb起動 | STARTUP_TIMEOUT=30秒、probe再試行50ms。stderrは別スレッドから受け、`recv_timeout` で打ち切る | JVMが無出力・改行なしでも30秒で止まる。probe側の待機も同じ期限 |
+| PicoWeb起動 | 既定30秒（`DDQ_PLANTUML_STARTUP_TIMEOUT` で変更可）、probe再試行50ms。stderrは別スレッドから受け、`recv_timeout` で打ち切る | JVMが無出力・改行なしでも30秒で止まる。probe側の待機も同じ期限 |
 | PlantUML render | Rust接続／読書きtimeoutは各120秒 | Lua/curlはconnect 2秒、全体120秒で別条件 |
 | Mermaidバッチ | 全ソースと全結果をメモリに保持 | ストリーム処理ではない。大きい図・多数図の上限は未定義 |
 | Java stderr | 起動後は `io::sink` へ捨てる | 長時間の serve でもメモリを溜めない。起動後の出力は診断に残らない |
@@ -44,7 +44,7 @@
 
 根拠：[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)。性能目標・最大規模は [U-0005](07-issues-unknowns.qmd#u-0005) で不明としている。
 
-**確認済み（静的）**：browserでは通常の処理後に `Browser.close`、起動プロセスkill、一時フォルダcloseを試すが、cleanup失敗は無視する。PicoWebは通常のDropでkill/wait、Windowsは `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` を使う。すべての強制終了や初期化失敗で子が消えるという保証には広げない。[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0011](appendix-evidence.qmd#ev-e-0011)
+**確認済み（静的・故障注入）**：browserでは処理後に `Browser.close`、起動プロセスkill、Job Objectのclose（子孫をすべて終わらせる）の順に行い、その後で一時フォルダを消す（ファイルが放されるまで最大3秒待ち直す）。PicoWebは通常のDropでkill/wait、どちらも Windows では `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` の Job Object に入れる。ddq が強制終了された場合も子孫は Job Object で終わるが、一時フォルダ（`ddq-mermaid-*`）は後始末が走らないため残る。非Windowsには Job Object が無く、子の kill だけである。[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0029](appendix-evidence.qmd#ev-e-0029)
 
 ## 入力と外部接続の前提 {#sec-6de862}
 
