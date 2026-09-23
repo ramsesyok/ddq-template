@@ -96,7 +96,7 @@ Quarto 同梱、発行版は `ddq` 同梱）、複雑な図ではまれに形が
 `diagrams/*.mmd` に mermaid のソースを置き、あらかじめ SVG に変換しておくこともできる。
 
 ```bat
-cd C:\tools\quarto-template-2.4.3
+cd C:\tools\quarto-template-2.4.4
 .\ddq diagrams C:\work\order-design\docs
 ```
 

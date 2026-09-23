@@ -45,7 +45,7 @@ LAN のサーバがプロキシの内側にあるなら、そのホスト名を�
 違えばその図を描き直す。プレビューではサーバが無くてもキャッシュをそのまま表示する。
 
 ```text
-<!-- ddq 2.4.3 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 fonts=a9d68470 -->
+<!-- ddq 2.4.4 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 fonts=a9d68470 -->
 ```
 
 ### ローカルで描く（Java の用意）
@@ -69,7 +69,7 @@ set "DDQ_JAVA=C:\Program Files\Eclipse Adoptium\jdk-17\bin\java.exe"
 執筆者がサーバを起動しておく。
 
 ```bat
-cd C:\tools\quarto-template-2.4.3
+cd C:\tools\quarto-template-2.4.4
 .\ddq plantuml serve
 ```
 

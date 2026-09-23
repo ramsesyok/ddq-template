@@ -799,12 +799,33 @@ mod tests {
         thread::spawn(move || {
             let (mut s, _) = listener.accept().unwrap();
             s.set_read_timeout(Some(Duration::from_millis(500))).unwrap();
+            // 要求を最後まで読む（ヘッダと Content-Length の本文）。読み残したまま閉じると Windows は
+            // RST を送り、クライアントが応答より先に「接続がリセットされた」を受け取ることがある
+            let mut req = Vec::new();
             let mut buf = [0u8; 65536];
-            let _ = s.read(&mut buf);
+            loop {
+                match s.read(&mut buf) {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => req.extend_from_slice(&buf[..n]),
+                }
+                let Some(end) = req.windows(4).position(|w| w == b"\r\n\r\n") else {
+                    continue;
+                };
+                let head = String::from_utf8_lossy(&req[..end]).to_ascii_lowercase();
+                let len = head
+                    .lines()
+                    .find_map(|l| l.strip_prefix("content-length:"))
+                    .and_then(|v| v.trim().parse::<usize>().ok())
+                    .unwrap_or(0);
+                if req.len() >= end + 4 + len {
+                    break;
+                }
+            }
             if let Some(r) = response {
                 let _ = s.write_all(&r);
             }
             thread::sleep(hold);
+            let _ = s.shutdown(std::net::Shutdown::Write);
         });
         url
     }

@@ -107,3 +107,9 @@ ddq release が同梱・照合するようにした。リポジトリ自身の�
 tests/release.rs（9）・tests/rev_ops.rs（4）・PlantUML の HTTP 単体テスト（偽のサーバ）・長いパスの試験を追加し、
 配布フォルダの途中失敗、浅いクローン、閉じない HTTP 接続、プロキシ（curl）、output-dir、長いパスの不具合を直した。
 性能の基準値を測った（E-0034）。Linux/macOS と日本語以外のコードページは未実施。
+
+## 2026-09-23 の追補（mermaid の一括変換、2.4.4）
+
+ddq html / pdf が Quarto の前に文書全体の mermaid を 1 回で描くようにした。サンプル文書の HTML（キャッシュ無し）は
+36.7 秒 → 22.4 秒。DDQ_E2E=1 の cargo test 全 139 件が成功（E2E の図の数の照合を含む）。
+PlantUML の HTTP 試験の偽のサーバが要求を読み残して閉じ、RST で時々失敗していたのを直した（15 回連続で成功）。

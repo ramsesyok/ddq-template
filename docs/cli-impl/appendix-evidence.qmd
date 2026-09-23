@@ -143,3 +143,7 @@
 ### E-0034：性能の基準値（U-0005） {#ev-e-0034 .unnumbered}
 
 **確認済み／種別：実行観測**。2026-09-23、リリースビルドの ddq（2.4.2 相当）、Windows 11、Edge 153、Quarto 1.9.38。ddq を起動して経過時間と ddq プロセス自身のピークワーキングセットを測った（子のQuarto・ブラウザ・Javaは含まない）。サンプル文書 `examples/docs` の写し（qmd 72・mermaid 22・PlantUML 1）で、HTML はキャッシュ無し36.7秒・キャッシュ有り14.2秒、PDF はキャッシュ有り5.5〜5.6秒、ピークは6MB。mermaid 100図（4種の図を25枚ずつ）の一括変換は、ブラウザで27.0秒・16MB、内蔵レンダラで0.4秒・18MB。1図だけの変換はブラウザで0.9秒、内蔵レンダラで0.1秒。1台での1回の測定で、ばらつきは評価していない。
+
+### E-0035：mermaid の一括変換（2.4.4） {#ev-e-0035 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/mermaid/prerender.rs::run / cache_key / fresh / mermaid_blocks`、`commands/html.rs::run`・`pdf.rs::run`、`template/design-doc.lua::mermaid_target / prerender_mermaid / collect_mermaid` と末尾の2段のフィルタ。キーの規則は単体テストで別実装（Python の hashlib）の値と照合した。サンプル文書の写しで、キャッシュ無しの HTML が22.4秒（一括前36.7秒、フィルタだけの章ごとの一括で27.3秒）、キャッシュ有りの HTML が14.7秒、図のキャッシュはちょうど22件（キーがずれればフィルタが別名で描き直して増える）だった。`DDQ_E2E=1` の E2E は図の数の照合を含めて成功した。
