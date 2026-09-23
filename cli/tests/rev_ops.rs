@@ -12,7 +12,10 @@ use std::{
 use serde_json::Value;
 
 fn ddq(args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_ddq")).args(args).output().unwrap()
+    Command::new(env!("CARGO_BIN_EXE_ddq"))
+        .args(args)
+        .output()
+        .unwrap()
 }
 
 fn git(dir: &Path, args: &[&str]) -> Output {
@@ -21,15 +24,26 @@ fn git(dir: &Path, args: &[&str]) -> Output {
 
 fn git_ok(dir: &Path, args: &[&str]) {
     let o = git(dir, args);
-    assert!(o.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&o.stderr));
+    assert!(
+        o.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&o.stderr)
+    );
 }
 
 fn git_available() -> bool {
-    Command::new("git").arg("--version").output().is_ok_and(|o| o.status.success())
+    Command::new("git")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success())
 }
 
 fn text(o: &Output) -> String {
-    format!("{}{}", String::from_utf8_lossy(&o.stdout), String::from_utf8_lossy(&o.stderr))
+    format!(
+        "{}{}",
+        String::from_utf8_lossy(&o.stdout),
+        String::from_utf8_lossy(&o.stderr)
+    )
 }
 
 fn write(dir: &Path, rel: &str, text: &str) {
@@ -52,8 +66,16 @@ fn commit_and_tag(dir: &Path, tag: &str) {
 }
 
 fn small_doc(root: &Path) {
-    write(root, "docs/_quarto.yml", "book:\n  chapters:\n    - index.qmd\n    - chapters/01-概要/index.qmd\n");
-    write(root, "docs/index.qmd", "# 本書について {#sec-preface .unnumbered}\n\n前書き。\n");
+    write(
+        root,
+        "docs/_quarto.yml",
+        "book:\n  chapters:\n    - index.qmd\n    - chapters/01-概要/index.qmd\n",
+    );
+    write(
+        root,
+        "docs/index.qmd",
+        "# 本書について {#sec-preface .unnumbered}\n\n前書き。\n",
+    );
     write(
         root,
         "docs/chapters/01-概要/index.qmd",
@@ -66,7 +88,12 @@ fn entries(v: &Value) -> Vec<(String, String)> {
         .as_array()
         .unwrap()
         .iter()
-        .map(|e| (e["label"].as_str().unwrap().into(), e["kind"].as_str().unwrap().into()))
+        .map(|e| {
+            (
+                e["label"].as_str().unwrap().into(),
+                e["kind"].as_str().unwrap().into(),
+            )
+        })
         .collect()
 }
 
@@ -88,9 +115,14 @@ fn japanese_path_with_autocrlf() {
     }
     git_ok(&root, &["checkout", "--", "."]);
     let chapter = root.join("docs/chapters/01-概要/index.qmd");
-    assert!(fs::read_to_string(&chapter).unwrap().contains("\r\n"), "CRLF の作業ツリーになっていない");
+    assert!(
+        fs::read_to_string(&chapter).unwrap().contains("\r\n"),
+        "CRLF の作業ツリーになっていない"
+    );
     // 1 か所だけ直す（CRLF のまま）
-    let edited = fs::read_to_string(&chapter).unwrap().replace("目的の本文。", "目的の本文を直した。");
+    let edited = fs::read_to_string(&chapter)
+        .unwrap()
+        .replace("目的の本文。", "目的の本文を直した。");
     fs::write(&chapter, edited).unwrap();
 
     let docs = root.join("docs");
@@ -110,7 +142,11 @@ fn japanese_path_with_autocrlf() {
     assert!(o.status.success(), "{}", text(&o));
     let o = ddq(&["rev", "build", &docs]);
     assert!(o.status.success(), "{}", text(&o));
-    assert!(fs::read_to_string(root.join("docs/revisions/history.qmd")).unwrap().contains("@sec-purpose"));
+    assert!(
+        fs::read_to_string(root.join("docs/revisions/history.qmd"))
+            .unwrap()
+            .contains("@sec-purpose")
+    );
 }
 
 #[test]
@@ -123,9 +159,17 @@ fn shallow_clone_is_refused_instead_of_restarting_at_a() {
     init(&origin);
     small_doc(&origin);
     commit_and_tag(&origin, "rev-A");
-    write(&origin, "docs/index.qmd", "# 本書について {#sec-preface .unnumbered}\n\n前書きを直した。\n");
+    write(
+        &origin,
+        "docs/index.qmd",
+        "# 本書について {#sec-preface .unnumbered}\n\n前書きを直した。\n",
+    );
     commit_and_tag(&origin, "rev-B");
-    write(&origin, "docs/index.qmd", "# 本書について {#sec-preface .unnumbered}\n\n三度目。\n");
+    write(
+        &origin,
+        "docs/index.qmd",
+        "# 本書について {#sec-preface .unnumbered}\n\n三度目。\n",
+    );
     git_ok(&origin, &["commit", "-qam", "3"]);
 
     let url = format!("file:///{}", origin.to_string_lossy().replace('\\', "/"));
@@ -141,8 +185,16 @@ fn shallow_clone_is_refused_instead_of_restarting_at_a() {
 
     // 浅いクローンにはタグも過去の版も無い。「最初の改訂（A）」と答えてはいけない
     let o = ddq(&["rev", "next", &docs]);
-    assert!(!o.status.success(), "浅いクローンで次の記号を出した: {}", text(&o));
-    assert!(text(&o).contains("浅いクローン") && text(&o).contains("--unshallow"), "{}", text(&o));
+    assert!(
+        !o.status.success(),
+        "浅いクローンで次の記号を出した: {}",
+        text(&o)
+    );
+    assert!(
+        text(&o).contains("浅いクローン") && text(&o).contains("--unshallow"),
+        "{}",
+        text(&o)
+    );
     let o = ddq(&["rev", "diff", &docs, "--base", "HEAD~1"]);
     assert!(!o.status.success());
     assert!(text(&o).contains("浅いクローン"), "{}", text(&o));
@@ -206,7 +258,11 @@ fn large_document_diff_is_fast_enough() {
     let root = tmp.path().join("repo");
     init(&root);
     let mut yml = String::from("book:\n  chapters:\n    - index.qmd\n");
-    write(&root, "docs/index.qmd", "# 本書について {#sec-preface .unnumbered}\n\n前書き。\n");
+    write(
+        &root,
+        "docs/index.qmd",
+        "# 本書について {#sec-preface .unnumbered}\n\n前書き。\n",
+    );
     for c in 0..CHAPTERS {
         yml.push_str(&format!("    - chapters/{c:02}/index.qmd\n"));
         let mut body = format!("# 章 {c} {{#sec-c{c}}}\n\n章の導入。\n\n");
@@ -227,7 +283,9 @@ fn large_document_diff_is_fast_enough() {
         fs::write(&p, t).unwrap();
     }
     let p = root.join("docs/chapters/39/index.qmd");
-    let t = fs::read_to_string(&p).unwrap().replace("## 節 39-49 {#sec-c39-s49}", "");
+    let t = fs::read_to_string(&p)
+        .unwrap()
+        .replace("## 節 39-49 {#sec-c39-s49}", "");
     fs::write(&p, t).unwrap();
 
     let docs = root.join("docs");
@@ -239,7 +297,10 @@ fn large_document_diff_is_fast_enough() {
     let got = entries(&v);
     assert_eq!(got.iter().filter(|(_, k)| k == "changed").count(), 11, "{got:?}"); // 10 + 消した節の本文が入った節
     assert_eq!(got.iter().filter(|(_, k)| k == "removed").count(), 1, "{got:?}");
-    eprintln!("rev diff: 見出し {} 件の文書で {took:?}", CHAPTERS * (SECTIONS + 1) + 1);
+    eprintln!(
+        "rev diff: 見出し {} 件の文書で {took:?}",
+        CHAPTERS * (SECTIONS + 1) + 1
+    );
     // 目安（デバッグビルド）。極端に遅くなったら気づく
     assert!(took.as_secs() < 60, "rev diff に {took:?} かかった");
 }

@@ -37,6 +37,7 @@ pub fn ensure_encodable(p: &Path) -> Result<()> {
     if s.chars().any(char::is_control) {
         bail!("パスに制御文字が含まれています:\n  {}", s.escape_default());
     }
+    ensure_short_enough(p)?;
     let bad: Vec<char> = unencodable_chars(&s);
     if bad.is_empty() {
         return Ok(());
@@ -53,6 +54,32 @@ pub fn ensure_encodable(p: &Path) -> Result<()> {
          絵文字・波ダッシュ（〜 U+301C。全角チルダ ～ は可）・アクセント付き文字などを外してください \
          （日本語のフォルダ名は使えます）。"
     );
+}
+
+/// 執筆フォルダのパスの長さの上限（Windows。UTF-16 の文字数）。
+///
+/// Windows の既定（LongPathsEnabled=0）では、執筆フォルダのパスが長いと Quarto のビルドが
+/// 分かりにくい理由で失敗する（docs/cli-impl U-0006 の試験。Windows 11、Quarto 1.9.38）:
+/// 約 191 文字まで成功、約 211 文字で HTML が「unable to open database file」（.quarto/ の中の
+/// データベースのパスが長すぎる）、約 231 文字で PDF も失敗、259 文字以上は Quarto を起動すら
+/// できない（os error 267）。余裕を見て 200 文字で止め、理由を説明する。
+pub const MAX_FOLDER_CHARS: usize = 200;
+
+fn ensure_short_enough(p: &Path) -> Result<()> {
+    if !cfg!(windows) {
+        return Ok(());
+    }
+    let len = p.as_os_str().to_string_lossy().encode_utf16().count();
+    if len > MAX_FOLDER_CHARS {
+        bail!(
+            "執筆フォルダのパスが長すぎます（{len} 文字。上限 {MAX_FOLDER_CHARS} 文字）:\n  {}\n  \
+             Windows ではパスの長さに上限（260 文字）があり、Quarto が中に作るファイルのパスが\
+             それを超えるとビルドが失敗します。\n  \
+             リポジトリを短い場所（例: C:\\work\\<名前>）に置き直してください。",
+            p.display()
+        );
+    }
+    Ok(())
 }
 
 /// ANSI コードページ（CP_ACP）で表せない文字を列挙する（Windows）。

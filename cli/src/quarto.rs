@@ -48,3 +48,62 @@ pub fn run(cmd: &mut Command, what: &str) -> Result<()> {
     }
     Ok(())
 }
+
+/// Quarto の出力先（`project: output-dir:`）。既定は `_book`。`profile` を渡すと
+/// `_quarto-<profile>.yml` の指定を優先する（`--profile publish` の PDF）。YAML は行で読む
+/// （`output-dir:` の行だけを見る）。利用者が変えても pdf / html が成果物を見失わないように
+/// （docs/cli-impl U-0006 の試験で、`_book` 決め打ちで PDF を取り出せないことを確認）。
+pub fn output_dir(dir: &Path, profile: Option<&str>) -> PathBuf {
+    let mut files = Vec::new();
+    if let Some(p) = profile {
+        files.push(dir.join(format!("_quarto-{p}.yml")));
+    }
+    files.push(dir.join("_quarto.yml"));
+    for f in files {
+        if let Ok(text) = std::fs::read_to_string(&f)
+            && let Some(v) = output_dir_in(&text)
+        {
+            return dir.join(v);
+        }
+    }
+    dir.join("_book")
+}
+
+/// YAML の文字列から `output-dir:` の値を読む（コメント・引用符を外す）。
+fn output_dir_in(yml: &str) -> Option<String> {
+    yml.lines().find_map(|l| {
+        let t = l.trim_start();
+        if t.starts_with('#') {
+            return None;
+        }
+        let v = t.strip_prefix("output-dir:")?.split('#').next()?.trim();
+        let v = v.trim_matches(|c| c == '"' || c == '\'').trim();
+        (!v.is_empty()).then(|| v.to_string())
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn output_dir_follows_the_project_and_the_profile() {
+        let tmp = tempfile::tempdir().unwrap();
+        let d = tmp.path();
+        assert_eq!(output_dir(d, None), d.join("_book"), "既定は _book");
+        std::fs::write(
+            d.join("_quarto.yml"),
+            "project:\n  type: book\n  # output-dir: x\n  output-dir: \"build\"  # 変えた\n",
+        )
+        .unwrap();
+        assert_eq!(output_dir(d, None), d.join("build"));
+        assert_eq!(
+            output_dir(d, Some("publish")),
+            d.join("build"),
+            "profile に指定が無ければ本体の指定"
+        );
+        std::fs::write(d.join("_quarto-publish.yml"), "project:\n  output-dir: pdf-out\n").unwrap();
+        assert_eq!(output_dir(d, Some("publish")), d.join("pdf-out"));
+        assert_eq!(output_dir(d, None), d.join("build"));
+    }
+}

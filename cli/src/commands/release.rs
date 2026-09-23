@@ -96,7 +96,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         html::run(&manual)?;
     }
     let manual_pdf = manual.join("design-doc.pdf");
-    let manual_html = manual.join("_book");
+    let manual_html = quarto::output_dir(&manual, None);
     if !manual_pdf.is_file() || !manual_html.join("index.html").is_file() {
         bail!(
             "{MANUAL_DIR}/design-doc.pdf または {MANUAL_DIR}/_book/index.html がありません（--no-build を外してください）"
