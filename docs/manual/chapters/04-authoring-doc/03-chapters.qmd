@@ -72,4 +72,41 @@ chapters/
 フォルダ名の番号と章番号が食い違っても出力は正しい。ただし紛らわしいので、
 並べ替えたときはフォルダ名も揃えておくとよい。
 
+### 付録を付ける {#sec-appendix}
+
+参考資料・詳細データ・解析根拠など、本文の番号から外して後ろにまとめたいものは
+**付録**にする。`_quarto.yml` の `chapters:` ではなく `appendices:` に並べる。
+
+```yaml
+book:
+  chapters:
+    - index.qmd
+    - chapters/01-overview/index.qmd
+    - chapters/02-design-policy/index.qmd
+  appendices:
+    - appendix/a-data.qmd
+    - appendix/b-glossary.qmd
+```
+
+付録は**章番号が英字**になり、並べた順に A・B・C… と振られる。中の節・図表も
+それに追従する。
+
+::: {.tbl caption="本文と付録の番号の違い" label="tbl-appendix" widths="28,36,36"}
+| 対象 | 本文 | 付録 |
+|--------------------|------------------|------------------|
+| 章 | 1. 概要 | 付録A 詳細データ |
+| 節・項 | 1.1 / 1.1.1 | A.1 / A.1.1 |
+| 図表（章直下） | 表 1-1 | 表 A-1 |
+| 図表（節の中） | 表 1.1-1 | 表 A.1-1 |
+| `@sec-` での参照 | 5章 / 5.3節 | 付録B / B.1節 |
+:::
+
+書き方は本文の章とまったく同じである（見出し・表・図・相互参照とも）。違うのは
+`_quarto.yml` のどちらに並べるかだけである。
+
+::: {.callout-note}
+付録に対応しているのは**テンプレート 2.4.0 以降**である。それより前の版では PDF が
+`unknown variable: appendices` で止まる。
+:::
+
 {{< pagebreak >}}

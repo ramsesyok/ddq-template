@@ -35,16 +35,12 @@
 | 同じ yml を 2 つのエディタで開いたとき | `supportsMultipleEditorsPerDocument: false` で塞いでいるが、分割表示などの経路は未確認 |
 :::
 
-## 本書自身の制約
+## 本書自身について
 
-確認済み（実行）：**この本は PDF を出せない。** `book.appendices`（付録）を使う本では
-Quarto が `#show: appendices.with("付録", hide-parent: true)` を出すが、`template/lib.typ`
-に `appendices` が無いため Typst のコンパイルが `unknown variable: appendices` で止まる。
-`docs/table-editor-impl` と `docs/cli-impl` も同じ形なので同じく止まる（実装仕様書 3 冊に
-共通する制約で、本書の追加で生じたものではない）。当面は HTML で読む。
-
-直すなら `lib.typ` に `appendices` を足す（機構ファイルなので版上げを伴う）か、付録を
-本文の章として並べる。前者は 3 冊すべてに効く。
+確認済み（実行）：本書は付録（`book.appendices`）を使う。解析時点の 2.3.0 では
+`template/lib.typ` に `appendices` が無く PDF を作れなかったが、**2.4.0 で対応した**
+（付録の章は「付録A」、節は「A.1」、図表は「表 A-1」「表 A.1-1」）。`docs/cli-impl` と
+`docs/table-editor-impl` も同じ形なので、同じく PDF を作れる。
 
 ## 次に手を入れるとよい点
 
@@ -52,4 +48,3 @@ Quarto が `#show: appendices.with("付録", hide-parent: true)` を出すが、
 - **`unlabeled` の導線**。改訂の画面から、ラベル未付与の一覧へ直接飛べるようにする
 - **改訂記号の変更**。記号の編集とファイル名の追随。`rev next` の提案を上書きしたい場面がある
 - **CI で改訂履歴まで通す**。今は差し替えの `ddq` で飛ばしている。`ddq` をビルドするジョブを足すか、`cli` の CI と合流させるかは要検討
-- **実装仕様書を PDF でも出せるようにする**（上記の `appendices`）
