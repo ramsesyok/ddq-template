@@ -11,7 +11,7 @@
 | Mermaidの描画 | `mermaid` → browser/merman → Lua `render_mermaid` | 図ID、背景、UTF-8、エラー、cache更新。両engineのgoldenとPDFの文字 |
 | PlantUML設定・通信 | `plantuml` → diagrams、Session → Lua `puml_source/puml_candidates/puml_render` | 設定連結、優先順位、HTTP200のエラー、改行、curlとの条件差 |
 | パス・探索 | `writing_folder` → init/add/pdf/html/update、Lua ROOT/diag_rel | ACP、入れ子、日本語、空白、除外フォルダ、誤更新範囲 |
-| Quartoプロファイル・出力先 | `quarto`、pdf `find_pdf` → publish設定 → releaseのmanualコピー | `_book`とPDF一件の前提。PDF→HTMLの順で両方を残す |
+| Quartoプロファイル・出力先 | `quarto::output_dir`、pdf `find_pdf` → publish設定 → releaseのmanualコピー | output-dir の読み取り（profile 優先）とPDF一件の前提。PDF→HTMLの順で両方を残す |
 | 配布構成・ZIP | `release` → assets案内PDF、`extensions/*`、vendor、zip_archive | stage削除範囲、--no-buildの残る処理、拡張ごとのname・版、ZIP再展開 |
 | 拾う単位・章構成の解釈 | `doc::units::scan`、`doc::project::chapters_of / walk`、`doc::diff::units_of / order_of` | tag と rev で同じ単位になること。新しい記法は scan と units_of の両方に入れる。`tests/tag.rs`・`tests/rev.rs` |
 | 候補ラベル・書き戻し | `doc::labels`、`commands::tag`、VSCode拡張 ddq-revision | 候補の決定性、`col` は文字数、CRLF保持、`--from` の検証。JSON形は拡張との契約 |

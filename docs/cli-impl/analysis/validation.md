@@ -101,3 +101,9 @@ ddq-mermaid-* が残ること（1,157件）を観測し、Job Object（src/job.r
 plantuml.jar を公式の plantuml-mit-1.2026.8.jar の digest と、mermaid.min.js を npm の mermaid@11.16.0 と照合し、一致した。
 配布物に入る第三者のソフトウェアを棚卸しし（Rust 188 / mermaid 78 / React 3）、THIRD-PARTY-NOTICES.md を作って
 ddq release が同梱・照合するようにした。リポジトリ自身のライセンスは未定（保守者の判断待ち）。
+
+## 2026-09-23 の追補（U-0004・U-0005・U-0006・U-0008、2.4.3）
+
+tests/release.rs（9）・tests/rev_ops.rs（4）・PlantUML の HTTP 単体テスト（偽のサーバ）・長いパスの試験を追加し、
+配布フォルダの途中失敗、浅いクローン、閉じない HTTP 接続、プロキシ（curl）、output-dir、長いパスの不具合を直した。
+性能の基準値を測った（E-0034）。Linux/macOS と日本語以外のコードページは未実施。

@@ -28,6 +28,11 @@ plantuml-server: http://plantuml.example.local:8080
 
 個人で別のサーバを試すときは環境変数 `PLANTUML_SERVER` が優先される。
 
+端末に社内プロキシの環境変数（`http_proxy` / `HTTP_PROXY`）があると、図を描く curl はサーバへの
+通信もプロキシへ送る。ローカルのサーバ（`127.0.0.1`・`localhost`）はプロキシを通さないようにしてある。
+LAN のサーバがプロキシの内側にあるなら、そのホスト名を環境変数 `NO_PROXY` に加える
+（例: `NO_PROXY=plantuml.example.local`）。
+
 ::: {.callout-warning}
 図のソースはサーバへ平文の HTTP で送られる。閉域の LAN 内で立てること。
 インターネット上の公開サーバ（plantuml.com）は設計書の内容が外部に出るので使わない。
@@ -40,7 +45,7 @@ plantuml-server: http://plantuml.example.local:8080
 違えばその図を描き直す。プレビューではサーバが無くてもキャッシュをそのまま表示する。
 
 ```text
-<!-- ddq 2.4.2 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 fonts=a9d68470 -->
+<!-- ddq 2.4.3 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 fonts=a9d68470 -->
 ```
 
 ### ローカルで描く（Java の用意）
@@ -64,7 +69,7 @@ set "DDQ_JAVA=C:\Program Files\Eclipse Adoptium\jdk-17\bin\java.exe"
 執筆者がサーバを起動しておく。
 
 ```bat
-cd C:\tools\quarto-template-2.4.2
+cd C:\tools\quarto-template-2.4.3
 .\ddq plantuml serve
 ```
 
