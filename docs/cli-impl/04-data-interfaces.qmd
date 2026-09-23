@@ -10,8 +10,8 @@
 | 機構5本 | update → setup照合／Quarto・Lua | `design-doc.lua`、`design-doc.css`、`postprocess-html.js`、`mermaid-config.json`、`plantuml-config.puml` を常に上書き |
 | `.template-version` | update → setup照合／LuaのSVGコメント | 埋込み版と末尾LF。照合はtrim後の文字列 |
 | PDF側4本 | setup → Quarto publish／Typst | `lib.typ`、`typst-template.typ`、`typst-show.typ`、`_quarto-publish.yml` を上書き |
-| 静的図 | 執筆者の `.mmd/.puml` → diagrams → `.svg` | 同名SVGを上書き。失敗時の既存SVGは削除しない |
-| フェンス図キャッシュ | Lua → `diagrams/mmd-*`、`puml-*` → Lua／Quarto | ソースとSVGを保存。下記の内容キーで再利用 |
+| 静的図 | 執筆者の `.mmd/.puml` → diagrams → `.svg` | 同名SVGを上書き。失敗した図の前回SVGは削除する |
+| フェンス図キャッシュ | Lua → `diagrams/mmd-*`、`puml-*` → Lua／Quarto | ソースとSVGを保存。下記の内容キーで再利用。版を上げる update が削除する |
 | `_book/`、`design-doc.pdf` | Quarto → pdfのコピー／release | PDFは `_book` 直下に一件。HTMLとPDFは同じ出力領域を利用 |
 | 原稿中のラベル | 執筆者／`tag apply` → tag・rev・Quarto相互参照 | `{#sec-…}`、`label="tbl-…"`、`{#tbl-…}`、`{#fig-…}`。一度付けたら改訂履歴のキーとして不変に扱う |
 | `revisions/rev-<記号>.yml` | `rev diff --write` → 執筆者（note記入）→ `rev build`／VSCode拡張 | 改訂履歴の正本。確定は `rev-<記号>` タグの有無で判断。下記の固定形式 |
@@ -72,11 +72,13 @@
 
 ## キャッシュとSVGの契約 {#sec-cache-contract}
 
-**確認済み（静的）**：Luaがキャッシュ名を決め、ddq自身はキーを計算しない。Mermaidは図ソースのSHA-1先頭8桁、PlantUMLは改行整形・設定連結後のソースのSHA-1先頭8桁を使う。SVGが存在すれば内容検査や版比較をせず再利用する。Mermaidは設定変更もキーに含まず、両方ともエンジン・ddq・サーバの版を含まない。[E-0012](appendix-evidence.qmd#ev-e-0012)
+**確認済み（静的・限定実行）**：Luaがキャッシュ名を決め、ddq自身はキーを計算しない。キーは `cache_key` が作るSHA-1の先頭16桁で、`.template-version` の版を必ず含む。Mermaidは加えて `DDQ_MERMAID_ENGINE`（未設定なら `auto`）、`mermaid-config.json` の中身、図ソースを、PlantUMLは改行整形・設定連結後のソースを混ぜる。PlantUMLサーバとその版、自動選択の結果（どのブラウザか）はキーに含まない。再利用は、ファイルの先頭4,096バイトに `<svg` がある場合に限る。2.4.0までは図ソース（PlantUMLは連結後のソース）だけの8桁で、存在すれば再利用していた。[E-0012](appendix-evidence.qmd#ev-e-0012)
 
 **確認済み（静的）**：新規生成時のコメントは、Mermaidでは `ddq <版> engine=browser mermaid=<版>` または `engine=merman merman=<版>`、PlantUMLでは `engine=plantuml plantuml=<版または?> server=<URL>` を含む。これは生成経路の記録であり、キャッシュ有効性の検査には使わない。PlantUMLサーバのURLは配布されるSVGにも残る。[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)
 
-**推定（変更影響）**：設定・フォント・レンダラの変更では、既存キャッシュのため差が見えない可能性がある。比較時は再生成対象を明示し、静的な手書きSVGとキャッシュを区別する。ハッシュ衝突や古い出力残存の実障害は今回再現していない。[U-0007](07-issues-unknowns.qmd#u-0007)
+**確認済み（限定実行）**：`docs/cli-impl` で、版を上げる update がキャッシュ8件を消すこと、再ビルドでSVGが再生成されないこと、素の `quarto render` で `mermaid-config.json` を変えると別のキーになること、`DDQ_MERMAID_ENGINE` の明示で別のキーになること、空にしたキャッシュが描き直されることを観測した。`ddq pdf`／`ddq html` は機構の完全一致を要求するため、`mermaid-config.json` は版の更新以外では変わらない。
+
+**推定（変更影響）**：ブラウザの入替え、PlantUMLサーバの切替え・版上げ、フォントの変更は、同じ版の中ではキーに現れず、既存キャッシュのため差が見えない可能性がある。比較時は `diagrams/mmd-*`／`puml-*` を消してから再生成する。[U-0007](07-issues-unknowns.qmd#u-0007)
 
 ## ラベル・改訂ファイルの形式 {#sec-revision-contract}
 

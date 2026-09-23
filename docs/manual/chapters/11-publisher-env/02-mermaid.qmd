@@ -31,7 +31,7 @@ PDF と HTML で図を一致させ、図表番号に載せるためである。�
 生成された SVG（`<執筆フォルダ>/diagrams/mmd-*.svg`）の 1 行目に記録される。
 
 ```text
-<!-- ddq 2.4.0 engine=browser mermaid=11.16.0 -->
+<!-- ddq 2.4.1 engine=browser mermaid=11.16.0 -->
 ```
 
 `engine=merman` なら内蔵レンダラで描かれている。ブラウザが見つからなかったときは、
@@ -69,11 +69,13 @@ set "DDQ_MERMAID_ENGINE=merman"
 ### SVG はキャッシュされる
 
 生成された SVG は `<執筆フォルダ>/diagrams/` に**内容ハッシュ名でキャッシュ**され、
-同じ図は再変換されない。
+同じ図は再変換されない。ハッシュには図のソースのほか、テンプレートの版・`mermaid-config.json`
+の中身・描画エンジンの指定（`DDQ_MERMAID_ENGINE`）も含むので、これらを変えると自動で
+描き直される。テンプレートの版を上げる `ddq update` は、古いキャッシュを消す。
 
 ::: {.callout-tip}
 このため、**図を新規に書き足さなければブラウザ無しでも同じ図が出る**。
-古い環境で作った SVG を作り直したいときは `diagrams/mmd-*` を消してからビルドする。
+それでも作り直したいとき（ブラウザを入れ替えた、など）は `diagrams/mmd-*` を消してからビルドする。
 :::
 
 {{< pagebreak >}}

@@ -30,7 +30,7 @@
 
 ### E-0006：更新・整合性検査 {#ev-e-0006 .unnumbered}
 
-**確認済み／種別：ソース・テスト期待値**。`cli/src/commands/update.rs::run / run_all`、`setup.rs::run / ensure_current`、`cli/tests/commands.rs`。機構5本→版ファイルの書込み順、版のtrim比較と機構の完全比較、PDF4本の配置を確認。対応する限定実行結果はE-0017。
+**確認済み／種別：ソース・テスト期待値**。`cli/src/commands/update.rs::run / run_all`、`setup.rs::run / ensure_current`、`cli/tests/commands.rs`。機構5本→版ファイルの書込み順、版が変わるときの `prune_diagram_cache`（2.4.1）、版のtrim比較と機構の完全比較、PDF4本の配置を確認。対応する限定実行結果はE-0017。
 
 ### E-0007：Quartoと発行成果物 {#ev-e-0007 .unnumbered}
 
@@ -38,7 +38,7 @@
 
 ### E-0008：静的図 {#ev-e-0008 .unnumbered}
 
-**確認済み／種別：ソース**。`cli/src/commands/diagrams.rs::run`。直下探索、拡張子、接頭辞除外、Mermaid先行、設定読取り、PlantUMLの強制ローカル起動条件、成功分保持、ファイルI/O時の即時失敗を確認。新規出力を作らないエラーと、古い出力が残ることを区別した。
+**確認済み／種別：ソース**。`cli/src/commands/diagrams.rs::run`。直下探索、拡張子、接頭辞除外、Mermaid先行、設定読取り、PlantUMLの強制ローカル起動条件、成功分保持、失敗した図の前回出力の削除（2.4.1）、ファイルI/O時の即時失敗を確認。バッチ全体の失敗では前回の出力が残ることを区別した。
 
 ### E-0009：Mermaid変換とブラウザ {#ev-e-0009 .unnumbered}
 
@@ -54,7 +54,7 @@
 
 ### E-0012：Luaとの境界・キャッシュ {#ev-e-0012 .unnumbered}
 
-**確認済み／種別：ソース・設定**。`template/design-doc.lua` のROOT/DDQ/DIAG/WANT_SVG、`diag_rel / render_mermaid / puml_candidates / puml_find_server / puml_source / puml_render / render_plantuml / CodeBlock`、`template/mermaid-config.json`、`template/plantuml-config.puml`。図ごとのddq起動、curl、ソース組立て、候補選択、8桁キー、出力存在検査、プレビューと発行のエラー差を確認。組版や表変換の全内部は対象外。
+**確認済み／種別：ソース・設定**。`template/design-doc.lua` のROOT/DDQ/DIAG/WANT_SVG、`diag_rel / render_mermaid / puml_candidates / puml_find_server / puml_source / puml_render / render_plantuml / CodeBlock`、`template/mermaid-config.json`、`template/plantuml-config.puml`。図ごとのddq起動、curl、ソース組立て、候補選択、`cache_key`（版・設定・エンジン指定・ソースの16桁。2.4.1）、`cached_svg`（先頭の `<svg` 検査）、プレビューと発行のエラー差を確認。組版や表変換の全内部は対象外。
 
 ### E-0013：release工程 {#ev-e-0013 .unnumbered}
 
@@ -74,7 +74,7 @@
 
 ### E-0017：今回の限定実行 {#ev-e-0017 .unnumbered}
 
-**確認済み／種別：実行観測**。2026-09-23、Windows、CWD=`cli`、Cargo 1.98.1、git有り。`cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml` は終了0、unit 61件、commands 5件、plantuml 2件、rev 12件、tag 10件が成功（第7章の修正後）。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。加えて、debugビルドの ddq 2.4.0 で一時Gitリポジトリ（`chapters:` と `appendices:` を持つ執筆フォルダ、`rev-A` タグ）を作り、付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、`--write --json` で JSON が出ないことを観測した。本書自身に対する `tag list --json` の `order` にも付録が含まれなかった。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。初版（2026-09-21、2.2.1）では unit 10件と commands 4件、merman 1件を同条件で確認した。
+**確認済み／種別：実行観測**。2026-09-23、Windows、CWD=`cli`、Cargo 1.98.1、git有り。`cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml` は終了0、unit 61件、commands 7件、plantuml 2件、rev 12件、tag 10件が成功（2.4.1）。`DDQ_E2E=1` の `--test e2e` も3件成功した。`cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact` は終了0、1件成功・browser側1件対象外。入力は既存テストと22組のfixtures。加えて、debugビルドの ddq 2.4.0 で一時Gitリポジトリ（`chapters:` と `appendices:` を持つ執筆フォルダ、`rev-A` タグ）を作り、付録の変更が `rev diff` に出ないこと、パイプ表の行の変更が見出しの `changed` になること、`--write --json` で JSON が出ないことを観測した。本書自身に対する `tag list --json` の `order` にも付録が含まれなかった。外部描画全体・release・regress.pyの実行証拠ではない。ACP単体テストは非CP932でreturnする条件を持つ。初版（2026-09-21、2.2.1）では unit 10件と commands 4件、merman 1件を同条件で確認した。
 
 ### E-0018：依存のローカル同定 {#ev-e-0018 .unnumbered}
 
@@ -103,3 +103,7 @@
 ### E-0024：第7章の注意点の修正 {#ev-e-0024 .unnumbered}
 
 **確認済み／種別：ソース・テスト期待値・実行観測**。`cli/src/plantuml/mod.rs::LocalServer::start`（読取スレッド・`mpsc`・`recv_timeout`・`io::sink`・attach失敗時のkill/wait）、`commands/init.rs::run`（`.`／`..`）、`zip_archive.rs::create / verify`（名前・バイト数、途中失敗時の削除）、`doc/project.rs::chapters_of`（`appendices:`）、`doc/units.rs::scan / image`、`doc/diff.rs::units_of / table_rows / order_of`、`commands/rev.rs::today / utc_today / diff_cmd`、`main.rs::RevDiffArgs`、`cli/Cargo.toml`（`Win32_System_SystemInformation`）。対応するテストは `units`・`diff`・`project`・`zip_archive` の単体テスト、`tests/commands.rs::init_rejects_dot_names`、`tests/rev.rs::write_with_json_prints_only_json / appendices_are_part_of_the_document`。ローカル日付の境界（JST 0:00～8:59）と、無出力JVM・attach失敗の故障注入は実行していない。
+
+### E-0025：図キャッシュのキーと失敗時の出力（2.4.1） {#ev-e-0025 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値・実行観測**。`template/design-doc.lua::cache_key / cached_svg / render_mermaid / render_plantuml`、`cli/src/commands/update.rs::run / prune_diagram_cache`、`mermaid/mod.rs::render_jobs`、`commands/diagrams.rs::run`、`template/VERSION`（2.4.1）。テストは `tests/commands.rs::update_prunes_diagram_cache_only_when_the_version_changes / diagrams_removes_the_old_svg_of_a_broken_mermaid`、`tests/plantuml.rs::diagrams_renders_puml_and_rejects_syntax_error`、`DDQ_E2E=1` の `tests/e2e.rs`（3件）。`docs/cli-impl` で、版上げ時のキャッシュ削除、再ビルドでの再利用、設定変更とエンジン指定による別キー、空キャッシュの描き直しを観測した。

@@ -7,7 +7,7 @@
 | 変更したいもの | 読む実装と連動先 | 守る契約／検証 |
 |---|---|---|
 | サブコマンド追加・引数 | `main::Command` → dispatch → `commands/mod.rs` → 実装 | default、help、排他、非成功。commands統合テスト |
-| 機構・雛形・版 | `assets` → `update` → `setup` → template/scaffold → build.rs | 原稿の保持、機構5本の完全一致、表示版。templateと拡張の版を揃える |
+| 機構・雛形・版 | `assets` → `update` → `setup` → template/scaffold → build.rs | 原稿の保持、機構5本の完全一致、表示版。templateと拡張の版を揃える。版を上げると図のキャッシュが作り直される |
 | Mermaidの描画 | `mermaid` → browser/merman → Lua `render_mermaid` | 図ID、背景、UTF-8、エラー、cache更新。両engineのgoldenとPDFの文字 |
 | PlantUML設定・通信 | `plantuml` → diagrams、Session → Lua `puml_source/puml_candidates/puml_render` | 設定連結、優先順位、HTTP200のエラー、改行、curlとの条件差 |
 | パス・探索 | `writing_folder` → init/add/pdf/html/update、Lua ROOT/diag_rel | ACP、入れ子、日本語、空白、除外フォルダ、誤更新範囲 |

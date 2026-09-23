@@ -104,7 +104,11 @@ pub fn render_jobs(jobs: &[Job], config: &serde_json::Value, background: &str) -
                 fs::write(&job.output, format!("{header}{svg}"))
                     .with_context(|| format!("{} を書けません", job.output.display()))?;
             }
-            Err(message) => failed.push(format!("  {}: {}", job.input.display(), message.trim())),
+            Err(message) => {
+                // 前回の出力が残っていると、壊れた図のまま古い絵が発行物に入ってしまう。消して気づかせる
+                let _ = fs::remove_file(&job.output);
+                failed.push(format!("  {}: {}", job.input.display(), message.trim()))
+            }
         }
     }
     if !failed.is_empty() {
