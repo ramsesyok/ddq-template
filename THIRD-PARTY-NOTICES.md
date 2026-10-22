@@ -1,6 +1,6 @@
 # 第三者のソフトウェアとライセンス（THIRD-PARTY-NOTICES）
 
-<!-- ddq-third-party inputs: cli/Cargo.lock=a32559f9cf9e8648085b71a21b59f133802ee8e5 template/vendor/mermaid.min.js=0a6b4761f8ad1e3d42fe17e66033fa5cf2785ae1 cli/vendor/plantuml.jar=ef49f4f313d06de6575dcaa67361df432c028048 extensions/ddq-revision/package-lock.json=36437ca09fc8103372c3914e54ff06bf62f0537a extensions/ddq-table-editor/package-lock.json=fad5d9d5464799c7b5b278f2cc1e0ee52234b05b -->
+<!-- ddq-third-party inputs: cli/Cargo.lock=a32559f9cf9e8648085b71a21b59f133802ee8e5 template/vendor/mermaid.min.js=0a6b4761f8ad1e3d42fe17e66033fa5cf2785ae1 cli/vendor/plantuml.jar=ef49f4f313d06de6575dcaa67361df432c028048 extensions/ddq-revision/package-lock.json=fb4e78e4d1d42faa9da254b572368bb0ef462f20 extensions/ddq-table-editor/package-lock.json=dd836f8f8b4094535ae809208293f1edbf8577e7 -->
 <!-- 生成物。手で直さない（python cli/tools/third_party.py で作り直す） -->
 
 この配布物（quarto-template）の ddq 本体とテンプレートは MIT ライセンスである（同梱の LICENSE）。
@@ -221,7 +221,7 @@
 | commander | 8.3.0 | MIT | <https://www.npmjs.com/package/commander/v/8.3.0> |
 | cose-base | 1.0.3 | MIT | <https://www.npmjs.com/package/cose-base/v/1.0.3> |
 | cose-base | 2.2.0 | MIT | <https://www.npmjs.com/package/cose-base/v/2.2.0> |
-| cytoscape | 3.34.3 | MIT | <https://www.npmjs.com/package/cytoscape/v/3.34.3> |
+| cytoscape | 3.34.4 | MIT | <https://www.npmjs.com/package/cytoscape/v/3.34.4> |
 | cytoscape-cose-bilkent | 4.1.0 | MIT | <https://www.npmjs.com/package/cytoscape-cose-bilkent/v/4.1.0> |
 | cytoscape-fcose | 2.2.0 | MIT | <https://www.npmjs.com/package/cytoscape-fcose/v/2.2.0> |
 | d3 | 7.9.0 | ISC | <https://www.npmjs.com/package/d3/v/7.9.0> |
@@ -262,7 +262,7 @@
 | dagre-d3-es | 7.0.14 | MIT | <https://www.npmjs.com/package/dagre-d3-es/v/7.0.14> |
 | dayjs | 1.11.23 | MIT | <https://www.npmjs.com/package/dayjs/v/1.11.23> |
 | delaunator | 5.1.0 | ISC | <https://www.npmjs.com/package/delaunator/v/5.1.0> |
-| dompurify | 3.4.15 | (MPL-2.0 OR Apache-2.0) | <https://www.npmjs.com/package/dompurify/v/3.4.15> |
+| dompurify | 3.4.17 | (MPL-2.0 OR Apache-2.0) | <https://www.npmjs.com/package/dompurify/v/3.4.17> |
 | es-toolkit | 1.52.0 | MIT | <https://www.npmjs.com/package/es-toolkit/v/1.52.0> |
 | hachure-fill | 0.5.2 | MIT | <https://www.npmjs.com/package/hachure-fill/v/0.5.2> |
 | iconv-lite | 0.6.3 | MIT | <https://www.npmjs.com/package/iconv-lite/v/0.6.3> |
@@ -276,7 +276,7 @@
 | lodash-es | 4.18.1 | MIT | <https://www.npmjs.com/package/lodash-es/v/4.18.1> |
 | marked | 16.4.2 | MIT | <https://www.npmjs.com/package/marked/v/16.4.2> |
 | mermaid | 11.16.0 | MIT | <https://www.npmjs.com/package/mermaid/v/11.16.0> |
-| package-manager-detector | 1.8.0 | MIT | <https://www.npmjs.com/package/package-manager-detector/v/1.8.0> |
+| package-manager-detector | 1.9.0 | MIT | <https://www.npmjs.com/package/package-manager-detector/v/1.9.0> |
 | path-data-parser | 0.1.0 | MIT | <https://www.npmjs.com/package/path-data-parser/v/0.1.0> |
 | points-on-curve | 0.2.0 | MIT | <https://www.npmjs.com/package/points-on-curve/v/0.2.0> |
 | points-on-path | 0.2.1 | MIT | <https://www.npmjs.com/package/points-on-path/v/0.2.1> |
@@ -287,7 +287,7 @@
 | stylis | 4.4.0 | MIT | <https://www.npmjs.com/package/stylis/v/4.4.0> |
 | tinyexec | 1.3.1 | MIT | <https://www.npmjs.com/package/tinyexec/v/1.3.1> |
 | ts-dedent | 2.3.0 | MIT | <https://www.npmjs.com/package/ts-dedent/v/2.3.0> |
-| uuid | 14.0.2 | MIT | <https://www.npmjs.com/package/uuid/v/14.0.2> |
+| uuid | 14.0.3 | MIT | <https://www.npmjs.com/package/uuid/v/14.0.3> |
 
 ### plantuml.jar
 
@@ -2487,7 +2487,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 34
 
-対象: cssparser 0.36.0（LICENSE）、dtoa-short 0.3.5（LICENSE）、selectors 0.37.0（（MPL-2.0 の本文。パッケージに本文ファイルが無いため補った））、dompurify 3.4.15（LICENSE-MPL）
+対象: cssparser 0.36.0（LICENSE）、dtoa-short 0.3.5（LICENSE）、selectors 0.37.0（（MPL-2.0 の本文。パッケージに本文ファイルが無いため補った））、dompurify 3.4.17（LICENSE-MPL）
 
 ```text
 Mozilla Public License Version 2.0
@@ -2867,7 +2867,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
 ### 本文 35
 
-対象: cytoscape 3.34.3（license-update.mjs）
+対象: cytoscape 3.34.4（license-update.mjs）
 
 ```text
 import fs from 'fs';
@@ -3516,7 +3516,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 58
 
-対象: dugong 0.8.0-alpha.6（LICENSE-APACHE）、dugong-graphlib 0.8.0-alpha.6（LICENSE-APACHE）、encoding_rs 0.8.41（LICENSE-APACHE）、htmlize 1.1.0（LICENSE-APACHE）、kurbo 0.13.1（LICENSE-APACHE）、manatee 0.8.0-alpha.6（LICENSE-APACHE）、merman 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/dompurify/LICENSE）、merman-render 0.8.0-alpha.6（LICENSE-APACHE）、multiversion 0.9.0（LICENSE-APACHE）、polycool 0.4.0（LICENSE-APACHE）、sys-locale 0.3.2（LICENSE-APACHE）、system-fonts 0.1.2（LICENSE-APACHE）、tinyvec 1.13.3（LICENSE-APACHE.md）、unicode-linebreak 0.1.5（LICENSE）、utf8_iter 1.0.4（LICENSE-APACHE）、@chevrotain/types 11.1.2（LICENSE.txt）、dompurify 3.4.15（LICENSE）
+対象: dugong 0.8.0-alpha.6（LICENSE-APACHE）、dugong-graphlib 0.8.0-alpha.6（LICENSE-APACHE）、encoding_rs 0.8.41（LICENSE-APACHE）、htmlize 1.1.0（LICENSE-APACHE）、kurbo 0.13.1（LICENSE-APACHE）、manatee 0.8.0-alpha.6（LICENSE-APACHE）、merman 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/dompurify/LICENSE）、merman-render 0.8.0-alpha.6（LICENSE-APACHE）、multiversion 0.9.0（LICENSE-APACHE）、polycool 0.4.0（LICENSE-APACHE）、sys-locale 0.3.2（LICENSE-APACHE）、system-fonts 0.1.2（LICENSE-APACHE）、tinyvec 1.13.3（LICENSE-APACHE.md）、unicode-linebreak 0.1.5（LICENSE）、utf8_iter 1.0.4（LICENSE-APACHE）、@chevrotain/types 11.1.2（LICENSE.txt）、dompurify 3.4.17（LICENSE）
 
 ```text
 Apache License
@@ -5698,7 +5698,7 @@ SOFTWARE.
 
 ### 本文 103
 
-対象: manatee 0.8.0-alpha.6（THIRD_PARTY_LICENSES/cytoscape/LICENSE）、cytoscape 3.34.3（LICENSE）
+対象: manatee 0.8.0-alpha.6（THIRD_PARTY_LICENSES/cytoscape/LICENSE）、cytoscape 3.34.4（LICENSE）
 
 ```text
 Copyright (c) 2016-2026, The Cytoscape Consortium.
@@ -6367,7 +6367,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 120
 
-対象: package-manager-detector 1.8.0（LICENSE）
+対象: package-manager-detector 1.9.0（LICENSE）
 
 ```text
 MIT License
@@ -8720,7 +8720,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 184
 
-対象: uuid 14.0.2（LICENSE.md）
+対象: uuid 14.0.3（LICENSE.md）
 
 ```text
 The MIT License (MIT)
