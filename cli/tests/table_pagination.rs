@@ -14,6 +14,34 @@ fn render(dir: &Path, case: &str) -> Pages {
     query_pages(dir, "table-pagination.typ", Some(case))
 }
 
+fn parse_query_records(stdout: &[u8], stderr: &str) -> Option<Vec<serde_json::Value>> {
+    serde_json::from_slice(stdout).ok().or_else(|| {
+        // Quarto は query の JSON と警告を同じ stderr に改行なしで連結することがある。
+        // 警告が前後どちらにあっても、最初の有効な JSON 配列だけを読む。
+        stderr.match_indices('[').find_map(|(start, _)| {
+            let runs = serde_json::Deserializer::from_str(&stderr[start..])
+                .into_iter::<Vec<serde_json::Value>>()
+                .next()
+                .and_then(Result::ok)?;
+            (!runs.is_empty() && runs.iter().all(|r| r["page"].is_u64() && r["text"].is_string()))
+                .then_some(runs)
+        })
+    })
+}
+
+#[test]
+fn query_json_with_font_warning_is_parsed() {
+    let json = "[{\"page\":1,\"text\":\"表\"}]";
+    for stderr in [
+        format!("{json}warning\n: unknown font family: meiryo ui"),
+        format!("warning{json}\n: unknown font family: meiryo ui"),
+    ] {
+        let runs = parse_query_records(&[], &stderr).expect("JSON を警告と分けて読める");
+        assert_eq!(runs[0]["page"], 1);
+        assert_eq!(runs[0]["text"], "表");
+    }
+}
+
 fn query_pages(dir: &Path, input: &str, case: Option<&str>) -> Pages {
     let mut cmd = Command::new("quarto");
     cmd.args([
@@ -41,9 +69,7 @@ fn query_pages(dir: &Path, input: &str, case: Option<&str>) -> Pages {
     );
     // Quarto は同梱ツールの stdout も stderr 側へ中継する版がある。
     // JSON とフォント警告を分け、どちらの出力先でも同じ描画結果を検査する。
-    let runs: Vec<serde_json::Value> = serde_json::from_slice(&out.stdout)
-        .ok()
-        .or_else(|| stderr.lines().find_map(|line| serde_json::from_str(line).ok()))
+    let runs = parse_query_records(&out.stdout, &stderr)
         .unwrap_or_else(|| panic!("{case}: 描画結果の JSON がありません: {stderr}"));
     let mut pages = Pages::new();
     for run in runs {
