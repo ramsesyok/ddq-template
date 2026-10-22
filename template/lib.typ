@@ -820,90 +820,83 @@
 //    1) 表を show ルールで組み直し、「表 章.節-連番　キャプション（i／n）」を
 //       全列 colspan・罫線なしの1行として table.header の先頭に差し込む
 //       → キャプションも列見出しと一緒に各ページへ繰り返される
-//    2) その行の中の context で、いま何ページ目か（i）と全部で何ページか（n）を
-//       計算する。繰り返しヘッダ内の here() は繰り返し先のページを返す（実測）。
-//         i = here().page() − 始点ページ + 1、 n = 終点ページ − 始点ページ + 1
-//       始点/終点は本体の先頭セル／末尾セルに埋めた <dd-ts> / <dd-te> の位置。
+//    2) 繰り返しキャプションに表グループ固有の metadata を置き、その物理ページを
+//       集計する。行の途中で割れた場合も、どの列が高いかに依存せず全ページを拾う。
+//         i = here().page() − 最初のページ + 1、 n = 最後のページ − 最初のページ + 1
 //       n == 1（1ページに収まった）なら「（i／n）」は付けない。
 //    3) 各セルを block(breakable: false) で包み、行の途中で改ページしないようにする
-//       （割れると読みにくいうえ、終点ラベルが割れる前のページを指して n がずれる）。
 //       breakable-rows: true でこれを外せる（1ページに収まらない巨大セルの逃げ道）。
 //
 //  副次効果: キャプションが表の一部になるので、キャプションだけ前ページに
 //  取り残されることが無くなる。
 //
 //  手動分割（.tbl の中に表を複数書いたとき）は各パートが別々の #table になる。
-//  始点ラベルを先頭パート（first: true）、終点ラベルを末尾パート（last: true）
-//  だけに置けば、i／n はパートをまたいだページ通番になる。
+//  先頭パート（first: true）で専用カウンタを進め、後続パートは同じグループを使う。
+//  i／n はパートをまたいだページ通番になる。last は既存の呼び出しとの互換性のため残す。
 //
-//  numbered: false は .unnumbered（番号なし・キャプションだけ）。カウンタは読まない。
+//  numbered: false は .unnumbered（番号なし・キャプションだけ）。図表カウンタは読まない。
 //  カウンタの step と <sn-tbl-x> 参照ラベルは design-doc.lua が表の直前に置く
 //  （_xref はその位置で番号を読むので、キャプションが表の中へ移っても影響しない）。
 //
-//  ラベル <dd-ts>/<dd-te>/<dd-cap> は文書内で重複する（query にしか使わず ref しない
-//  ので Typst 的に問題ない）。
+//  <dd-cap> は表の組み直しの再帰ガード専用。図表採番・相互参照用カウンタとは独立。
 // ============================================================
 #let _tbl-auto(cap: "", numbered: true, first: true, last: true, breakable-rows: false, body) = {
-  show table: it => {
-    let ncol = if type(it.columns) == int { it.columns } else { it.columns.len() }
-    let kids = it.children
-    let header = kids.find(k => k.func() == table.header)
-    // 再帰ガード: 組み直した表にもこの show ルールが掛かる。先頭ヘッダ行が
-    // キャプション行（<dd-cap> 付き）ならもう処理済みなので素通しする。
-    let done = (header != none and header.children.len() > 0
-      and header.children.first().has("label")
-      and header.children.first().label == <dd-cap>)
-    if done { return it }
-    let hkids = if header == none { () } else { header.children }
-    let rest = kids.filter(k => k.func() != table.header)
-    // 本体の先頭セル／末尾セル（hline/vline は飛ばす）
-    let is-cell(k) = k.func() != table.hline and k.func() != table.vline
-    let fi = rest.position(is-cell)
-    let li = if fi == none { none } else { rest.len() - 1 - rest.rev().position(is-cell) }
-    // セルを包む: breakable: false（既定）＋ 始点／終点ラベル。
-    // 終点ラベルは内容の「後ろ」に置く（行が割れる設定でも最終ページを指すように）。
-    let wrap(k, pre: none, post: none) = {
-      if not is-cell(k) { return k }
-      let body(b) = if breakable-rows [#pre#b#post] else { block(breakable: false, [#pre#b#post]) }
-      if k.func() == table.cell {
-        let f = k.fields()
-        let b = f.remove("body")
-        table.cell(..f, body(b))
-      } else { body(k) }
-    }
-    rest = rest.enumerate().map(((j, k)) => wrap(k,
-      pre: if first and j == fi [#metadata(none)<dd-ts>],
-      post: if last and j == li [#metadata(none)<dd-te>]))
-    // キャプション行（全列 colspan・罫線なし）。各ページの繰り返しごとに i を計算する。
-    let tblc = counter(figure.where(kind: "quarto-float-tbl"))
-    // inset の top は表の既定（5pt）のまま触らない。既定より小さくすると Typst 0.14 の
-    // レイアウトが収束しなくなる（layout did not converge。マニュアルの表で再現）。
-    let cap-cell = [#table.cell(
-      colspan: ncol, stroke: none, align: center,
-      inset: (x: 0pt, bottom: TBL-CAP-GAP),
-      text(font: JP-SANS, size: BODY-SIZE, context {
-        // 終点 = ここより後の最初の <dd-te>、始点 = その終点より前の最後の <dd-ts>。
-        // （ここ＝繰り返しヘッダの位置は、2ページ目以降では始点より後ろにある）
-        // 1回目のレイアウトでは query が空なので、空なら「（i／n）」を出さない。
-        let es = query(selector(<dd-te>).after(here()))
-        let suffix = if es.len() > 0 {
-          let e-loc = es.first().location()
-          let ss = query(selector(<dd-ts>).before(e-loc))
-          if ss.len() > 0 {
-            let s = ss.last().location().page()
-            let n = e-loc.page() - s + 1
+  let groups = counter("design-doc-table-group")
+  if first { groups.step() }
+  context {
+    // グループは繰り返しヘッダ内で読み直さず、このパートの位置で一度だけ確定する。
+    let group = ("design-doc-table-page", groups.get().first())
+    show table: it => {
+      let ncol = if type(it.columns) == int { it.columns } else { it.columns.len() }
+      let kids = it.children
+      let header = kids.find(k => k.func() == table.header)
+      // 再帰ガード: 組み直した表にもこの show ルールが掛かる。先頭ヘッダ行が
+      // キャプション行（<dd-cap> 付き）ならもう処理済みなので素通しする。
+      let done = (header != none and header.children.len() > 0
+        and header.children.first().has("label")
+        and header.children.first().label == <dd-cap>)
+      if done { return it }
+      let hkids = if header == none { () } else { header.children }
+      let rest = kids.filter(k => k.func() != table.header)
+      // 行内改ページを禁止する既定動作は維持する（hline/vline は包まない）。
+      let is-cell(k) = k.func() != table.hline and k.func() != table.vline
+      let wrap(k) = {
+        if not is-cell(k) or breakable-rows { return k }
+        if k.func() == table.cell {
+          let f = k.fields()
+          let b = f.remove("body")
+          table.cell(..f, block(breakable: false, b))
+        } else { block(breakable: false, k) }
+      }
+      rest = rest.map(wrap)
+      // キャプション行（全列 colspan・罫線なし）。各ページの繰り返しごとに i を計算する。
+      let tblc = counter(figure.where(kind: "quarto-float-tbl"))
+      // inset の top は表の既定（5pt）のまま触らない。既定より小さくすると Typst 0.14 の
+      // レイアウトが収束しなくなる（layout did not converge。マニュアルの表で再現）。
+      let cap-cell = [#table.cell(
+        colspan: ncol, stroke: none, align: center,
+        inset: (x: 0pt, bottom: TBL-CAP-GAP),
+        text(font: JP-SANS, size: BODY-SIZE, context {
+          // metadata も各ページへ繰り返される。現在位置の前後で共通ラベルを探すと、
+          // 行内改ページ時に自分の終点を見失い、後続表の範囲を拾って負数になり得る。
+          metadata(group)
+          let pages = query(metadata.where(value: group)).map(m => m.location().page())
+          // 初回レイアウトでは query が空。配置が確定してから通番と総数を出す。
+          let suffix = if pages.len() > 0 {
+            let s = calc.min(..pages)
+            let n = calc.max(..pages) - s + 1
             let i = here().page() - s + 1
             if n > 1 [（#i／#n）]
           }
-        }
-        if numbered [表 #_section-prefix(here())-#tblc.get().first()#if cap != "" [　]]
-        [#cap#suffix]
-      }))<dd-cap>]
-    let f = it.fields()
-    let _ = f.remove("children")
-    table(..f, table.header(cap-cell, ..hkids), ..rest)
+          if numbered [表 #_section-prefix(here())-#tblc.get().first()#if cap != "" [　]]
+          [#cap#suffix]
+        }))<dd-cap>]
+      let f = it.fields()
+      let _ = f.remove("children")
+      table(..f, table.header(cap-cell, ..hkids), ..rest)
+    }
+    body
   }
-  body
 }
 
 // ============================================================
