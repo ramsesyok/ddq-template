@@ -1,0 +1,70 @@
+---
+format:
+  typst:
+    template-partials:
+      - typst-template.typ
+      - typst-show.typ
+    keep-typ: true
+filters:
+  - design-doc.lua
+lang: ja
+toc: false
+pagebreak-level: 0
+page-start: 7
+---
+
+```{=typst}
+#show text: t => [#metadata(t.text)<rendered-text>#t]
+```
+
+# Tables {#sec-tables}
+
+::: {.landscape}
+::: {.tbl caption="FIELDS" label="tbl-fields" widths="6,8,40,23,23" breakable-rows="true"}
+
+@@FIELDS@@
+
+:::
+:::
+
+::: {.tbl caption="NEXT" label="tbl-next"}
+
+| A | B |
+|---|---|
+| NORMAL-0 | normal |
+| NORMAL-1 | normal |
+
+:::
+
+::: {.tbl caption="MANUAL" label="tbl-manual" widths="6,8,40,23,23" breakable-rows="true"}
+
+@@MANUAL@@
+
+| A | B | C | D | E |
+|---|---|---|---|---|
+| MANUAL-END | last | part | short | end |
+
+:::
+
+::: {.tbl caption="MERGED" label="tbl-merged" merge-cols="1"}
+
+| A | B |
+|---|---|
+| group | MERGE-0 |
+| group | MERGE-1 |
+| other | MERGE-2 |
+
+:::
+
+::: {.tbl .unnumbered caption="UNNUMBERED" widths="6,8,40,23,23" breakable-rows="true"}
+
+@@UNNUMBERED@@
+
+:::
+
+References: @tbl-fields, @tbl-next, @tbl-manual, @tbl-merged.
+
+```{=typst}
+#context [#metadata(query(<rendered-text>).map(m =>
+  (page: m.location().page(), text: m.value)))<rendered-pages>]
+```
