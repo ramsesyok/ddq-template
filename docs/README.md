@@ -17,6 +17,7 @@
 | ファイル | 内容 |
 |---|---|
 | `revision-study.md` | ddq-revision（見出し・表・図のタグ付けと、ラベル単位の改訂履歴）の実現性検討と設計 |
+| `ddq-template-study.md` | ddq-template（ddq-revision と ddq-table-editor の統合、`ddq.exe` 同梱の VSCode 拡張）の検討と設計 |
 
 ビルドはリポジトリのルートから（`ddq` は `cli/` で `cargo build --release` したもの）。
 
