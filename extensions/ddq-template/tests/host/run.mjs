@@ -85,6 +85,12 @@ function makeWorkspace(root) {
         'project:\n  type: book\nbook:\n  chapters:\n    - index.qmd\n    - chapters/01-overview/index.qmd\n'
     );
     fs.writeFileSync(path.join(dir, 'index.qmd'), '# 本書について {.unnumbered}\n\n前書き。\n');
+    // 執筆フォルダの目印（拡張は _quarto.yml と版ファイルの両方で見分ける）。機構ファイルは
+    // 置かないので、実物の ddq の html / pdf は版・機構の不一致（終了コード 3）になる
+    fs.writeFileSync(
+        path.join(dir, '.template-version'),
+        fs.readFileSync(path.join(repo, 'template', 'VERSION'), 'utf8')
+    );
     fs.writeFileSync(
         path.join(dir, 'chapters', '01-overview', 'index.qmd'),
         '# 概要\n\n導入の本文。\n\n## 目的\n\n目的の本文。\n\n## 対象範囲\n\n範囲の本文。\n'

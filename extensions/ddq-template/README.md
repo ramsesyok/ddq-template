@@ -4,6 +4,7 @@
 VSCode 拡張です。旧 **DDQ Revision**（ラベル付け・改訂履歴）と旧 **DDQ Table Editor**（表エディタ）を
 1 本にまとめました（設計は [docs/ddq-template-study.md](../../docs/ddq-template-study.md)）。
 
+- **発行** … `ddq pdf` / `ddq html` / `ddq diagrams` を VSCode から実行する
 - **ラベル一覧** … 見出し・表・図の Quarto ラベルを一覧し、無いものに付ける
 - **改訂履歴** … 見出し・表・図の単位で変更を並べ、修正内容を書いて改訂履歴表を作る
 - **表エディタ** … 統一テーブル記法 `::: {.tbl …}` を表計算のように編集する
@@ -13,13 +14,49 @@ VSCode 拡張です。旧 **DDQ Revision**（ラベル付け・改訂履歴）�
 
 ## 使うもの
 
-ラベル一覧と改訂履歴には `ddq`（テンプレートのリリース一式に入っている `ddq.exe`）が要ります。
-文書の解釈はすべて ddq が行い、この拡張は画面と書き戻しだけを担当します。
-`ddq.exe` が `PATH` に無いときは、設定 **`ddqTemplate.ddqPath`** にパスを入れてください。
+発行・ラベル一覧・改訂履歴には `ddq` が要ります。文書の解釈はすべて ddq が行い、この拡張は
+画面と書き戻しだけを担当します。使う ddq は次の順に決まります。
+
+1. 設定 **`ddqTemplate.ddqPath`**（指定すれば最優先。チームで ddq の版を固定したいときなど）
+2. 拡張に同梱した `ddq.exe`（Windows x64 向けの VSIX に入っています）
+3. `PATH` の `ddq`
+
+PDF / HTML には **Quarto** も要ります。見つからないときは案内が出ます。インストール直後で
+`PATH` が反映されていないときは、VSCode を開き直すか、設定 **`ddqTemplate.quartoPath`** に
+`quarto.exe` のパスを入れてください。
 
 表エディタは ddq を使いません。
 
 信頼されていないワークスペース（制限モード）では動きません（ワークスペースで ddq を実行するため）。
+
+---
+
+## 発行（PDF / HTML / 図）
+
+執筆フォルダ（`_quarto.yml` と `.template-version` のあるフォルダ）に対して ddq を実行します。
+
+| コマンド | 内容 |
+|---|---|
+| **DDQ: PDF を作成** | `ddq pdf`。終わると「PDF を開く」が出ます |
+| **DDQ: HTML を作成** | `ddq html`。終わると「HTML を開く」が出ます |
+| **DDQ: 図を変換** | `ddq diagrams`（`diagrams/` の `.mmd` / `.puml` を `.svg` に） |
+
+- エクスプローラで**執筆フォルダを右クリック**しても実行できます（執筆フォルダにだけ出ます）
+- 執筆フォルダの中のファイルを開いていると、**ステータスバーに `PDF: <執筆フォルダ名>`** が出ます。
+  押すとその執筆フォルダの PDF を作ります
+- 出力は「出力」パネルの **DDQ** に流れます。進捗の通知から**キャンセル**できます
+- 同じ執筆フォルダでは 1 本ずつしか実行できません（`_book/` や図のキャッシュを同時に書き換えないため）
+
+### テンプレートの版が合わないとき
+
+ddq は、執筆フォルダの機構ファイル（`design-doc.lua` など）が自分の版と一致しないと止まります。
+このとき拡張は版を比べて案内を出します。
+
+| 状態 | 案内 |
+|---|---|
+| 執筆フォルダの方が古い | **ddq update を実行** → 機構ファイルを新しい版にしてから、元のコマンドをやり直します。変わったファイルはコミットしてください |
+| 版は同じで機構ファイルが手で直されている | **ddq update を実行** で元に戻せます（差分は Git で確認してください） |
+| 執筆フォルダの方が新しい | update は出しません（機構を古い版に戻してしまうため）。拡張（または `ddqTemplate.ddqPath` の ddq）を更新してください |
 
 ---
 
@@ -248,6 +285,10 @@ npm run package     # VSIX を作る
 |---|---|
 | `src/extension.ts` | 入口。機能ごとの登録を束ねる |
 | `src/legacy.ts` | 旧拡張の検出とアンインストールの案内 |
+| `src/build.ts` | 発行（pdf / html / diagrams）、版不一致の案内と update、ステータスバー |
+| `src/folders.ts` | 執筆フォルダの決定と、右クリックメニュー用の一覧（`setContext`） |
+| `src/quarto.ts` | Quarto の有無の検査と `ddqTemplate.quartoPath` |
+| `src/ddq/locate.ts` `lock.ts` `version.ts` | ddq の解決順、執筆フォルダごとの実行中フラグ、版の比較 |
 | `src/activateRevision.ts` | ラベル一覧・改訂履歴のコマンド登録（旧 ddq-revision の入口） |
 | `src/ddq/` `src/tagging/` `src/revision/` | ddq の起動、ラベル付け、改訂履歴の Custom Editor |
 | `src/revisionWebview/` | ラベル一覧・改訂履歴の画面（React） |

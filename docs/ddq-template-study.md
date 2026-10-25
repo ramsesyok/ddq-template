@@ -88,7 +88,8 @@
 ### 3.3 Quarto
 
 - `init` / `pdf` / `html` の実行前に `quarto --version` を 1 回呼んでキャッシュ（失敗時はキャッシュしない。インストール直後の再試行のため）。
-- 見つからなければ通知「Quarto が見つかりません。[ダウンロードページを開く] [設定でパスを指定]」。インストール後に VSCode の再起動が要る場合があることを添える。
+- 見つからなければ通知「Quarto が見つかりません。…[設定でパスを指定]」。インストール後に VSCode の再起動が要る場合があることを添える。
+  - 当初案の [ダウンロードページを開く] は**入れなかった**（段階 1b）。拡張はオフライン前提で外部 URL を持たない（`check:offline` が成果物の外部 URL を検出する）。入手方法は利用マニュアルの環境構築の章へ誘導する。
 - `ddqTemplate.quartoPath` があれば、そのフォルダを子プロセスの `PATH` の先頭に足して ddq を起動する（ddq は `quarto` を PATH から起動するため、ddq の変更は不要）。
 
 ### 3.4 子プロセスの寿命
@@ -183,7 +184,7 @@
 |---|---|---|
 | 0 | 本書（`feature/ddq-template`） | 方針の合意 |
 | 1a | **完了**。`git mv` で `extensions/ddq-template/` に統合、ID 改名、旧拡張検出、`extension.yml` の matrix 更新。Webview は `vite build --mode revision / tableEditor` で 2 本。文書（マニュアル・実装仕様書）の旧名は 1e で直す | 旧 2 拡張と同等の機能が 1 本で動く（実拡張ホストで確認） |
-| 1b | `ddq/`（解決・起動・ロック・終了コード）、ddq の exit 3、`pdf` / `html` / `diagrams`、執筆フォルダ探索とステータスバー、Quarto 検査、update（通知ボタンからの最小形） | 拡張から発行できる |
+| 1b | **完了**。`ddq/`（解決・起動・ロック・終了コード）、ddq の exit 3（`setup.rs` の `TemplateMismatch`）、`pdf` / `html` / `diagrams`、執筆フォルダ探索（`_quarto.yml` + `.template-version`）とステータスバー、Quarto 検査、update（通知ボタンからの最小形）。ラベル一覧・改訂履歴も同じ執筆フォルダの決め方と ddq の解決順に揃えた | 拡張から発行できる（実拡張ホストで mismatch → update → html と同時実行の拒否を確認） |
 | 1c | `init`（§5）、scaffold の `extensions.json` | 拡張だけで始められる |
 | 1d | `release.rs`（exe コピー・ターゲット指定 VSIX・zip から拡張を外す）、同梱スモークの CI | 配布物ができる |
 | 1e | 利用マニュアルの再構成（拡張主・CLI 付録）、実装仕様書の統合 | main へマージ・旧 2 拡張削除・リリース |

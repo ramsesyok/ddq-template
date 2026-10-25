@@ -31,6 +31,22 @@
   "contributes": {
     "commands": [
       {
+        "command": "ddqTemplate.pdf",
+        "title": "PDF を作成",
+        "category": "DDQ",
+        "icon": "$(file-pdf)"
+      },
+      {
+        "command": "ddqTemplate.html",
+        "title": "HTML を作成",
+        "category": "DDQ"
+      },
+      {
+        "command": "ddqTemplate.diagrams",
+        "title": "図を変換（diagrams/ の .mmd / .puml → .svg）",
+        "category": "DDQ"
+      },
+      {
         "command": "ddqTemplate.tags",
         "title": "見出し・表・図のラベルを一覧する",
         "category": "DDQ"
@@ -49,14 +65,29 @@
     "menus": {
       "explorer/context": [
         {
+          "command": "ddqTemplate.pdf",
+          "when": "explorerResourceIsFolder && resourcePath in ddqTemplate.writingFolders",
+          "group": "ddq@1"
+        },
+        {
+          "command": "ddqTemplate.html",
+          "when": "explorerResourceIsFolder && resourcePath in ddqTemplate.writingFolders",
+          "group": "ddq@2"
+        },
+        {
+          "command": "ddqTemplate.diagrams",
+          "when": "explorerResourceIsFolder && resourcePath in ddqTemplate.writingFolders",
+          "group": "ddq@3"
+        },
+        {
           "command": "ddqTemplate.tags",
-          "when": "explorerResourceIsFolder",
-          "group": "7_modification"
+          "when": "explorerResourceIsFolder && resourcePath in ddqTemplate.writingFolders",
+          "group": "ddq@4"
         },
         {
           "command": "ddqTemplate.newRevision",
-          "when": "explorerResourceIsFolder",
-          "group": "7_modification"
+          "when": "explorerResourceIsFolder && resourcePath in ddqTemplate.writingFolders",
+          "group": "ddq@5"
         }
       ],
       "editor/context": [
@@ -73,7 +104,12 @@
         "ddqTemplate.ddqPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "`ddq` 実行ファイルのパス。空なら `PATH` から探す。"
+          "markdownDescription": "`ddq` 実行ファイルのパス。空なら拡張に同梱した `ddq.exe`、それも無ければ `PATH` の `ddq` を使う。"
+        },
+        "ddqTemplate.quartoPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "`quarto.exe` のパス（またはそのフォルダ）。空なら `PATH` の `quarto` を使う。Quarto をインストールした直後で `PATH` が反映されていないときなどに指定する。"
         }
       }
     },

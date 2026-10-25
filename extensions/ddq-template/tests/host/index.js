@@ -119,8 +119,9 @@ async function run() {
     // 4) 改訂履歴の編集画面（Custom Editor）。実物の ddq が要るので、差し替えのときは飛ばす
     if (process.env.DDQ_IS_REAL === '1') {
         await revisionEditor(docs, ddq);
+        await build(docs);
     } else {
-        log.push('--   改訂履歴の編集画面は実物の ddq が要るので飛ばした');
+        log.push('--   改訂履歴の編集画面と発行（pdf / html / diagrams）は実物の ddq が要るので飛ばした');
     }
 
     fs.writeFileSync(path.join(process.env.HOST_OUT, 'host-result.txt'), log.join('\n'), 'utf8');
@@ -269,6 +270,36 @@ async function revisionEditor(docs, ddq) {
     );
     assert.strictEqual(active?.selection.active.line, 4, `箇所が 5 行目で開かない: ${editors()}`);
     say('箇所を押すと本文がその行で開く');
+}
+
+/**
+ * 発行（ddq-template-study.md §3）。通知のボタンは押せないので内部コマンドで同じ処理を通す。
+ *   1. 機構ファイルの無い執筆フォルダの html は、ddq が終了コード 3 で止まり「mismatch」になる
+ *   2. update が通り、そのあと diagrams / html が通る
+ *   3. 同じ執筆フォルダの 2 本目は受け付けない
+ */
+async function build(docs) {
+    const run = (kind) => vscode.commands.executeCommand('ddqTemplate.internal.build', kind, docs);
+
+    assert.strictEqual(await run('html'), 'mismatch', '機構の無いフォルダの html が mismatch にならない');
+    say('機構の不一致（ddq の終了コード 3）を見分ける');
+
+    assert.strictEqual(await run('update'), 'ok', 'ddq update が通らない');
+    assert.ok(fs.existsSync(path.join(docs, 'design-doc.lua')), 'update で機構ファイルが置かれていない');
+    say('ddq update で機構ファイルが置かれる');
+
+    const first = run('html');
+    const second = await run('diagrams');
+    assert.strictEqual(second, 'busy', `実行中の 2 本目が受け付けられた: ${second}`);
+    const html = await first;
+    assert.strictEqual(html, 'ok', `html が通らない: ${html}`);
+    assert.ok(fs.existsSync(path.join(docs, '_book', 'index.html')), '_book/index.html ができていない');
+    say('html が通り、実行中の同じ執筆フォルダの 2 本目は受け付けない');
+
+    // ddq diagrams は diagrams/ が無いと失敗する（図が無いだけなら警告で通る）
+    fs.mkdirSync(path.join(docs, 'diagrams'), { recursive: true });
+    assert.strictEqual(await run('diagrams'), 'ok', '終わったあとの diagrams が通らない');
+    say('終われば次を受け付ける（diagrams）');
 }
 
 module.exports.run = () =>

@@ -36,8 +36,7 @@ INPUTS = [
     "cli/Cargo.lock",
     "template/vendor/mermaid.min.js",
     "cli/vendor/plantuml.jar",
-    "extensions/ddq-revision/package-lock.json",
-    "extensions/ddq-table-editor/package-lock.json",
+    "extensions/ddq-template/package-lock.json",
 ]
 # VSIX の Webview にバンドルされる実行時のパッケージ（src/webview が import するもの）。
 # vitest（テスト）と vscode（エディタが提供）はバンドルされない
@@ -269,9 +268,9 @@ def main() -> None:
     mermaid = npm_packages(nm)
     if not any(p["name"] == "mermaid" and p["version"] == mver for p in mermaid):
         sys.exit(f"mermaid {mver} が {nm} にありません")
-    react = npm_packages(ROOT / "extensions/ddq-revision/node_modules", EXTENSION_BUNDLED)
+    react = npm_packages(ROOT / "extensions/ddq-template/node_modules", EXTENSION_BUNDLED)
     if sorted({p["name"] for p in react}) != sorted(EXTENSION_BUNDLED):
-        sys.exit("extensions/ddq-revision/node_modules に React 一式がありません（npm ci してください）")
+        sys.exit("extensions/ddq-template/node_modules に React 一式がありません（npm ci してください）")
     puml = plantuml_license()
 
     everything = crates + mermaid + react
@@ -318,7 +317,7 @@ def main() -> None:
         "",
         "PlantUML の MIT 版（`plantuml-mit-<版>.jar`）。ライセンス表示は末尾の「PlantUML のライセンス表示」を参照。",
         "",
-        f"### VSCode 拡張（ddq-revision / ddq-table-editor）の Webview にバンドルしたもの（{len(react)} 件）",
+        f"### VSCode 拡張（ddq-template）の Webview にバンドルしたもの（{len(react)} 件）",
         "",
         table(react),
         "",

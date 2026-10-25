@@ -19,6 +19,7 @@
 |---|---|
 | `src/extension.ts` | 入口。機能ごとの `activate*` を呼ぶだけ |
 | `src/legacy.ts` | 旧拡張の検出・アンインストールの案内 |
+| `src/build.ts` `src/folders.ts` `src/quarto.ts` `src/ddq/{locate,lock,version}.ts` | 発行（pdf / html / diagrams）・版不一致の案内と update・執筆フォルダの決定・ステータスバー |
 | `src/activateRevision.ts` `src/ddq/` `src/tagging/` `src/revision/` `src/revisionWebview/` | ラベル一覧・改訂履歴 |
 | `src/tableEditor/` | 表エディタ（旧 ddq-table-editor の `src/` をそのまま移したもの） |
 
@@ -37,6 +38,9 @@ ID は `ddqTemplate.*` に統一する（コマンド・設定・viewType）。�
 - `.gitignore` はリポジトリのルートにある（ルートの `/*/.gitignore` 規則でここの `.gitignore` は
   無視される）。`node_modules/` `out/` `*.vsix` はそこで除外済み
 - CI は `../../.github/workflows/extension.yml`
+- **ddq の終了コード 3 は「執筆フォルダの機構が ddq と一致しない」**（`cli/src/commands/setup.rs` の
+  `TEMPLATE_MISMATCH_EXIT_CODE`）。拡張はこれで update の案内を出すので、どちらかを変えるときは両方を直す
+- ddq は `src/ddq/locate.ts` の解決順（設定 → 同梱 → PATH）でだけ決める。直接 `'ddq'` を起動しない
 
 ## ラベル一覧・改訂履歴
 

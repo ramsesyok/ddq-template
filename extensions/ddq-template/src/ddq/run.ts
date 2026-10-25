@@ -5,7 +5,9 @@
  * （同じ解釈が CLI と拡張で二重にならないようにするため）。
  */
 
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+
+import { locateDdq } from './locate';
 
 /** 実行に失敗したときの理由。UI にそのまま出す。 */
 export class DdqError extends Error {
@@ -19,10 +21,9 @@ export class DdqError extends Error {
     }
 }
 
-/** 実行ファイル。設定が空なら PATH の `ddq` を使う。 */
+/** 実行ファイル。設定 → 同梱 → PATH の `ddq` の順に決める（locate.ts）。 */
 export function ddqCommand(configured: string | undefined): string {
-    const trimmed = (configured ?? '').trim();
-    return trimmed === '' ? 'ddq' : trimmed;
+    return locateDdq(configured).command;
 }
 
 /**
@@ -78,6 +79,62 @@ export async function runJson<T>(command: string, args: string[], cwd?: string):
     } catch {
         throw new DdqError('ddq の出力を JSON として読めません。', out.slice(0, 400));
     }
+}
+
+export type StreamOptions = {
+    cwd?: string;
+    env?: NodeJS.ProcessEnv;
+    /** 標準出力・標準エラーを届いた順に渡す（出力チャネルへ流す） */
+    onOutput: (text: string) => void;
+    /** 起動した子プロセス。止めるとき（キャンセル・拡張の終了）に使う */
+    onSpawn?: (child: { pid?: number; kill: () => void }) => void;
+};
+
+/** 実行結果。`code` が null のときは起動できなかったか、止められた。 */
+export type StreamResult = { code: number | null; output: string; error?: string };
+
+/**
+ * pdf / html のように時間のかかるコマンドを、出力を流しながら実行する。
+ * 失敗しても reject せず、終了コードで呼び出し側が分岐する（3 = 版・機構の不一致）。
+ */
+export function runStreaming(command: string, args: string[], options: StreamOptions): Promise<StreamResult> {
+    const [file, argv] = spawnArgs(command, args);
+    return new Promise((resolve) => {
+        let output = '';
+        const child = spawn(file, argv, { cwd: options.cwd, env: options.env, windowsHide: true });
+        options.onSpawn?.({ pid: child.pid, kill: () => killTree(child.pid, () => child.kill()) });
+        const take = (text: string) => {
+            output += text;
+            options.onOutput(text);
+        };
+        // 文字列で受ける（Buffer の境目で日本語の 1 文字が割れないように）
+        child.stdout.setEncoding('utf8');
+        child.stderr.setEncoding('utf8');
+        child.stdout.on('data', take);
+        child.stderr.on('data', take);
+        child.on('error', (e: NodeJS.ErrnoException) => {
+            const error =
+                e.code === 'ENOENT'
+                    ? `${command} を実行できません。設定 ddqTemplate.ddqPath に ddq.exe のパスを指定してください。`
+                    : e.message;
+            resolve({ code: null, output, error });
+        });
+        child.on('close', (code) => resolve({ code, output }));
+    });
+}
+
+/**
+ * 子プロセスを孫ごと止める。ddq は quarto を、quarto は pandoc / typst を起動するので、
+ * Windows では ddq だけを止めると孫が残る。`taskkill /T` で木ごと止める。
+ */
+function killTree(pid: number | undefined, fallback: () => void): void {
+    if (process.platform === 'win32' && pid !== undefined) {
+        execFile('taskkill', ['/pid', String(pid), '/T', '/F'], { windowsHide: true }, (error) => {
+            if (error) fallback();
+        });
+        return;
+    }
+    fallback();
 }
 
 /** `ddq --version` の版（`ddq 2.3.0` → `2.3.0`）。 */

@@ -11,6 +11,7 @@ import * as vscode from 'vscode';
 
 import { DdqError, ddqCommand, run, runJson, versionOf } from './ddq/run';
 import type { TagList } from './ddq/types';
+import { resolveWritingFolder } from './folders';
 import {
     EMPTY_SCHEME,
     RevisionEditorProvider,
@@ -144,47 +145,6 @@ async function openTags(context: vscode.ExtensionContext, resource?: vscode.Uri)
         session = { panel, folder };
     }
     await refresh();
-}
-
-/**
- * 執筆フォルダ（`_quarto.yml` のあるフォルダ）を決める。
- *
- * エクスプローラの右クリックならそのフォルダ、そうでなければ開いているファイルから
- * 上へたどる。どちらも当たらなければワークスペースから探して選ばせる。
- */
-async function resolveWritingFolder(resource?: vscode.Uri): Promise<string | undefined> {
-    const isWritingFolder = async (dir: string) => {
-        try {
-            await vscode.workspace.fs.stat(vscode.Uri.file(path.join(dir, '_quarto.yml')));
-            return true;
-        } catch {
-            return false;
-        }
-    };
-
-    if (resource && (await isWritingFolder(resource.fsPath))) return resource.fsPath;
-
-    const active = vscode.window.activeTextEditor?.document.uri;
-    if (active?.scheme === 'file') {
-        let dir = path.dirname(active.fsPath);
-        for (let i = 0; i < 12; i += 1) {
-            if (await isWritingFolder(dir)) return dir;
-            const up = path.dirname(dir);
-            if (up === dir) break;
-            dir = up;
-        }
-    }
-
-    const found = await vscode.workspace.findFiles('**/_quarto.yml', '**/{_book,node_modules}/**', 20);
-    const dirs = [...new Set(found.map((u) => path.dirname(u.fsPath)))];
-    if (dirs.length === 0) {
-        vscode.window.showErrorMessage(
-            '執筆フォルダ（_quarto.yml のあるフォルダ）が見つかりません。'
-        );
-        return undefined;
-    }
-    if (dirs.length === 1) return dirs[0];
-    return await vscode.window.showQuickPick(dirs, { title: '執筆フォルダを選んでください' });
 }
 
 /** `ddq tag list --json` を取り直して画面に流す。 */
