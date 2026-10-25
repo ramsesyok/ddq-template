@@ -37,12 +37,12 @@ let output: vscode.OutputChannel | undefined;
 const running = new Set<{ kill: () => void }>();
 let statusItem: vscode.StatusBarItem | undefined;
 
-function channel(): vscode.OutputChannel {
+export function channel(): vscode.OutputChannel {
     output ??= vscode.window.createOutputChannel('DDQ');
     return output;
 }
 
-function settings() {
+export function settings() {
     const config = vscode.workspace.getConfiguration('ddqTemplate');
     return {
         ddqPath: config.get<string>('ddqPath'),
@@ -129,7 +129,7 @@ async function execute(
             return 'no-quarto';
         }
         if (kind === 'pdf') void updateStatus(folder);
-        const result = await runWithProgress(kind, folder, env);
+        const result = await runWithProgress(`${TITLES[kind]}: ${path.basename(folder)}`, [kind, folder], folder, env);
         if (result === 'cancelled') return 'cancelled';
         if (result.code === 0) {
             if (options.interactive) void notifyDone(kind, folder, result.output);
@@ -149,19 +149,20 @@ async function execute(
     }
 }
 
-async function runWithProgress(
-    kind: BuildKind | 'update',
-    folder: string,
+/** ddq を 1 本、キャンセルできる進捗通知つきで走らせ、出力を「DDQ」に流す（init も使う）。 */
+export async function runWithProgress(
+    title: string,
+    args: string[],
+    cwd: string | undefined,
     env: NodeJS.ProcessEnv
 ): Promise<StreamResult | 'cancelled'> {
     const out = channel();
     const command = locateDdq(settings().ddqPath).command;
-    const args = [kind, folder];
     out.appendLine(`\n> ${command} ${args.join(' ')}`);
     return vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
-            title: `${TITLES[kind]}: ${path.basename(folder)}`,
+            title,
             cancellable: true
         },
         async (_progress, token) => {
@@ -173,7 +174,7 @@ async function runWithProgress(
             });
             try {
                 const result = await runStreaming(command, args, {
-                    cwd: folder,
+                    cwd,
                     env,
                     onOutput: (text) => out.append(text),
                     onSpawn: (c) => {
@@ -220,7 +221,7 @@ export function htmlIndexOf(stdout: string): string | undefined {
     return m?.[1];
 }
 
-async function showError(reason: string) {
+export async function showError(reason: string) {
     const show = '出力を表示';
     if ((await vscode.window.showErrorMessage(reason, show)) === show) channel().show(true);
 }

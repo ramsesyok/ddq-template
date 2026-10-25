@@ -120,6 +120,7 @@ async function run() {
     if (process.env.DDQ_IS_REAL === '1') {
         await revisionEditor(docs, ddq);
         await build(docs);
+        await init();
     } else {
         log.push('--   改訂履歴の編集画面と発行（pdf / html / diagrams）は実物の ddq が要るので飛ばした');
     }
@@ -300,6 +301,24 @@ async function build(docs) {
     fs.mkdirSync(path.join(docs, 'diagrams'), { recursive: true });
     assert.strictEqual(await run('diagrams'), 'ok', '終わったあとの diagrams が通らない');
     say('終われば次を受け付ける（diagrams）');
+}
+
+/**
+ * 設計書リポジトリの作成（ddq-template-study.md §5）。ダイアログは通せないので、
+ * 名前を決めたあとの作成処理（ddq init）を内部コマンドで通す。執筆フォルダ名は日本語にする。
+ */
+async function init() {
+    const repo = path.join(process.env.HOST_OUT, 'new-repo');
+    const outcome = await vscode.commands.executeCommand('ddqTemplate.internal.init', repo, '設計書');
+    assert.strictEqual(outcome, 'ok', `init が通らない: ${outcome}`);
+    for (const f of ['.gitignore', '.vscode/settings.json', '.vscode/extensions.json', '設計書/_quarto.yml', '設計書/.template-version']) {
+        assert.ok(fs.existsSync(path.join(repo, f)), `${f} が無い`);
+    }
+    assert.ok(
+        fs.readFileSync(path.join(repo, '.vscode', 'extensions.json'), 'utf8').includes('quarto.quarto'),
+        'extensions.json に quarto.quarto が無い'
+    );
+    say('設計書リポジトリを作れる（日本語の執筆フォルダ名、.vscode/extensions.json に quarto.quarto）');
 }
 
 module.exports.run = () =>

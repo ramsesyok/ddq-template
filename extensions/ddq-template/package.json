@@ -31,6 +31,11 @@
   "contributes": {
     "commands": [
       {
+        "command": "ddqTemplate.init",
+        "title": "設計書リポジトリを作成",
+        "category": "DDQ"
+      },
+      {
         "command": "ddqTemplate.pdf",
         "title": "PDF を作成",
         "category": "DDQ",
@@ -123,6 +128,13 @@
           }
         ],
         "priority": "default"
+      }
+    ],
+    "viewsWelcome": [
+      {
+        "view": "explorer",
+        "contents": "design-doc-quarto-template（ddq）で設計書を新しく書き始めるときは:\n[設計書リポジトリを作成](command:ddqTemplate.init)",
+        "when": "workbenchState == empty"
       }
     ]
   },

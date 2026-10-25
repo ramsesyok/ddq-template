@@ -185,7 +185,7 @@
 | 0 | 本書（`feature/ddq-template`） | 方針の合意 |
 | 1a | **完了**。`git mv` で `extensions/ddq-template/` に統合、ID 改名、旧拡張検出、`extension.yml` の matrix 更新。Webview は `vite build --mode revision / tableEditor` で 2 本。文書（マニュアル・実装仕様書）の旧名は 1e で直す | 旧 2 拡張と同等の機能が 1 本で動く（実拡張ホストで確認） |
 | 1b | **完了**。`ddq/`（解決・起動・ロック・終了コード）、ddq の exit 3（`setup.rs` の `TemplateMismatch`）、`pdf` / `html` / `diagrams`、執筆フォルダ探索（`_quarto.yml` + `.template-version`）とステータスバー、Quarto 検査、update（通知ボタンからの最小形）。ラベル一覧・改訂履歴も同じ執筆フォルダの決め方と ddq の解決順に揃えた | 拡張から発行できる（実拡張ホストで mismatch → update → html と同時実行の拒否を確認） |
-| 1c | `init`（§5）、scaffold の `extensions.json` | 拡張だけで始められる |
+| 1c | **完了**。`init`（§5。`src/init.ts`）、`viewsWelcome`、`git.init` ボタン、scaffold の `.vscode/extensions.json`（`quarto.quarto`）。「ほぼ空」は `.git` `.vscode` `.gitignore` `.gitattributes` `README.md` `LICENSE` だけのとき（U3）。Quarto が無ければ `--no-render` で作る。開き直した先の案内は `globalState` で受け渡す | 拡張だけで始められる（実拡張ホストで日本語の執筆フォルダ名の作成を確認） |
 | 1d | `release.rs`（exe コピー・ターゲット指定 VSIX・zip から拡張を外す）、同梱スモークの CI | 配布物ができる |
 | 1e | 利用マニュアルの再構成（拡張主・CLI 付録）、実装仕様書の統合 | main へマージ・旧 2 拡張削除・リリース |
 | 2 | `update` のコマンドパレット対応と差分確認の導線 | 既存文書の移行が楽になる |
@@ -200,7 +200,7 @@
 |---|---|---|
 | U1 | Quarto の版の下限 | 検査しない。V6 の調査後に必要なら追加 |
 | U2 | Marketplace / Open VSX への公開 | 当面しない。公開時は publisher 登録・PAT・`extensions.json` への推奨追加 |
-| U3 | init の「ほぼ空」の判定 | `.git` / `.vscode` / `README.md` 程度は空扱い、の方向で実装時に決める |
+| U3 | init の「ほぼ空」の判定 | 決定（1c）: `.git` `.vscode` `.gitignore` `.gitattributes` `README.md` `LICENSE` だけなら空扱い。それ以外があれば「このフォルダに作る／別の場所に作る」を選ばせる |
 | U4 | コード署名 | 誤検知の報告が出たら検討（§7.3） |
 | U5 | タスク（TaskProvider）提供 | 要望が出てから |
 | U6 | ターゲット指定なしの汎用 VSIX（exe 無し） | 作らない。必要になれば外部 ddq フォールバックだけで動く |

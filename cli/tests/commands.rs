@@ -51,6 +51,7 @@ fn init_then_add_then_update_all() {
         ".gitignore",
         ".gitattributes",
         ".vscode/settings.json",
+        ".vscode/extensions.json",
         "README.md",
     ] {
         assert!(repo.join(f).is_file(), "{f} がありません");
