@@ -147,11 +147,13 @@
     "watch:webview:tableEditor": "vite build --mode tableEditor --watch",
     "test": "vitest run",
     "test:host": "node tests/host/run.mjs",
+    "test:smoke": "node tests/host/smoke.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json",
     "check:offline": "node scripts/check-offline.mjs",
     "check:audit": "npm audit --omit=dev --audit-level=low",
     "verify": "npm run typecheck && npm test && npm run build && npm run check:offline && npm run check:audit",
-    "package": "npm run build && vsce package"
+    "package": "npm run build && vsce package",
+    "package:win32-x64": "npm run build && vsce package --target win32-x64"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -284,7 +284,15 @@ VSCode で**この `extensions/ddq-template/` フォルダを開き**（リポ�
 npm install
 npm run verify      # 型検査・テスト・ビルド・オフライン検査・脆弱性検査
 npm run test:host   # 実拡張ホストでの検証
-npm run package     # VSIX を作る
+npm run package     # VSIX を作る（ddq.exe なし。開発・CI 用）
+```
+
+配布する VSIX は ddq.exe を同梱したターゲット指定の版で、`ddq release` が作ります
+（exe を `bin/win32-x64/ddq.exe` にコピーしてから `npm run package:win32-x64`）。手で作るときは:
+
+```bash
+npm run package:win32-x64   # bin/win32-x64/ddq.exe を置いてから。ddq-template-win32-x64-<版>.vsix ができる
+npm run test:smoke          # その VSIX を展開した中身で VSCode を起動し、同梱 ddq で init → html を通す
 ```
 
 | コマンド | 内容 |
@@ -367,5 +375,5 @@ VSCode を起動して、一覧が開くこと・書き戻しが当たること�
 
 ## 導入（利用者）
 
-リリース一式の `ddq-template-<版>.vsix` を VSCode の「VSIX からのインストール…」で
-入れます。Marketplace には公開していません。
+リリースページの `ddq-template-win32-x64-<版>.vsix`（ddq.exe 入り。配布 zip とは別の資産）を
+VSCode の「VSIX からのインストール…」で入れます。Marketplace には公開していません。

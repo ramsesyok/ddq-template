@@ -76,10 +76,10 @@ quarto-template/
 ├── docs/                        … 設計リポジトリ（執筆フォルダ manual/ = 利用マニュアル、design/ = テンプレート設計書）
 ├── examples/                    … サンプルの設計書リポジトリ（docs/ = 受注管理システム基本設計書。--with-sample の同梱元）
 ├── extensions/                  … VSCode 拡張（1 フォルダ = 1 拡張。2.4.0 で extension/ から移した）
-│   ├── ddq-revision/            … 見出し・表・図のラベル付け（ddq tag list/apply の画面。2.4.0）
-│   └── ddq-table-editor/        … 表の視覚編集（2.1.0 で旧 quarto-table-support を統合。
-│                                   ddq release が npm でパッケージして VSIX を同梱する）
-├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release
+│   └── ddq-template/            … 旧 ddq-revision（ラベル付け・改訂履歴）と旧 ddq-table-editor（表の視覚編集）を
+│                                   統合し、ddq.exe を同梱して init / pdf / html / diagrams を VSCode から行う拡張
+│                                   （docs/ddq-template-study.md。ddq release が win32-x64 の VSIX を作る）
+├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release、その exe を同梱した VSIX のスモーク
 └── .github/workflows/extension.yml … 拡張の CI（Ubuntu / Windows × Node 20 / 22）
 ```
 
@@ -97,10 +97,11 @@ quarto-template-<版>/
 ├── THIRD-PARTY-NOTICES.md … 第三者のソフトウェアのライセンス表示（リポジトリ直下の生成物。下記）
 ├── はじめかた.pdf        … 最初の一歩（template/release-guide.typ を Quarto 同梱の Typst で PDF に。
 │                            Marp は npm 依存なので使わない）
-├── ddq-table-editor-<版>.vsix … VSCode 拡張（2.1.0 から。extensions/ の各拡張を `npm run package` したもの）
 └── manual/
     ├── 利用マニュアル.pdf
     └── html/index.html
+quarto-template-<版>.zip
+ddq-template-win32-x64-<版>.vsix … VSCode 拡張（ddq.exe 同梱）。zip には入れず隣に置き、リリースページの別資産にする
 ```
 
 `template/` は release に**含めない**（すべて exe に埋め込まれている）。
@@ -117,8 +118,14 @@ ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm �
 `tests/third_party.rs` が照合する。依存を変えたら作り直してコミットする（しないとリリースと CI が止まる）。
 テキストの入力は改行を LF に揃えてからハッシュする（`Cargo.lock` は checkout の設定で CRLF にもなる）。
 
-VSIX は `ddq release` が `extension/` で `npm ci`（`node_modules/` が無いときだけ）→
+VSIX は `ddq release` が `extensions/<拡張>/` で `npm ci`（`node_modules/` が無いときだけ）→
 `npm run package` を実行して作る（`--no-build` なら既存の VSIX を使う）。
+`package:win32-x64` スクリプトを持つ拡張（ddq-template）は ddq.exe を同梱する: release している exe を
+`<拡張>/bin/win32-x64/ddq.exe`（git 管理外）にコピーしてから `npm run package:win32-x64`
+（`vsce package --target win32-x64`）で `<name>-win32-x64-<版>.vsix` を作る。最後に VSIX の中の
+`extension/bin/win32-x64/ddq.exe` が release している exe とバイト一致することを確かめる
+（`--no-build` で前の版の ddq を同梱した VSIX を配らないため）。VSIX は zip に入れず、zip の隣に置く
+（CLI 利用者は zip、VSCode 利用者は VSIX と、別の資産として取れるようにする）。
 `extensions/<拡張>/package.json` の `version` が `template/VERSION` と違えば止める（拡張の版＝テンプレートの版）。
 発行者・執筆者の端末に Node.js が要らない点は変わらない（要るのは保守者のリリース作成時だけ）。
 Windows の `npm` は `npm.cmd` なので `cmd /C npm …` で起動する（`Command::new("npm")` は .cmd を解決しない）。

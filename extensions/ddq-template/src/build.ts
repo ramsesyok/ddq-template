@@ -69,6 +69,10 @@ export function activateBuild(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('ddqTemplate.internal.showOutput', () => channel().show(true))
     );
+    // 同梱版のスモーク（tests/host/smoke.mjs）が、どの ddq に決まったかを見る
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ddqTemplate.internal.locate', () => locateDdq(settings().ddqPath))
+    );
 
     statusItem = vscode.window.createStatusBarItem('ddqTemplate.pdf', vscode.StatusBarAlignment.Left, 50);
     statusItem.name = 'DDQ: PDF';

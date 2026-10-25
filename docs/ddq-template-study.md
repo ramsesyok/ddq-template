@@ -186,7 +186,7 @@
 | 1a | **完了**。`git mv` で `extensions/ddq-template/` に統合、ID 改名、旧拡張検出、`extension.yml` の matrix 更新。Webview は `vite build --mode revision / tableEditor` で 2 本。文書（マニュアル・実装仕様書）の旧名は 1e で直す | 旧 2 拡張と同等の機能が 1 本で動く（実拡張ホストで確認） |
 | 1b | **完了**。`ddq/`（解決・起動・ロック・終了コード）、ddq の exit 3（`setup.rs` の `TemplateMismatch`）、`pdf` / `html` / `diagrams`、執筆フォルダ探索（`_quarto.yml` + `.template-version`）とステータスバー、Quarto 検査、update（通知ボタンからの最小形）。ラベル一覧・改訂履歴も同じ執筆フォルダの決め方と ddq の解決順に揃えた | 拡張から発行できる（実拡張ホストで mismatch → update → html と同時実行の拒否を確認） |
 | 1c | **完了**。`init`（§5。`src/init.ts`）、`viewsWelcome`、`git.init` ボタン、scaffold の `.vscode/extensions.json`（`quarto.quarto`）。「ほぼ空」は `.git` `.vscode` `.gitignore` `.gitattributes` `README.md` `LICENSE` だけのとき（U3）。Quarto が無ければ `--no-render` で作る。開き直した先の案内は `globalState` で受け渡す | 拡張だけで始められる（実拡張ホストで日本語の執筆フォルダ名の作成を確認） |
-| 1d | `release.rs`（exe コピー・ターゲット指定 VSIX・zip から拡張を外す）、同梱スモークの CI | 配布物ができる |
+| 1d | **完了**。`release.rs`: `package:win32-x64` を持つ拡張に exe をコピーしてターゲット指定 VSIX（10.7MB）を作り、VSIX 内の ddq.exe が release している exe とバイト一致することを確認。VSIX は zip に入れず隣に置く。同梱スモーク `npm run test:smoke`（展開した VSIX の中身で起動し、設定・PATH 無しで同梱 ddq に決まること、init → html）と ci.yml の `vsix-smoke`（main への push・手動のみ） | 配布物ができる（手元で VSIX を作り、スモーク合格） |
 | 1e | 利用マニュアルの再構成（拡張主・CLI 付録）、実装仕様書の統合 | main へマージ・旧 2 拡張削除・リリース |
 | 2 | `update` のコマンドパレット対応と差分確認の導線 | 既存文書の移行が楽になる |
 | 3 | `add` | 複数文書構成 |
@@ -198,7 +198,7 @@
 
 | # | 内容 | 現時点の扱い |
 |---|---|---|
-| U1 | Quarto の版の下限 | 検査しない。V6 の調査後に必要なら追加 |
+| U1 | Quarto の版の下限 | 検査しない。V6 の調査後に必要なら追加（参考: CI は 1.9.38 に固定して検証している） |
 | U2 | Marketplace / Open VSX への公開 | 当面しない。公開時は publisher 登録・PAT・`extensions.json` への推奨追加 |
 | U3 | init の「ほぼ空」の判定 | 決定（1c）: `.git` `.vscode` `.gitignore` `.gitattributes` `README.md` `LICENSE` だけなら空扱い。それ以外があれば「このフォルダに作る／別の場所に作る」を選ばせる |
 | U4 | コード署名 | 誤検知の報告が出たら検討（§7.3） |

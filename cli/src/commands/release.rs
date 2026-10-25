@@ -4,12 +4,15 @@
 //! 作るもの（cli/DESIGN.md §3.2）:
 //!   <out-dir>/quarto-template-<版>/      ddq.exe / plantuml.jar / はじめかた.pdf / README.md / AGENT-GUIDE.md /
 //!                                        LICENSE / THIRD-PARTY-NOTICES.md / manual/
-//!                                        / ddq-template-<版>.vsix（VSCode 拡張）
 //!   <out-dir>/quarto-template-<版>.zip
+//!   <out-dir>/ddq-template-win32-x64-<版>.vsix（VSCode 拡張。zip には入れず、リリースページの別資産にする）
 //! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
 //! VSCode 拡張は extensions/<拡張>/ を npm でパッケージして同梱する（2.1.0 から。
 //! 2.3.0 で extension/ → extensions/<拡張>/ に移して複数の拡張を扱えるようにした。その後
 //! ddq-revision と ddq-table-editor を extensions/ddq-template/ に統合した）。
+//! `package:win32-x64` スクリプトを持つ拡張は ddq.exe を同梱する: この exe を `<拡張>/bin/win32-x64/ddq.exe`
+//! にコピーしてターゲット指定の VSIX を作る（docs/ddq-template-study.md §7）。VSIX は zip に入れず、
+//! zip の隣に置く（zip は CLI 利用者向け、VSIX は VSCode 利用者向けの別資産）。
 //! 版は各 package.json の version で、template/VERSION と一致していなければ止める。
 //! plantuml.jar は cli/vendor/plantuml.jar（git 管理外。保守者が MIT 版を置く）を同梱する（2.2.0 から）。
 
@@ -65,6 +68,13 @@ const LICENSE: &str = "LICENSE";
 /// 版はすべて template/VERSION と一致していなければならない（利用マニュアル 18 章）。
 const EXTENSIONS_DIR: &str = "extensions";
 
+/// ddq.exe を同梱する拡張が持つ npm スクリプト（ターゲット指定の VSIX を作る）
+const BUNDLE_SCRIPT: &str = "package:win32-x64";
+/// 同梱の対象（vsce の --target。VSIX 名にも入る）
+const BUNDLE_TARGET: &str = "win32-x64";
+/// 拡張の中での同梱 ddq の置き場（拡張側 src/ddq/locate.ts の bundledPath と揃える）
+const BUNDLED_EXE: &str = "bin/win32-x64/ddq.exe";
+
 pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<()> {
     let repo = env::current_dir().context("カレントディレクトリを取得できません")?;
     if !repo.join("template").join("VERSION").is_file()
@@ -114,14 +124,13 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     if building.exists() {
         fs::remove_dir_all(&building).with_context(|| format!("{} を消せません", building.display()))?;
     }
-    let (exe_name, vsix_names) =
-        match assemble(&repo, &building, &manual_pdf, &manual_html, &vsixes, with_sample) {
-            Ok(v) => v,
-            Err(e) => {
-                let _ = fs::remove_dir_all(&building);
-                return Err(e);
-            }
-        };
+    let exe_name = match assemble(&repo, &building, &manual_pdf, &manual_html, with_sample) {
+        Ok(v) => v,
+        Err(e) => {
+            let _ = fs::remove_dir_all(&building);
+            return Err(e);
+        }
+    };
     if stage.exists() {
         fs::remove_dir_all(&stage).with_context(|| format!("{} を消せません", stage.display()))?;
     }
@@ -135,19 +144,30 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     }
     let count = zip_archive::create(&stage, &zip_path)?;
 
+    // 4) VSCode 拡張。zip には入れず隣に置く（リリースページの別資産）
+    let mut vsix_names: Vec<String> = Vec::new();
+    for vsix in &vsixes {
+        let vsix_name = vsix.file_name().context("VSIX のファイル名")?;
+        fs::copy(vsix, out_root.join(vsix_name)).context("VSIX をコピーできません")?;
+        vsix_names.push(vsix_name.to_string_lossy().into_owned());
+    }
+
     println!();
     println!("完了（テンプレート {}）", assets::VERSION);
     println!("  フォルダ: {}", stage.display());
     println!("  zip     : {}（{count} ファイル）", zip_path.display());
     println!(
-        "  内容: {} / plantuml.jar / はじめかた.pdf / README / AGENT-GUIDE / LICENSE / THIRD-PARTY-NOTICES / manual（PDF + HTML）/ {}{}",
+        "  内容: {} / plantuml.jar / はじめかた.pdf / README / AGENT-GUIDE / LICENSE / THIRD-PARTY-NOTICES / manual（PDF + HTML）{}",
         exe_name.display(),
-        vsix_names.join(" / "),
         if with_sample {
             " / docs（サンプル）"
         } else {
             ""
         }
+    );
+    println!(
+        "  VSIX    : {}（zip の隣。リリースページに別に載せる）",
+        vsix_names.join(" / ")
     );
     Ok(())
 }
@@ -166,15 +186,14 @@ fn rename_patiently(from: &Path, to: &Path, limit: std::time::Duration) -> std::
     }
 }
 
-/// 配布する一式を `stage` に集める。戻り値は (exe の名前, 同梱した VSIX の名前)。
+/// 配布する一式を `stage` に集める。戻り値は exe の名前。
 fn assemble(
     repo: &Path,
     stage: &Path,
     manual_pdf: &Path,
     manual_html: &Path,
-    vsixes: &[PathBuf],
     with_sample: bool,
-) -> Result<(PathBuf, Vec<String>)> {
+) -> Result<PathBuf> {
     fs::create_dir_all(stage.join("manual"))?;
     let exe_name = quarto::self_exe()?
         .file_name()
@@ -193,12 +212,6 @@ fn assemble(
     build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
     fs::copy(manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
     copy_tree(manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
-    let mut vsix_names: Vec<String> = Vec::new();
-    for vsix in vsixes {
-        let vsix_name = vsix.file_name().context("VSIX のファイル名")?;
-        fs::copy(vsix, stage.join(vsix_name)).context("VSIX をコピーできません")?;
-        vsix_names.push(vsix_name.to_string_lossy().into_owned());
-    }
     if with_sample {
         copy_tree(
             &repo.join(SAMPLE_DIR),
@@ -208,7 +221,7 @@ fn assemble(
             &SAMPLE_EXCLUDE_PREFIXES,
         )?;
     }
-    Ok((exe_name, vsix_names))
+    Ok(exe_name)
 }
 
 /// plantuml.jar をリリース直下に同梱する。無ければ止める（PlantUML 図の無い組織でも、
@@ -268,7 +281,10 @@ fn build_extensions(root: &Path, no_build: bool) -> Result<Vec<PathBuf>> {
 /// - `package.json` の version が template/VERSION と違えば止める
 ///   （拡張の版はテンプレートの版に揃える。利用マニュアル 18 章）
 /// - `no_build` でなければ `npm ci`（node_modules が無いときだけ）→ `npm run package`
-/// - どちらの場合も `<拡張>/<name>-<版>.vsix` が無ければエラー
+/// - `package:win32-x64` を持つ拡張（ddq.exe の同梱）は、この exe を `bin/win32-x64/ddq.exe` に
+///   コピーしてから `npm run package:win32-x64`。VSIX の中の ddq.exe がこの exe と同じことを確かめる
+///   （`--no-build` で古い VSIX を配らないため）
+/// - どちらの場合も `<拡張>/<name>[-win32-x64]-<版>.vsix` が無ければエラー
 fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {
     let dir_name = ext
         .file_name()
@@ -303,24 +319,70 @@ fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {
         );
     }
 
-    let vsix = ext.join(format!("{name}-{}.vsix", assets::VERSION));
+    let bundle = meta["scripts"][BUNDLE_SCRIPT].is_string();
+    let (vsix, script) = if bundle {
+        (
+            ext.join(format!("{name}-{BUNDLE_TARGET}-{}.vsix", assets::VERSION)),
+            BUNDLE_SCRIPT,
+        )
+    } else {
+        (ext.join(format!("{name}-{}.vsix", assets::VERSION)), "package")
+    };
     if !no_build {
         println!("  VSCode 拡張をパッケージ（{rel}）...");
+        if bundle {
+            if !cfg!(windows) {
+                bail!(
+                    "{rel} は ddq.exe を同梱する（{BUNDLE_TARGET}）ので、Windows でビルドした ddq で release してください"
+                );
+            }
+            let dest = ext.join(BUNDLED_EXE);
+            fs::create_dir_all(dest.parent().expect("bin/win32-x64"))?;
+            fs::copy(quarto::self_exe()?, &dest)
+                .with_context(|| format!("ddq.exe を {} にコピーできません", dest.display()))?;
+        }
         if !ext.join("node_modules").is_dir() {
             quarto::run(npm(ext).arg("ci"), &format!("npm ci（{rel}）"))?;
         }
         quarto::run(
-            npm(ext).args(["run", "package"]),
-            &format!("npm run package（{rel}）"),
+            npm(ext).args(["run", script]),
+            &format!("npm run {script}（{rel}）"),
         )?;
     }
     if !vsix.is_file() {
         bail!(
-            "{} がありません（--no-build を外すか、{rel} で npm run package を実行してください）",
+            "{} がありません（--no-build を外すか、{rel} で npm run {script} を実行してください）",
             vsix.display()
         );
     }
+    if bundle {
+        check_bundled_exe(&vsix)?;
+    }
     Ok(vsix)
+}
+
+/// VSIX に同梱した ddq.exe が、いま release している exe と同じであること。
+/// 違えば、拡張と CLI で版の違う ddq を配ってしまう（拡張は同梱 ddq の版でテンプレートを照合する）。
+fn check_bundled_exe(vsix: &Path) -> Result<()> {
+    let entry = format!("extension/{BUNDLED_EXE}");
+    let file = fs::File::open(vsix).with_context(|| format!("{} を開けません", vsix.display()))?;
+    let mut archive =
+        zip::ZipArchive::new(file).with_context(|| format!("{} を zip として読めません", vsix.display()))?;
+    let mut bundled = Vec::new();
+    {
+        let mut f = archive
+            .by_name(&entry)
+            .with_context(|| format!("{} に {entry} がありません", vsix.display()))?;
+        std::io::Read::read_to_end(&mut f, &mut bundled)?;
+    }
+    let me = fs::read(quarto::self_exe()?).context("この exe を読めません")?;
+    if bundled != me {
+        bail!(
+            "{} の {entry} が、いま release している ddq と違います（--no-build を外して作り直してください）",
+            vsix.display()
+        );
+    }
+    Ok(())
 }
 
 /// `npm` を拡張のフォルダで起動するコマンド。Windows の npm は npm.cmd なので cmd 経由で呼ぶ
