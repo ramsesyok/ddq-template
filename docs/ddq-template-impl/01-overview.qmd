@@ -1,0 +1,67 @@
+# 対象と読み方 {#sec-overview}
+
+## 共通の基盤 {#sec-overview-common}
+
+### 対象・版・解析範囲
+
+対象は `extensions/ddq-template/`（版 2.4.5。`template/VERSION` と同じ）と、拡張との契約に関わる
+`ddq` 側（`cli/src/commands/setup.rs` の終了コード、`cli/src/commands/release.rs` の同梱）である。
+確認済み（静的・実行）の範囲は段階 1a〜1d（`docs/ddq-template-study.md` §9）の実装で、
+段階 2 以降（`update` のコマンドパレット対応・`add`・`plantuml`）は含まない。
+
+::: {.tbl caption="拡張の構成" label="tbl-components" widths="30,70"}
+| 部分 | 内容 |
+|---|---|
+| 作成 | 設計書リポジトリの作成（`ddq init`）。`src/init.ts` |
+| 発行 | PDF / HTML / 図（`ddq pdf` / `html` / `diagrams`）、版不一致時の update。`src/build.ts` |
+| 共通 | ddq の解決・起動・実行中フラグ・版比較（`src/ddq/`）、執筆フォルダ（`src/folders.ts`）、Quarto（`src/quarto.ts`）、旧拡張の検出（`src/legacy.ts`） |
+| ラベル付け・改訂履歴 | 旧 DDQ Revision。`src/activateRevision.ts`・`src/tagging/`・`src/revision/`・`src/revisionWebview/` |
+| 表エディタ | 旧 DDQ Table Editor。`src/tableEditor/` |
+:::
+
+### 統合前との対応 {#sec-overview-path-map}
+
+後の 2 節（統合前の解析）を読むときは、次の表でパスと ID を読み替える。
+
+::: {.tbl caption="統合前後の対応" label="tbl-path-map" widths="46,54"}
+| 統合前 | 統合後 |
+|---|---|
+| `extensions/ddq-revision/` | `extensions/ddq-template/` |
+| `extensions/ddq-revision/src/extension.ts` | `src/activateRevision.ts`（`activate` → `activateRevision`） |
+| `extensions/ddq-revision/src/webview/` | `src/revisionWebview/` |
+| `extensions/ddq-revision/src/{ddq,tagging,revision}/` | 同名（`src/ddq/` は共通の基盤と共有） |
+| `extension/`・`extensions/ddq-table-editor/`（`src/…`） | `src/tableEditor/…` |
+| `extensions/ddq-table-editor/src/extension.ts` | `src/tableEditor/activateTableEditor.ts` |
+| `extensions/ddq-table-editor/requirements.md` | `extensions/ddq-template/tableEditor-requirements.md` |
+| `sample/tables.qmd` | `extensions/ddq-template/sample/tables.qmd` |
+| `ddqRevision.tags` / `ddqRevision.newRevision` | `ddqTemplate.tags` / `ddqTemplate.newRevision` |
+| `ddqRevision.internal.*` | `ddqTemplate.internal.*` |
+| `ddqRevision.editor`（Custom Editor） | `ddqTemplate.revisionEditor` |
+| `ddqTableEditor.open`／パネル `ddqTableEditor` | `ddqTemplate.openTableEditor`／パネル `ddqTemplate.tableEditor` |
+| 設定 `ddqRevision.ddqPath` | `ddqTemplate.ddqPath`（値は引き継がない） |
+| Webview の出力 `out/webview/assets/` | `out/webview/revision/assets/`・`out/webview/tableEditor/assets/` |
+| 執筆フォルダ = `_quarto.yml` があるフォルダ | `_quarto.yml` と `.template-version` があるフォルダ（@sec-behavior-folder） |
+| ddq = 設定、空なら `PATH` | 設定 → 同梱 → `PATH`（@sec-data-locate） |
+:::
+
+### 読み始める場所
+
+| 調べたいこと | 読み始める場所 |
+|---|---|
+| どのファイルが何をするか | @sec-architecture |
+| 出力の流れ・版不一致の扱い | @sec-behavior-build |
+| ddq との契約（呼ぶコマンド・終了コード・出力の読み方） | @sec-data-ddq-contract |
+| VSIX の作り方・同梱・CI | @sec-build-environment |
+| 直すときに一緒に直す箇所 | @sec-maintenance |
+
+## ラベル付け・改訂履歴（旧 DDQ Revision） {#sec-overview-rev}
+
+{{< include parts/revision/index.qmd >}}
+
+{{< include parts/revision/01-overview.qmd >}}
+
+## 表エディタ（旧 DDQ Table Editor） {#sec-overview-te}
+
+{{< include parts/table-editor/index.qmd >}}
+
+{{< include parts/table-editor/01-overview.qmd >}}

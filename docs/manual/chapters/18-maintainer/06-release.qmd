@@ -1,6 +1,6 @@
 ## リリースを作る {#sec-release}
 
-発行者へ配る一式は `ddq release` で作る。マニュアルのビルド・VSCode 拡張のパッケージから
+配る一式は `ddq release` で作る。マニュアルのビルド・VSCode 拡張のパッケージ（`ddq.exe` の同梱）から
 zip 化までを 1 コマンドで行うので、**ビルド順（PDF → HTML）の間違い**や入れ忘れが起きない。
 `ddq` 自身がリリースに入るので、先に release ビルドしておく。
 
@@ -14,7 +14,8 @@ cli\target\release\ddq.exe release
 
 ビルドには Rust（stable）と MSVC のリンカ（Visual Studio の「C++ によるデスクトップ開発」
 ワークロード）、それに VSCode 拡張のパッケージ用に **Node.js（20 以上）と npm** が要る
-（`ddq release` が `extensions/` の各拡張で `npm ci` → `npm run package` を実行する）。
+（`ddq release` が `extensions/ddq-template/` に自分自身を `bin/win32-x64/ddq.exe` としてコピーし、
+`npm ci` → `npm run package:win32-x64` で ddq.exe 入りの VSIX を作る）。
 配布先には何も要らない（CRT は静的リンク。`cli/DESIGN.md` §7.1）。
 
 ::: {.tbl caption="ddq release の引数・オプション" label="tbl-release-opts" widths="24,76"}
@@ -22,10 +23,11 @@ cli\target\release\ddq.exe release
 |---|---|
 | 第1引数 | 出力先フォルダ（既定は `release/`） |
 | `--with-sample` | サンプル文書（`examples/docs/`）を `docs/` として同梱する（原稿と図だけ。生成物は除く）。発行者へ記法の実例を渡したいときに使う |
-| `--no-build` | マニュアルと VSCode 拡張を再ビルドせず、既にある成果物（`docs/manual/design-doc.pdf`・`docs/manual/_book/`・`extension/ddq-table-editor-<版>.vsix`）を使う |
+| `--no-build` | マニュアルと VSCode 拡張を再ビルドせず、既にある成果物（`docs/manual/design-doc.pdf`・`docs/manual/_book/`・`extensions/ddq-template/ddq-template-win32-x64-<版>.vsix`）を使う。VSIX の中の `ddq.exe` が release している exe と違えば止まる |
 :::
 
-出力は `release/quarto-template-<版>/`（展開済み）と同名の `.zip` である。
+出力は `release/quarto-template-<版>/`（展開済み）と同名の `.zip`、それに
+**`release/ddq-template-win32-x64-<版>.vsix`**（zip には入れない）である。
 隣の作業フォルダ（`quarto-template-<版>.building`）に集め、全部そろってから前回の配布フォルダと
 入れ替えるので、途中で失敗しても（jar が無い など）前回の配布フォルダは壊れない。
 
@@ -37,8 +39,9 @@ quarto-template-<版>/
 ├── AGENT-GUIDE.md      … AI エージェント向けの執筆ガイド（リポジトリ直下の同名ファイルの写し）
 ├── LICENSE             … このテンプレートのライセンス（MIT。リポジトリ直下の同名ファイルの写し）
 ├── THIRD-PARTY-NOTICES.md … 第三者のソフトウェアのライセンス表示（リポジトリ直下の同名ファイルの写し）
-├── ddq-table-editor-<版>.vsix … VSCode 拡張（.tbl の視覚編集。執筆者へ配る）
 └── manual/利用マニュアル.pdf, manual/html/   … 本書（発行者が読む・執筆者へ配る）
+quarto-template-<版>.zip                       … 上のフォルダの zip（配布 zip）
+ddq-template-win32-x64-<版>.vsix               … VSCode 拡張 DDQ Template（ddq.exe 入り。全員に配る）
 ```
 
 テンプレート設計書（`docs/design/`）は同梱しない。保守者専用であり、発行者は
@@ -79,7 +82,8 @@ python cli/tools/third_party.py
   欠けていればエラーにして zip を消す。
 - `--no-build` を使うときは、`docs/manual/design-doc.pdf` と `docs/manual/_book/` の
   **両方**が最新であることを確かめる（片方だけ古いまま同梱される事故を防ぐため）。
-  `extensions/<拡張>/<拡張>-<版>.vsix` も同様（版が違えば無いものとして止まる）。
+  `extensions/ddq-template/ddq-template-win32-x64-<版>.vsix` も同様（版が違えば無いものとして止まり、
+  同梱の `ddq.exe` が違えば止まる）。
 - `template/` を直したあと `cargo build` を忘れると、古い機構ファイルを内蔵した exe が
   リリースに入る。`cargo build` は `template/` の変更を検知して再ビルドするが、
   実行するのは保守者である。
@@ -90,20 +94,21 @@ python cli/tools/third_party.py
 （タグの指すコミットと配布物を一致させるため）。
 
 ```bash
-gh release create v2.3.0 "release/quarto-template-2.3.0.zip" \
+gh release create v2.4.5 "release/quarto-template-2.4.5.zip" "release/ddq-template-win32-x64-2.4.5.vsix" \
   --target main \
   --title "v2.3.0 — （変更の要約）" \
   --notes-file <リリースノートのファイル>
 ```
 
 - タグは `v<版>`（`template/VERSION` と揃える）。
-- **ZIP を資産として添付する。** 発行者はこれをダウンロードして展開する。
+- **VSIX と ZIP を、別々の資産として添付する。** 執筆者・発行者は VSIX を VSCode に入れ、
+  本書やコマンドが要る人は ZIP を展開する（@sec-place）。
 - リリースノートには次を書く。
-  - 発行者のはじめかた（展開してそのまま使う・`cd` して絶対パスで `ddq init`）
+  - はじめかた（VSIX を入れ、DDQ: 設計書リポジトリを作成）
   - 主な変更
-  - 既存利用者向けの `ddq update` 手順
+  - 既存利用者向けの更新手順（新しい VSIX を入れ、出力時の通知から ddq update）
   - 互換性（配布される機構ファイル 5 本に変更があるか）
-  - VSCode 拡張（VSIX）に変更があるか。あれば執筆者に入れ直してもらう（VSIX は自動更新されない）
+  - VSCode 拡張の変更点。VSIX は自動更新されないので、全員に入れ直してもらう
 
 機構ファイル 5 本に変更が無い版では、既存の設計書リポジトリで `ddq update` を実行しても
 実質 `.template-version` の更新だけになる。その旨をノートに書くと、発行者が

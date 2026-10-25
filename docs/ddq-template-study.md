@@ -187,7 +187,7 @@
 | 1b | **完了**。`ddq/`（解決・起動・ロック・終了コード）、ddq の exit 3（`setup.rs` の `TemplateMismatch`）、`pdf` / `html` / `diagrams`、執筆フォルダ探索（`_quarto.yml` + `.template-version`）とステータスバー、Quarto 検査、update（通知ボタンからの最小形）。ラベル一覧・改訂履歴も同じ執筆フォルダの決め方と ddq の解決順に揃えた | 拡張から発行できる（実拡張ホストで mismatch → update → html と同時実行の拒否を確認） |
 | 1c | **完了**。`init`（§5。`src/init.ts`）、`viewsWelcome`、`git.init` ボタン、scaffold の `.vscode/extensions.json`（`quarto.quarto`）。「ほぼ空」は `.git` `.vscode` `.gitignore` `.gitattributes` `README.md` `LICENSE` だけのとき（U3）。Quarto が無ければ `--no-render` で作る。開き直した先の案内は `globalState` で受け渡す | 拡張だけで始められる（実拡張ホストで日本語の執筆フォルダ名の作成を確認） |
 | 1d | **完了**。`release.rs`: `package:win32-x64` を持つ拡張に exe をコピーしてターゲット指定 VSIX（10.7MB）を作り、VSIX 内の ddq.exe が release している exe とバイト一致することを確認。VSIX は zip に入れず隣に置く。同梱スモーク `npm run test:smoke`（展開した VSIX の中身で起動し、設定・PATH 無しで同梱 ddq に決まること、init → html）と ci.yml の `vsix-smoke`（main への push・手動のみ） | 配布物ができる（手元で VSIX を作り、スモーク合格） |
-| 1e | 利用マニュアルの再構成（拡張主・CLI 付録）、実装仕様書の統合 | main へマージ・旧 2 拡張削除・リリース |
+| 1e | **文書は完了**。利用マニュアルを拡張主に再構成（2 章に VSCode・DDQ Template の導入、4・5・11・12・13・14・16 章を拡張の操作に、コマンドは付録 A「コマンドで使う（ddq）」へ）。`docs/revision-impl/` と `docs/table-editor-impl/` を `docs/ddq-template-impl/` に統合（各章に「共通の基盤」を新規、旧 2 冊は `parts/` に ID 接頭辞付きで収録）。README・はじめかた.pdf・テンプレート設計書・cli-impl・スライドの旧名を更新。**残り: main へのマージとリリース** | main へマージ・旧 2 拡張削除・リリース |
 | 2 | `update` のコマンドパレット対応と差分確認の導線 | 既存文書の移行が楽になる |
 | 3 | `add` | 複数文書構成 |
 | 4 | `plantuml`（起動・停止・ステータスバー・ポート衝突・寿命） | PlantUML のプレビュー |

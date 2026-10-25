@@ -70,7 +70,7 @@ function openTableEditor(context: vscode.ExtensionContext) {
 
   panel = vscode.window.createWebviewPanel(
     'ddqTemplate.tableEditor',
-    'DDQ Table Editor',
+    'DDQ 表エディタ',
     vscode.ViewColumn.Beside,
     {
       enableScripts: true,
@@ -223,7 +223,7 @@ function buildHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; script-src 'nonce-${nonce}'; style-src ${webview.cspSource} 'nonce-${nonce}';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" nonce="${nonce}" href="${styleUri}">
-  <title>DDQ Table Editor</title>
+  <title>DDQ 表エディタ</title>
 </head>
 <body>
   <div id="root"></div>

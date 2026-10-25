@@ -1,0 +1,67 @@
+## VSCode と DDQ Template 拡張 {#sec-extension}
+
+### VSCode の導入
+
+VSCode の公式サイト（<https://code.visualstudio.com/>）からインストーラを
+ダウンロードして実行する。原稿（`.qmd`）はテキストなのでどのエディタでも書けるが、
+本書は VSCode と DDQ Template 拡張を前提として手順を示す。
+
+### DDQ Template 拡張を入れる
+
+DDQ Template は Marketplace には公開していない。リリースの **VSIX ファイル**
+（`ddq-template-win32-x64-<版>.vsix`）から入れる。
+
+1. VSCode で拡張機能ビューを開く（左端のアイコン、または `Ctrl+Shift+X`）。
+2. 右上の **「…」→「VSIX からのインストール…」** を選び、VSIX を指定する。
+
+コマンドでも入れられる。
+
+```bat
+code --install-extension ddq-template-win32-x64-2.4.5.vsix
+```
+
+入ると、コマンドパレット（`Ctrl+Shift+P`）で `DDQ:` と打つとコマンドが並ぶ。
+
+::: {.tbl caption="DDQ Template のコマンド" label="tbl-extension-commands" widths="38,40,22"}
+| コマンド | 内容 | 参照 |
+|---|---|---|
+| DDQ: 設計書リポジトリを作成 | 設計書リポジトリを新しく作る | @sec-newdoc |
+| DDQ: PDF を作成 | `<執筆フォルダ>\design-doc.pdf` を作る | @sec-build |
+| DDQ: HTML を作成 | 配布 HTML（`<執筆フォルダ>\_book\`）を作る | @sec-build |
+| DDQ: 図を変換 | `diagrams/` の `.mmd` / `.puml` を `.svg` にする | @sec-figure |
+| DDQ: 見出し・表・図のラベルを一覧する | ラベルの一覧と付与 | @sec-revision |
+| DDQ: 新しい改訂を始める（差分を取る） | 改訂履歴の作成 | @sec-revision |
+| DDQ: 表エディタを開く | 統一テーブルの視覚編集 | @sec-vscode-table-editor |
+:::
+
+- エクスプローラで**執筆フォルダを右クリック**すると、PDF・HTML・図・ラベル・改訂のコマンドが出る
+  （執筆フォルダにだけ出る）。
+- 執筆フォルダの中のファイルを開いていると、**ステータスバー**（画面下）に `PDF: <執筆フォルダ名>`
+  が出る。押すとその執筆フォルダの PDF を作る。
+- 実行中の出力は「出力」パネルの **DDQ** に流れる。進捗の通知から**キャンセル**できる。
+
+::: {.callout-note}
+- **ネットワーク接続は不要**である（完全オフラインで動く）。
+- 信頼されていないフォルダ（制限モード）では動かない。フォルダを開いたときに
+  「このフォルダー内のファイルの作成者を信頼しますか?」と聞かれたら、信頼する。
+- VSIX で入れた拡張は**自動更新されない**。新しい版は同じ手順で入れ直す。
+- 旧拡張 `ddq-revision` / `ddq-table-editor`（2.4 まで）が入っていると、アンインストールを
+  案内する通知が出る。機能は DDQ Template にすべて入っているので、案内に従って外す。
+:::
+
+### 使う ddq を変えたいとき
+
+DDQ Template は、次の順で `ddq` を決める。
+
+1. 設定 **`ddqTemplate.ddqPath`**（指定すれば最優先）
+2. 拡張に同梱の `ddq.exe`
+3. `PATH` にある `ddq`
+
+ふだんは何も設定しなくてよい（2 が使われる）。チームで ddq の版を固定したいときや、
+配布 zip の `ddq.exe` を使いたいときだけ 1 を設定する（@sec-cli）。
+
+### Quarto 拡張（任意）
+
+原稿の色分けとプレビューには、Quarto 公式の拡張（ID `quarto.quarto`）が便利である。
+設計書リポジトリを開くと「おすすめの拡張」として案内されるので、そこから入れてよい
+（詳細は @sec-vscode）。DDQ Template の動作には要らない。

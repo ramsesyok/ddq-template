@@ -1,10 +1,10 @@
 ---
-title: DDQ Table Editor 動作確認用サンプル
+title: DDQ Template 表エディタ 動作確認用サンプル
 ---
 
 # 動作確認用サンプル
 
-各パターンの表にカーソルを置いて **DDQ Table Editor: Open Table Editor** を実行してください。
+各パターンの表にカーソルを置いて **DDQ: 表エディタを開く** を実行してください。
 
 ## 1. 通常の `.tbl`（結合なし）
 

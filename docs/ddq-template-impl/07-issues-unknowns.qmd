@@ -1,0 +1,35 @@
+# 既知の問題と未解明事項 {#sec-issues-unknowns}
+
+## 共通の基盤 {#sec-issues-common}
+
+### 設計から変えた判断
+
+::: {.tbl caption="設計と実装の差（共通の基盤）" label="tbl-common-design-diff" widths="30,70"}
+| 項目 | 実装 |
+|---|---|
+| Quarto が無いときの通知 | 設計案の「ダウンロードページを開く」は入れていない。外部 URL を成果物に持たない（`check:offline`）ため。「設定でパスを指定」だけ |
+| 執筆フォルダの目印 | `_quarto.yml` に加えて `.template-version` を要件にした。ラベル付け・改訂履歴の対象もこれに揃った（統合前は `_quarto.yml` だけ） |
+| 右クリックメニュー | 執筆フォルダそのものにだけ出す（設計案の「配下にも」は `when` 句で表せないため見送り。配下はステータスバーで補う） |
+:::
+
+### 制約と未確認の動作
+
+::: {.tbl caption="制約と未確認の動作" label="tbl-common-unverified" widths="34,66"}
+| 事項 | 内容 |
+|---|---|
+| `plantuml.jar` を同梱していない | 同梱 ddq の隣に `plantuml.jar` が無いので、拡張からの出力で PlantUML をローカルで描くには `ddqTemplate.ddqPath`（配布 zip の ddq）か `DDQ_PLANTUML_JAR` が要る。段階 4（plantuml）で扱う |
+| `package`（ターゲットなし） | `bin/` に ddq.exe が残っていると、ターゲットなしの VSIX にも入る |
+| 通知・ダイアログの操作 | 「ddq update を実行」「HTML を開く」「Git リポジトリとして初期化」・フォルダ選択・開き直し後の案内は、自動の検証に含まない（内部コマンドで同じ処理だけを通している） |
+| 右クリックメニューの `when` | `resourcePath in ddqTemplate.writingFolders` の評価は自動で確かめていない |
+| Quarto の版の下限 | 検査しない（`docs/ddq-template-study.md` U1）。CI は 1.9.38 |
+| コード署名 | 同梱の ddq.exe は署名なし。誤検知の報告が出たら検討（同 U4） |
+| ARM 版 Windows | `bundledPath` は `x64` だけを見る。ARM ではエミュレーションの x64 版に頼るが、同梱を選ばない（設定か `PATH` が要る） |
+:::
+
+## ラベル付け・改訂履歴（旧 DDQ Revision） {#sec-issues-rev}
+
+{{< include parts/revision/07-issues-unknowns.qmd >}}
+
+## 表エディタ（旧 DDQ Table Editor） {#sec-issues-te}
+
+{{< include parts/table-editor/07-issues-unknowns.qmd >}}

@@ -42,6 +42,8 @@ book:
     - chapters/16-cheatsheet/index.qmd
     - chapters/17-repository/index.qmd
     - chapters/18-maintainer/index.qmd
+  appendices:
+    - chapters/A1-cli/index.qmd
 
 lang: ja
 doc-number: MAN-2026-001

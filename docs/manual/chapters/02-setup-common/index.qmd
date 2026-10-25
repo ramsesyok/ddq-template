@@ -1,15 +1,16 @@
 # 基礎的な環境構築 {#sec-setup-common}
 
-本章では、**執筆者・発行者のいずれにも共通して必要**な環境（Quarto の導入）と、
-役割ごとに手元へ置くものを述べる。役割ごとの追加設定は @sec-author-env （執筆者）
-及び @sec-publisher-env （発行者）に示す。
+本章では、**執筆者・発行者のいずれにも共通して必要**な環境を述べる。入れるのは
+**Quarto**、**VSCode**、VSCode 拡張 **DDQ Template** の3つである。DDQ Template には
+出力の実体である `ddq.exe` が同梱されているので、これを入れれば役割にかかわらず
+PDF・HTML まで出せる。役割ごとの追加設定は @sec-author-env （執筆者）及び
+@sec-publisher-env （発行者）に示す。
 
 本章の手順は**1台につき一度だけ**実施すればよい。
 
 ::: {.callout-note}
-設計書リポジトリそのものを作る手順（`ddq init`）は、環境構築ではなく文書を作る作業
-なので @sec-newdoc にある。発行者は本章のあと @sec-publisher-env を済ませ、
-@sec-newdoc でリポジトリを作る。
+設計書リポジトリそのものを作る手順は、環境構築ではなく文書を作る作業なので
+@sec-newdoc にある。VSCode を使わずコマンドで出力したい場合は @sec-cli を参照する。
 :::
 
 {{< include 01-prereq.qmd >}}
@@ -18,4 +19,6 @@
 
 {{< include 03-place.qmd >}}
 
-{{< include 04-verify.qmd >}}
+{{< include 04-extension.qmd >}}
+
+{{< include 05-verify.qmd >}}

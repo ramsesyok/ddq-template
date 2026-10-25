@@ -1,0 +1,112 @@
+## コマンド一覧 {#sec-cli-commands}
+
+::: {.tbl caption="ddq のコマンド" label="tbl-cli-commands" widths="30,44,26"}
+| コマンド | 内容 | 拡張での操作 |
+|---|---|---|
+| `ddq init <リポジトリ> [執筆フォルダ名]` | 設計書リポジトリを作る（@sec-init） | DDQ: 設計書リポジトリを作成 |
+| `ddq add <執筆フォルダ>` | リポジトリに執筆フォルダを足す（@sec-add） | （まだ無い） |
+| `ddq update <執筆フォルダ>` | 機構ファイルをこの `ddq` の版にする（@sec-update-doc） | 版が合わないときの通知から |
+| `ddq update --all <リポジトリ>` | リポジトリの執筆フォルダをまとめて更新する | （まだ無い） |
+| `ddq pdf <執筆フォルダ>` | PDF を作る（`<執筆フォルダ>\design-doc.pdf`） | DDQ: PDF を作成 |
+| `ddq html <執筆フォルダ>` | 配布 HTML を作る（`<執筆フォルダ>\_book\`） | DDQ: HTML を作成 |
+| `ddq diagrams <執筆フォルダ>` | `diagrams/*.mmd` `*.puml` を同名の `.svg` にする（@sec-figure） | DDQ: 図を変換 |
+| `ddq setup <執筆フォルダ>` | PDF 用の部品を置く（`ddq pdf` が自動で呼ぶ） | ― |
+| `ddq plantuml serve` | PlantUML のローカルサーバを起動する（@sec-plantuml-setup） | （まだ無い） |
+| `ddq tag …` / `ddq rev …` | ラベル付け・改訂履歴（@sec-revision-cli） | ラベル一覧・改訂履歴の画面 |
+:::
+
+### 設計書リポジトリを作る（ddq init）
+
+```bat
+cd C:\tools\quarto-template-2.4.5
+.\ddq init C:\work\order-design
+```
+
+第2引数で執筆フォルダ名を変えられる（省略時は `docs`）。親フォルダ（`C:\work`）が
+無くても、まとめて作られる。
+
+```bat
+.\ddq init C:\work\order-design design-doc
+```
+
+次のように表示されれば成功である。
+
+```text
+設計書リポジトリを作成: C:\work\order-design（執筆フォルダ: docs）
+  作成: .gitignore
+  作成: .gitattributes
+  作成: settings.json
+  作成: extensions.json
+  作成: README.md
+執筆フォルダを作成: C:\work\order-design\docs
+  作成: _quarto.yml
+  ...
+機構ファイルを更新しました: C:\work\order-design\docs（テンプレート 2.4.5）
+疎通確認のため HTML を一度 render します...
+OK -> C:\work\order-design\docs\_book\index.html
+```
+
+最後に HTML を1回ビルドし、執筆者が確認できる状態かをその場で検証する
+（`--no-render` で省略できる）。表示された `設計書リポジトリを作成:` の行で、
+作成先が想定どおりか確認するとよい。置かれるファイルは @tbl-init-files のとおり。
+
+### 執筆フォルダを増やす（ddq add） {#sec-add}
+
+同じ設計書リポジトリに別の文書を足すときは、執筆フォルダをもう1つ作る。
+`ddq add` に**新しい執筆フォルダのパス**を渡すと、雛形と機構ファイルが置かれる
+（リポジトリ直下のファイルには触れない）。
+
+```bat
+.\ddq add C:\work\order-design\design-doc2
+```
+
+`ddq init` と同じく、最後に HTML を1回ビルドして確認する（`--no-render` で省略）。
+既に `_quarto.yml` があるフォルダには実行できない（既存の文書を壊さないため）。
+指定したパスから上のフォルダをたどり、`ddq init` が置く `.gitignore` か版管理ツールの
+作業コピーの目印（`.git` / `.svn` / `.hg`）が見つかったところをリポジトリとみなす。
+どこにも無ければ「先に `ddq init`」と案内して止まる。執筆フォルダはリポジトリ直下で
+なくてもよく、`C:\work\order-design\api\design-doc` のように入れ子にしてもよい
+（`ddq update --all` も入れ子の執筆フォルダを見つける）。
+
+既存の文書の章立てを流用したいときは、`ddq add` のあとで `chapters/` を手でコピーする。
+増やした執筆フォルダも、拡張からはほかの執筆フォルダと同じように扱える。
+
+### 機構ファイルを更新する（ddq update）
+
+```bat
+.\ddq update C:\work\order-design\docs
+:: リポジトリの執筆フォルダをまとめて
+.\ddq update --all C:\work\order-design
+```
+
+更新の考え方（何が置き換わるか・コミットすること）は @sec-update-doc のとおり。
+
+### PDF・HTML・図を作る
+
+```bat
+.\ddq pdf  C:\work\order-design\docs
+.\ddq html C:\work\order-design\docs
+.\ddq diagrams C:\work\order-design\docs
+```
+
+成功するとそれぞれ次のように表示される。
+
+```text
+OK -> C:\work\order-design\docs\design-doc.pdf
+OK: C:\work\order-design\docs\_book\index.html（直接開くと全文検索は使えません）
+OK: 3 図を変換しました
+```
+
+`ddq pdf` は先頭で `ddq setup`（版・機構の検査と PDF 用の部品の配置）を呼ぶので、
+`setup` を明示的に実行する必要はない。出力の順序（PDF → HTML）は @sec-build のとおり。
+
+### 終了コード
+
+| 終了コード | 意味 |
+|---|---|
+| `0` | 成功 |
+| `3` | 執筆フォルダの機構ファイルが、この `ddq` と一致しない（版の違い・手での改変・版ファイルが無い）。`ddq update` で直る（@sec-update-doc） |
+| `1` | そのほかの失敗（原稿の誤り・パスの誤り など）。直前の `Error:` の行が原因を示す |
+
+拡張は終了コード 3 を見て「ddq update を実行」を案内している。バッチで使うときも、
+3 なら update を挟んでやり直す、という分岐を書ける。

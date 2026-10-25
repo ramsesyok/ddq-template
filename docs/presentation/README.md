@@ -82,7 +82,7 @@ LT 版の言い回しを変えるときは `_0N-*.qmd` を直せばロング版�
 | `pdf-split.png` | 35 ページ目下部 ＋ 36 ページ目上部（表 11.3.3-1（1／2）（2／2））を縦に連結 | `_05-table` |
 | `pdf-ipo.png` | 18 ページ目（受注登録処理の IPO 図、横向き） | `_long-ipo` |
 | `html-preview.png` | `examples/docs/_book/chapters/04-system/index.html` を 1440×900 でキャプチャ | `_06-author-env` ／ `_long-demo` |
-| `table-editor.png` | **未作成**。VSCode 拡張 `ddq-table-editor` の画面。用意したら `_long-table-editor.qmd` の注記を画像に置き換える | `_long-table-editor` |
+| `table-editor.png` | **未作成**。VSCode 拡張 DDQ Template の表エディタの画面。用意したら `_long-table-editor.qmd` の注記を画像に置き換える | `_long-table-editor` |
 
 PDF からの切り出しは pymupdf（`pip install pymupdf pillow`）で行った。例：
 

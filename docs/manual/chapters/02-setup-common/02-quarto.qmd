@@ -17,12 +17,16 @@
 quarto --version
 ```
 
-バージョン番号（例: `1.6.39`）が表示されればインストールできている。
+バージョン番号（例: `1.9.38`）が表示されればインストールできている。
 
 ::: {.callout-warning}
 `'quarto' は、内部コマンドまたは外部コマンド…として認識されていません` と出る場合は、
 `PATH` が反映されていない。VSCode（またはターミナル）を再起動して再度実行する。
 それでも解消しないときは、OS ごと再起動する。
+
+DDQ Template 拡張も Quarto を `PATH` から探す。見つからないと「Quarto が見つかりません」と
+通知が出る。再起動しても解消しないときは、VSCode の設定 **`ddqTemplate.quartoPath`** に
+`quarto.exe` のパス（例: `C:\Program Files\Quarto\bin\quarto.exe`）を入れる。
 :::
 
 ### 社内ネットワークからインストールできない場合

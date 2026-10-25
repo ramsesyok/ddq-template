@@ -1,4 +1,4 @@
-# DDQ Table Editor — 仕様書
+# DDQ Template 表エディタ（旧 DDQ Table Editor）— 仕様書
 
 `design-doc-quarto-template` の統一テーブル記法 `::: {.tbl …}` を視覚的に編集する
 VSCode 拡張。`mkdocs-table-editor` をベースにするが、**出力ルールを全面的に変更**する。
@@ -389,7 +389,7 @@ src/
 ## 8. 対象・コマンド
 
 - 対象ファイル: `.qmd` / `.md`
-- コマンド: `ddqTableEditor.open`（DDQ Table Editor: Open Table Editor）
+- コマンド: `ddqTemplate.openTableEditor`（DDQ: 表エディタを開く）
 
 ## 9. 非対応（初版）
 

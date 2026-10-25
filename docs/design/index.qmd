@@ -19,10 +19,9 @@
 | 様式（外枠・採番・IPO 図）と変換の仕組み、調整箇所、保守の手順 | **本書**（`docs/design/`） | 保守者 |
 | リリースの作り方・配り方、版の上げ方の手順 | 利用マニュアル 18 章 | 保守者 |
 | 配置・ビルドを行う CLI の設計 | `cli/DESIGN.md` | 保守者 |
-| 表の視覚編集を行う VSCode 拡張 | `extensions/ddq-table-editor/README.md` | 執筆者・保守者 |
-| 拡張の実装の詳細（表エディタ） | `docs/table-editor-impl/` | 拡張の改修者 |
-| 拡張の実装の詳細（改訂履歴） | `docs/revision-impl/` | 拡張の改修者 |
-| ラベル付けを行う VSCode 拡張 | `extensions/ddq-revision/README.md` | 執筆者・保守者 |
+| VSCode 拡張 DDQ Template（作成・発行・ラベル付け・改訂履歴・表の視覚編集） | `extensions/ddq-template/README.md` | 執筆者・保守者 |
+| 拡張の設計（統合・ddq の同梱） | `docs/ddq-template-study.md` | 拡張の改修者 |
+| 拡張の実装の詳細 | `docs/ddq-template-impl/` | 拡張の改修者 |
 
 本書は様式と変換の仕組み（`template/`）に絞る。配置・ビルドの道具や VSCode 拡張は、
 本書の対象外であり、それぞれの文書を参照する。

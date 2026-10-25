@@ -105,7 +105,7 @@ async function run() {
     await new Promise((r) => setTimeout(r, 2000));
     const tableTab = vscode.window.tabGroups.all
         .flatMap((g) => g.tabs)
-        .find((t) => t.input instanceof vscode.TabInputWebview && /DDQ Table Editor/.test(t.label));
+        .find((t) => t.input instanceof vscode.TabInputWebview && /DDQ 表エディタ/.test(t.label));
     assert.ok(tableTab, '表エディタのパネルが開いていない');
     say(`表エディタのパネルが開く（${tableTab.label}）`);
     await vscode.window.tabGroups.close(tableTab);

@@ -7,26 +7,26 @@
 
    ::: {.callout-important}
    **版を上げたら、本書と `README.md` の実行例に埋め込まれた版番号も揃える。**
-   展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-2.3.0` のような例が
+   展開フォルダ名に版が入るため、`cd C:\tools\quarto-template-2.4.5` のような例が
    全体で30箇所ほどある。ずれていると、発行者が手元のフォルダ名と合わない手順を
    読むことになる。
 
    ```bat
    :: 旧版が残っていないか確認する（VERSION と一致すること）
    findstr /S /C:"quarto-template-1." README.md docs\manual\chapters\*.qmd docs\design\chapters\*.qmd
-   :: VSIX 名の例（README.md・本書 2・3 章）も同様
-   findstr /S /C:"ddq-table-editor-" README.md docs\manual\chapters\*.qmd
+   :: VSIX 名の例（README.md・本書 2 章）も同様
+   findstr /S /C:"ddq-template-win32-x64-" README.md docs\manual\chapters\*.qmd
    ```
 
    「新しい版を受け取ったとき」の説明で使う版番号（現行＋1）も併せてずらす。
 
-   **VSCode 拡張の版も同じ値にする。** `extensions/<拡張>/package.json` の `version` は
-   `template/VERSION` と一致していなければ `ddq release` が止まる（同梱する VSIX の版と
-   テンプレートの版を 1 つに揃えるため）。
+   **VSCode 拡張の版も同じ値にする。** `extensions/ddq-template/package.json` の `version` は
+   `template/VERSION` と一致していなければ `ddq release` が止まる（VSIX に同梱する `ddq.exe` の版と
+   拡張の版を 1 つに揃えるため）。
 
    ```bat
-   cd extensions\ddq-table-editor
-   npm version 2.3.0 --no-git-tag-version
+   cd extensions\ddq-template
+   npm version 2.4.5 --no-git-tag-version
    cd ..\..
    ```
    :::
@@ -56,9 +56,9 @@
 
    ::: {.callout-note}
    `DDQ_PLANTUML_JAR` はテンプレートリポジトリで作業する保守者だけに要る。`ddq` は
-   `plantuml.jar` を exe の隣（リリース一式の展開フォルダ）から探すが、`cli\target\release\`
+   `plantuml.jar` を exe の隣（配布 zip の展開フォルダ）から探すが、`cli\target\release\`
    には無いので、`cli\vendor\plantuml.jar`（git 管理外。入手は `cli/vendor/README.md`）を
-   環境変数で指す。発行者はリリース一式を使うので設定は要らない（@sec-plantuml-setup）。
+   環境変数で指す。発行者は配布 zip の ddq.exe を使えば設定は要らない（@sec-plantuml-setup）。
    :::
 
 5. 本書（`docs\manual`）とテンプレート設計書（`docs\design`）でも出力を確認する

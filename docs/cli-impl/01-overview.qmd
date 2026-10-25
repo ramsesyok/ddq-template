@@ -22,7 +22,7 @@
 | `cli/tests`、`cli/tools/regress.py` | 期待値、実行条件、回帰検証の境界を調査。実行範囲は第5章 |
 | `template`、CI、`extensions/*/package.json` | CLI に埋め込む資産、Lua・`lib.typ` との契約、発行・配布に関わる部分を確認 |
 | 自前のDB・GUI | 適用なし。`cli/src` と直接依存にDB接続・スキーマ・GUIイベント処理はない。外部プロセス内部はこの判断の対象外 |
-| OSS内部、Typst組版詳細、VSCode拡張内部 | 詳細解析対象外。利用API・生成物・設定の境界のみ確認。拡張側は `docs/table-editor-impl`・`docs/revision-impl` が扱う |
+| OSS内部、Typst組版詳細、VSCode拡張内部 | 詳細解析対象外。利用API・生成物・設定の境界のみ確認。拡張側は `docs/ddq-template-impl` が扱う |
 | Git | `rev` が子プロセスとして呼ぶ範囲（引数・出力の解釈）のみ。Git自体の挙動は対象外 |
 | ブラウザ／Java／全E2E／リリースの実行 | 今回は未確認。静的追跡と既存テストの読解を実行成功と扱わない |
 

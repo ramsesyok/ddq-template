@@ -1,0 +1,41 @@
+## バッチ・CI で使う
+
+### 執筆フォルダを改名してビルドする
+
+執筆フォルダの名前は自由である（@sec-folder）。改名しても設定の書き換えは要らない。
+
+```bat
+:: 設計書リポジトリ側で改名し、展開フォルダに戻ってビルドする
+cd C:\work\order-design && git mv docs design-doc
+cd C:\tools\quarto-template-2.4.5
+.\ddq pdf C:\work\order-design\design-doc
+```
+
+### 版不一致を分岐する
+
+```bat
+.\ddq pdf C:\work\order-design\docs
+if %ERRORLEVEL%==3 (
+  .\ddq update C:\work\order-design\docs
+  .\ddq pdf C:\work\order-design\docs
+)
+```
+
+`update` は追跡対象の機構ファイルを書き換える。CI で自動的に `update` するなら、
+変わったファイルをコミットする手順まで含めて設計すること（黙って捨てると、
+次の実行でも同じ不一致になる）。
+
+### 改訂履歴の抜けを検査する
+
+```bat
+.\ddq rev build C:\work\order-design\docs --check
+```
+
+修正内容（note）が空の行があると異常終了する。発行前の検査として組み込める
+（@sec-revision-cli）。
+
+### 拡張の版と揃える
+
+拡張に同梱の `ddq.exe` と、バッチ・CI で使う `ddq.exe` は**同じ版**にしておく。
+版が違うと、どちらかで出力したときに機構ファイルの版不一致（終了コード 3）になる。
+拡張・配布 zip とも、リリースページの同じ版の資産を使えばよい。

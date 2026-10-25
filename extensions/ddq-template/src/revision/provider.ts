@@ -4,7 +4,7 @@
  * `revisions/rev-<記号>.yml` を `CustomTextEditorProvider` として開く。**文書そのものが
  * 正本**なので、保存・未保存の印・Undo・外部からの変更の検知は VSCode 任せにできる。
  * Webview は差分の一覧とメモの入力だけを持ち、直したら YAML 全体を作り直して
- * `WorkspaceEdit` で置き換える（ddq-table-editor と同じ流儀）。
+ * `WorkspaceEdit` で置き換える（表エディタと同じ流儀）。
  *
  * 差分そのものは自前で描かず、VSCode 標準の差分エディタに渡す。旧版は内蔵 Git 拡張の
  * `toGitUri`、旧版に無いファイル（追加）や新版に無いファイル（削除）の側は、空を返す

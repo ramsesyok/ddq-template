@@ -42,8 +42,8 @@ flowchart TB
 | PlantUML連携 | `plantuml::ensure / Session / LocalServer / render` | html/pdf/diagrams/serve |
 | 配布 | `release::run / build_extensions / build_extension / copy_tree`、`zip_archive::create` | manual、VSIX（拡張ごと）、jar、ZIP |
 | 論理文書 | `doc::project::order / logical / Source`、`doc::units::scan`、`doc::scan_folder` | tag、rev |
-| ラベル付与 | `commands::tag::list / apply / from_file`、`doc::labels::suggest / candidate / valid` | 執筆者、VSCode拡張 ddq-revision |
-| 改訂履歴 | `commands::rev::next / diff_cmd / build`、`doc::diff::units_of / compare`、`doc::revfile`、`doc::gitsrc::Repo / GitFolder` | 執筆者、VSCode拡張 ddq-revision |
+| ラベル付与 | `commands::tag::list / apply / from_file`、`doc::labels::suggest / candidate / valid` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |
+| 改訂履歴 | `commands::rev::next / diff_cmd / build`、`doc::diff::units_of / compare`、`doc::revfile`、`doc::gitsrc::Repo / GitFolder` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |
 
 根拠：[E-0002](appendix-evidence.qmd#ev-e-0002)～[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)～[E-0022](appendix-evidence.qmd#ev-e-0022)。
 
