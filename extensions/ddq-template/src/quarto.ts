@@ -18,8 +18,10 @@ export function envWithQuarto(
 ): NodeJS.ProcessEnv {
     const trimmed = (quartoPath ?? '').trim();
     if (trimmed === '') return base;
-    // quarto.exe を指していればそのフォルダ、フォルダを指していればそのまま
-    const dir = /quarto(\.exe|\.cmd)?$/i.test(path.basename(trimmed)) ? path.dirname(trimmed) : trimmed;
+    // quarto.exe を指していればそのフォルダ、フォルダを指していればそのまま。
+    // パスの区切りは対象の OS の規則で読む（Linux 上で Windows のパスを扱うテストもある）
+    const p = platform === 'win32' ? path.win32 : path.posix;
+    const dir = /quarto(\.exe|\.cmd)?$/i.test(p.basename(trimmed)) ? p.dirname(trimmed) : trimmed;
     // Windows の環境変数名は大文字小文字を区別しない（Path のことが多い）
     const key = Object.keys(base).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
     const sep = platform === 'win32' ? ';' : ':';
