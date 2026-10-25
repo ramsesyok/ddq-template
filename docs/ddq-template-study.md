@@ -72,7 +72,7 @@
 2. 拡張フォルダの `bin/win32-x64/ddq.exe`（あれば）
 3. `PATH` の `ddq`
 
-- `.cmd` / `.bat` の `cmd /c` 経由起動など、`ddq-revision/src/ddq/run.ts` の扱いを引き継ぐ。
+- ~~`.cmd` / `.bat` の `cmd /c` 経由起動など、`ddq-revision/src/ddq/run.ts` の扱いを引き継ぐ。~~ → **`.cmd` / `.bat` は起動しない**（PR #122 のレビュー R-01 で変更）。`cmd /c` を通すと引数（執筆フォルダのパスなど）の `&` や `%` を cmd.exe が解釈するため。同梱 exe が主になったので、設定には exe だけを受け付ける。
 - 起動時に同梱 exe の `ddq --version` と拡張の版を照合し、食い違えば出力チャネルに警告（ビルド手順の誤り検出用）。
 - 執筆フォルダとの版不一致（§2 Q4）:
 
@@ -139,7 +139,7 @@
 2. コマンドパレットからの実行時は、アクティブエディタのファイルから同様に親探索
 3. 決まらなければワークスペースを列挙し、1 つならそれ、複数なら QuickPick
 
-- 起動時と `FileSystemWatcher` の変更時に執筆フォルダ一覧を作り、`setContext('ddqTemplate.writingFolders', [...])` → メニューの `when` を `resourcePath in ddqTemplate.writingFolders` 系で絞る（旧 ddq-revision は `explorerResourceIsFolder` だけで全フォルダに出ていた）。
+- 起動時と `FileSystemWatcher` の変更時に執筆フォルダ一覧を作り、`setContext('ddqTemplate.writingFolders', …)` → メニューの `when` を `resourcePath in ddqTemplate.writingFolders` 系で絞る（旧 ddq-revision は `explorerResourceIsFolder` だけで全フォルダに出ていた）。`when` 句では親を見られないので、執筆フォルダと**その配下のフォルダ**（`_book` `.quarto` などの生成物は除く）のパスをキーにしたオブジェクトを渡し、執筆フォルダの中でフォルダが増減したら作り直す（レビュー R-03 で配下まで広げた）。
 - ステータスバーに現在の執筆フォルダ名と [PDF]。アクティブエディタに追従。
 
 ---
@@ -149,12 +149,12 @@
 ### 7.1 ビルド
 
 1. `ddq release` が、ビルド済み（または指定）の exe を `extensions/ddq-template/bin/win32-x64/ddq.exe` にコピー
-2. `npm run package -- --target win32-x64` → `ddq-template-<版>-win32-x64.vsix`
+2. `npm run package -- --target win32-x64` → `ddq-template-win32-x64-<版>.vsix`（`vsce` のターゲット指定の命名。ターゲットが版の前に入る）
 3. 版は既存ルールどおり `package.json` の version = `template/VERSION`（`extension.yml` の版照合も ddq-template に適用）
 
 ### 7.2 配布物
 
-- 出力フォルダに `quarto-template-<版>.zip`（exe + 利用マニュアル + README。**拡張は含めない**）と `ddq-template-<版>-win32-x64.vsix` を並べ、リリースページへ両方を別資産としてアップロードする。
+- 出力フォルダに `quarto-template-<版>.zip`（exe + 利用マニュアル + README。**拡張は含めない**）と `ddq-template-win32-x64-<版>.vsix` を並べ、リリースページへ両方を別資産としてアップロードする。
 - VSIX は exe（約 30MB）を含むため 10〜15MB 程度の見込み。
 
 ### 7.3 コード署名
@@ -188,6 +188,7 @@
 | 1c | **完了**。`init`（§5。`src/init.ts`）、`viewsWelcome`、`git.init` ボタン、scaffold の `.vscode/extensions.json`（`quarto.quarto`）。「ほぼ空」は `.git` `.vscode` `.gitignore` `.gitattributes` `README.md` `LICENSE` だけのとき（U3）。Quarto が無ければ `--no-render` で作る。開き直した先の案内は `globalState` で受け渡す | 拡張だけで始められる（実拡張ホストで日本語の執筆フォルダ名の作成を確認） |
 | 1d | **完了**。`release.rs`: `package:win32-x64` を持つ拡張に exe をコピーしてターゲット指定 VSIX（10.7MB）を作り、VSIX 内の ddq.exe が release している exe とバイト一致することを確認。VSIX は zip に入れず隣に置く。同梱スモーク `npm run test:smoke`（展開した VSIX の中身で起動し、設定・PATH 無しで同梱 ddq に決まること、init → html）と ci.yml の `vsix-smoke`（main への push・手動のみ） | 配布物ができる（手元で VSIX を作り、スモーク合格） |
 | 1e | **文書は完了**。利用マニュアルを拡張主に再構成（2 章に VSCode・DDQ Template の導入、4・5・11・12・13・14・16 章を拡張の操作に、コマンドは付録 A「コマンドで使う（ddq）」へ）。`docs/revision-impl/` と `docs/table-editor-impl/` を `docs/ddq-template-impl/` に統合（各章に「共通の基盤」を新規、旧 2 冊は `parts/` に ID 接頭辞付きで収録）。README・はじめかた.pdf・テンプレート設計書・cli-impl・スライドの旧名を更新。**残り: main へのマージとリリース** | main へマージ・旧 2 拡張削除・リリース |
+| 1f | **完了**。PR #122 の独立レビュー（P1 2 件・P2 4 件）への対応。R-01 `ddqPath` の `.cmd` / `.bat` を起動しない（実拡張ホストの差し替え ddq は rustc で作る exe に）／R-02 `ddq tag list` の編集指示に一覧時の行 `original` を入れ、拡張と `tag apply --from` が当てる直前に照合／R-03 右クリックメニューを執筆フォルダの配下にも／R-04 複数ルートの init は先にルートを選び、そのルートの中だけで既存文書を見る／R-05 リポジトリ名と同名のファイルを入力検証で弾く／R-06 ラベル一覧の取り直しに通し番号を付け、遅れて返った別フォルダの一覧を捨てる。§7 の VSIX 名を実装（`ddq-template-win32-x64-<版>.vsix`）に合わせた | 主要機能の信頼性（レビューの保留理由の解消） |
 | 2 | `update` のコマンドパレット対応と差分確認の導線 | 既存文書の移行が楽になる |
 | 3 | `add` | 複数文書構成 |
 | 4 | `plantuml`（起動・停止・ステータスバー・ポート衝突・寿命） | PlantUML のプレビュー |

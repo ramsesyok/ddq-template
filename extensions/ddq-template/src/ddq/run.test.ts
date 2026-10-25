@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { ddqCommand, spawnArgs, versionOf } from './run';
+import { DdqError, ddqCommand, run, runStreaming, unsupportedCommand, versionOf } from './run';
 
 describe('ddqCommand', () => {
     it('設定が空なら PATH の ddq を使う', () => {
@@ -10,40 +10,25 @@ describe('ddqCommand', () => {
     });
 });
 
-describe('spawnArgs', () => {
-    it('実行ファイルはそのまま起動する', () => {
-        expect(spawnArgs('C:\tools\ddq.exe', ['tag', 'list'])).toEqual([
-            'C:\tools\ddq.exe',
-            ['tag', 'list']
-        ]);
+describe('unsupportedCommand', () => {
+    it('実行ファイルは起動する', () => {
+        expect(unsupportedCommand('C:\tools\ddq.exe')).toBeUndefined();
+        expect(unsupportedCommand('ddq')).toBeUndefined();
+        expect(unsupportedCommand('/usr/local/bin/ddq')).toBeUndefined();
     });
 
-    it('Windows の .cmd / .bat は cmd /c を通す', () => {
-        // Node は CVE-2024-27980 の対応以降 .cmd を execFile で直接起動できない
-        const platform = vi.spyOn(process, 'platform', 'get');
-        platform.mockReturnValue('win32');
-        try {
-            expect(spawnArgs('C:\tools\ddq.cmd', ['--version'])).toEqual([
-                'cmd.exe',
-                ['/c', 'C:\tools\ddq.cmd', '--version']
-            ]);
-            expect(spawnArgs('C:\tools\ddq.BAT', [])).toEqual(['cmd.exe', ['/c', 'C:\tools\ddq.BAT']]);
-        } finally {
-            platform.mockRestore();
-        }
+    it('.cmd / .bat は起動しない（引数を cmd.exe が解釈するため）', () => {
+        expect(unsupportedCommand('C:\tools\ddq.cmd')).toMatch(/バッチファイル/);
+        expect(unsupportedCommand('C:\tools\ddq.BAT')).toMatch(/ddqTemplate\.ddqPath/);
     });
+});
 
-    it('Windows 以外では包まない', () => {
-        const platform = vi.spyOn(process, 'platform', 'get');
-        platform.mockReturnValue('linux');
-        try {
-            expect(spawnArgs('/usr/local/bin/ddq', ['--version'])).toEqual([
-                '/usr/local/bin/ddq',
-                ['--version']
-            ]);
-        } finally {
-            platform.mockRestore();
-        }
+describe('run / runStreaming', () => {
+    it('バッチの指定は起動せずに理由を返す', async () => {
+        await expect(run('C:\tools\ddq.cmd', ['tag', 'list', 'a&b'])).rejects.toBeInstanceOf(DdqError);
+        const result = await runStreaming('C:\tools\ddq.bat', ['pdf', 'a&b'], { onOutput: () => {} });
+        expect(result.code).toBeNull();
+        expect(result.error).toMatch(/バッチファイル/);
     });
 });
 

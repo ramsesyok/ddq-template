@@ -6,6 +6,7 @@ import {
     checkRows,
     insertFor,
     isValidLabel,
+    lineChanged,
     sortForApply,
     type Row
 } from './labels';
@@ -143,6 +144,26 @@ describe('sortForApply', () => {
             'a.qmd:1',
             'b.qmd:2'
         ]);
+    });
+});
+
+describe('lineChanged', () => {
+    const edit = { file: 'a.qmd', line: 3, col: 9, insert: ' {#sec-5e911d}', original: '## 一時テスト' };
+
+    it('一覧を取った時点と同じ行なら当てる', () => {
+        expect(lineChanged('## 一時テスト', edit)).toBe(false);
+    });
+
+    it('行番号が残っていても中身が変わっていれば当てない', () => {
+        // 見出しが段落に書き換わった（レビュー R-02 の再現）
+        expect(lineChanged('これは見出しではない', edit)).toBe(true);
+        expect(lineChanged('## 一時テスト2', edit)).toBe(true);
+    });
+
+    it('original の無い古い ddq では既にラベルがあるかだけを見る', () => {
+        const old = { file: 'a.qmd', line: 3, col: 9, insert: ' {#sec-5e911d}' };
+        expect(lineChanged('## 一時テスト', old)).toBe(false);
+        expect(lineChanged('## 一時テスト {#sec-other}', old)).toBe(true);
     });
 });
 

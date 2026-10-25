@@ -57,6 +57,7 @@ fn normalize(s: &str) -> String {
 
 /// 候補を書き戻す編集指示を作る。`col` は行頭からの**文字数**。
 fn edit_for(item: &Item, line: &str, cand: &str) -> Option<Edit> {
+    let line = line.trim_end_matches('\r');
     let body = line.trim_end();
     let (col, insert) = match item.kind {
         // 見出し・パイプ表のキャプション: 既存の属性があればその中へ、無ければ行末に `{#…}` を足す
@@ -76,6 +77,7 @@ fn edit_for(item: &Item, line: &str, cand: &str) -> Option<Edit> {
         line: item.line,
         col,
         insert,
+        original: Some(line.to_string()),
     })
 }
 

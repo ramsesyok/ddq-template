@@ -37,6 +37,24 @@ export function validateFolderName(name: string): string | null {
     return null;
 }
 
+/** 新しく作るリポジトリのフォルダ `target` を使えるか。null なら可（無い・ほぼ空のフォルダ）。 */
+export function checkTarget(target: string): string | null {
+    let stat: fs.Stats;
+    try {
+        stat = fs.statSync(target);
+    } catch {
+        return null;
+    }
+    if (!stat.isDirectory()) return `${target} は既にファイルとしてあります。別の名前にしてください。`;
+    return isNearlyEmpty(fs.readdirSync(target)) ? null : `${target} は既にあって空ではありません。`;
+}
+
+/** `root` の中（`root` 自身を含む）にある執筆フォルダ。 */
+export function writingFoldersIn(root: string, writingFolders: string[]): string[] {
+    const prefix = root.endsWith(path.sep) ? root : root + path.sep;
+    return writingFolders.filter((dir) => dir === root || dir.startsWith(prefix));
+}
+
 /** 開き直した先で完了の案内を出すための記録 */
 const PENDING_KEY = 'ddqTemplate.pendingInit';
 type Pending = { repo: string; writingFolder: string };
@@ -58,16 +76,17 @@ async function initCommand(context: vscode.ExtensionContext): Promise<InitOutcom
     const folders = vscode.workspace.workspaceFolders ?? [];
     if (folders.length === 0) return initNew(context);
 
-    if ((await listWritingFolders()).length > 0) {
+    // 複数ルートなら先に作る場所を選び、そのルートの中だけで既存の文書を見る
+    // （別のルートに文書があっても、空のルートには作れるように）
+    const here = folders.length === 1 ? folders[0].uri.fsPath : await pickWorkspaceFolder(folders);
+    if (!here) return undefined;
+    if (writingFoldersIn(here, await listWritingFolders()).length > 0) {
         void vscode.window.showInformationMessage(
-            'このワークスペースは既に設計書リポジトリです（執筆フォルダがあります）。' +
+            `${path.basename(here)} は既に設計書リポジトリです（執筆フォルダがあります）。` +
                 '文書を増やすときは ddq add を使います（拡張からの実行は今後対応）。'
         );
         return 'exists';
     }
-
-    const here = folders.length === 1 ? folders[0].uri.fsPath : await pickWorkspaceFolder(folders);
-    if (!here) return undefined;
     if (!isNearlyEmpty(fs.readdirSync(here))) {
         const inHere = 'このフォルダに作る';
         const elsewhere = '別の場所に新しく作る';
@@ -116,10 +135,7 @@ async function initNew(context: vscode.ExtensionContext): Promise<InitOutcome | 
         validateInput: (value) => {
             const invalid = validateFolderName(value);
             if (invalid) return invalid;
-            const target = path.join(parentDir, value.trim());
-            return fs.existsSync(target) && !isNearlyEmpty(fs.readdirSync(target))
-                ? `${target} は既にあって空ではありません。`
-                : null;
+            return checkTarget(path.join(parentDir, value.trim()));
         }
     });
     if (!name) return undefined;

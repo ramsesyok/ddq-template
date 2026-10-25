@@ -17,7 +17,8 @@
     "file": "index.qmd",
     "line": 1,
     "col": 10,
-    "insert": "#sec-02a174 "
+    "insert": "#sec-02a174 ",
+    "original": "# 本書について {.unnumbered}"
    }
   },
   {
@@ -32,7 +33,8 @@
     "file": "chapters/01-overview/index.qmd",
     "line": 1,
     "col": 4,
-    "insert": " {#sec-137d76}"
+    "insert": " {#sec-137d76}",
+    "original": "# 概要"
    }
   },
   {
@@ -47,7 +49,8 @@
     "file": "chapters/01-overview/index.qmd",
     "line": 5,
     "col": 5,
-    "insert": " {#sec-23ce55}"
+    "insert": " {#sec-23ce55}",
+    "original": "## 目的"
    }
   },
   {
@@ -62,7 +65,8 @@
     "file": "chapters/01-overview/index.qmd",
     "line": 9,
     "col": 7,
-    "insert": " {#sec-ea1178}"
+    "insert": " {#sec-ea1178}",
+    "original": "## 対象範囲"
    }
   }
  ],

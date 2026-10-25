@@ -11,7 +11,7 @@
 | `package` | `vsce package`。ddq.exe を入れない VSIX（開発・拡張の CI 用） |
 | `package:win32-x64` | `vsce package --target win32-x64` → `ddq-template-win32-x64-<版>.vsix`。`bin/win32-x64/ddq.exe` を置いてから実行する |
 | `test` / `typecheck` / `check:offline` / `check:audit` / `verify` | ユニットテスト・型検査・成果物の通信 API と外部 URL の検査・本番依存の脆弱性検査・その一括 |
-| `test:host` | 実拡張ホスト（ソースから起動。ddq は手元のビルドか golden を返す差し替え） |
+| `test:host` | 実拡張ホスト（ソースから起動。ddq は手元のビルドか golden を返す差し替え。差し替えは Windows では `rustc` で作る小さな exe で包むので、`rustc` が要る） |
 | `test:smoke` | 同梱版のスモーク。VSIX を `System32\tar.exe` で展開し、展開した `extension/` を拡張として起動。設定・`PATH` なしで同梱 ddq に決まること、`init` → `html` |
 :::
 

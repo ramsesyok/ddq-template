@@ -27,27 +27,28 @@ export function ddqCommand(configured: string | undefined): string {
 }
 
 /**
- * 起動するもの（実行ファイルと引数）を決める。
+ * 起動できない ddq の指定なら、その理由（起動できるなら undefined）。
  *
- * Windows の Node は、脆弱性対応（CVE-2024-27980）以降 `.cmd` / `.bat` を
- * `execFile` で直接起動できない（EINVAL になる）。ラッパのバッチを
- * `ddqTemplate.ddqPath` に指定されることはあるので、その場合は `cmd /c` を通す。
+ * `.cmd` / `.bat` は受け付けない。Windows の Node は CVE-2024-27980 の対応以降バッチを
+ * 直接起動できず、`cmd /c` を通すと引数（執筆フォルダのパスなど）の `&` や `%` を
+ * cmd.exe が解釈してしまう。同梱の ddq.exe が主になったので、exe の指定に限る。
  */
-export function spawnArgs(command: string, args: string[]): [string, string[]] {
-    const isBatch = /\.(cmd|bat)$/i.test(command);
-    if (process.platform === 'win32' && isBatch) {
-        return ['cmd.exe', ['/c', command, ...args]];
-    }
-    return [command, args];
+export function unsupportedCommand(command: string): string | undefined {
+    if (!/\.(cmd|bat)$/i.test(command)) return undefined;
+    return (
+        `${command} はバッチファイルなので起動しません（引数を cmd.exe が解釈してしまうため）。` +
+        '設定 ddqTemplate.ddqPath には ddq.exe を指定するか、空にして同梱の ddq を使ってください。'
+    );
 }
 
 /** 標準出力を返す。終了コードが 0 でなければ `DdqError`。 */
 export function run(command: string, args: string[], cwd?: string): Promise<string> {
-    const [file, argv] = spawnArgs(command, args);
+    const unsupported = unsupportedCommand(command);
+    if (unsupported) return Promise.reject(new DdqError(unsupported));
     return new Promise((resolve, reject) => {
         execFile(
-            file,
-            argv,
+            command,
+            args,
             // 設計書は 1000 ページ級になりうるので、既定の 1MB では足りない
             { cwd, maxBuffer: 64 * 1024 * 1024, windowsHide: true },
             (error, stdout, stderr) => {
@@ -98,10 +99,11 @@ export type StreamResult = { code: number | null; output: string; error?: string
  * 失敗しても reject せず、終了コードで呼び出し側が分岐する（3 = 版・機構の不一致）。
  */
 export function runStreaming(command: string, args: string[], options: StreamOptions): Promise<StreamResult> {
-    const [file, argv] = spawnArgs(command, args);
+    const unsupported = unsupportedCommand(command);
+    if (unsupported) return Promise.resolve({ code: null, output: '', error: unsupported });
     return new Promise((resolve) => {
         let output = '';
-        const child = spawn(file, argv, { cwd: options.cwd, env: options.env, windowsHide: true });
+        const child = spawn(command, args, { cwd: options.cwd, env: options.env, windowsHide: true });
         options.onSpawn?.({ pid: child.pid, kill: () => killTree(child.pid, () => child.kill()) });
         const take = (text: string) => {
             output += text;

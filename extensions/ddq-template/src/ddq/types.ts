@@ -19,6 +19,8 @@ export type Edit = {
   /** 行頭からの文字数 */
   col: number;
   insert: string;
+  /** 一覧を取った時点の行（改行は含まない）。当てる直前にバッファの行と比べる。古い ddq には無い */
+  original?: string;
 };
 
 /** 見出し・表・図 1 件。 */

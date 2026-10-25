@@ -13,7 +13,8 @@
  * ddq の用意:
  *   1. 引数 / 環境変数 `DDQ_BIN`
  *   2. `../../cli/target/release/ddq(.exe)`（手元でビルドしてあるもの）
- *   3. `tests/host/fake-ddq.mjs`（CI 用。実物の出力を採取した golden を返す）
+ *   3. `tests/host/fake-ddq.mjs`（CI 用。実物の出力を採取した golden を返す。
+ *      Windows では rustc で node を呼ぶだけの exe を作って包む）
  *
  * 専用の `--user-data-dir` で起動するので、実際に使っているプロファイルは汚さない。
  * `--disable-workspace-trust` が要る: 新しいプロファイルだと信頼されていない扱いになり、
@@ -114,8 +115,25 @@ function resolveDdq(root) {
     // execFile から直接呼べる形にする（.mjs はそのままでは起動できない）
     const fake = path.join(here, 'fake-ddq.mjs');
     if (process.platform === 'win32') {
-        const shim = path.join(root, 'ddq.cmd');
-        fs.writeFileSync(shim, `@echo off\r\n"${process.execPath}" "${fake}" %*\r\n`);
+        // 拡張は .cmd / .bat を起動しない（cmd.exe が引数を解釈するため）ので、
+        // node に引数を渡すだけの小さな exe を rustc で作る
+        const source = path.join(root, 'ddq-shim.rs');
+        const shim = path.join(root, 'ddq.exe');
+        fs.writeFileSync(
+            source,
+            [
+                'fn main() {',
+                `    let status = std::process::Command::new(r#"${process.execPath}"#)`,
+                `        .arg(r#"${fake}"#)`,
+                '        .args(std::env::args_os().skip(1))',
+                '        .status()',
+                '        .expect("node を起動できません");',
+                '    std::process::exit(status.code().unwrap_or(1));',
+                '}',
+                ''
+            ].join('\n')
+        );
+        execFileSync('rustc', ['-O', '-o', shim, source], { stdio: 'inherit' });
         return shim;
     }
     const shim = path.join(root, 'ddq');

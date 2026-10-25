@@ -30,7 +30,7 @@
 ::: {.tbl caption="踏んだ落とし穴" label="tbl-rev-pitfalls" widths="30,70"}
 | 事象 | 対処 |
 |---|---|
-| Windows で `.cmd` の `ddq` が `EINVAL` | `spawnArgs` が `cmd /c` を通す（Node の CVE-2024-27980 対応以降の仕様） |
+| Windows で `.cmd` の `ddq` が `EINVAL` | 統合前は `spawnArgs` が `cmd /c` を通していた（Node の CVE-2024-27980 対応以降の仕様）。統合後は引数を cmd.exe が解釈する危険があるので `.cmd` / `.bat` を起動しない（`unsupportedCommand`）。実拡張ホストの差し替え ddq も rustc で作る exe にした |
 | CRLF の yml を保存すると全行が変わる | `write` が `document.eol` に合わせて書く |
 | golden が CRLF になり往復テストが Windows だけ落ちる | `.gitattributes` で `*.golden.yml` を `eol=lf`、テスト側も読み込み時に揃える |
 | jsdom 27 が Node 20 で動かない | jsdom を 26 に固定（@sec-build-environment） |
@@ -45,8 +45,8 @@
 ::: {.tbl caption="テストの分担" label="tbl-rev-tests" widths="34,66"}
 | テスト | 見るもの |
 |---|---|
-| `src/ddq/run.test.ts` | 実行ファイルの決め方、`.cmd` の包み方、版の取り出し |
-| `src/tagging/labels.test.ts` | ラベルの検査、当てる順、挿入文字列の作り直し、文字位置の変換 |
+| `src/ddq/run.test.ts` | 実行ファイルの決め方、`.cmd` / `.bat` を起動しないこと、版の取り出し |
+| `src/tagging/labels.test.ts` | ラベルの検査、当てる順、挿入文字列の作り直し、一覧のあとに変わった行の検出、文字位置の変換 |
 | `src/revision/revfile.test.ts` | `ddq` が書いた golden の読み取りと往復、人が手で書いた形、CRLF |
 | `src/webview/TagTable.test.tsx` | 一覧の描画、候補の書き換え、書き戻しの押下で渡るもの |
 | `src/webview/RevisionEditor.test.tsx` | 差分一覧の描画、メモの反映、ボタン、確定済みの読み取り専用 |

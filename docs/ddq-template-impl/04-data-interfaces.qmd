@@ -12,7 +12,10 @@
 | 2 | `bundled` | `win32` かつ `x64` で、`<拡張>/bin/win32-x64/ddq.exe` がある |
 | 3 | `path` | 上のどちらでもない（`ddq` を `PATH` から） |
 
-`.cmd` / `.bat` は `cmd.exe /c` を通して起動する（Node の CVE-2024-27980 対応以降、`execFile` で直接起動できない）。
+`.cmd` / `.bat` は**起動しない**（`unsupportedCommand`。`run` は `DdqError`、`runStreaming` は `code: null` と理由を返す）。
+Node は CVE-2024-27980 の対応以降バッチを `execFile` で直接起動できず、`cmd.exe /c` を通すと引数（執筆フォルダの
+パスなど）の `&` や `%` を cmd.exe が解釈してしまうため（PR #122 のレビュー R-01）。統合前の ddq-revision は
+`cmd /c` で包んでいた。
 ラベル付け・改訂履歴が使う `ddqCommand(configured)` も `locateDdq` を通る。
 
 ### ddq との契約 {#sec-data-ddq-contract}
@@ -47,7 +50,7 @@ ddq の標準エラーの書式（`Error: {:?}`）は anyhow の既定と同じ�
 | 設定 `ddqTemplate.ddqPath` | ddq のパス（@sec-data-locate） |
 | 設定 `ddqTemplate.quartoPath` | `quarto.exe` またはそのフォルダ。子プロセスの `PATH` の先頭に足す（大文字小文字の違う `Path` キーも見つける） |
 | `globalState` `ddqTemplate.pendingInit` | 作成後に開き直す先 `{repo, writingFolder}`。開き直したウィンドウが読んで消す |
-| コンテキスト `ddqTemplate.writingFolders` | 執筆フォルダの `fsPath` の配列（右クリックメニューの `when`） |
+| コンテキスト `ddqTemplate.writingFolders` | 執筆フォルダとその配下のフォルダの `fsPath` をキーに持つオブジェクト（右クリックメニューの `when`） |
 | `hasQuarto` のキャッシュ | 見つかったことだけを覚える（入れた直後に開き直さずに再試行できるように） |
 :::
 

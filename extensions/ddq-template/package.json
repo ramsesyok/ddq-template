@@ -109,7 +109,7 @@
         "ddqTemplate.ddqPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "`ddq` 実行ファイルのパス。空なら拡張に同梱した `ddq.exe`、それも無ければ `PATH` の `ddq` を使う。"
+          "markdownDescription": "`ddq` 実行ファイル（`ddq.exe`）のパス。空なら拡張に同梱した `ddq.exe`、それも無ければ `PATH` の `ddq` を使う。`.cmd` / `.bat` は起動しない。"
         },
         "ddqTemplate.quartoPath": {
           "type": "string",

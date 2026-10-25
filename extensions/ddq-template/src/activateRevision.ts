@@ -22,7 +22,7 @@ import {
     writingFolderOf
 } from './revision/provider';
 import { parse } from './revision/revfile';
-import { characterOffset, checkRows, rowKey, sortForApply, type Row } from './tagging/labels';
+import { characterOffset, checkRows, lineChanged, rowKey, sortForApply, type Row } from './tagging/labels';
 import type { FromWebviewMessage, ToWebviewMessage } from './tagging/messages';
 
 /** 開いている一覧。執筆フォルダごとに 1 枚。 */
@@ -30,7 +30,10 @@ type Session = {
     panel: vscode.WebviewPanel;
     /** 執筆フォルダ（絶対パス） */
     folder: string;
+    /** `folder` の一覧。フォルダを替えたら捨てる（別フォルダの一覧で書き戻さないため） */
     list?: TagList;
+    /** 取り直しの通し番号。遅れて返ってきた古い取り直しの結果を捨てるのに使う */
+    generation: number;
 };
 
 let session: Session | undefined;
@@ -128,7 +131,11 @@ async function openTags(context: vscode.ExtensionContext, resource?: vscode.Uri)
     if (!folder) return;
 
     if (session) {
-        session.folder = folder;
+        if (session.folder !== folder) {
+            session.folder = folder;
+            session.list = undefined;
+            session.panel.title = `ラベル一覧: ${path.basename(folder)}`;
+        }
         session.panel.reveal(vscode.ViewColumn.Active);
     } else {
         const panel = vscode.window.createWebviewPanel(
@@ -142,15 +149,23 @@ async function openTags(context: vscode.ExtensionContext, resource?: vscode.Uri)
             session = undefined;
         });
         panel.webview.onDidReceiveMessage((m: FromWebviewMessage) => onMessage(m));
-        session = { panel, folder };
+        session = { panel, folder, generation: 0 };
     }
     await refresh();
 }
 
-/** `ddq tag list --json` を取り直して画面に流す。 */
+/**
+ * `ddq tag list --json` を取り直して画面に流す。
+ *
+ * 取り直しが重なる（フォルダ A の取得中に B で開き直す等）と、A の結果が B より後に
+ * 返ることがある。いちばん新しい取り直しの結果だけを画面と `session.list` に入れる。
+ */
 async function refresh() {
-    if (!session) return;
-    const { folder } = session;
+    const current = session;
+    if (!current) return;
+    const { folder } = current;
+    const generation = ++current.generation;
+    const latest = () => session === current && current.generation === generation;
     post({ type: 'busy', busy: true });
     try {
         const command = ddqCommand(
@@ -158,13 +173,15 @@ async function refresh() {
         );
         const version = versionOf(await run(command, ['--version'], folder));
         const list = await runJson<TagList>(command, ['tag', 'list', folder, '--json'], folder);
-        session.list = list;
+        if (!latest()) return;
+        current.list = list;
         post({ type: 'list', list, version });
     } catch (e) {
+        if (!latest()) return;
         const error = e instanceof DdqError ? e : new DdqError(String(e));
         post({ type: 'error', message: error.message, detail: error.detail });
     } finally {
-        post({ type: 'busy', busy: false });
+        if (latest()) post({ type: 'busy', busy: false });
     }
 }
 
@@ -259,7 +276,7 @@ export async function applyRows(
             stale.push(`${e.file}:${e.line}（既にラベルがあります）`);
             continue;
         }
-        if (hasLabel(text)) {
+        if (lineChanged(text, e)) {
             stale.push(`${e.file}:${e.line}（文書が変わりました）`);
             continue;
         }
@@ -282,11 +299,6 @@ export async function applyRows(
         );
     }
     return { applied, skipped: stale, errors: [] };
-}
-
-/** その行に既にラベルが書かれているか（書き戻しの前の確認）。 */
-function hasLabel(line: string): boolean {
-    return /\{[^}]*#(sec|tbl|fig)-|label\s*=\s*"/.test(line);
 }
 
 

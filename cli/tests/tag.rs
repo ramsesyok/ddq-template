@@ -212,6 +212,41 @@ fn apply_from_accepts_a_hand_edited_label() {
 }
 
 #[test]
+fn apply_from_rejects_a_line_changed_after_list() {
+    let tmp = tempfile::tempdir().unwrap();
+    fixture(tmp.path());
+    let dir = tmp.path().to_string_lossy().into_owned();
+
+    let list = stdout(&ddq(&["tag", "list", &dir, "--json"]));
+    let v: Value = serde_json::from_str(&list).unwrap();
+    let item = v["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|i| i["file"] == "chapters/01-system/index.qmd")
+        .unwrap();
+    assert_eq!(item["edit"]["original"], "# システム構成");
+    let edits = tmp.path().join("edits.json");
+    fs::write(&edits, &list).unwrap();
+
+    // 同じ行がまだ見出しのまま、文言だけ変わった（行番号だけでは見分けられない）
+    let chapter = tmp.path().join("chapters/01-system/index.qmd");
+    let changed = fs::read_to_string(&chapter)
+        .unwrap()
+        .replacen("# システム構成", "# 構成の概要", 1);
+    fs::write(&chapter, &changed).unwrap();
+
+    let out = ddq(&["tag", "apply", &dir, "--from", &edits.to_string_lossy()]);
+    assert!(!out.status.success());
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("一覧を取ったあとに変わっています"),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(fs::read_to_string(&chapter).unwrap(), changed);
+}
+
+#[test]
 fn apply_from_rejects_broken_or_duplicate_labels() {
     let tmp = tempfile::tempdir().unwrap();
     fixture(tmp.path());

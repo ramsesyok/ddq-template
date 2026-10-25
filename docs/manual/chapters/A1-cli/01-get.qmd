@@ -56,5 +56,6 @@ cd C:\tools\quarto-template-2.4.5
 
 DDQ Template 拡張は、同梱の `ddq.exe` を使う。手元の `ddq.exe`（配布 zip のもの）を
 拡張にも使わせたいときは、VSCode の設定 **`ddqTemplate.ddqPath`** にそのパスを入れる
-（チームで ddq の版を固定したいときなど）。拡張と配布 zip を同じ版で揃えておけば、
+（チームで ddq の版を固定したいときなど）。指定するのは `ddq.exe` そのもので、ddq を呼ぶバッチ
+（`.cmd` / `.bat`）は拡張が起動しない。拡張と配布 zip を同じ版で揃えておけば、
 どちらで出力しても結果は同じである。

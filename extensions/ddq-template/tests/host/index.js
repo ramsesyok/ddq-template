@@ -52,13 +52,7 @@ async function run() {
     say(`一覧のパネルが開く（${tab.label}）`);
 
     // 2) ddq の一覧から書き戻す
-    // 拡張と同じ起動のしかた（Windows の .cmd は cmd /c 経由でないと起動できない）
-    const argv = ['tag', 'list', docs, '--json'];
-    const [file, args] =
-        process.platform === 'win32' && /\.(cmd|bat)$/i.test(ddq)
-            ? ['cmd.exe', ['/c', ddq, ...argv]]
-            : [ddq, argv];
-    const list = JSON.parse(execFileSync(file, args, { encoding: 'utf8' }));
+    const list = JSON.parse(execFileSync(ddq, ['tag', 'list', docs, '--json'], { encoding: 'utf8' }));
     const target = 'chapters/01-overview/index.qmd';
     const rows = rowsFor(list, target);
     assert.ok(rows.length >= 1, 'ラベル未付与の見出しが無い');
@@ -99,6 +93,25 @@ async function run() {
     await new Promise((r) => setTimeout(r, 500));
     assert.strictEqual(doc.getText(), before, 'Undo で戻らない');
     say('Ctrl+Z ひと押しで元に戻る');
+
+    // 4) 一覧を取ったあとに行の中身が変わっていたら当てない（行番号は残っている）
+    const moved = rows[0].item.line - 1;
+    const replaced = new vscode.WorkspaceEdit();
+    replaced.replace(doc.uri, doc.lineAt(moved).range, 'これは見出しではない');
+    assert.ok(await vscode.workspace.applyEdit(replaced));
+    const changed = await vscode.commands.executeCommand(
+        'ddqTemplate.internal.applyRows',
+        docs,
+        list,
+        [rows[0]]
+    );
+    assert.strictEqual(changed.applied, 0, `変わった行に当てた: ${doc.lineAt(moved).text}`);
+    assert.match(changed.skipped.join(), /文書が変わりました/);
+    assert.strictEqual(doc.lineAt(moved).text, 'これは見出しではない');
+    await vscode.commands.executeCommand('undo');
+    await new Promise((r) => setTimeout(r, 500));
+    assert.strictEqual(doc.getText(), before, '検証の後始末で元に戻らない');
+    say('一覧のあとに中身が変わった行には書き戻さない');
 
     // 表エディタ（旧 ddq-table-editor）も同じ拡張から開く
     await vscode.commands.executeCommand('ddqTemplate.openTableEditor');

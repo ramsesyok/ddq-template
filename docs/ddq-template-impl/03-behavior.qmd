@@ -15,9 +15,12 @@
 
 親へたどるのは 12 段まで（`nearestWritingFolder`）。ラベル一覧・改訂履歴も同じ関数を使う。
 
-右クリックメニューの `when` 句ではフォルダの中身を見られないので、起動時と版ファイル・`_quarto.yml` の
-作成・削除時に執筆フォルダの一覧（`Uri.file(d).fsPath`）を `ddqTemplate.writingFolders` に入れ、
-`explorerResourceIsFolder && resourcePath in ddqTemplate.writingFolders` で絞る。
+右クリックメニューの `when` 句ではフォルダの中身も親も見られないので、執筆フォルダと**その配下のフォルダ**
+（`_book`・`_freeze`・`.quarto`・`.git`・`node_modules` には入らない。5000 個まで。`subfolders`）の
+`Uri.file(d).fsPath` をキーに持つオブジェクトを `ddqTemplate.writingFolders` に入れ、
+`explorerResourceIsFolder && resourcePath in ddqTemplate.writingFolders` で絞る。作り直すのは起動時、
+版ファイル・`_quarto.yml` の作成・削除時、執筆フォルダの中で何かが作成・削除されたとき（0.5 秒まとめる。
+生成物の中は見ない）。配下のフォルダで実行したコマンドは、1 の親探索で執筆フォルダに決まる。
 
 ### 発行（pdf / html / diagrams） {#sec-behavior-build}
 
@@ -55,8 +58,8 @@
 
 | 状態 | 流れ |
 |---|---|
-| ワークスペースが無い | `initNew`: `showOpenDialog`（親フォルダ）→ `showInputBox`（リポジトリ名。既にあって空でなければ不可）→ 執筆フォルダ名 → `createRepository` → `globalState` に `{repo, writingFolder}` を残して `vscode.openFolder(…, {forceReuseWindow: true})` |
-| 執筆フォルダがある | 「既に設計書リポジトリです」で終わる（`exists`） |
+| ワークスペースが無い | `initNew`: `showOpenDialog`（親フォルダ）→ `showInputBox`（リポジトリ名。同名のファイルがある・既にあって空でなければ不可。`checkTarget`）→ 執筆フォルダ名 → `createRepository` → `globalState` に `{repo, writingFolder}` を残して `vscode.openFolder(…, {forceReuseWindow: true})` |
+| 執筆フォルダがある | 「既に設計書リポジトリです」で終わる（`exists`）。複数ルートなら先に作るルートを選び、**そのルートの中だけ**を見る（`writingFoldersIn`。別のルートに文書があっても空のルートには作れる） |
 | ほぼ空のフォルダ | 執筆フォルダ名 → `createRepository` → `showCreated` |
 | ほかのファイルがある | モーダルで「このフォルダに作る」／「別の場所に新しく作る」（後者は `initNew`） |
 

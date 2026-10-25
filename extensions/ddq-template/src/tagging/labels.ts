@@ -122,6 +122,18 @@ export function sortForApply(edits: Edit[]): Edit[] {
     });
 }
 
+/**
+ * 一覧を取ったあとに行が変わったか（当てる直前のバッファの行 `text` で見る）。
+ *
+ * ddq が一覧時の行（`original`）を返していれば、それと完全に一致するときだけ当てる。
+ * 行番号が残っていても中身が別物（見出しが段落になった等）なら当てない。
+ * `original` の無い古い ddq では、既にラベルがあるかだけを見る。
+ */
+export function lineChanged(text: string, edit: Edit): boolean {
+    if (edit.original !== undefined) return text !== edit.original;
+    return /\{[^}]*#(sec|tbl|fig)-|label\s*=\s*"/.test(text);
+}
+
 /** 文字数の位置を、その行の UTF-16 オフセット（VSCode の character）に直す。 */
 export function characterOffset(line: string, col: number): number {
     let chars = 0;
