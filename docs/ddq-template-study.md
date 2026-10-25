@@ -182,7 +182,7 @@
 | 段階 | 内容 | 成果 |
 |---|---|---|
 | 0 | 本書（`feature/ddq-template`） | 方針の合意 |
-| 1a | `git mv` で `extensions/ddq-template/` に統合、ID 改名、旧拡張検出、`extension.yml` の matrix 更新 | 旧 2 拡張と同等の機能が 1 本で動く |
+| 1a | **完了**。`git mv` で `extensions/ddq-template/` に統合、ID 改名、旧拡張検出、`extension.yml` の matrix 更新。Webview は `vite build --mode revision / tableEditor` で 2 本。文書（マニュアル・実装仕様書）の旧名は 1e で直す | 旧 2 拡張と同等の機能が 1 本で動く（実拡張ホストで確認） |
 | 1b | `ddq/`（解決・起動・ロック・終了コード）、ddq の exit 3、`pdf` / `html` / `diagrams`、執筆フォルダ探索とステータスバー、Quarto 検査、update（通知ボタンからの最小形） | 拡張から発行できる |
 | 1c | `init`（§5）、scaffold の `extensions.json` | 拡張だけで始められる |
 | 1d | `release.rs`（exe コピー・ターゲット指定 VSIX・zip から拡張を外す）、同梱スモークの CI | 配布物ができる |

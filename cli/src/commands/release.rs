@@ -4,11 +4,12 @@
 //! 作るもの（cli/DESIGN.md §3.2）:
 //!   <out-dir>/quarto-template-<版>/      ddq.exe / plantuml.jar / はじめかた.pdf / README.md / AGENT-GUIDE.md /
 //!                                        LICENSE / THIRD-PARTY-NOTICES.md / manual/
-//!                                        / ddq-table-editor-<版>.vsix（VSCode 拡張）
+//!                                        / ddq-template-<版>.vsix（VSCode 拡張）
 //!   <out-dir>/quarto-template-<版>.zip
 //! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
 //! VSCode 拡張は extensions/<拡張>/ を npm でパッケージして同梱する（2.1.0 から。
-//! 2.3.0 で extension/ → extensions/ddq-table-editor/ に移し、複数の拡張を扱えるようにした）。
+//! 2.3.0 で extension/ → extensions/<拡張>/ に移して複数の拡張を扱えるようにした。その後
+//! ddq-revision と ddq-table-editor を extensions/ddq-template/ に統合した）。
 //! 版は各 package.json の version で、template/VERSION と一致していなければ止める。
 //! plantuml.jar は cli/vendor/plantuml.jar（git 管理外。保守者が MIT 版を置く）を同梱する（2.2.0 から）。
 

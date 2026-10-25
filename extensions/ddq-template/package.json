@@ -1,0 +1,124 @@
+{
+  "name": "ddq-template",
+  "displayName": "DDQ Template",
+  "description": "VSCode extension for design-doc-quarto-template (ddq): label tagging, revision history and table editor",
+  "version": "2.4.5",
+  "publisher": "ramsesyok",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ramsesyok/ddq-template",
+    "directory": "extensions/ddq-template"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "icon": "icon.png",
+  "preview": true,
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "ワークスペースで ddq を実行するため、信頼されたワークスペースでのみ動作します。"
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "ddqTemplate.tags",
+        "title": "見出し・表・図のラベルを一覧する",
+        "category": "DDQ"
+      },
+      {
+        "command": "ddqTemplate.newRevision",
+        "title": "新しい改訂を始める（差分を取る）",
+        "category": "DDQ"
+      },
+      {
+        "command": "ddqTemplate.openTableEditor",
+        "title": "表エディタを開く",
+        "category": "DDQ"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "ddqTemplate.tags",
+          "when": "explorerResourceIsFolder",
+          "group": "7_modification"
+        },
+        {
+          "command": "ddqTemplate.newRevision",
+          "when": "explorerResourceIsFolder",
+          "group": "7_modification"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "ddqTemplate.openTableEditor",
+          "when": "editorTextFocus && (resourceExtname == .qmd || resourceExtname == .md)",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DDQ",
+      "properties": {
+        "ddqTemplate.ddqPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "`ddq` 実行ファイルのパス。空なら `PATH` から探す。"
+        }
+      }
+    },
+    "customEditors": [
+      {
+        "viewType": "ddqTemplate.revisionEditor",
+        "displayName": "DDQ 改訂履歴",
+        "selector": [
+          {
+            "filenamePattern": "**/revisions/rev-*.yml"
+          }
+        ],
+        "priority": "default"
+      }
+    ]
+  },
+  "scripts": {
+    "build:ext": "node esbuild.mjs",
+    "build:webview": "vite build --mode revision && vite build --mode tableEditor",
+    "build": "npm run build:ext && npm run build:webview",
+    "watch:ext": "node esbuild.mjs --watch",
+    "watch:webview:revision": "vite build --mode revision --watch",
+    "watch:webview:tableEditor": "vite build --mode tableEditor --watch",
+    "test": "vitest run",
+    "test:host": "node tests/host/run.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json",
+    "check:offline": "node scripts/check-offline.mjs",
+    "check:audit": "npm audit --omit=dev --audit-level=low",
+    "verify": "npm run typecheck && npm test && npm run build && npm run check:offline && npm run check:audit",
+    "package": "npm run build && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vitejs/plugin-react": "^6.0.5",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.2",
+    "jsdom": "^26.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.3.0",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
+  }
+}
