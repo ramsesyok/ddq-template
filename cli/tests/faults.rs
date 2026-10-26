@@ -258,6 +258,53 @@ fn real_browser_leaves_no_temp_folder() {
 }
 
 #[test]
+fn real_browsers_in_parallel_leave_no_temp_folder() {
+    // 負荷が高いと後始末が間に合わず、ddq-mermaid-* や、ブラウザが %TEMP% 直下に作る
+    // *.tmp / Importer_* が残った（PR #122 再検証 N-01。8 並列で 40 回中 14 回）。
+    // ブラウザの終了を待ちきってから消すこと、ブラウザの TEMP を一時フォルダの中に
+    // 向けることを、本物の Edge / Chrome を並べて確かめる
+    let probe = ddq().arg("identity").output().unwrap();
+    if !String::from_utf8_lossy(&probe.stdout).contains("engine=browser") {
+        eprintln!("skip: Edge / Chrome が見つかりません");
+        return;
+    }
+    let runs: Vec<_> = (0..8)
+        .map(|_| {
+            let f = Fakes::new();
+            let tmp = f.dir.join("tmp");
+            fs::create_dir_all(&tmp).unwrap();
+            let (input, output) = mermaid_input(&f.dir);
+            let child = ddq()
+                .arg("mermaid")
+                .arg("-i")
+                .arg(&input)
+                .arg("-o")
+                .arg(&output)
+                .env("DDQ_MERMAID_ENGINE", "browser")
+                .env("TMP", &tmp)
+                .env("TEMP", &tmp)
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped())
+                .spawn()
+                .unwrap();
+            (f, tmp, output, child)
+        })
+        .collect();
+    for (_f, tmp, output, child) in runs {
+        let out = child.wait_with_output().unwrap();
+        assert!(out.status.success(), "{}", text(&out));
+        assert!(output.is_file());
+        assert!(
+            !text(&out).contains("一時フォルダを消せませんでした"),
+            "{}",
+            text(&out)
+        );
+        let left: Vec<_> = fs::read_dir(&tmp).unwrap().collect();
+        assert!(left.is_empty(), "一時フォルダが残っている: {left:?}");
+    }
+}
+
+#[test]
 fn killing_ddq_while_the_browser_starts_leaves_nothing() {
     let f = Fakes::new();
     let (input, output) = mermaid_input(&f.dir);

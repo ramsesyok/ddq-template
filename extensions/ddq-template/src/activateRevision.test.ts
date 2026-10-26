@@ -13,6 +13,11 @@ type Handler = (...args: unknown[]) => unknown;
 const commands = new Map<string, Handler>();
 const posted: { type: string; [key: string]: unknown }[] = [];
 const warnings: string[] = [];
+const errorMessages: string[] = [];
+/** 実際にインストールした VSCode と同じく、空の WorkspaceEdit は false を返す（N-02） */
+const applyEdit = vi.fn(async (edit: { size: number }) => edit.size > 0);
+/** 本文（applyRows が開く文書）。行の配列 */
+let body: string[] = [];
 /** フォルダごとの `tag list` の応答待ち */
 const pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: unknown) => void }>();
 const panel = {
@@ -33,6 +38,18 @@ const panel = {
 vi.mock('vscode', () => ({
     ViewColumn: { Active: -1, Beside: -2 },
     Uri: { file: (fsPath: string) => ({ fsPath }) },
+    Position: class {
+        constructor(
+            public line: number,
+            public character: number
+        ) {}
+    },
+    WorkspaceEdit: class {
+        size = 0;
+        insert() {
+            this.size += 1;
+        }
+    },
     commands: {
         registerCommand: (id: string, fn: Handler) => {
             commands.set(id, fn);
@@ -42,9 +59,16 @@ vi.mock('vscode', () => ({
     window: {
         createWebviewPanel: () => panel,
         registerCustomEditorProvider: () => ({ dispose() {} }),
-        showWarningMessage: (m: string) => warnings.push(m)
+        showWarningMessage: (m: string) => warnings.push(m),
+        showErrorMessage: (m: string) => errorMessages.push(m),
+        showInformationMessage: vi.fn()
     },
     workspace: {
+        applyEdit: (edit: { size: number }) => applyEdit(edit),
+        openTextDocument: async () => ({
+            lineCount: body.length,
+            lineAt: (i: number) => ({ text: body[i] })
+        }),
         getConfiguration: () => ({ get: () => '' }),
         registerTextDocumentContentProvider: () => ({ dispose() {} })
     }
@@ -175,5 +199,52 @@ describe('ラベル一覧の取り直しが重なったとき（R-06）', () => 
         expect(lists()).toEqual(['A']);
         expect(warnings).toHaveLength(1);
         expect(warnings[0]).toMatch(/ラベルを書き戻せません/);
+    });
+});
+
+describe('書き戻せる行が 1 つも無いとき（再検証 N-02）', () => {
+    beforeEach(() => {
+        deactivateRevision();
+        commands.clear();
+        warnings.length = 0;
+        errorMessages.length = 0;
+        applyEdit.mockClear();
+        body = ['# a'];
+        activateRevision({ subscriptions: [], extensionUri: { fsPath: '/ext' } } as never);
+    });
+
+    const applyRows = (list: ReturnType<typeof listOf>) =>
+        commands.get('ddqTemplate.internal.applyRows')!(
+            '/docs',
+            list,
+            list.items.map((item) => ({ item, label: item.suggested, checked: true }))
+        ) as Promise<{ applied: number; skipped: string[]; errors: unknown[] }>;
+
+    it('古い ddq の一覧では、空の編集を当てずに飛ばした理由を出す（「失敗しました」にしない）', async () => {
+        const result = await applyRows(listOf('A', false));
+
+        expect(result.applied).toBe(0);
+        expect(result.skipped).toEqual(['a.qmd:1（この ddq は照合用の行を返しません。ddq を更新してください）']);
+        expect(applyEdit).not.toHaveBeenCalled();
+        expect(errorMessages).toEqual([]);
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toMatch(/照合用の行を返しません/);
+    });
+
+    it('一覧のあとに行が変わったときも同じ', async () => {
+        body = ['これは見出しではない'];
+        const result = await applyRows(listOf('A'));
+
+        expect(result.applied).toBe(0);
+        expect(result.skipped[0]).toMatch(/文書が変わりました/);
+        expect(applyEdit).not.toHaveBeenCalled();
+        expect(errorMessages).toEqual([]);
+    });
+
+    it('当てる行があれば従来どおり applyEdit する', async () => {
+        const result = await applyRows(listOf('A'));
+
+        expect(result).toEqual({ applied: 1, skipped: [], errors: [] });
+        expect(applyEdit).toHaveBeenCalledTimes(1);
     });
 });

@@ -69,3 +69,62 @@
 | 未検証（不具合ではない） | M-01〜M-12（エアギャップ、GUI Cancel、同時実行の GUI、Workspace Trust、旧 2 拡張との共存、表の全対話操作、外部ビューア、改訂履歴の GUI 操作、R-06 の実ホスト再現、社内セキュリティ製品、Explorer の動的増減、ほぼ空ルートの init） | **今回も未実施**。確定不具合として扱わず、リリース前に実施するか受容判断を記録する |
 | 今回の未検証 | 「ラベルを書き戻せません」警告の GUI 表示 | 単体試験（`activateRevision.test.ts`）でのみ確認。実画面では未確認 |
 | 今回の未検証 | `DDQ_E2E=1` の厳格な E2E 再実行、正式 release・VSIX 再生成・実インストール | 未実施（今回の変更は描画・配布の経路に触れていない）。報告書 §12 の 4 のとおり、新しい Head で再生成・再検証が要る |
+
+## 4. 再検証（3de86de）の新規指摘への対応
+
+再検証報告書（ddq-review `docs/reviews/ddq-template-pr122-revalidation-20261026.md`）の §10 の N-01（P2）と N-02（P3）に対応した。
+
+### N-01（P2）— 実ブラウザー描画後に一時フォルダが残る
+
+**再現**（修正前、`real_browser_leaves_no_temp_folder` を 8 並列 × 5 回）: **40 回中 14 回**失敗。残ったものは 2 種類あった。
+
+| 残存物 | 原因 |
+|---|---|
+| `ddq-mermaid-*`（ddq の一時フォルダ） | Job Object を閉じた（`CloseHandle`）だけでは中のプロセスの終了は非同期で、まだ profile を握っているうちに削除の待ち直し（3 秒）が尽きた。さらに、Job の「動いているプロセス数」が 0 になった時点でも、プロセス自体はまだ終わりきっていないことを単体試験で実測した |
+| `%TEMP%` 直下の `*.tmp`（GUID 名）と `Importer_0_4` | ブラウザ自身が `%TEMP%` に作る一時ファイル。強制終了で後片付けされずに残る |
+
+**修正**:
+
+| 変更 | 内容 |
+|---|---|
+| `cli/src/job.rs` | `Handle::end_all(grace, limit)` を追加。Job 内のプロセスを `OpenProcess(SYNCHRONIZE)` で開き、ハンドルの終了を待つ。`grace` のあいだは自分で終わるのを待ち、過ぎたら `TerminateJobObject` して終わりきるまで待つ |
+| `cli/src/mermaid/browser.rs` | ブラウザの `TMP`/`TEMP` を一時フォルダの中（`<一時フォルダ>/tmp`）に向ける。`Browser.close` を受け付けたら最大 5 秒は自分で終わるのを待ち、その後 `end_all`（全体で最大 15 秒）。削除の待ち直しを 5 秒にし、それでも消せなければ stderr に「一時フォルダを消せませんでした（理由）: パス」を出す（黙って残さない） |
+| `cli/tests/faults.rs` | `real_browsers_in_parallel_leave_no_temp_folder` を追加（本物の Edge/Chrome を 8 並列。既存の単独試験と同じく、ブラウザが無ければ skip 表示で戻る） |
+
+**修正後**:
+
+| 試験 | 修正前 | 修正後 |
+|---|---|---|
+| 単独試験の 8 並列 × 5 回 | 40 回中 14 回失敗 | **40 回中 0 回** |
+| 単独試験の 12 並列 × 5 回 | — | **60 回中 0 回**（警告の出力も 0） |
+| 新設の 8 並列試験を 5 回 | **5 回中 5 回失敗**（`browser.rs`・`job.rs` を HEAD に戻して実行） | **5 回中 5 回成功** |
+
+試験の assert は弱めていない（一時フォルダが空であることを従来どおり要求し、新設試験は警告が出ないことも要求する）。
+
+### N-02（P3）— 旧 CLI 拒否時の書き戻しボタンが汎用エラーになる
+
+**原因**: すべての行を飛ばしたあとも空の `WorkspaceEdit` で `applyEdit` を呼んでいた。インストールした VSCode ではこれが false を返し、飛ばした理由ではなく「書き戻しに失敗しました。」を出していた（開発ホストでは true を返すため host 試験では出なかった）。
+
+**修正**: `extensions/ddq-template/src/activateRevision.ts` の `applyRows` で、当てる編集が 0 件なら `applyEdit` を呼ばずに「書き戻せるものがありません。N 件を飛ばしました: <行（理由）>」を警告で出して戻る。
+
+**試験**: `src/activateRevision.test.ts` に 3 件追加。`applyEdit` を「空なら false」（インストール版の挙動）に差し替えて、古い ddq の一覧／一覧のあとに変わった行では `applyEdit` を呼ばず、エラー通知を出さず、理由付きの警告を出すこと、当てる行があれば従来どおり `applyEdit` することを見る。修正を外すと 2 件が失敗する（変異試験）。
+
+### 回帰試験（修正後の作業ツリー）
+
+| 試験 | 結果 |
+|---|---|
+| `cargo fmt --check` / `cargo clippy --offline --all-targets -- -D warnings` | 成功 |
+| `DDQ_E2E=1 cargo test --offline --no-fail-fast -- --nocapture` | **147 成功／0 失敗／skip 表示なし**（unit 81〈`end_all` の単体 1 件増〉、faults 8〈8 並列 1 件増〉） |
+| `cargo build --release --offline` | 成功 |
+| `REQUIRE_PANDOC=1 npm run verify` | **266 成功／0 失敗**（31 ファイル）、audit 0 件 |
+| `npm run test:host -- <最新 release ddq.exe>` | **23 項目成功**、exit 0 |
+| `npm run test:host -- <旧 CLI 88a0ae2>` | **18 項目成功**、exit 0 |
+| `npm run test:host`（差し替え ddq＝CI 経路） | **9 項目成功**、exit 0 |
+
+### 未検証
+
+| 項目 | 状態 |
+|---|---|
+| N-02 のインストール済み VSIX でのボタン操作 | **未実施**。`applyEdit` が空の編集で false を返す挙動は単体試験の差し替えで再現した。実機での再確認は報告書 §12 の 3 のとおり必要 |
+| N-01 の非 Windows | Job Object が無いので、ブラウザの TEMP を一時フォルダに向ける部分だけが効く。Linux の実ブラウザでは未確認 |
+| VSIX 再生成・実インストール、M-01〜M-12 | 未実施（§3 と同じ） |

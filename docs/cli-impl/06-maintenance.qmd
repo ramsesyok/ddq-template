@@ -44,7 +44,7 @@
 
 根拠：[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)。性能目標・最大規模は [U-0005](07-issues-unknowns.qmd#u-0005) で不明としている。
 
-**確認済み（静的・故障注入）**：browserでは処理後に `Browser.close`、起動プロセスkill、Job Objectのclose（子孫をすべて終わらせる）の順に行い、その後で一時フォルダを消す（ファイルが放されるまで最大3秒待ち直す）。PicoWebは通常のDropでkill/wait、どちらも Windows では `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` の Job Object に入れる。ddq が強制終了された場合も子孫は Job Object で終わるが、一時フォルダ（`ddq-mermaid-*`）は後始末が走らないため残る。非Windowsには Job Object が無く、子の kill だけである。[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0029](appendix-evidence.qmd#ev-e-0029)
+**確認済み（静的・故障注入）**：browserでは処理後に `Browser.close` を送り、Job Object の中のプロセスが**終わりきるまで**待つ（自分で終わるのを最大5秒待ち、過ぎたら Job ごと止める。`job::Handle::end_all`）。その後で一時フォルダを消す（ファイルが放されるまで最大5秒待ち直し、消せなければ stderr に出す）。ブラウザの `TMP`/`TEMP` は一時フォルダの中に向ける。PicoWebは通常のDropでkill/wait、どちらも Windows では `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` の Job Object に入れる。ddq が強制終了された場合も子孫は Job Object で終わるが、一時フォルダ（`ddq-mermaid-*`）は後始末が走らないため残る。非Windowsには Job Object が無く、子の kill だけである。[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0029](appendix-evidence.qmd#ev-e-0029)
 
 ## 入力と外部接続の前提 {#sec-6de862}
 

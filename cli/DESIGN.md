@@ -259,6 +259,8 @@ auto:
              --user-data-dir=<一時フォルダ>/profile
              --remote-debugging-port=0 about:blank
    ```
+   環境変数 `TMP` / `TEMP` は `<一時フォルダ>/tmp` に向ける（ブラウザは %TEMP% 直下にも `*.tmp` や
+   `Importer_*` を作り、止めると残る。PR #122 再検証 N-01）。
    起動した子プロセスの終了は成否に使わない（Edge は即終了する）。
    Windows では起動直後に子を Job Object（`crate::job`、KILL_ON_JOB_CLOSE）に入れる。ブラウザは
    子の下にレンダラ等の孫を作り、子を kill するだけでは孫が ddq の標準出力を握ったまま残る
@@ -271,11 +273,15 @@ auto:
    「Execution context was destroyed」になるので load を待つ。
    同じページで続けて描かないのは、mermaid が図をまたいで持つ連番（sequenceDiagram の
    actor id など）が前の図に依存し、mermaid-cli（1 図 1 ページ）と出力が変わるため。
-5. `Browser.close` で閉じる（閉じないと headless プロセスが残る）。続けて起動した子を kill し、Job Object を
-   閉じて子孫をすべて終わらせてから、一時フォルダを削除する（放されるまで最大 3 秒待ち直す）。
-   `Browser.close` は非同期なので、先に消そうとすると profile を握られて削除に失敗し、%TEMP% に
-   `ddq-mermaid-*` が 1 回ごとに溜まっていた（調査端末で 1,157 件）。ddq が強制終了されたときは
-   子孫は Job Object で終わるが、一時フォルダは残る
+5. `Browser.close` で閉じる（閉じないと headless プロセスが残る）。Windows では Job Object の中の
+   プロセスを開き、**終わりきるまで**待つ（`job::Handle::end_all`。`Browser.close` を受け付けたら最大 5 秒は
+   自分で終わるのを待ち、過ぎたら Job ごと止める。全体で最大 15 秒）。それから一時フォルダを削除する
+   （放されるまで最大 5 秒待ち直し、それでも消せなければ stderr に出す）。
+   `Browser.close` も Job の終了も非同期なので、先に消そうとすると profile を握られて削除に失敗し、%TEMP% に
+   `ddq-mermaid-*` が 1 回ごとに溜まっていた（調査端末で 1,157 件）。Job を閉じただけ、または Job の
+   「動いているプロセス数」が 0 になっただけでは、プロセスはまだ終わりきっていないことがある（実測）。
+   高負荷時はそのため後始末が間に合わなかった（8 並列で 40 回中 14 回。PR #122 再検証 N-01）。
+   ddq が強制終了されたときは子孫は Job Object で終わるが、一時フォルダは残る
 
 複数入力でも起動は 1 回（1 図 ≒ 1.5 秒、22 図 ≒ 3 秒）。
 

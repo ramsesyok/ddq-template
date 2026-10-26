@@ -299,6 +299,14 @@ export async function applyRows(
         edit.insert(uri, new vscode.Position(e.line - 1, characterOffset(text, e.col)), e.insert);
     }
 
+    // すべて飛ばしたときは当てない。空の WorkspaceEdit は（インストールした VSCode では）
+    // applyEdit が false を返し、飛ばした理由ではなく「失敗しました」と出ていた（再検証 N-02）
+    if (edit.size === 0) {
+        vscode.window.showWarningMessage(
+            `書き戻せるものがありません。${stale.length} 件を飛ばしました: ${stale.join(' / ')}`
+        );
+        return { applied: 0, skipped: stale, errors: [] };
+    }
     const ok = await vscode.workspace.applyEdit(edit);
     if (!ok) {
         vscode.window.showErrorMessage('書き戻しに失敗しました。');
