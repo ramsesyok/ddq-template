@@ -189,6 +189,7 @@
 | 1d | **完了**。`release.rs`: `package:win32-x64` を持つ拡張に exe をコピーしてターゲット指定 VSIX（10.7MB）を作り、VSIX 内の ddq.exe が release している exe とバイト一致することを確認。VSIX は zip に入れず隣に置く。同梱スモーク `npm run test:smoke`（展開した VSIX の中身で起動し、設定・PATH 無しで同梱 ddq に決まること、init → html）と ci.yml の `vsix-smoke`（main への push・手動のみ） | 配布物ができる（手元で VSIX を作り、スモーク合格） |
 | 1e | **文書は完了**。利用マニュアルを拡張主に再構成（2 章に VSCode・DDQ Template の導入、4・5・11・12・13・14・16 章を拡張の操作に、コマンドは付録 A「コマンドで使う（ddq）」へ）。`docs/revision-impl/` と `docs/table-editor-impl/` を `docs/ddq-template-impl/` に統合（各章に「共通の基盤」を新規、旧 2 冊は `parts/` に ID 接頭辞付きで収録）。README・はじめかた.pdf・テンプレート設計書・cli-impl・スライドの旧名を更新。**残り: main へのマージとリリース** | main へマージ・旧 2 拡張削除・リリース |
 | 1f | **完了**。PR #122 の独立レビュー（P1 2 件・P2 4 件）への対応。R-01 `ddqPath` の `.cmd` / `.bat` を起動しない（実拡張ホストの差し替え ddq は rustc で作る exe に）／R-02 `ddq tag list` の編集指示に一覧時の行 `original` を入れ、拡張と `tag apply --from` が当てる直前に照合／R-03 右クリックメニューを執筆フォルダの配下にも／R-04 複数ルートの init は先にルートを選び、そのルートの中だけで既存文書を見る／R-05 リポジトリ名と同名のファイルを入力検証で弾く／R-06 ラベル一覧の取り直しに通し番号を付け、遅れて返った別フォルダの一覧を捨てる。§7 の VSIX 名を実装（`ddq-template-win32-x64-<版>.vsix`）に合わせた | 主要機能の信頼性（レビューの保留理由の解消） |
+| 1g | **完了**。最終品質検証（2026-10-26）で残った R-02 への対応。`original` を返さない古い ddq を `ddqPath` に指定したとき、拡張は書き戻しを一切行わず（一覧の表示時に警告）、`tag apply --from` も `original` の無い指示を拒否する。R-06 の応答順逆転を `src/activateRevision.test.ts` に常設し、実拡張ホストの検証に `original` を除いた一覧の拒否を加えた | 旧 CLI 指定時の本文破損の防止 |
 | 2 | `update` のコマンドパレット対応と差分確認の導線 | 既存文書の移行が楽になる |
 | 3 | `add` | 複数文書構成 |
 | 4 | `plantuml`（起動・停止・ステータスバー・ポート衝突・寿命） | PlantUML のプレビュー |

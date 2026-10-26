@@ -247,6 +247,33 @@ fn apply_from_rejects_a_line_changed_after_list() {
 }
 
 #[test]
+fn apply_from_rejects_edits_without_original() {
+    // 古い ddq の tag list（original を返さない）で作った指示は、同じ行かを確かめられない
+    let tmp = tempfile::tempdir().unwrap();
+    fixture(tmp.path());
+    let dir = tmp.path().to_string_lossy().into_owned();
+
+    let mut v: Value = serde_json::from_str(&stdout(&ddq(&["tag", "list", &dir, "--json"]))).unwrap();
+    for item in v["items"].as_array_mut().unwrap() {
+        if let Some(edit) = item["edit"].as_object_mut() {
+            edit.remove("original");
+        }
+    }
+    let edits = tmp.path().join("edits.json");
+    fs::write(&edits, serde_json::to_string(&v).unwrap()).unwrap();
+    let before = fs::read_to_string(tmp.path().join("index.qmd")).unwrap();
+
+    let out = ddq(&["tag", "apply", &dir, "--from", &edits.to_string_lossy()]);
+    assert!(!out.status.success());
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("original"),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(fs::read_to_string(tmp.path().join("index.qmd")).unwrap(), before);
+}
+
+#[test]
 fn apply_from_rejects_broken_or_duplicate_labels() {
     let tmp = tempfile::tempdir().unwrap();
     fixture(tmp.path());

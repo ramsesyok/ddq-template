@@ -22,7 +22,15 @@ import {
     writingFolderOf
 } from './revision/provider';
 import { parse } from './revision/revfile';
-import { characterOffset, checkRows, lineChanged, rowKey, sortForApply, type Row } from './tagging/labels';
+import {
+    characterOffset,
+    checkRows,
+    lacksOriginal,
+    rowKey,
+    sortForApply,
+    staleReason,
+    type Row
+} from './tagging/labels';
 import type { FromWebviewMessage, ToWebviewMessage } from './tagging/messages';
 
 /** 開いている一覧。執筆フォルダごとに 1 枚。 */
@@ -176,6 +184,13 @@ async function refresh() {
         if (!latest()) return;
         current.list = list;
         post({ type: 'list', list, version });
+        if (lacksOriginal(list.items)) {
+            // 一覧は見られるが、書き戻しは applyRows がすべて飛ばす。先に理由を知らせる
+            vscode.window.showWarningMessage(
+                `ddq ${version} は照合用の行を返さないため、ラベルを書き戻せません。` +
+                    '設定 ddqTemplate.ddqPath を空にする（同梱の ddq を使う）か、新しい ddq を指定してください。'
+            );
+        }
     } catch (e) {
         if (!latest()) return;
         const error = e instanceof DdqError ? e : new DdqError(String(e));
@@ -276,8 +291,9 @@ export async function applyRows(
             stale.push(`${e.file}:${e.line}（既にラベルがあります）`);
             continue;
         }
-        if (lineChanged(text, e)) {
-            stale.push(`${e.file}:${e.line}（文書が変わりました）`);
+        const reason = staleReason(text, e);
+        if (reason) {
+            stale.push(`${e.file}:${e.line}（${reason}）`);
             continue;
         }
         edit.insert(uri, new vscode.Position(e.line - 1, characterOffset(text, e.col)), e.insert);

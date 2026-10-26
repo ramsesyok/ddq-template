@@ -6,8 +6,10 @@ import {
     checkRows,
     insertFor,
     isValidLabel,
-    lineChanged,
+    lacksOriginal,
+    NO_ORIGINAL,
     sortForApply,
+    staleReason,
     type Row
 } from './labels';
 
@@ -147,23 +149,37 @@ describe('sortForApply', () => {
     });
 });
 
-describe('lineChanged', () => {
+describe('staleReason', () => {
     const edit = { file: 'a.qmd', line: 3, col: 9, insert: ' {#sec-5e911d}', original: '## 一時テスト' };
 
     it('一覧を取った時点と同じ行なら当てる', () => {
-        expect(lineChanged('## 一時テスト', edit)).toBe(false);
+        expect(staleReason('## 一時テスト', edit)).toBeUndefined();
     });
 
     it('行番号が残っていても中身が変わっていれば当てない', () => {
         // 見出しが段落に書き換わった（レビュー R-02 の再現）
-        expect(lineChanged('これは見出しではない', edit)).toBe(true);
-        expect(lineChanged('## 一時テスト2', edit)).toBe(true);
+        expect(staleReason('これは見出しではない', edit)).toBe('文書が変わりました');
+        expect(staleReason('## 一時テスト2', edit)).toBe('文書が変わりました');
     });
 
-    it('original の無い古い ddq では既にラベルがあるかだけを見る', () => {
+    it('original の無い古い ddq の一覧では、行が同じでも変わっていても当てない', () => {
+        // 最終検証 R-02 残存: ラベルの有無だけ見ていたので、段落になった行に入れていた
         const old = { file: 'a.qmd', line: 3, col: 9, insert: ' {#sec-5e911d}' };
-        expect(lineChanged('## 一時テスト', old)).toBe(false);
-        expect(lineChanged('## 一時テスト {#sec-other}', old)).toBe(true);
+        expect(staleReason('## 一時テスト', old)).toBe(NO_ORIGINAL);
+        expect(staleReason('これは見出しではない', old)).toBe(NO_ORIGINAL);
+    });
+});
+
+describe('lacksOriginal', () => {
+    const item = (edit?: Item['edit']): Item => ({ kind: 'heading', level: 1, file: 'a.qmd', line: 1, title: 'a', label: null, edit });
+
+    it('編集指示のどれかに original が無ければ古い ddq の一覧とみなす', () => {
+        expect(lacksOriginal([item({ file: 'a.qmd', line: 1, col: 3, insert: ' {#sec-a}' })])).toBe(true);
+    });
+
+    it('すべてに original があるか、編集指示が無ければ新しい一覧', () => {
+        expect(lacksOriginal([item({ file: 'a.qmd', line: 1, col: 3, insert: ' {#sec-a}', original: '# a' }), item()])).toBe(false);
+        expect(lacksOriginal([])).toBe(false);
     });
 });
 

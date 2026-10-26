@@ -122,16 +122,26 @@ export function sortForApply(edits: Edit[]): Edit[] {
     });
 }
 
+/** 一覧時の行（`original`）を返さない古い ddq の一覧で書き戻そうとしたときの理由。 */
+export const NO_ORIGINAL = 'この ddq は照合用の行を返しません。ddq を更新してください';
+
 /**
- * 一覧を取ったあとに行が変わったか（当てる直前のバッファの行 `text` で見る）。
+ * 当てる直前のバッファの行 `text` に、その編集を当ててよいか。当てないときは理由を返す。
  *
  * ddq が一覧時の行（`original`）を返していれば、それと完全に一致するときだけ当てる。
  * 行番号が残っていても中身が別物（見出しが段落になった等）なら当てない。
- * `original` の無い古い ddq では、既にラベルがあるかだけを見る。
+ * `original` の無い古い ddq では行が同じかを確かめられないので、**一切当てない**
+ * （ラベルの有無だけでは、段落になった行にラベルを入れてしまう）。
  */
-export function lineChanged(text: string, edit: Edit): boolean {
-    if (edit.original !== undefined) return text !== edit.original;
-    return /\{[^}]*#(sec|tbl|fig)-|label\s*=\s*"/.test(text);
+export function staleReason(text: string, edit: Edit): string | undefined {
+    if (edit.original === undefined) return NO_ORIGINAL;
+    if (text !== edit.original) return '文書が変わりました';
+    return undefined;
+}
+
+/** 一覧が照合用の行を持たない（古い ddq の出力）か。 */
+export function lacksOriginal(items: Item[]): boolean {
+    return items.some((item) => item.edit !== undefined && item.edit.original === undefined);
 }
 
 /** 文字数の位置を、その行の UTF-16 オフセット（VSCode の character）に直す。 */

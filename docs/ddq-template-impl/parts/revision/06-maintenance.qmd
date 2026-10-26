@@ -46,11 +46,12 @@
 | テスト | 見るもの |
 |---|---|
 | `src/ddq/run.test.ts` | 実行ファイルの決め方、`.cmd` / `.bat` を起動しないこと、版の取り出し |
-| `src/tagging/labels.test.ts` | ラベルの検査、当てる順、挿入文字列の作り直し、一覧のあとに変わった行の検出、文字位置の変換 |
+| `src/tagging/labels.test.ts` | ラベルの検査、当てる順、挿入文字列の作り直し、一覧のあとに変わった行の検出（`original` の無い古い一覧は当てない）、文字位置の変換 |
+| `src/activateRevision.test.ts` | 一覧の取り直しが重なったとき、遅れて返った前のフォルダの応答（成功・失敗とも）を画面に出さない（R-06）。古い ddq の一覧で警告を出す |
 | `src/revision/revfile.test.ts` | `ddq` が書いた golden の読み取りと往復、人が手で書いた形、CRLF |
 | `src/webview/TagTable.test.tsx` | 一覧の描画、候補の書き換え、書き戻しの押下で渡るもの |
 | `src/webview/RevisionEditor.test.tsx` | 差分一覧の描画、メモの反映、ボタン、確定済みの読み取り専用 |
-| `tests/host/`（`npm run test:host`） | **本物の VSCode**でパネルが開くこと、`WorkspaceEdit` が当たること、Undo、カスタムエディタ、`ddq rev build` までの往復、差分エディタ |
+| `tests/host/`（`npm run test:host`） | **本物の VSCode**でパネルが開くこと、`WorkspaceEdit` が当たること、Undo、`original` を除いた一覧では書き戻さないこと、カスタムエディタ、`ddq rev build` までの往復、差分エディタ |
 :::
 
 確認済み（静的）：実拡張ホストの検証は内部コマンド（`internal.applyRows` / `internal.writeNote` / `internal.openDiff`）を叩く。Webview の中身は外から触れないため、**画面が呼ぶのと同じ関数**を別の入口から呼んでいる。`package.json` に出していないのでコマンドパレットには現れない。[E-0002](appendix-evidence.qmd#ev-rev-e-0002)

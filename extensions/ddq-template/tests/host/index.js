@@ -11,6 +11,7 @@
  *   2. `ddq tag list --json` の結果から作った編集指示を WorkspaceEdit で当てられること
  *      （日本語の行でも位置がずれないこと）
  *   3. 当てた直後に Undo で元へ戻せること
+ *   4. 一覧のあとに変わった行、照合用の行（original）の無い古い ddq の一覧では当てないこと
  *
  * 改訂履歴（実物の ddq があるときだけ）:
  *   4. `ddq rev diff --write` が作った yml が Custom Editor で開くこと
@@ -58,6 +59,86 @@ async function run() {
     assert.ok(rows.length >= 1, 'ラベル未付与の見出しが無い');
     const before = fs.readFileSync(path.join(docs, target), 'utf8');
 
+    // 照合用の行（edit.original）を返さない古い ddq を DDQ_BIN に渡したとき
+    const oldCli = list.items.some((item) => item.edit && item.edit.original === undefined);
+    if (oldCli) {
+        await refusesWithoutOriginal(docs, list, rows, target, before);
+        log.push('--   照合用の行を返さない古い ddq なので、書き戻しと Undo の確認は飛ばした');
+    } else {
+        await applyAndUndo(docs, list, rows, target, before);
+        // 古い ddq の一覧（original を除いたもの）を作って、同じ拒否を常に確かめる
+        const old = stripOriginal(list);
+        await refusesWithoutOriginal(docs, old, rowsFor(old, target), target, before);
+    }
+
+    // 表エディタ（旧 ddq-table-editor）も同じ拡張から開く
+    await vscode.commands.executeCommand('ddqTemplate.openTableEditor');
+    await new Promise((r) => setTimeout(r, 2000));
+    const tableTab = vscode.window.tabGroups.all
+        .flatMap((g) => g.tabs)
+        .find((t) => t.input instanceof vscode.TabInputWebview && /DDQ 表エディタ/.test(t.label));
+    assert.ok(tableTab, '表エディタのパネルが開いていない');
+    say(`表エディタのパネルが開く（${tableTab.label}）`);
+    await vscode.window.tabGroups.close(tableTab);
+
+    // 旧拡張の ID は残っていない
+    const commands = await vscode.commands.getCommands(true);
+    const stale = commands.filter((c) => /^ddq(Revision|TableEditor)\./.test(c));
+    assert.deepStrictEqual(stale, [], `旧 ID のコマンドが残っている: ${stale}`);
+    say('旧 ID（ddqRevision.* / ddqTableEditor.*）のコマンドは登録されない');
+
+    // 4) 改訂履歴の編集画面（Custom Editor）。実物の ddq が要るので、差し替えのときは飛ばす
+    if (process.env.DDQ_IS_REAL === '1') {
+        await revisionEditor(docs, ddq);
+        await build(docs);
+        await init();
+    } else {
+        log.push('--   改訂履歴の編集画面と発行（pdf / html / diagrams）は実物の ddq が要るので飛ばした');
+    }
+
+    fs.writeFileSync(path.join(process.env.HOST_OUT, 'host-result.txt'), log.join('\n'), 'utf8');
+}
+
+/** 一覧の編集指示から original を除く（original を返さない古い ddq の出力と同じ形）。 */
+function stripOriginal(list) {
+    return {
+        ...list,
+        items: list.items.map((item) =>
+            item.edit ? { ...item, edit: { ...item.edit, original: undefined } } : item
+        )
+    };
+}
+
+/**
+ * 古い ddq の一覧では、行が一覧時のままでも、段落に書き換わっていても当てない
+ * （最終検証 R-02 残存: ラベルの有無だけを見て、段落になった行にラベルを入れていた）。
+ */
+async function refusesWithoutOriginal(docs, list, rows, target, before) {
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(docs, target)));
+    assert.strictEqual(doc.getText(), before, '前の手順の後始末が済んでいない');
+
+    const same = await vscode.commands.executeCommand('ddqTemplate.internal.applyRows', docs, list, rows);
+    assert.strictEqual(same.applied, 0, `照合できない一覧で当てた: ${doc.getText()}`);
+    assert.strictEqual(same.skipped.length, rows.length, `飛ばした件数が違う: ${same.skipped}`);
+    assert.match(same.skipped.join(), /照合用の行を返しません/);
+    assert.strictEqual(doc.getText(), before, '照合できない一覧で本文が変わった');
+
+    const moved = rows[0].item.line - 1;
+    const replaced = new vscode.WorkspaceEdit();
+    replaced.replace(doc.uri, doc.lineAt(moved).range, 'これは見出しではない');
+    assert.ok(await vscode.workspace.applyEdit(replaced));
+    const changed = await vscode.commands.executeCommand('ddqTemplate.internal.applyRows', docs, list, [rows[0]]);
+    assert.strictEqual(changed.applied, 0, `段落になった行に当てた: ${doc.lineAt(moved).text}`);
+    assert.strictEqual(doc.lineAt(moved).text, 'これは見出しではない');
+    await vscode.window.showTextDocument(doc);
+    await vscode.commands.executeCommand('undo');
+    await new Promise((r) => setTimeout(r, 500));
+    assert.strictEqual(doc.getText(), before, '検証の後始末で元に戻らない');
+    say('照合用の行の無い（古い ddq の）一覧では、変わった行にも変わらない行にも書き戻さない');
+}
+
+/** 一覧どおりに書き戻し、Undo で戻し、一覧のあとに変わった行には当てないことを見る。 */
+async function applyAndUndo(docs, list, rows, target, before) {
     const result = await vscode.commands.executeCommand(
         'ddqTemplate.internal.applyRows',
         docs,
@@ -112,33 +193,6 @@ async function run() {
     await new Promise((r) => setTimeout(r, 500));
     assert.strictEqual(doc.getText(), before, '検証の後始末で元に戻らない');
     say('一覧のあとに中身が変わった行には書き戻さない');
-
-    // 表エディタ（旧 ddq-table-editor）も同じ拡張から開く
-    await vscode.commands.executeCommand('ddqTemplate.openTableEditor');
-    await new Promise((r) => setTimeout(r, 2000));
-    const tableTab = vscode.window.tabGroups.all
-        .flatMap((g) => g.tabs)
-        .find((t) => t.input instanceof vscode.TabInputWebview && /DDQ 表エディタ/.test(t.label));
-    assert.ok(tableTab, '表エディタのパネルが開いていない');
-    say(`表エディタのパネルが開く（${tableTab.label}）`);
-    await vscode.window.tabGroups.close(tableTab);
-
-    // 旧拡張の ID は残っていない
-    const commands = await vscode.commands.getCommands(true);
-    const stale = commands.filter((c) => /^ddq(Revision|TableEditor)\./.test(c));
-    assert.deepStrictEqual(stale, [], `旧 ID のコマンドが残っている: ${stale}`);
-    say('旧 ID（ddqRevision.* / ddqTableEditor.*）のコマンドは登録されない');
-
-    // 4) 改訂履歴の編集画面（Custom Editor）。実物の ddq が要るので、差し替えのときは飛ばす
-    if (process.env.DDQ_IS_REAL === '1') {
-        await revisionEditor(docs, ddq);
-        await build(docs);
-        await init();
-    } else {
-        log.push('--   改訂履歴の編集画面と発行（pdf / html / diagrams）は実物の ddq が要るので飛ばした');
-    }
-
-    fs.writeFileSync(path.join(process.env.HOST_OUT, 'host-result.txt'), log.join('\n'), 'utf8');
 }
 
 /**
