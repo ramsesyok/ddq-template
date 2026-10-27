@@ -49,7 +49,7 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | `quarto-template-<版>.zip` | `ddq.exe` 単体・`plantuml.jar`・利用マニュアル（PDF / HTML）・はじめかた.pdf・AGENT-GUIDE.md など | マニュアルを読む人、コマンド・バッチ・CI で使う人 |
 
 ```
-quarto-template-2.4.5/       ← 配布 zip を展開したもの（設計書リポジトリの外に置く）
+quarto-template-3.0.0-pre1/       ← 配布 zip を展開したもの（設計書リポジトリの外に置く）
 ├── ddq.exe                  ← 様式・変換・ビルドの実体（コマンドで使うとき。インストール不要）
 ├── plantuml.jar             ← PlantUML 図の描画（ローカルの Java で ddq が起動する）
 ├── はじめかた.pdf            ← 最初の一歩（スライド）
@@ -146,7 +146,7 @@ PlantUML 図は LAN のサーバか、無ければ `plantuml.jar` をローカ�
 VSCode を使わずに、配布 zip の `ddq.exe` で同じことができます（バッチ・CI 向け）。
 
 ```bat
-cd C:\tools\quarto-template-2.4.5
+cd C:\tools\quarto-template-3.0.0-pre1
 .\ddq init C:\work\order-design
 .\ddq pdf  C:\work\order-design\docs
 .\ddq html C:\work\order-design\docs

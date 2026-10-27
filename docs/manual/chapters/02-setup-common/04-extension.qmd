@@ -17,7 +17,7 @@ DDQ Template は Marketplace には公開していない。リリースの **VSI
 コマンドでも入れられる。
 
 ```bat
-code --install-extension ddq-template-win32-x64-2.4.5.vsix
+code --install-extension ddq-template-win32-x64-3.0.0-pre1.vsix
 ```
 
 入ると、コマンドパレット（`Ctrl+Shift+P`）で `DDQ:` と打つとコマンドが並ぶ。

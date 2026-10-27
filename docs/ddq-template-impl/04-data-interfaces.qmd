@@ -28,7 +28,7 @@ Node は CVE-2024-27980 の対応以降バッチを `execFile` で直接起動�
 | `ddq diagrams <執筆フォルダ>` | 終了コード |
 | `ddq update <執筆フォルダ>` | 終了コード（版不一致の案内から） |
 | `ddq init <リポジトリ> <名前> [--no-render]` | 終了コード |
-| `ddq --version` | `ddq 2.4.5` の最後の語（`versionOf`）。版不一致の分類と、同梱 ddq の版の確認に使う |
+| `ddq --version` | `ddq 3.0.0-pre1` の最後の語（`versionOf`）。版不一致の分類と、同梱 ddq の版の確認に使う |
 :::
 
 ::: {.tbl caption="ddq の終了コード" label="tbl-exit-codes" widths="14,46,40"}

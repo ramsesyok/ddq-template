@@ -24,5 +24,5 @@ VSCode のコマンドは、コマンドパレット（`Ctrl+Shift+P`）で `DDQ
 **絶対パスで書く**こと。
 
 ```bat
-cd C:\tools\quarto-template-2.4.5
+cd C:\tools\quarto-template-3.0.0-pre1
 ```

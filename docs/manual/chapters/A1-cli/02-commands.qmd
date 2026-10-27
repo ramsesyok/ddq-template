@@ -18,7 +18,7 @@
 ### 設計書リポジトリを作る（ddq init）
 
 ```bat
-cd C:\tools\quarto-template-2.4.5
+cd C:\tools\quarto-template-3.0.0-pre1
 .\ddq init C:\work\order-design
 ```
 
@@ -41,7 +41,7 @@ cd C:\tools\quarto-template-2.4.5
 執筆フォルダを作成: C:\work\order-design\docs
   作成: _quarto.yml
   ...
-機構ファイルを更新しました: C:\work\order-design\docs（テンプレート 2.4.5）
+機構ファイルを更新しました: C:\work\order-design\docs（テンプレート 3.0.0-pre1）
 疎通確認のため HTML を一度 render します...
 OK -> C:\work\order-design\docs\_book\index.html
 ```

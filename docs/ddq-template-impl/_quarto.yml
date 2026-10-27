@@ -5,7 +5,7 @@ project:
     - postprocess-html.js
 book:
   title: "DDQ Template ソフトウェア実装仕様書"
-  subtitle: "Software Implementation Specification — 2.4.5（段階 1）"
+  subtitle: "Software Implementation Specification — 3.0.0-pre1（段階 1）"
   date: "2026-10-25"
   chapters:
     - index.qmd

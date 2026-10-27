@@ -223,7 +223,9 @@ def mermaid_modules(given: str | None, version: str) -> tuple[Path, tempfile.Tem
         return Path(given) / "node_modules", None
     tmp = tempfile.TemporaryDirectory(prefix="ddq-third-party-")
     Path(tmp.name, "package.json").write_text('{"name":"inv","private":true}', encoding="utf-8")
-    npm = shutil.which("npm") or shutil.which("npm.cmd")
+    # Windows では npm.cmd を先に探す。Python 3.12 の which("npm") は Node の隣にある
+    # 拡張子なしの npm（シェル用スクリプト）を返し、起動できない（WinError 193）
+    npm = shutil.which("npm.cmd") or shutil.which("npm")
     if not npm:
         sys.exit("npm が見つかりません（--mermaid-modules で取得済みのフォルダを渡すこともできます）")
     # --ignore-scripts: 取ってくるだけで、パッケージのスクリプトは実行しない

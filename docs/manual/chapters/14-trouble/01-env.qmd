@@ -46,7 +46,7 @@ dir
 フォルダにいる。見えない場合は移動する。
 
 ```bat
-cd C:\tools\quarto-template-2.4.5
+cd C:\tools\quarto-template-3.0.0-pre1
 ```
 
 VSCode から使うときは場所を意識しなくてよい（DDQ Template が同梱の `ddq.exe` を使う）。

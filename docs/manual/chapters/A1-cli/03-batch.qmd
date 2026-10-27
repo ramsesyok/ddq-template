@@ -7,7 +7,7 @@
 ```bat
 :: 設計書リポジトリ側で改名し、展開フォルダに戻ってビルドする
 cd C:\work\order-design && git mv docs design-doc
-cd C:\tools\quarto-template-2.4.5
+cd C:\tools\quarto-template-3.0.0-pre1
 .\ddq pdf C:\work\order-design\design-doc
 ```
 

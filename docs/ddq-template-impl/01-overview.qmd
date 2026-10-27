@@ -4,7 +4,7 @@
 
 ### 対象・版・解析範囲
 
-対象は `extensions/ddq-template/`（版 2.4.5。`template/VERSION` と同じ）と、拡張との契約に関わる
+対象は `extensions/ddq-template/`（版 3.0.0-pre1。`template/VERSION` と同じ）と、拡張との契約に関わる
 `ddq` 側（`cli/src/commands/setup.rs` の終了コード、`cli/src/commands/release.rs` の同梱）である。
 確認済み（静的・実行）の範囲は段階 1a〜1d（`docs/ddq-template-study.md` §9）の実装で、
 段階 2 以降（`update` のコマンドパレット対応・`add`・`plantuml`）は含まない。

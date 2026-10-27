@@ -1,6 +1,6 @@
 # 変更履歴
 
-## 未リリース
+## 3.0.0-pre1（2026-10-27、プレリリース）
 
 **ddq-revision と ddq-table-editor を 1 本の拡張 DDQ Template（`ramsesyok.ddq-template`）に統合しました**
 （docs/ddq-template-study.md）。機能は両拡張と同じです。
