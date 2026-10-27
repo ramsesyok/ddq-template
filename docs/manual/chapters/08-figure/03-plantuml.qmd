@@ -107,11 +107,11 @@ mermaid と違い、PlantUML にはブラウザの中で動く実装が無い。
 1. `_quarto.yml` の `plantuml-server:` に書かれた **LAN 内のサーバ**（発行者が設定する）
 2. 自分の端末で起動した `ddq plantuml serve`（`http://127.0.0.1:18080`）
 
-**1 があれば執筆者は何も用意しなくてよい。** 無ければ、リリース一式（`ddq.exe` と
+**1 があれば執筆者は何も用意しなくてよい。** 無ければ、配布 zip（`ddq.exe` と
 `plantuml.jar`）と Java を用意し、執筆中は次を起動しておく（@sec-plantuml-setup）。
 
 ```bat
-cd C:\tools\quarto-template-2.4.5
+cd C:\tools\quarto-template-3.0.0-pre1
 .\ddq plantuml serve
 ```
 :::

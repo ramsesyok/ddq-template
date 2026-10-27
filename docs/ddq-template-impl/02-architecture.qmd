@@ -1,0 +1,64 @@
+# 全体構造 {#sec-architecture}
+
+## 共通の基盤 {#sec-architecture-common}
+
+### ソースの構成
+
+::: {.tbl caption="共通の基盤のソース" label="tbl-common-src" widths="30,70"}
+| ファイル | 責務 |
+|---|---|
+| `src/extension.ts` | 入口。`initLocate` → `activateBuild` → `activateInit` → `activateRevision` → `activateTableEditor` → `warnLegacyExtensions` の順に呼ぶだけ。`deactivate` は逆に各機能の後始末を呼ぶ |
+| `src/build.ts` | 発行コマンド（`ddqTemplate.pdf` / `html` / `diagrams`）、版不一致時の update、ステータスバー、「DDQ」出力チャネル、実行中の子プロセスの管理 |
+| `src/init.ts` | 作成コマンド（`ddqTemplate.init`）、開き直したあとの案内、Git 初期化ボタン |
+| `src/folders.ts` | 執筆フォルダの決定、ワークスペースの執筆フォルダの列挙と `setContext` |
+| `src/quarto.ts` | Quarto の有無の検査、`ddqTemplate.quartoPath` を `PATH` に足した環境変数 |
+| `src/legacy.ts` | 旧拡張（`ramsesyok.ddq-revision` / `ramsesyok.ddq-table-editor`）の検出とアンインストールの案内 |
+| `src/ddq/locate.ts` | ddq の解決順（設定 → 同梱 → `PATH`） |
+| `src/ddq/run.ts` | ddq の起動（JSON を受け取る `run` / `runJson`、出力を流す `runStreaming`、孫まで止める `killTree`） |
+| `src/ddq/lock.ts` | 執筆フォルダごとの実行中フラグ |
+| `src/ddq/version.ts` | 終了コード 3 の定数、版の比較と不一致の分類 |
+:::
+
+確認済み（静的）。純粋な関数（`chooseDdq`・`bundledPath`・`classifyMismatch`・`compareVersions`・`lockKey`・
+`envWithQuarto`・`nearestWritingFolder`・`htmlIndexOf`・`isNearlyEmpty`・`validateFolderName`・`installedLegacy`）は
+`vscode` に依存しない形に切り出し、vitest で検査している（`src/**/*.test.ts`）。
+
+### 起動と登録
+
+`package.json` の `activationEvents` は `onStartupFinished`（旧拡張の検出と、作成後に開き直した
+ウィンドウでの案内のため、コマンドを実行しなくても起動する）。`capabilities.untrustedWorkspaces.supported`
+は `false` で、制限モードでは読み込まれない（ワークスペースで exe を実行するため）。
+
+::: {.tbl caption="共通の基盤が登録するもの" label="tbl-common-activate" widths="40,60"}
+| 登録 | 内容 |
+|---|---|
+| `ddqTemplate.init` / `pdf` / `html` / `diagrams` | `package.json` に出すコマンド（コマンドパレット・右クリック） |
+| `ddqTemplate.internal.build(kind, folder)` | 発行を通知のボタンなしで実行し、結果（`ok` / `mismatch` / `busy` …）を返す。実拡張ホストの検証用 |
+| `ddqTemplate.internal.init(repo, name)` | 作成をダイアログなしで実行する。同上 |
+| `ddqTemplate.internal.locate()` | いま決まる ddq（`{command, source}`）を返す。同梱版のスモーク用 |
+| `ddqTemplate.internal.showOutput()` | 「DDQ」出力チャネルを表示する（実行中のステータスバーから） |
+| ステータスバー項目 `ddqTemplate.pdf` | 開いているファイルの執筆フォルダと [PDF] |
+| `FileSystemWatcher`（`.template-version` / `_quarto.yml`） | 執筆フォルダの増減で `setContext('ddqTemplate.writingFolders', …)` を作り直す |
+| `viewsWelcome`（エクスプローラ、`workbenchState == empty`） | フォルダ未オープン時の「設計書リポジトリを作成」 |
+:::
+
+### 依存の向き
+
+```text
+extension.ts ─┬─► build.ts ──► ddq/{locate,run,lock,version} ・ folders ・ quarto
+              ├─► init.ts  ──► build.ts（runWithProgress・channel・settings・showError）・ ddq/lock ・ folders ・ quarto
+              ├─► activateRevision.ts ──► ddq/run（ddqCommand は locate を通る）・ folders ・ tagging ・ revision
+              ├─► tableEditor/activateTableEditor.ts（ddq を使わない）
+              └─► legacy.ts
+```
+
+ラベル付け・改訂履歴は、統合で**執筆フォルダの決め方**（`folders.ts`）と **ddq の解決順**（`ddqCommand` が
+`locateDdq` を通る）を共通の基盤に揃えた。表エディタは ddq も執筆フォルダも使わないので変わっていない。
+
+## ラベル付け・改訂履歴（旧 DDQ Revision） {#sec-architecture-rev}
+
+{{< include parts/revision/02-architecture.qmd >}}
+
+## 表エディタ（旧 DDQ Table Editor） {#sec-architecture-te}
+
+{{< include parts/table-editor/02-architecture.qmd >}}

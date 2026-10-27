@@ -8,7 +8,8 @@
 | `README.md`             | リポジトリの入口。何でできているか・役割・作業の流れの概観 | 1章 |
 | テンプレート設計書（`docs/design/`） | 保守者向け。様式・変換の仕組み、調整箇所、版の考え方、保守の観点 | 17章・18章（入口のみ） |
 | `cli/DESIGN.md`         | `ddq` の設計（コマンド・mermaid エンジン・ビルド・検証） | 11章・12章（利用手順のみ） |
-| `extension/README.md`   | VSCode 拡張 `ddq-table-editor` の使い方・開発 | 3章・9章（使い方のみ） |
+| `extensions/ddq-template/README.md` | VSCode 拡張 DDQ Template の使い方・開発 | 2章・3章・12章・13章（使い方のみ） |
+| `docs/ddq-template-study.md` | DDQ Template の設計（決定事項・段階計画） | ―（保守者向け） |
 | `AGENT-GUIDE.md`（リリースにも同梱） | AI エージェント向けの執筆ガイド。執筆フォルダ・`_quarto.yml`・記法・コマンドの要約 | 4章・6〜12章・15章の圧縮版 |
 :::
 

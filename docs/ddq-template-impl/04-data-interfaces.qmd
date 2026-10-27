@@ -1,0 +1,63 @@
+# データとインタフェース {#sec-data-interfaces}
+
+## 共通の基盤 {#sec-data-common}
+
+### ddq の解決 {#sec-data-locate}
+
+`locateDdq(configured)` が返す `{command, source}` で決まる（`src/ddq/locate.ts`）。
+
+| 順 | `source` | 条件 |
+|---|---|---|
+| 1 | `setting` | 設定 `ddqTemplate.ddqPath` が空白以外 |
+| 2 | `bundled` | `win32` かつ `x64` で、`<拡張>/bin/win32-x64/ddq.exe` がある |
+| 3 | `path` | 上のどちらでもない（`ddq` を `PATH` から） |
+
+`.cmd` / `.bat` は**起動しない**（`unsupportedCommand`。`run` は `DdqError`、`runStreaming` は `code: null` と理由を返す）。
+Node は CVE-2024-27980 の対応以降バッチを `execFile` で直接起動できず、`cmd.exe /c` を通すと引数（執筆フォルダの
+パスなど）の `&` や `%` を cmd.exe が解釈してしまうため（PR #122 のレビュー R-01）。統合前の ddq-revision は
+`cmd /c` で包んでいた。
+ラベル付け・改訂履歴が使う `ddqCommand(configured)` も `locateDdq` を通る。
+
+### ddq との契約 {#sec-data-ddq-contract}
+
+::: {.tbl caption="共通の基盤が起動する ddq" label="tbl-common-ddq-calls" widths="40,60"}
+| 呼び出し | 拡張が読むもの |
+|---|---|
+| `ddq pdf <執筆フォルダ>` | 終了コード。出力はチャネルへ流すだけ。成功後は `<執筆フォルダ>/design-doc.pdf` を開く |
+| `ddq html <執筆フォルダ>` | 終了コードと、標準出力の `OK: <パス>index.html（…）` の行（`htmlIndexOf`） |
+| `ddq diagrams <執筆フォルダ>` | 終了コード |
+| `ddq update <執筆フォルダ>` | 終了コード（版不一致の案内から） |
+| `ddq init <リポジトリ> <名前> [--no-render]` | 終了コード |
+| `ddq --version` | `ddq 3.0.0-pre1` の最後の語（`versionOf`）。版不一致の分類と、同梱 ddq の版の確認に使う |
+:::
+
+::: {.tbl caption="ddq の終了コード" label="tbl-exit-codes" widths="14,46,40"}
+| コード | 意味 | 根拠 |
+|---|---|---|
+| `0` | 成功 | ― |
+| `3` | 執筆フォルダの機構が ddq と一致しない（版の違い・機構ファイルの改変・版ファイルや機構ファイルが無い） | `cli/src/commands/setup.rs` の `TemplateMismatch` と `TEMPLATE_MISMATCH_EXIT_CODE`。`main` が `anyhow::Error` の `chain()` に `TemplateMismatch` があれば 3 を返す |
+| `1` | そのほかの失敗 | `ExitCode::FAILURE` |
+:::
+
+ddq の標準エラーの書式（`Error: {:?}`）は anyhow の既定と同じで、終了コード 3 を足しただけである
+（`cli/tests/commands.rs` が 3 と 1 の両方を固定している）。拡張は文言を解析せず、終了コードだけで分岐する。
+
+### 設定・状態
+
+::: {.tbl caption="設定と拡張の状態" label="tbl-common-state" widths="34,66"}
+| 名前 | 内容 |
+|---|---|
+| 設定 `ddqTemplate.ddqPath` | ddq のパス（@sec-data-locate） |
+| 設定 `ddqTemplate.quartoPath` | `quarto.exe` またはそのフォルダ。子プロセスの `PATH` の先頭に足す（大文字小文字の違う `Path` キーも見つける） |
+| `globalState` `ddqTemplate.pendingInit` | 作成後に開き直す先 `{repo, writingFolder}`。開き直したウィンドウが読んで消す |
+| コンテキスト `ddqTemplate.writingFolders` | 執筆フォルダとその配下のフォルダの `fsPath` をキーに持つオブジェクト（右クリックメニューの `when`） |
+| `hasQuarto` のキャッシュ | 見つかったことだけを覚える（入れた直後に開き直さずに再試行できるように） |
+:::
+
+## ラベル付け・改訂履歴（旧 DDQ Revision） {#sec-data-rev}
+
+{{< include parts/revision/04-data-interfaces.qmd >}}
+
+## 表エディタ（旧 DDQ Table Editor） {#sec-data-te}
+
+{{< include parts/table-editor/04-data-interfaces.qmd >}}

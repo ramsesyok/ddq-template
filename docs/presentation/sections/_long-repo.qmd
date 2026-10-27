@@ -10,7 +10,7 @@ C:\tools\quarto-template-2.2.1\
 ├── plantuml.jar     ← PlantUML 描画
 ├── はじめかた.pdf    ← 発行者向け 8 枚
 ├── AGENT-GUIDE.md   ← AI 向け執筆ガイド
-├── ddq-table-editor-2.2.1.vsix
+├── ddq-template-win32-x64-3.0.0-pre1.vsix
 └── manual\          ← 利用マニュアル
 ```
 :::

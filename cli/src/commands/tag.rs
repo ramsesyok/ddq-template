@@ -137,13 +137,28 @@ fn from_file(path: &Path, doc: &doc::Doc) -> Result<Vec<Edit>> {
                     .unwrap_or_default()
             );
         }
-        let len = doc
+        let current = doc
             .lines
             .get(&e.file)
             .and_then(|l| l.get(e.line - 1))
-            .map(|l| l.trim_end_matches('\r').chars().count())
-            .unwrap_or(0);
-        if e.col > len {
+            .map(|l| l.trim_end_matches('\r'))
+            .unwrap_or("");
+        // 一覧を取ったあとに行の中身が変わっていたら当てない（行番号だけでは見分けられない）。
+        // original の無い指示（古い ddq の一覧）は、同じ行かを確かめられないので当てない
+        match &e.original {
+            None => bail!(
+                "{}:{} の編集指示に一覧時の行（original）がありません。この ddq で tag list を取り直してください",
+                e.file,
+                e.line
+            ),
+            Some(original) if original != current => bail!(
+                "{}:{} は一覧を取ったあとに変わっています。tag list を取り直してください",
+                e.file,
+                e.line
+            ),
+            Some(_) => {}
+        }
+        if e.col > current.chars().count() {
             bail!("{}:{} の挿入位置が行の長さを超えています", e.file, e.line);
         }
         let label = label_in(&e.insert).with_context(|| {

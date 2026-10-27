@@ -1,15 +1,18 @@
-## 拡張の共通作法 {#sec-extensions}
+## 拡張の作法 {#sec-extensions}
 
-VSCode 拡張は `extensions/` の下に置く。**1 フォルダ = 1 拡張**で、どれも同じ作法に
-従わせる。拡張ごとに中身（扱う記法・画面）は違ってよいが、**配られ方・検査のされ方は
-同じ**にしておかないと、リリースと CI が拡張の数だけ枝分かれするためである。
+VSCode 拡張は `extensions/` の下に置く。**1 フォルダ = 1 拡張**で、`ddq release` と CI は
+`extensions/` を走査して同じ作法で扱う。いまある拡張は **DDQ Template**（`extensions/ddq-template/`）
+1 つである。
 
 ::: {.tbl caption="今ある拡張" label="tbl-extensions" widths="26,44,30"}
 | 拡張 | 役割 | 実装仕様書 |
 |------------------|------------------------------------|------------------|
-| `ddq-table-editor` | 統一テーブル `::: {.tbl …}` の視覚編集 | `docs/table-editor-impl/` |
-| `ddq-revision` | 見出し・表・図のラベル付けと、ラベル単位の改訂履歴 | `docs/revision-impl/` |
+| `ddq-template` | 設計書リポジトリの作成・PDF / HTML / 図の出力（`ddq.exe` 同梱）、見出し・表・図のラベル付けと改訂履歴、統一テーブル `::: {.tbl …}` の視覚編集 | `docs/ddq-template-impl/` |
 :::
+
+2.4 までは表の視覚編集（`ddq-table-editor`）とラベル付け・改訂履歴（`ddq-revision`）を別の拡張に
+していた。ddq.exe を同梱して VSCode から作成・発行まで行えるようにするにあたり、同梱する
+exe を 1 つにし、利用者が入れる VSIX を 1 本にするため統合した（`docs/ddq-template-study.md`）。
 
 ### 決まりごと {#sec-extensions-rules}
 
@@ -18,38 +21,34 @@ VSCode 拡張は `extensions/` の下に置く。**1 フォルダ = 1 拡張**�
 |--------------------------|--------------------------------------------------|
 | フォルダ名 = `name` | `package.json` の `name` とフォルダ名を一致させる。VSIX 名の先頭になるので、`ddq release` が食い違いを検査して止める |
 | 版はテンプレートに揃える | `package.json` の `version` を `template/VERSION` と同じ値にする。`ddq release` と CI が照合する（@sec-version） |
-| npm scripts を揃える | `build` / `test` / `typecheck` / `check:offline` / `check:audit` / `verify` / `package`。CI は拡張ごとにこれを呼ぶだけで済む |
-| 実行時に通信しない | Webview の CSP は `default-src 'none'`（`connect-src` を書かない）。`check:offline` がビルド成果物を検査する |
-| 成果物名を固定する | `out/extension.js` と `out/webview/assets/main.{js,css}`。拡張ホストが組み立てる HTML と Vite の設定の間の契約である |
-| 文書の解釈は ddq に任せる | qmd の走査・差分・候補の生成は `ddq` が行い、拡張はその JSON を表示するだけにする。同じ解釈を 2 か所に持たない |
-| 書き戻しは `WorkspaceEdit` | `ddq` にファイルを書かせない。`Ctrl+Z` で戻せて、未保存のバッファにも当たるため |
+| npm scripts を揃える | `build` / `test` / `typecheck` / `check:offline` / `check:audit` / `verify` / `package`。CI はこれを呼ぶだけで済む |
+| ddq を同梱するなら `package:win32-x64` | このスクリプトを持つ拡張には、`ddq release` が自分自身を `bin/win32-x64/ddq.exe` にコピーしてターゲット指定の VSIX を作り、中の exe が一致することを確かめる |
+| 実行時に通信しない | Webview の CSP は `default-src 'none'`（`connect-src` を書かない）。`check:offline` がビルド成果物の通信 API と外部 URL を検査する |
+| 成果物名を固定する | `out/extension.js` と `out/webview/<画面>/assets/main.{js,css}`。拡張ホストが組み立てる HTML と Vite の設定の間の契約である |
+| 文書の解釈は ddq に任せる | qmd の走査・差分・候補の生成・版の検査は `ddq` が行い、拡張はその結果（JSON・終了コード）を扱うだけにする。同じ解釈を 2 か所に持たない |
+| 書き戻しは `WorkspaceEdit` | `ddq` に原稿を書かせない。`Ctrl+Z` で戻せて、未保存のバッファにも当たるため |
 :::
 
-最後の 2 つは `ddq-revision` で明確にした分担である（`ddq-table-editor` は編集対象が
-その場のテキストなので `ddq` を呼ばないが、書き戻しの作法は同じ）。
+表エディタは編集対象がその場のテキストなので `ddq` を呼ばないが、書き戻しの作法は同じである。
 
-### 共有しないもの {#sec-extensions-sharing}
+### 拡張と ddq の契約 {#sec-extensions-contract}
 
-**拡張どうしでコードは共有していない。** 共通なのは作法だけで、実際に同じ中身の
-ファイルは `esbuild.mjs` と `scripts/check-offline.mjs` の 2 本である（写しとして置く）。
-
-分けたままにしているのは、**拡張ごとに独立して版を上げ、パッケージできる**ことを
-優先しているためである。共有の置き場（`extensions/shared/`）を先に作ると、片方の都合で
-もう片方のビルドが動く。写しが増えて実害が出た時点で切り出す。
+拡張は ddq の**終了コード**で分岐する。`3` は「執筆フォルダの機構が ddq と一致しない
+（`ddq update` で直る）」で、拡張はこれを受けて版を比べ、update を案内する。文言は解析しない。
+この値は `cli/src/commands/setup.rs` と拡張の `src/ddq/version.ts` の両方にあり、変えるときは
+両方を直す（詳細は `docs/ddq-template-impl/`）。
 
 ### 増やすときの手順 {#sec-extensions-add}
 
-1. `extensions/<name>/` を作り、既存の拡張から `esbuild.mjs`・`scripts/check-offline.mjs`・
+1. `extensions/<name>/` を作り、`extensions/ddq-template/` から `esbuild.mjs`・`scripts/check-offline.mjs`・
    `tsconfig*.json`・`vite.config.mts`・`vitest.config.mts`・`.vscodeignore` を写して直す
 2. `package.json` の `name` をフォルダ名に、`version` を `template/VERSION` に合わせる
-3. `.github/workflows/extension.yml` の `matrix.ext` に名前を足す（3 か所とも同じ行）
+3. `.github/workflows/extension.yml` の `matrix.ext` に名前を足す
 4. `ddq release` は `extensions/` を走査するので**変更不要**。VSIX が 1 本増える
-5. 実装仕様書は拡張ごとに 1 冊立てる（`docs/<name>-impl/`）。共通の作法は本節が持ち、
+5. 実装仕様書を立てる（`docs/<name>-impl/`）。共通の作法は本節が持ち、
    実装仕様書は**その拡張に固有のこと**だけを書く
 
 ::: {.callout-note}
-実装仕様書を拡張ごとに分けるのは、扱う対象が重ならないためである。表エディタは
-`.tbl` の構文解析とグリッド編集、`ddq-revision` は `ddq` の起動と YAML と差分の UI で、
-共有するコードは無い。1 冊にまとめると全章が「表エディタでは…／改訂では…」の
-二股になり、読みにくく取り違えやすい。
+新しい機能は、まず DDQ Template に足せないかを考える。利用者が入れる VSIX が増えると、
+版をそろえる手間と、メニュー・既定エディタの重複が利用者の側に出る（統合前に実際に起きていた）。
 :::

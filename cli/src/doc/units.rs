@@ -95,6 +95,10 @@ pub struct Edit {
     /// 行頭からの**文字数**（バイト数ではない。日本語の見出しで意味が変わる）
     pub col: usize,
     pub insert: String,
+    /// 一覧を取った時点の行（改行は含まない）。当てる直前にこれと同じかを確かめ、
+    /// 行番号だけが残って中身が変わった行へ書き込まないようにする
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub original: Option<String>,
 }
 
 /// 1 ファイルを走査して見出し・表・図を拾う。

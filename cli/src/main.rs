@@ -15,7 +15,7 @@ mod quarto;
 mod writing_folder;
 mod zip_archive;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, process::ExitCode};
 
 use clap::{Args, Parser, Subcommand};
 
@@ -249,7 +249,23 @@ pub(crate) fn timeout_from_env(name: &str, default_secs: u64) -> std::time::Dura
     std::time::Duration::from_secs(secs)
 }
 
-fn main() -> anyhow::Result<()> {
+/// anyhow の既定（`Error: {:?}` と終了コード 1）と同じ出力にし、執筆フォルダの機構の
+/// 不一致だけは終了コード 3 で返す（VSCode 拡張が「ddq update を実行」を案内する）。
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("Error: {e:?}");
+            if e.chain().any(|c| c.is::<commands::setup::TemplateMismatch>()) {
+                ExitCode::from(commands::setup::TEMPLATE_MISMATCH_EXIT_CODE)
+            } else {
+                ExitCode::FAILURE
+            }
+        }
+    }
+}
+
+fn run() -> anyhow::Result<()> {
     match Cli::parse().command {
         Command::Init(a) => commands::init::run(&a.repo_path, &a.writing_folder_name, a.no_render),
         Command::Add(a) => commands::add::run(&a.writing_folder_path, a.no_render),

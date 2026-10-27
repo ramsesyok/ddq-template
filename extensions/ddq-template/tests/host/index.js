@@ -1,0 +1,403 @@
+/**
+ * 実拡張ホストでの検証（vitest では届かない部分）。
+ *
+ *   node tests/host/run.mjs
+ *
+ * VSCode を `--extensionDevelopmentPath` / `--extensionTestsPath` で起動し、この `run()` が
+ * 本物の VSCode API の上で走る。見るのは 2 つの画面:
+ *
+ * ラベル一覧（と表エディタ）:
+ *   1. コマンドでパネルが開くこと
+ *   2. `ddq tag list --json` の結果から作った編集指示を WorkspaceEdit で当てられること
+ *      （日本語の行でも位置がずれないこと）
+ *   3. 当てた直後に Undo で元へ戻せること
+ *   4. 一覧のあとに変わった行、照合用の行（original）の無い古い ddq の一覧では当てないこと
+ *
+ * 改訂履歴（実物の ddq があるときだけ）:
+ *   4. `ddq rev diff --write` が作った yml が Custom Editor で開くこと
+ *   5. 画面で書いたメモが ddq の読める形で文書に入り、`ddq rev build` が表に出すこと
+ *   6. 差分ボタンで VSCode の差分エディタが編集画面の隣に開くこと（左 git: / 右 作業ツリー）
+ *   7. 「箇所」「差分」がその行へ移ること（削除は旧版の側）
+ */
+const assert = require('node:assert');
+const { execFileSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const vscode = require('vscode');
+
+const log = [];
+
+function say(what) {
+    log.push(`OK   ${what}`);
+}
+
+/** 1 行の見出しに候補ラベルを当てる行を作る。 */
+function rowsFor(list, file) {
+    return list.items
+        .filter((item) => item.suggested && item.file === file)
+        .map((item) => ({ item, label: item.suggested, checked: true }));
+}
+
+async function run() {
+    const docs = process.env.DOCS_DIR || path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'docs');
+    const ddq = process.env.DDQ_BIN;
+    assert.ok(ddq && fs.existsSync(ddq), 'DDQ_BIN に ddq のパスを渡してください');
+
+    // 1) 一覧のパネルが開く
+    await vscode.commands.executeCommand('ddqTemplate.tags', vscode.Uri.file(docs));
+    await new Promise((r) => setTimeout(r, 2000));
+    const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    assert.ok(tab, 'タブが開いていない');
+    assert.ok(tab.input instanceof vscode.TabInputWebview, `Webview ではない: ${tab.input}`);
+    assert.match(tab.label, /ラベル一覧/, `タブ名が違う: ${tab.label}`);
+    say(`一覧のパネルが開く（${tab.label}）`);
+
+    // 2) ddq の一覧から書き戻す
+    const list = JSON.parse(execFileSync(ddq, ['tag', 'list', docs, '--json'], { encoding: 'utf8' }));
+    const target = 'chapters/01-overview/index.qmd';
+    const rows = rowsFor(list, target);
+    assert.ok(rows.length >= 1, 'ラベル未付与の見出しが無い');
+    const before = fs.readFileSync(path.join(docs, target), 'utf8');
+
+    // 照合用の行（edit.original）を返さない古い ddq を DDQ_BIN に渡したとき
+    const oldCli = list.items.some((item) => item.edit && item.edit.original === undefined);
+    if (oldCli) {
+        await refusesWithoutOriginal(docs, list, rows, target, before);
+        log.push('--   照合用の行を返さない古い ddq なので、書き戻しと Undo の確認は飛ばした');
+    } else {
+        await applyAndUndo(docs, list, rows, target, before);
+        // 古い ddq の一覧（original を除いたもの）を作って、同じ拒否を常に確かめる
+        const old = stripOriginal(list);
+        await refusesWithoutOriginal(docs, old, rowsFor(old, target), target, before);
+    }
+
+    // 表エディタ（旧 ddq-table-editor）も同じ拡張から開く
+    await vscode.commands.executeCommand('ddqTemplate.openTableEditor');
+    await new Promise((r) => setTimeout(r, 2000));
+    const tableTab = vscode.window.tabGroups.all
+        .flatMap((g) => g.tabs)
+        .find((t) => t.input instanceof vscode.TabInputWebview && /DDQ 表エディタ/.test(t.label));
+    assert.ok(tableTab, '表エディタのパネルが開いていない');
+    say(`表エディタのパネルが開く（${tableTab.label}）`);
+    await vscode.window.tabGroups.close(tableTab);
+
+    // 旧拡張の ID は残っていない
+    const commands = await vscode.commands.getCommands(true);
+    const stale = commands.filter((c) => /^ddq(Revision|TableEditor)\./.test(c));
+    assert.deepStrictEqual(stale, [], `旧 ID のコマンドが残っている: ${stale}`);
+    say('旧 ID（ddqRevision.* / ddqTableEditor.*）のコマンドは登録されない');
+
+    // 4) 改訂履歴の編集画面（Custom Editor）。実物の ddq が要るので、差し替えのときは飛ばす
+    if (process.env.DDQ_IS_REAL === '1') {
+        await revisionEditor(docs, ddq);
+        await build(docs);
+        await init();
+    } else {
+        log.push('--   改訂履歴の編集画面と発行（pdf / html / diagrams）は実物の ddq が要るので飛ばした');
+    }
+
+    fs.writeFileSync(path.join(process.env.HOST_OUT, 'host-result.txt'), log.join('\n'), 'utf8');
+}
+
+/** 一覧の編集指示から original を除く（original を返さない古い ddq の出力と同じ形）。 */
+function stripOriginal(list) {
+    return {
+        ...list,
+        items: list.items.map((item) =>
+            item.edit ? { ...item, edit: { ...item.edit, original: undefined } } : item
+        )
+    };
+}
+
+/**
+ * 古い ddq の一覧では、行が一覧時のままでも、段落に書き換わっていても当てない
+ * （最終検証 R-02 残存: ラベルの有無だけを見て、段落になった行にラベルを入れていた）。
+ */
+async function refusesWithoutOriginal(docs, list, rows, target, before) {
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(docs, target)));
+    assert.strictEqual(doc.getText(), before, '前の手順の後始末が済んでいない');
+
+    const same = await vscode.commands.executeCommand('ddqTemplate.internal.applyRows', docs, list, rows);
+    assert.strictEqual(same.applied, 0, `照合できない一覧で当てた: ${doc.getText()}`);
+    assert.strictEqual(same.skipped.length, rows.length, `飛ばした件数が違う: ${same.skipped}`);
+    assert.match(same.skipped.join(), /照合用の行を返しません/);
+    assert.strictEqual(doc.getText(), before, '照合できない一覧で本文が変わった');
+
+    const moved = rows[0].item.line - 1;
+    const replaced = new vscode.WorkspaceEdit();
+    replaced.replace(doc.uri, doc.lineAt(moved).range, 'これは見出しではない');
+    assert.ok(await vscode.workspace.applyEdit(replaced));
+    const changed = await vscode.commands.executeCommand('ddqTemplate.internal.applyRows', docs, list, [rows[0]]);
+    assert.strictEqual(changed.applied, 0, `段落になった行に当てた: ${doc.lineAt(moved).text}`);
+    assert.strictEqual(doc.lineAt(moved).text, 'これは見出しではない');
+    await vscode.window.showTextDocument(doc);
+    await vscode.commands.executeCommand('undo');
+    await new Promise((r) => setTimeout(r, 500));
+    assert.strictEqual(doc.getText(), before, '検証の後始末で元に戻らない');
+    say('照合用の行の無い（古い ddq の）一覧では、変わった行にも変わらない行にも書き戻さない');
+}
+
+/** 一覧どおりに書き戻し、Undo で戻し、一覧のあとに変わった行には当てないことを見る。 */
+async function applyAndUndo(docs, list, rows, target, before) {
+    const result = await vscode.commands.executeCommand(
+        'ddqTemplate.internal.applyRows',
+        docs,
+        list,
+        rows
+    );
+    assert.deepStrictEqual(result.errors, [], `検査で弾かれた: ${JSON.stringify(result.errors)}`);
+    assert.deepStrictEqual(result.skipped, [], `飛ばされた: ${result.skipped}`);
+    assert.strictEqual(result.applied, rows.length);
+    say(`${result.applied} 件を WorkspaceEdit で書き戻した`);
+
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(docs, target)));
+    const after = doc.getText();
+    assert.notStrictEqual(after, before, '本文が変わっていない');
+    for (const row of rows) {
+        const line = doc.lineAt(row.item.line - 1).text;
+        assert.ok(line.includes(row.label), `${row.item.line} 行目に ${row.label} が無い: ${line}`);
+        // 日本語の見出しでも、文言のあとに正しく入っていること
+        assert.ok(
+            row.item.title === null || line.startsWith(`${'#'.repeat(row.item.level ?? 1)} ${row.item.title}`),
+            `見出しの文言が壊れている: ${line}`
+        );
+    }
+    say('日本語の見出しでも挿入位置がずれない');
+
+    // 未保存のバッファに当たっている（保存は人がする）
+    assert.ok(doc.isDirty, '未保存のバッファに当たっていない');
+    say('未保存のバッファに当たる（保存は人が行う）');
+
+    // 3) Undo で戻る
+    await vscode.window.showTextDocument(doc);
+    await vscode.commands.executeCommand('undo');
+    await new Promise((r) => setTimeout(r, 500));
+    assert.strictEqual(doc.getText(), before, 'Undo で戻らない');
+    say('Ctrl+Z ひと押しで元に戻る');
+
+    // 4) 一覧を取ったあとに行の中身が変わっていたら当てない（行番号は残っている）
+    const moved = rows[0].item.line - 1;
+    const replaced = new vscode.WorkspaceEdit();
+    replaced.replace(doc.uri, doc.lineAt(moved).range, 'これは見出しではない');
+    assert.ok(await vscode.workspace.applyEdit(replaced));
+    const changed = await vscode.commands.executeCommand(
+        'ddqTemplate.internal.applyRows',
+        docs,
+        list,
+        [rows[0]]
+    );
+    assert.strictEqual(changed.applied, 0, `変わった行に当てた: ${doc.lineAt(moved).text}`);
+    assert.match(changed.skipped.join(), /文書が変わりました/);
+    assert.strictEqual(doc.lineAt(moved).text, 'これは見出しではない');
+    await vscode.commands.executeCommand('undo');
+    await new Promise((r) => setTimeout(r, 500));
+    assert.strictEqual(doc.getText(), before, '検証の後始末で元に戻らない');
+    say('一覧のあとに中身が変わった行には書き戻さない');
+}
+
+/**
+ * 改訂履歴の編集画面を通して見る。
+ *   1. 差分を取って yml ができる（ddq rev diff --write）
+ *   2. その yml が Custom Editor で開く
+ *   3. 画面から書いたメモが文書に入り、保存すると ddq が読める形で残る
+ *   4. 差分ボタンが VSCode の差分エディタを開く（左が git:、右が作業ツリー）
+ */
+async function revisionEditor(docs, ddq) {
+    const repo = path.dirname(docs);
+    const git = (args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
+
+    // 改訂履歴はラベルが前提（ラベルの無い見出しは追えない）。ここまでの手順では
+    // 書き戻しを Undo で戻しているので、まず実際にラベルを付けてから始める。
+    execFileSync(ddq, ['tag', 'apply', docs, '--all'], { encoding: 'utf8' });
+    git(['init', '-q', '.']);
+    git(['config', 'user.email', 't@example.com']);
+    git(['config', 'user.name', 'test']);
+    git(['add', '-A']);
+    git(['commit', '-qm', '初版']);
+    git(['tag', 'rev-A']);
+
+    // 本文を直してから差分を取る（変更 2 件と削除 1 件。行へ移れることも見るため）
+    const target = path.join(docs, 'chapters', '01-overview', 'index.qmd');
+    fs.writeFileSync(
+        target,
+        fs
+            .readFileSync(target, 'utf8')
+            .replace('導入の本文。', '導入の本文を直した。')
+            .replace('目的の本文。', '目的の本文を直した。')
+            .replace(/## 対象範囲[^\n]*\n\n範囲の本文。\n/, '')
+    );
+    execFileSync(ddq, ['rev', 'diff', docs, '--write'], { encoding: 'utf8' });
+
+    const yml = path.join(docs, 'revisions', 'rev-B.yml');
+    assert.ok(fs.existsSync(yml), 'rev-B.yml ができていない');
+    say('ddq rev diff --write で改訂ファイルができる');
+
+    // 1 行ずつに行番号が入る（removed は旧版での行）
+    const blocks = fs.readFileSync(yml, 'utf8').replace(/\r\n/g, '\n').split('\n  - label: ').slice(1);
+    const indexOf = (title) => blocks.findIndex((b) => b.includes(`\n    title: ${title}\n`));
+    const purpose = indexOf('目的');
+    const scope = indexOf('対象範囲');
+    assert.ok(purpose >= 0 && blocks[purpose].includes('\n    kind: changed\n'), blocks.join('---'));
+    assert.ok(scope >= 0 && blocks[scope].includes('\n    kind: removed\n'), blocks.join('---'));
+    assert.ok(blocks[purpose].includes('\n    line: 5\n'), `目的の行が無い: ${blocks[purpose]}`);
+    assert.ok(blocks[scope].includes('\n    line: 9\n'), `対象範囲の旧版での行が無い: ${blocks[scope]}`);
+    say('改訂ファイルに行番号が入る（削除は旧版での行）');
+
+    await vscode.commands.executeCommand(
+        'vscode.openWith',
+        vscode.Uri.file(yml),
+        'ddqTemplate.revisionEditor'
+    );
+    await new Promise((r) => setTimeout(r, 2000));
+    const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    assert.ok(
+        tab.input instanceof vscode.TabInputCustom,
+        `Custom Editor ではない: ${tab.input && tab.input.constructor.name}`
+    );
+    assert.strictEqual(tab.input.viewType, 'ddqTemplate.revisionEditor');
+    say(`改訂ファイルが編集画面で開く（${tab.label}）`);
+
+    // 画面から書いたのと同じことを内部コマンドで行い、文書 → 保存 → ddq が読める形を見る
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(yml));
+    const written = await vscode.commands.executeCommand(
+        'ddqTemplate.internal.writeNote',
+        doc.uri.toString(),
+        '導入の説明を補足した。'
+    );
+    assert.ok(written, 'メモを書けなかった');
+    assert.ok(doc.isDirty, '未保存のバッファに入っていない');
+    await doc.save();
+    assert.ok(
+        /note: \|\r?\n\s+導入の説明を補足した。/.test(fs.readFileSync(yml, 'utf8')),
+        'ddq の読める形でメモが入っていない'
+    );
+    say('画面で書いたメモが ddq の読める形で文書に入る');
+
+    // ddq が読めること（表が作れること）で往復を確かめる
+    const out = execFileSync(ddq, ['rev', 'build', docs], { encoding: 'utf8' });
+    const history = fs.readFileSync(path.join(docs, 'revisions', 'history.qmd'), 'utf8');
+    assert.ok(history.includes('導入の説明を補足した。'), `表にメモが出ていない: ${out}`);
+    say('ddq rev build がそのメモを表に出す');
+
+    // 差分エディタ（左が git:、右が作業ツリー）。リポジトリは起動後に git init したので、
+    // Git 拡張が見つけていないと差分ボタンが案内（モーダル）を出して止まる。先に開いておく。
+    const gitApi = (await vscode.extensions.getExtension('vscode.git').activate()).getAPI(1);
+    assert.ok(await gitApi.openRepository(vscode.Uri.file(repo)), 'Git 拡張がリポジトリを開けない');
+    await vscode.commands.executeCommand('ddqTemplate.internal.openDiff', doc.uri.toString(), 0);
+    await new Promise((r) => setTimeout(r, 1500));
+    // 差分は編集画面の隣のグループに出て、フォーカスは編集画面に残る
+    const groups = vscode.window.tabGroups.all;
+    const diffGroup = groups.find((g) => g.tabs.some((t) => t.input instanceof vscode.TabInputTextDiff));
+    assert.ok(diffGroup, '差分エディタが開いていない');
+    const diffTab = diffGroup.tabs.find((t) => t.input instanceof vscode.TabInputTextDiff);
+    const editorGroup = groups.find((g) =>
+        g.tabs.some((t) => t.input instanceof vscode.TabInputCustom && t.input.viewType === 'ddqTemplate.revisionEditor')
+    );
+    assert.ok(editorGroup && editorGroup !== diffGroup, '差分が編集画面と同じグループに重なった');
+    assert.strictEqual(vscode.window.tabGroups.activeTabGroup, editorGroup, 'フォーカスが編集画面から移った');
+    assert.strictEqual(diffTab.input.original.scheme, 'git');
+    assert.strictEqual(diffTab.input.modified.scheme, 'file');
+    // タブが開くだけでは「ファイルが見つからない」でも通るので、旧版の中身が読めることまで見る
+    const original = await vscode.workspace.openTextDocument(diffTab.input.original);
+    assert.ok(original.getText().length > 0, '旧版の中身が空');
+    say('差分ボタンで VSCode の差分エディタが編集画面の隣に開く（左 git: / 右 作業ツリー）');
+
+    // 差分エディタのその側のエディタ。差分エディタの左右は visibleTextEditors に出るが、
+    // viewColumn は undefined になる（ふつうのエディタと見分けられるのはそこだけ）
+    const sideOf = (scheme) =>
+        vscode.window.visibleTextEditors.find(
+            (e) => e.viewColumn === undefined && e.document.uri.scheme === scheme
+        );
+
+    // 変更: 右（新版）がその行に移る
+    await vscode.commands.executeCommand('ddqTemplate.internal.openDiff', doc.uri.toString(), purpose);
+    await new Promise((r) => setTimeout(r, 1500));
+    const editors = () =>
+        vscode.window.visibleTextEditors
+            .map((e) => `${e.viewColumn}:${e.document.uri.scheme}:${e.document.uri.path}@${e.selection.active.line}`)
+            .join(' | ');
+    assert.strictEqual(sideOf('file')?.selection.active.line, 4, `差分の右が 5 行目に移らない: ${editors()}`);
+    say('変更の差分は新版の側がその行へ移る');
+
+    // 削除: 左（旧版）がその行に移る
+    await vscode.commands.executeCommand('ddqTemplate.internal.openDiff', doc.uri.toString(), scope);
+    await new Promise((r) => setTimeout(r, 1500));
+    assert.strictEqual(sideOf('git')?.selection.active.line, 8, '差分の左が旧版の 9 行目に移らない');
+    say('削除の差分は旧版の側がその行へ移る');
+
+    // 箇所: 本文がその行で開く
+    const revealed = await vscode.commands.executeCommand('ddqTemplate.internal.reveal', doc.uri.toString(), purpose);
+    assert.ok(revealed, 'reveal が行を見つけない');
+    await new Promise((r) => setTimeout(r, 1000));
+    const active = vscode.window.visibleTextEditors.find(
+        (e) =>
+            e.document.uri.scheme === 'file' &&
+            e.document.uri.fsPath.toLowerCase() === target.toLowerCase() &&
+            e.viewColumn !== undefined &&
+            e.viewColumn !== editorGroup.viewColumn
+    );
+    assert.strictEqual(active?.selection.active.line, 4, `箇所が 5 行目で開かない: ${editors()}`);
+    say('箇所を押すと本文がその行で開く');
+}
+
+/**
+ * 発行（ddq-template-study.md §3）。通知のボタンは押せないので内部コマンドで同じ処理を通す。
+ *   1. 機構ファイルの無い執筆フォルダの html は、ddq が終了コード 3 で止まり「mismatch」になる
+ *   2. update が通り、そのあと diagrams / html が通る
+ *   3. 同じ執筆フォルダの 2 本目は受け付けない
+ */
+async function build(docs) {
+    const run = (kind) => vscode.commands.executeCommand('ddqTemplate.internal.build', kind, docs);
+
+    assert.strictEqual(await run('html'), 'mismatch', '機構の無いフォルダの html が mismatch にならない');
+    say('機構の不一致（ddq の終了コード 3）を見分ける');
+
+    assert.strictEqual(await run('update'), 'ok', 'ddq update が通らない');
+    assert.ok(fs.existsSync(path.join(docs, 'design-doc.lua')), 'update で機構ファイルが置かれていない');
+    say('ddq update で機構ファイルが置かれる');
+
+    const first = run('html');
+    const second = await run('diagrams');
+    assert.strictEqual(second, 'busy', `実行中の 2 本目が受け付けられた: ${second}`);
+    const html = await first;
+    assert.strictEqual(html, 'ok', `html が通らない: ${html}`);
+    assert.ok(fs.existsSync(path.join(docs, '_book', 'index.html')), '_book/index.html ができていない');
+    say('html が通り、実行中の同じ執筆フォルダの 2 本目は受け付けない');
+
+    // ddq diagrams は diagrams/ が無いと失敗する（図が無いだけなら警告で通る）
+    fs.mkdirSync(path.join(docs, 'diagrams'), { recursive: true });
+    assert.strictEqual(await run('diagrams'), 'ok', '終わったあとの diagrams が通らない');
+    say('終われば次を受け付ける（diagrams）');
+}
+
+/**
+ * 設計書リポジトリの作成（ddq-template-study.md §5）。ダイアログは通せないので、
+ * 名前を決めたあとの作成処理（ddq init）を内部コマンドで通す。執筆フォルダ名は日本語にする。
+ */
+async function init() {
+    const repo = path.join(process.env.HOST_OUT, 'new-repo');
+    const outcome = await vscode.commands.executeCommand('ddqTemplate.internal.init', repo, '設計書');
+    assert.strictEqual(outcome, 'ok', `init が通らない: ${outcome}`);
+    for (const f of ['.gitignore', '.vscode/settings.json', '.vscode/extensions.json', '設計書/_quarto.yml', '設計書/.template-version']) {
+        assert.ok(fs.existsSync(path.join(repo, f)), `${f} が無い`);
+    }
+    assert.ok(
+        fs.readFileSync(path.join(repo, '.vscode', 'extensions.json'), 'utf8').includes('quarto.quarto'),
+        'extensions.json に quarto.quarto が無い'
+    );
+    say('設計書リポジトリを作れる（日本語の執筆フォルダ名、.vscode/extensions.json に quarto.quarto）');
+}
+
+module.exports.run = () =>
+    run().catch((e) => {
+        try {
+            fs.writeFileSync(
+                path.join(process.env.HOST_OUT, 'host-result.txt'),
+                `${log.join('\n')}\nNG   ${(e && e.stack) || e}`,
+                'utf8'
+            );
+        } catch {
+            /* ignore */
+        }
+        throw e;
+    });

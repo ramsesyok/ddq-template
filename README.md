@@ -19,9 +19,9 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | 様式の実体 | `template/lib.typ`（Typst テンプレート） |
 | 記法の拡張 | `template/design-doc.lua`（Pandoc Lua フィルタ） |
 | 図 | mermaid（文字で書いた図をベクター SVG に）、PlantUML（LAN のサーバか、同梱 jar をローカルの Java で） |
-| ビルド・配置の道具 | `ddq.exe`（Rust 製の単一実行ファイル。様式一式を内蔵）＋ `plantuml.jar`（PlantUML 用。MIT 版） |
-| 表の編集 | VSCode 拡張 `ddq-table-editor`（`.tbl` をセル結合つきで視覚的に編集。リリースに VSIX 同梱） |
-| 執筆者に要るもの | Quarto ＋ VSCode の Quarto 拡張だけ（表の編集拡張は任意）。PlantUML 図を使う文書で LAN にサーバが無いときだけ、リリース一式と Java も |
+| ビルド・配置の道具 | `ddq.exe`（Rust 製の単一実行ファイル。様式一式を内蔵） |
+| VSCode 拡張 | **DDQ Template**（`ddq.exe` 同梱。設計書リポジトリの作成・PDF / HTML の出力・ラベル付け・改訂履歴・表の視覚編集） |
+| 執筆者・発行者に要るもの | Quarto ＋ VSCode ＋ DDQ Template（VSIX）。PlantUML 図を使う文書で LAN にサーバが無いときだけ、配布 zip の `plantuml.jar` と Java も |
 
 > **このリポジトリは「様式の実体（`template/` と、それを内蔵する `cli/`）と、VSCode 拡張（`extensions/`）、
 > それにテンプレート自身の文書（`docs/`）とサンプル（`examples/`）」です。**
@@ -32,37 +32,38 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 
 | 役割 | 持つもの | やること |
 |---|---|---|
-| **保守者** | このリポジトリ | 様式・変換の保守。`ddq.exe` と利用マニュアルをリリースとして配る |
-| **発行者** | リリース展開フォルダ | 設計書リポジトリを作る・機構を更新する・**中間版／発行版 PDF と配布 HTML を作る** |
-| **執筆者** | 設計書リポジトリだけ | 原稿を書く。**Quarto と VSCode 拡張だけ**で HTML を見ながら確認できる |
+| **保守者** | このリポジトリ | 様式・変換の保守。DDQ Template（VSIX）と配布 zip をリリースとして配る |
+| **発行者** | DDQ Template ＋ 設計書リポジトリ | 設計書リポジトリを作る・機構を更新する・**発行版 PDF と配布 HTML を作る** |
+| **執筆者** | DDQ Template ＋ 設計書リポジトリ | 原稿を書く。HTML・中間版 PDF を自分で出して確認できる |
 
-発行者と執筆者の違いは役割だけで、`ddq.exe` を持っていれば誰でも PDF を出せます。
+発行者と執筆者の違いは役割（誰が発行版を出し、誰がテンプレートを更新するか）だけで、
+環境は同じです。
 
-**リリース一式は設計書リポジトリの中に置きません。** 発行者の手元に別途置き、
-設計書リポジトリのパスを渡して使います（`git clean` で消える・誤ってコミットする
-といった事故を防ぐため）。
+## リリースの資産
+
+リリースページには 2 つの資産を載せます。
+
+| 資産 | 中身 | 使う人 |
+|---|---|---|
+| `ddq-template-win32-x64-<版>.vsix` | VSCode 拡張 DDQ Template（`ddq.exe` 入り） | **全員**。VSCode の「VSIX からのインストール…」で入れる |
+| `quarto-template-<版>.zip` | `ddq.exe` 単体・`plantuml.jar`・利用マニュアル（PDF / HTML）・はじめかた.pdf・AGENT-GUIDE.md など | マニュアルを読む人、コマンド・バッチ・CI で使う人 |
 
 ```
-C:\tools\
-└── quarto-template-2.4.5/   ← リリース ZIP を展開したもの（git 管理外）
-    ├── ddq.exe              ← 様式・変換・ビルドの実体（これを実行する。インストール不要）
-    ├── plantuml.jar         ← PlantUML 図の描画（ローカルの Java で ddq が起動する）
-    ├── はじめかた.pdf        ← 発行者向けの最初の一歩（8 枚のスライド）
-    ├── README.md            ← このファイル
-    ├── AGENT-GUIDE.md       ← AI エージェント向けの執筆ガイド（設計書リポジトリの AGENTS.md やスキルに取り込む）
-    ├── LICENSE              ← このテンプレート（ddq 本体を含む）のライセンス（MIT）
-    ├── THIRD-PARTY-NOTICES.md ← 同梱・内蔵している第三者のソフトウェアのライセンス表示
-    ├── ddq-table-editor-2.4.5.vsix ← VSCode 拡張（表の視覚編集。執筆者へ配る）
-    └── manual/              ← 利用マニュアル（手順の正。執筆者へも配る）
+quarto-template-3.0.0-pre1/       ← 配布 zip を展開したもの（設計書リポジトリの外に置く）
+├── ddq.exe                  ← 様式・変換・ビルドの実体（コマンドで使うとき。インストール不要）
+├── plantuml.jar             ← PlantUML 図の描画（ローカルの Java で ddq が起動する）
+├── はじめかた.pdf            ← 最初の一歩（スライド）
+├── README.md                ← このファイル
+├── AGENT-GUIDE.md           ← AI エージェント向けの執筆ガイド（設計書リポジトリの AGENTS.md やスキルに取り込む）
+├── LICENSE                  ← このテンプレート（ddq 本体を含む）のライセンス（MIT）
+├── THIRD-PARTY-NOTICES.md   ← 同梱・内蔵している第三者のソフトウェアのライセンス表示
+└── manual/                  ← 利用マニュアル（手順の正。執筆者へも配る）
 
 C:\work\
 └── order-design/            ← 設計書リポジトリ（git 共有。執筆者はこれだけ clone する）
-    ├── .gitignore, .gitattributes, README.md, .vscode/settings.json
+    ├── .gitignore, .gitattributes, README.md, .vscode/
     └── docs/                ← 執筆フォルダ（原稿＋機構ファイル）
 ```
-
-**展開したフォルダはそのまま使います**（中身を取り出して並べ替える必要はありません）。
-展開先に `cd` して、設計書リポジトリのパスを渡して `ddq` を実行します。
 
 ## できること
 
@@ -72,7 +73,7 @@ C:\work\
 - **図表の相互参照** — 本文に `@fig-xxx` と書けば「図 3.2-1」に置き換わります。図を増減して
   番号がずれても、本文側は書き直し不要です
 - **表のセル結合** — 大分類・中分類の縦結合を自動化（HTML タグを書く必要はありません）
-- **表の視覚編集** — VSCode 拡張 `ddq-table-editor` で、Excel のようにセルを結合しながら表を組み、
+- **表の視覚編集** — VSCode 拡張 DDQ Template の表エディタで、Excel のようにセルを結合しながら表を組み、
   `.tbl` ブロックとして書き出せます（Excel からの貼り付け可。完全オフライン）
 - **大きな表のページ分割** — PDF でページをまたぐと、同じ表番号で「（1／3）」と自動で続きます
 - **横向きページ・IPO図** — 縦横の混在も定型ページも用意ずみ
@@ -89,68 +90,71 @@ C:\work\
 
 ### 1. 保守者がリリースを配る
 
-このリポジトリで `ddq release` を実行すると、`quarto-template-<版>.zip`
-（`ddq.exe` ＋利用マニュアルの PDF / HTML ＋ VSCode 拡張の VSIX）ができます。
+このリポジトリで `ddq release` を実行すると、`ddq-template-win32-x64-<版>.vsix`（`ddq.exe` 入りの
+VSCode 拡張）と `quarto-template-<版>.zip`（`ddq.exe`＋利用マニュアルの PDF / HTML など）ができます。
+両方をリリースページに載せます。
 → 利用マニュアル 18章（版の上げ方・リリースの作り方と配り方）
 
-### 2. 発行者が設計書リポジトリを作る
+### 2. 全員が環境を整える
 
-ZIP を展開し、**展開したフォルダで**実行します。
+Quarto と VSCode を入れ、DDQ Template の VSIX を「VSIX からのインストール…」で入れます。
+→ 利用マニュアル 2章
 
-```bat
-cd C:\tools\quarto-template-2.4.5
-.\ddq init C:\work\order-design
-```
+### 3. 発行者が設計書リポジトリを作る
 
-できた `docs\_quarto.yml` の表題・資料番号・会社名・章立てを整え、`git init` して
-執筆者に共有します（利用マニュアルの PDF と `ddq-table-editor-<版>.vsix` も一緒に配ります）。
-→ 利用マニュアル 2章・4章
+VSCode のコマンドパレット（`Ctrl+Shift+P`）で **DDQ: 設計書リポジトリを作成** を選び、
+作る場所・リポジトリ名・執筆フォルダ名を選びます。できた `docs\_quarto.yml` の表題・資料番号・
+会社名・章立てを整え、Git に入れて執筆者に共有します（DDQ Template の VSIX と利用マニュアルも
+一緒に配ります）。
+→ 利用マニュアル 4章
 
-### 3. 執筆者が原稿を書く
+### 4. 執筆者が原稿を書く
 
-設計書リポジトリを clone し、**Quarto と VSCode の Quarto 拡張だけ**で書きます。
-`Ctrl+Shift+K` のプレビューに、発行版と同じ章番号・図表番号・相互参照が出ます。
-`ddq` も Node.js も要りません。表は同梱の VSCode 拡張（VSIX）を入れると、
-セル結合つきで視覚的に編集できます。
+設計書リポジトリを clone して VSCode で開き、書きます。Quarto 拡張のプレビューに、発行版と同じ
+章番号・図表番号・相互参照が出ます。表は DDQ Template の表エディタでセル結合つきで視覚的に
+編集できます。紙面は **DDQ: PDF を作成**（ステータスバーの `PDF:` ボタン）で中間版 PDF を出して
+確かめます。
 PlantUML 図だけは描画にサーバが要ります。LAN にサーバがあれば `_quarto.yml` に URL を
 書くだけ、無ければ Java を入れて `ddq plantuml serve` を起動しておきます。
 → 利用マニュアル 3章・5章、記法は 6〜10章
 
-### 4. 発行者が PDF・配布 HTML を出す
+### 5. 発行者が PDF・配布 HTML を出す
 
-```bat
-cd C:\tools\quarto-template-2.4.5
-.\ddq pdf  C:\work\order-design\docs
-.\ddq html C:\work\order-design\docs
-```
+**DDQ: PDF を作成** → **DDQ: HTML を作成** の順に実行します（執筆フォルダの右クリックからも）。
 
-`pdf` / `html` は、設計書リポジトリの `.template-version` と機構ファイルが
-`ddq.exe` と一致することを確認してから出力する。版・内容が違う場合は暗黙に更新せず
-停止するため、発行者が `ddq update` を実行し、差分を確認してコミットする。
+出力の前に、設計書リポジトリの `.template-version` と機構ファイルが `ddq` と一致するかを確かめます。
+版・内容が違うときは黙って更新せず、「ddq update を実行」の通知を出して止まります。発行者が
+押して更新し、差分を確認してコミットします。
 
 PDF は**中間版**としてコミットします。改ページ・横向きページ・紙の様式は HTML では
 確認できないため、執筆者はこの PDF で紙面を見ます。
 mermaid 図は Windows 標準の Edge（または Chrome）を headless で使ってベクター SVG に
 焼き込みます。どちらも無い端末では `ddq` 内蔵のレンダラで描きます。
-PlantUML 図は LAN のサーバか、無ければ同梱の `plantuml.jar` をローカルの Java で
-`ddq` が起動して描きます（起動・停止は `ddq pdf` の内部で行います）。
-Node.js も npm も要りません。
+PlantUML 図は LAN のサーバか、無ければ `plantuml.jar` をローカルの Java で
+`ddq` が起動して描きます。Node.js も npm も要りません。
 → 利用マニュアル 11章・12章
 
 ### テンプレートを更新するとき
 
-新しい版は別のフォルダに展開されるので、そちらから機構ファイルを入れ直します。
+新しい版の VSIX を入れ、設計書リポジトリで PDF などを出すと「ddq update を実行」の通知が
+出ます。押すと機構ファイルが新しい版に置き換わります。差分は git に出るのでコミットします。
+執筆者は pull するだけです。
+→ 利用マニュアル 11章
+
+### コマンドで使うとき
+
+VSCode を使わずに、配布 zip の `ddq.exe` で同じことができます（バッチ・CI 向け）。
 
 ```bat
-cd C:\tools\quarto-template-2.4.5
-.\ddq update C:\work\order-design\docs
+cd C:\tools\quarto-template-3.0.0-pre1
+.\ddq init C:\work\order-design
+.\ddq pdf  C:\work\order-design\docs
+.\ddq html C:\work\order-design\docs
 ```
 
 1 つのリポジトリに文書を増やすときは `ddq add <新しい執筆フォルダ>`、まとめて
 更新するときは `ddq update --all <リポジトリ>` です。
-
-差分は git に出るのでコミットします。執筆者は pull するだけです。
-→ 利用マニュアル 11章
+→ 利用マニュアル 付録 A
 
 ---
 
@@ -164,8 +168,7 @@ cd C:\tools\quarto-template-2.4.5
 | [docs/manual/](docs/manual/)（リリース展開フォルダでは `manual/`） | **利用マニュアル**（役割別の環境構築・執筆・確認・出力・記法・制限事項・トラブル対処、保守者向けの版の上げ方とリリースの作り方）。本テンプレート自身で書かれており、`ddq pdf docs\manual` で PDF になります | 全員（執筆者にはこの PDF/HTML を配る） |
 | [docs/design/](docs/design/) | **テンプレート設計書**（リポジトリの構成、出力経路、様式 `lib.typ` と変換 `design-doc.lua` の仕組み、HTML 採番の後処理、版の考え方、保守の観点）。**このリポジトリのみ**（リリースには同梱しません） | 保守者 |
 | [cli/DESIGN.md](cli/DESIGN.md) | `ddq` の設計（コマンド・mermaid エンジン・PlantUML サーバ・ビルド・検証） | 保守者 |
-| [extensions/ddq-table-editor/README.md](extensions/ddq-table-editor/README.md) | VSCode 拡張 `ddq-table-editor` の使い方・開発・デバッグ | 執筆者（使い方）・保守者 |
-| [extensions/ddq-revision/README.md](extensions/ddq-revision/README.md) | VSCode 拡張 `ddq-revision`（ラベル付け・改訂履歴）の使い方・開発 | 執筆者（使い方）・保守者 |
+| [extensions/ddq-template/README.md](extensions/ddq-template/README.md) | VSCode 拡張 DDQ Template（作成・発行・ラベル付け・改訂履歴・表エディタ）の使い方・開発・デバッグ | 執筆者（使い方）・保守者 |
 | [AGENT-GUIDE.md](AGENT-GUIDE.md)（リリース直下にも同梱） | **AI エージェント向けの執筆ガイド**。利用マニュアル全体を読まずに、執筆フォルダの構成・`_quarto.yml`・記法（`.tbl`・IPO 図・相互参照）・コマンドを把握できる要約。設計書リポジトリの `AGENTS.md` / `CLAUDE.md` やスキルにそのまま取り込む | 発行者（AI に原稿を書かせるとき） |
 
 `examples/docs/` はこのリポジトリ同梱の**サンプル**（受注管理システムの基本設計書）です。

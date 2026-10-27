@@ -95,16 +95,13 @@ Quarto 同梱、発行版は `ddq` 同梱）、複雑な図ではまれに形が
 
 `diagrams/*.mmd` に mermaid のソースを置き、あらかじめ SVG に変換しておくこともできる。
 
-```bat
-cd C:\tools\quarto-template-2.4.5
-.\ddq diagrams C:\work\order-design\docs
-```
+執筆フォルダを右クリック → **DDQ: 図を変換** を選ぶ（コマンドでは `ddq diagrams <執筆フォルダ>`）。
 
 生成された SVG は通常の画像として `![…](/diagrams/xxx.svg)` で貼る。
 図を頻繁に描き直さない場合や、図だけを別途レビューしたい場合に使う。
 
 ::: {.callout-note}
-この操作は mermaid の SVG 化を行うため、`ddq.exe` が要る。執筆者は実行しない。
+この操作は mermaid の SVG 化を行うため、DDQ Template（または `ddq.exe`）が要る。
 
 対象は `diagrams/` 直下の `*.mmd` だけである。章本文の ```` ```mermaid ```` フェンスは
 ビルド時に自動変換されるので、この操作は要らない。

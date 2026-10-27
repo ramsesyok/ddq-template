@@ -1,5 +1,5 @@
 //! `ddq init` — 設計書リポジトリを新規作成する（旧 init-doc）。
-//!   1) リポジトリ直下: .gitignore / .gitattributes / .vscode/settings.json / README.md
+//!   1) リポジトリ直下: .gitignore / .gitattributes / .vscode/settings.json / .vscode/extensions.json / README.md
 //!      （scaffold/repo。ドット始まりの名前は scaffold に置けないのでここで付け替える。
 //!      README の {{CONTENT_DIR}} は執筆フォルダ名に置換。既存ファイルは触らない）
 //!   2) 執筆フォルダ: add と同じ（再実行しても既存ファイルは触らない）
@@ -11,10 +11,11 @@ use anyhow::{Context, Result, bail};
 use crate::{assets, commands::add, writing_folder};
 
 /// scaffold/repo 内の名前 → リポジトリ直下での名前
-const REPO_FILES: [(&str, &str); 3] = [
+const REPO_FILES: [(&str, &str); 4] = [
     ("gitignore", ".gitignore"),
     ("gitattributes", ".gitattributes"),
     ("vscode/settings.json", ".vscode/settings.json"),
+    ("vscode/extensions.json", ".vscode/extensions.json"),
 ];
 
 pub fn run(repo: &Path, writing_folder_name: &str, no_render: bool) -> Result<()> {

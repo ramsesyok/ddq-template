@@ -1,25 +1,28 @@
 ## コマンド
 
-::: {.tbl caption="主なコマンド" label="tbl-cs-cmd" widths="30,50,20"}
-| やりたいこと             | コマンド                                            | 参照  |
-|--------------------------|-----------------------------------------------------|-------|
-| 確認用 HTML を出す（執筆者） | `cd docs` ＋ `quarto render`                     | 5章   |
-| 設計書リポジトリを作る   | `.\ddq init C:\work\order-design`                    | 4章   |
-| 執筆フォルダを増やす     | `.\ddq add C:\work\order-design\design-doc2`        | 4章   |
-| 機構ファイルを更新する   | `.\ddq update C:\work\order-design\docs`（全部なら `--all C:\work\order-design`） | 11章 |
-| PDF を出す               | `.\ddq pdf C:\work\order-design\docs`               | 12章  |
-| 配布 HTML を出す         | `.\ddq html C:\work\order-design\docs`              | 12章  |
-| 両方出す                 | PDF → HTML の順に実行する                           | 12章  |
-| 静的図（`diagrams/*.mmd` `*.puml`）を SVG にする | `.\ddq diagrams C:\work\order-design\docs` | 8章 |
-| PlantUML サーバを上げておく（執筆者のプレビュー用） | `.\ddq plantuml serve` | 11章 |
+::: {.tbl caption="主な操作" label="tbl-cs-cmd" widths="28,32,28,12"}
+| やりたいこと             | VSCode（DDQ Template）                      | コマンド（@sec-cli）                          | 参照  |
+|--------------------------|---------------------------------------------|-----------------------------------------------|-------|
+| 確認用 HTML を出す（執筆者） | DDQ: HTML を作成                         | `cd docs` ＋ `quarto render`                  | 5章   |
+| 設計書リポジトリを作る   | DDQ: 設計書リポジトリを作成                 | `.\ddq init C:\work\order-design`             | 4章   |
+| 執筆フォルダを増やす     | ―                                          | `.\ddq add C:\work\order-design\design-doc2`  | 4章   |
+| 機構ファイルを更新する   | 版が合わないときの通知から ddq update を実行 | `.\ddq update C:\work\order-design\docs`（全部なら `--all C:\work\order-design`） | 11章 |
+| PDF を出す               | DDQ: PDF を作成（ステータスバーの PDF ボタン） | `.\ddq pdf C:\work\order-design\docs`       | 12章  |
+| 配布 HTML を出す         | DDQ: HTML を作成                            | `.\ddq html C:\work\order-design\docs`        | 12章  |
+| 両方出す                 | PDF → HTML の順に実行する                  | 同左                                          | 12章  |
+| 静的図（`diagrams/*.mmd` `*.puml`）を SVG にする | DDQ: 図を変換        | `.\ddq diagrams C:\work\order-design\docs`    | 8章   |
+| ラベルを付ける・改訂履歴を作る | DDQ: 見出し・表・図のラベルを一覧する ／ DDQ: 新しい改訂を始める | `.\ddq tag …` ／ `.\ddq rev …`  | 13章  |
+| 表を視覚的に編集する     | DDQ: 表エディタを開く                       | ―                                            | 3章   |
+| PlantUML サーバを上げておく（執筆者のプレビュー用） | ―                       | `.\ddq plantuml serve`                        | 11章  |
 :::
 
-`quarto render` 以外は `ddq.exe` を持つ人（通常は発行者）の作業であり、
-**リリースを展開したフォルダ**から実行する。
+VSCode のコマンドは、コマンドパレット（`Ctrl+Shift+P`）で `DDQ:` と打つと並ぶ。
+執筆フォルダ（またはその中のフォルダ）を右クリックしても出る。
+
+コマンドは**配布 zip を展開したフォルダ**から実行する。`C:\work\order-design\docs` は
+執筆フォルダのパスで、相対パスは「いま開いているフォルダ」からの相対になるため、
+**絶対パスで書く**こと。
 
 ```bat
-cd C:\tools\quarto-template-2.3.0
+cd C:\tools\quarto-template-3.0.0-pre1
 ```
-
-`C:\work\order-design\docs` は執筆フォルダのパスである。相対パスは「いま開いている
-フォルダ」からの相対になるため、**絶対パスで書く**こと。

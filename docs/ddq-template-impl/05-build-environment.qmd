@@ -1,0 +1,47 @@
+# ビルド・実行環境と依存関係 {#sec-build-environment}
+
+## 共通の基盤 {#sec-build-common}
+
+### スクリプト
+
+::: {.tbl caption="npm スクリプト" label="tbl-scripts" widths="30,70"}
+| スクリプト | 内容 |
+|---|---|
+| `build` | `build:ext`（esbuild で `out/extension.js`）＋ `build:webview`（`vite build --mode revision` と `--mode tableEditor` で `out/webview/<画面>/assets/main.{js,css}`） |
+| `package` | `vsce package`。ddq.exe を入れない VSIX（開発・拡張の CI 用） |
+| `package:win32-x64` | `vsce package --target win32-x64` → `ddq-template-win32-x64-<版>.vsix`。`bin/win32-x64/ddq.exe` を置いてから実行する |
+| `test` / `typecheck` / `check:offline` / `check:audit` / `verify` | ユニットテスト・型検査・成果物の通信 API と外部 URL の検査・本番依存の脆弱性検査・その一括 |
+| `test:host` | 実拡張ホスト（ソースから起動。ddq は手元のビルドか golden を返す差し替え。差し替えは Windows では `rustc` で作る小さな exe で包むので、`rustc` が要る） |
+| `test:smoke` | 同梱版のスモーク。VSIX を `System32\tar.exe` で展開し、展開した `extension/` を拡張として起動。設定・`PATH` なしで同梱 ddq に決まること、`init` → `html` |
+:::
+
+lib モードの iife は複数エントリを持てないので、Webview は画面ごとに vite を 1 回ずつ走らせる
+（`vite.config.mts` が `--mode` で入口と出力先を選ぶ）。
+
+### ddq.exe の同梱
+
+`ddq release`（`cli/src/commands/release.rs`）が、`package:win32-x64` スクリプトを持つ拡張について次を行う。
+
+1. 自分自身（`current_exe`）を `<拡張>/bin/win32-x64/ddq.exe` にコピーする（`extensions/*/bin/` は git 管理外）。
+2. `npm ci`（`node_modules` が無いときだけ）→ `npm run package:win32-x64`。
+3. VSIX の `extension/bin/win32-x64/ddq.exe` が、release している exe と**バイト一致**することを確かめる
+   （`--no-build` で前の版の ddq を同梱した VSIX を配らないため）。
+4. VSIX は配布 zip に入れず、zip の隣に置く（リリースページの別資産）。
+
+VSIX は約 10.7 MB（ddq.exe は約 30 MB で、zip 圧縮で縮む）。確認済み（実行）。
+
+### CI
+
+| ワークフロー | ジョブ | 内容 |
+|---|---|---|
+| `extension.yml` | test / host / audit / package | 拡張のユニットテスト（Ubuntu・Windows × Node 20・22）、実拡張ホスト（golden 差し替えの ddq）、脆弱性、ddq なし VSIX |
+| `ci.yml` | cli | ddq の fmt / clippy / test / build。`ddq-windows-x64` を成果物に |
+| `ci.yml` | vsix-smoke | 上の ddq.exe を同梱して VSIX を作り `test:smoke`。main への push と手動実行のみ（PR では走らない） |
+
+## ラベル付け・改訂履歴（旧 DDQ Revision） {#sec-build-rev}
+
+{{< include parts/revision/05-build-environment.qmd >}}
+
+## 表エディタ（旧 DDQ Table Editor） {#sec-build-te}
+
+{{< include parts/table-editor/05-build-environment.qmd >}}

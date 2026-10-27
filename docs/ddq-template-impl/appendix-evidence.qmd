@@ -1,0 +1,21 @@
+# 解析根拠 {#sec-evidence}
+
+## 共通の基盤 {#sec-evidence-common}
+
+基準は `feature/ddq-template` のコミット `878c7361baaed4edab4af3e16028fe28d6525edb`（段階 1a〜1d）、
+2026-10-25。共通の基盤の節は、次のソースの静的確認と、次の実行結果に基づく。
+
+- ソース: `extensions/ddq-template/src/{extension,build,init,folders,quarto,legacy}.ts`、
+  `src/ddq/{locate,run,lock,version}.ts`、`package.json`、`tests/host/{run.mjs,index.js,smoke.mjs,smoke-index.js}`、
+  `cli/src/commands/{setup,release}.rs`、`cli/src/main.rs`
+- 実行（確認済み）: `npm run verify`（ユニットテスト 247 件・型検査・ビルド・オフライン検査・脆弱性 0 件）、
+  `npm run test:host`（実物の ddq 2.4.5 で 21 項目、差し替えの ddq でも合格）、`npm run test:smoke`
+  （10.7 MB の VSIX で 3 項目）、`cargo test`（`commands`・`release`・`third_party` を含む全件）
+
+## ラベル付け・改訂履歴（旧 DDQ Revision 2.3.0）
+
+{{< include parts/revision/appendix-evidence.qmd >}}
+
+## 表エディタ（旧 DDQ Table Editor 2.2.1）
+
+{{< include parts/table-editor/appendix-evidence.qmd >}}

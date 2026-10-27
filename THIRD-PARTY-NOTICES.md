@@ -1,6 +1,6 @@
 # 第三者のソフトウェアとライセンス（THIRD-PARTY-NOTICES）
 
-<!-- ddq-third-party inputs: cli/Cargo.lock=a32559f9cf9e8648085b71a21b59f133802ee8e5 template/vendor/mermaid.min.js=0a6b4761f8ad1e3d42fe17e66033fa5cf2785ae1 cli/vendor/plantuml.jar=ef49f4f313d06de6575dcaa67361df432c028048 extensions/ddq-revision/package-lock.json=fb4e78e4d1d42faa9da254b572368bb0ef462f20 extensions/ddq-table-editor/package-lock.json=dd836f8f8b4094535ae809208293f1edbf8577e7 -->
+<!-- ddq-third-party inputs: cli/Cargo.lock=a32559f9cf9e8648085b71a21b59f133802ee8e5 template/vendor/mermaid.min.js=0a6b4761f8ad1e3d42fe17e66033fa5cf2785ae1 cli/vendor/plantuml.jar=ef49f4f313d06de6575dcaa67361df432c028048 extensions/ddq-template/package-lock.json=068860624350d50bd17df33d774bebcdf978ce0f -->
 <!-- 生成物。手で直さない（python cli/tools/third_party.py で作り直す） -->
 
 この配布物（quarto-template）の ddq 本体とテンプレートは MIT ライセンスである（同梱の LICENSE）。
@@ -263,7 +263,7 @@
 | dayjs | 1.11.23 | MIT | <https://www.npmjs.com/package/dayjs/v/1.11.23> |
 | delaunator | 5.1.0 | ISC | <https://www.npmjs.com/package/delaunator/v/5.1.0> |
 | dompurify | 3.4.17 | (MPL-2.0 OR Apache-2.0) | <https://www.npmjs.com/package/dompurify/v/3.4.17> |
-| es-toolkit | 1.52.0 | MIT | <https://www.npmjs.com/package/es-toolkit/v/1.52.0> |
+| es-toolkit | 1.53.0 | MIT | <https://www.npmjs.com/package/es-toolkit/v/1.53.0> |
 | hachure-fill | 0.5.2 | MIT | <https://www.npmjs.com/package/hachure-fill/v/0.5.2> |
 | iconv-lite | 0.6.3 | MIT | <https://www.npmjs.com/package/iconv-lite/v/0.6.3> |
 | import-meta-resolve | 4.2.0 | MIT | <https://www.npmjs.com/package/import-meta-resolve/v/4.2.0> |
@@ -293,7 +293,7 @@
 
 PlantUML の MIT 版（`plantuml-mit-<版>.jar`）。ライセンス表示は末尾の「PlantUML のライセンス表示」を参照。
 
-### VSCode 拡張（ddq-revision / ddq-table-editor）の Webview にバンドルしたもの（3 件）
+### VSCode 拡張（ddq-template）の Webview にバンドルしたもの（3 件）
 
 | 名前 | 版 | ライセンス | 入手先 |
 |---|---|---|---|
@@ -3899,7 +3899,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 65
 
-対象: es-toolkit 1.52.0（LICENSE）
+対象: es-toolkit 1.53.0（LICENSE）
 
 ```text
 MIT License
@@ -3927,7 +3927,7 @@ SOFTWARE.
 
 ### 本文 66
 
-対象: es-toolkit 1.52.0（NOTICE）
+対象: es-toolkit 1.53.0（NOTICE）
 
 ```text
 es-toolkit

@@ -1,33 +1,51 @@
-## テンプレートの配置と更新（update / setup） {#sec-update-doc}
+## テンプレートの配置と更新 {#sec-update-doc}
 
 設計書リポジトリの中には `template/` が無く、HTML を出すのに要る**機構ファイル**だけが
 置かれている（@sec-doc-repo）。この配置と更新を行うのが発行者である。
-機構ファイルの実体は `ddq.exe` の中に埋め込まれているので、**`ddq` の版がそのまま
-テンプレートの版**である。
+機構ファイルの実体は `ddq.exe` の中に埋め込まれているので、**DDQ Template（`ddq`）の版が
+そのままテンプレートの版**である。
 
-### 機構ファイルの更新（update）
+### 機構ファイルを更新する
 
-保守者から新しいリリースを受け取ったら、設計書リポジトリへ入れ直す。新しいリリースは
-**別のフォルダに展開される**ので、そちらへ移動してから実行する。
+保守者から新しい版の VSIX を受け取ったら、VSCode に入れ直す（@sec-extension）。
+そのあと設計書リポジトリで **DDQ: PDF を作成**（または HTML）を実行すると、
+執筆フォルダの機構ファイルが古いので、次の通知が出る。
 
-```bat
-cd C:\tools\quarto-template-2.4.5
-.\ddq update C:\work\order-design\docs
-```
+> docs のテンプレートは 2.4.5、ddq は 3.0.0-pre1 です。ddq update で機構ファイルを新しい版にしてから続けます。
+> **[ddq update を実行]** **[出力を表示]**
 
-古い版のフォルダは残しておけるため、問題があれば元の版から `update` を実行し直せば戻せる。
-
-機構ファイル 5 点（`design-doc.lua` / `design-doc.css` / `postprocess-html.js` /
-`mermaid-config.json` / `plantuml-config.puml` / `.template-version`）だけが置き換わる。**原稿には触れない。**
+**ddq update を実行** を押すと機構ファイルが新しい版に置き換わり、続けて元の出力が
+やり直される。置き換わるのは機構ファイル 5 点（`design-doc.lua` / `design-doc.css` /
+`postprocess-html.js` / `mermaid-config.json` / `plantuml-config.puml`）と
+`.template-version` だけで、**原稿には触れない**。
 
 ::: {.callout-important}
 **git の差分として出るのでコミットする。** 執筆者は pull するだけで新しい機構になる。
 `<執筆フォルダ>/.template-version` に、どの版で置いたかが記録される。
 :::
 
+版の比べ方によって、通知は次のように変わる。
+
+::: {.tbl caption="版が合わないときの通知" label="tbl-update-notice" widths="32,68"}
+| 状態 | 通知と対処 |
+|---|---|
+| 執筆フォルダの方が古い | **ddq update を実行** を案内する。発行者が押し、差分をコミットする |
+| 版は同じで、機構ファイルが手で直されている | **ddq update を実行** で元に戻せる。直した理由があるなら、押す前に差分を Git で確かめる |
+| 執筆フォルダの方が新しい | update は出さない（機構を古い版に戻してしまうため）。DDQ Template を新しい版に入れ直す |
+:::
+
+::: {.callout-warning}
+**執筆者は ddq update を押さない。** 執筆者の DDQ Template の版が設計書リポジトリと違う
+だけのこともあり、押すと発行者が管理する機構ファイルに差分ができる。執筆者は通知が
+出たら発行者に伝え、同じ版の VSIX を受け取る（@sec-place）。
+:::
+
+リポジトリに執筆フォルダが複数ある場合（@sec-add）は、それぞれの執筆フォルダで
+更新する。まとめて更新するコマンド（`ddq update --all`）もある（@sec-cli）。
+
 ::: {.callout-note}
-**2.1.0 以前に作った設計書リポジトリを 2.2.0 に上げるとき**は、リポジトリ直下の `.gitignore` に
-次の 1 行を足す（`ddq init` が置くファイルは `update` では書き換えないため）。PlantUML 図の
+**2.1.0 以前に作った設計書リポジトリを 2.2.0 以降に上げるとき**は、リポジトリ直下の `.gitignore` に
+次の 1 行を足す（リポジトリの作成時に置くファイルは update では書き換えないため）。PlantUML 図の
 キャッシュ（`diagrams/puml-*`）を誤ってコミットしないためのもので、PlantUML を使わなければ無くてもよい。
 
 ```text
@@ -35,24 +53,12 @@ cd C:\tools\quarto-template-2.4.5
 ```
 :::
 
-リポジトリに執筆フォルダが複数ある場合（@sec-newdoc）は、リポジトリのパスを渡して
-まとめて更新できる。
-
-```bat
-.\ddq update --all C:\work\order-design
-```
-
 ### ビルド前の準備（setup）
 
-`setup` は次を行う。**`ddq pdf` が先頭で自動的に呼ぶ**ので、通常は明示的に実行しなくてよい。
+PDF の出力は、先頭で次の準備（`setup`）を自動で行う。明示的に実行する必要はない。
 
-1. `.template-version` と機構ファイルが、起動した `ddq.exe` と一致するか検査
+1. `.template-version` と機構ファイルが、使っている `ddq.exe` と一致するか検査
 2. PDF を出すための部品（`lib.typ`・typst の partial・`_quarto-publish.yml`）の配置
-
-```bat
-:: 明示的に実行する場合
-.\ddq setup C:\work\order-design\docs
-```
 
 ::: {.callout-note}
 setup が置く PDF 用の部品は生成物であり、設計書リポジトリでは `.gitignore` 済みである。
@@ -61,10 +67,10 @@ setup が置く PDF 用の部品は生成物であり、設計書リポジトリ
 :::
 
 ::: {.callout-important}
-`ddq pdf` / `ddq html` は、追跡対象の機構ファイルを暗黙に更新しない。執筆フォルダと
-`ddq.exe` の版・内容が違うときは、`ddq update` を案内して停止する。
+PDF・HTML の出力は、追跡対象の機構ファイルを**黙って更新しない**。執筆フォルダと
+`ddq.exe` の版・内容が違うときは、上の通知を出して止まる。
 
-これにより、別版の `ddq.exe` を持つ執筆者が PDF を確認しただけで、発行者が管理する
+これにより、別の版の DDQ Template を持つ執筆者が PDF を確認しただけで、発行者が管理する
 機構ファイルに差分が出ることを防いでいる。更新は発行者が明示的に行い、差分を確認して
 コミットすること。
 :::

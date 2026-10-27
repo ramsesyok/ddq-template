@@ -14,7 +14,7 @@
 | Quartoプロファイル・出力先 | `quarto::output_dir`、pdf `find_pdf` → publish設定 → releaseのmanualコピー | output-dir の読み取り（profile 優先）とPDF一件の前提。PDF→HTMLの順で両方を残す |
 | 配布構成・ZIP | `release` → assets案内PDF、`extensions/*`、vendor、zip_archive | stage削除範囲、--no-buildの残る処理、拡張ごとのname・版、ZIP再展開 |
 | 拾う単位・章構成の解釈 | `doc::units::scan`、`doc::project::chapters_of / walk`、`doc::diff::units_of / order_of` | tag と rev で同じ単位になること。新しい記法は scan と units_of の両方に入れる。`tests/tag.rs`・`tests/rev.rs` |
-| 候補ラベル・書き戻し | `doc::labels`、`commands::tag`、VSCode拡張 ddq-revision | 候補の決定性、`col` は文字数、CRLF保持、`--from` の検証。JSON形は拡張との契約 |
+| 候補ラベル・書き戻し | `doc::labels`、`commands::tag`、VSCode拡張 ddq-template（旧 ddq-revision） | 候補の決定性、`col` は文字数、CRLF保持、`--from` の検証。JSON形は拡張との契約 |
 | 差分・改訂ファイル・履歴表 | `doc::diff`、`doc::revfile`、`commands::rev`、`lib.typ` の `_xref-page` | 帰属の一意性、note と stale の引継ぎ、固定YAML形式の往復、PDF/HTMLの二表。JSONと yml は拡張との契約 |
 | Git 呼出し | `doc::gitsrc` | `core.quotepath=off`、`ls-tree` での存在確認、ref の `^{commit}` 解決 |
 
@@ -44,7 +44,7 @@
 
 根拠：[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0012](appendix-evidence.qmd#ev-e-0012)。性能目標・最大規模は [U-0005](07-issues-unknowns.qmd#u-0005) で不明としている。
 
-**確認済み（静的・故障注入）**：browserでは処理後に `Browser.close`、起動プロセスkill、Job Objectのclose（子孫をすべて終わらせる）の順に行い、その後で一時フォルダを消す（ファイルが放されるまで最大3秒待ち直す）。PicoWebは通常のDropでkill/wait、どちらも Windows では `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` の Job Object に入れる。ddq が強制終了された場合も子孫は Job Object で終わるが、一時フォルダ（`ddq-mermaid-*`）は後始末が走らないため残る。非Windowsには Job Object が無く、子の kill だけである。[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0029](appendix-evidence.qmd#ev-e-0029)
+**確認済み（静的・故障注入）**：browserでは処理後に `Browser.close` を送り、Job Object の中のプロセスが**終わりきるまで**待つ（自分で終わるのを最大5秒待ち、過ぎたら Job ごと止める。`job::Handle::end_all`）。その後で一時フォルダを消す（ファイルが放されるまで最大5秒待ち直し、消せなければ stderr に出す）。ブラウザの `TMP`/`TEMP` は一時フォルダの中に向ける。PicoWebは通常のDropでkill/wait、どちらも Windows では `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` の Job Object に入れる。ddq が強制終了された場合も子孫は Job Object で終わるが、一時フォルダ（`ddq-mermaid-*`）は後始末が走らないため残る。非Windowsには Job Object が無く、子の kill だけである。[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0029](appendix-evidence.qmd#ev-e-0029)
 
 ## 入力と外部接続の前提 {#sec-6de862}
 

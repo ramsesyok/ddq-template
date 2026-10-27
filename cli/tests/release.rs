@@ -41,6 +41,25 @@ fn write(root: &Path, rel: &str, bytes: &[u8]) {
     fs::write(p, bytes).unwrap();
 }
 
+/// ddq.exe を同梱した VSIX（中身は zip）。`exe` を `extension/bin/win32-x64/ddq.exe` に入れる。
+fn write_bundled_vsix(root: &Path, rel: &str, exe: &[u8]) {
+    let p = root.join(rel);
+    fs::create_dir_all(p.parent().unwrap()).unwrap();
+    let mut zip = zip::ZipWriter::new(fs::File::create(p).unwrap());
+    let options = zip::write::SimpleFileOptions::default();
+    zip.start_file("extension/package.json", options).unwrap();
+    std::io::Write::write_all(&mut zip, b"{}").unwrap();
+    zip.start_file("extension/bin/win32-x64/ddq.exe", options)
+        .unwrap();
+    std::io::Write::write_all(&mut zip, exe).unwrap();
+    zip.finish().unwrap();
+}
+
+/// release を走らせる exe（= VSIX に同梱されるべき exe）の中身
+fn ddq_bytes() -> Vec<u8> {
+    fs::read(env!("CARGO_BIN_EXE_ddq")).unwrap()
+}
+
 /// release が求める形の小さなリポジトリ。
 fn fake_repo(root: &Path) {
     let v = version();
@@ -53,14 +72,26 @@ fn fake_repo(root: &Path) {
         "<html>利用マニュアル</html>".as_bytes(),
     );
     write(root, "docs/manual/_book/chapters/01.html", b"<html>1</html>");
-    for ext in ["ddq-a", "ddq-b"] {
-        write(
-            root,
-            &format!("extensions/{ext}/package.json"),
-            format!("{{\"name\":\"{ext}\",\"version\":\"{v}\"}}").as_bytes(),
-        );
-        write(root, &format!("extensions/{ext}/{ext}-{v}.vsix"), b"PK vsix");
-    }
+    // ddq-a は ddq.exe を同梱する拡張（package:win32-x64 を持つ）、ddq-b は同梱しない拡張
+    write(
+        root,
+        "extensions/ddq-a/package.json",
+        format!(
+            "{{\"name\":\"ddq-a\",\"version\":\"{v}\",\"scripts\":{{\"package:win32-x64\":\"vsce package --target win32-x64\"}}}}"
+        )
+        .as_bytes(),
+    );
+    write_bundled_vsix(
+        root,
+        &format!("extensions/ddq-a/ddq-a-win32-x64-{v}.vsix"),
+        &ddq_bytes(),
+    );
+    write(
+        root,
+        "extensions/ddq-b/package.json",
+        format!("{{\"name\":\"ddq-b\",\"version\":\"{v}\"}}").as_bytes(),
+    );
+    write(root, &format!("extensions/ddq-b/ddq-b-{v}.vsix"), b"PK vsix");
     write(root, "cli/vendor/plantuml.jar", b"not really a jar");
     write(root, "README.md", "# テンプレート\n".as_bytes());
     write(root, "AGENT-GUIDE.md", b"# guide\n");
@@ -156,10 +187,16 @@ fn zip_matches_the_stage_byte_for_byte() {
         "manual/利用マニュアル.pdf".into(),
         "manual/html/index.html".into(),
         "manual/html/chapters/01.html".into(),
-        format!("ddq-a-{v}.vsix"),
-        format!("ddq-b-{v}.vsix"),
     ] {
         assert!(names.contains(&want.as_str()), "{want} が無い: {names:?}");
+    }
+    // VSCode 拡張は zip に入れず、zip の隣に置く（リリースページの別資産）
+    assert!(
+        !names.iter().any(|n| n.ends_with(".vsix")),
+        "VSIX が配布フォルダ（zip）に入った: {names:?}"
+    );
+    for vsix in [format!("ddq-a-win32-x64-{v}.vsix"), format!("ddq-b-{v}.vsix")] {
+        assert!(out.join(&vsix).is_file(), "{vsix} が zip の隣に無い");
     }
     assert!(
         !names.iter().any(|n| n.starts_with("docs/")),
@@ -287,8 +324,27 @@ fn no_build_without_a_vsix_stops() {
     let tmp = tempfile::tempdir().unwrap();
     let repo = tmp.path().join("repo");
     fake_repo(&repo);
-    fs::remove_file(repo.join(format!("extensions/ddq-a/ddq-a-{}.vsix", version()))).unwrap();
-    assert_fails_untouched(&repo, &tmp.path().join("out"), &[], "npm run package");
+    fs::remove_file(repo.join(format!("extensions/ddq-a/ddq-a-win32-x64-{}.vsix", version()))).unwrap();
+    assert_fails_untouched(&repo, &tmp.path().join("out"), &[], "npm run package:win32-x64");
+}
+
+#[test]
+fn bundled_exe_must_be_the_released_ddq() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    fake_repo(&repo);
+    // 前の版の ddq を同梱したままの VSIX（--no-build で配ってはいけない）
+    write_bundled_vsix(
+        &repo,
+        &format!("extensions/ddq-a/ddq-a-win32-x64-{}.vsix", version()),
+        b"MZ old ddq",
+    );
+    assert_fails_untouched(
+        &repo,
+        &tmp.path().join("out"),
+        &[],
+        "いま release している ddq と違います",
+    );
 }
 
 #[test]

@@ -5,7 +5,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 利用手順は利用マニュアル（`docs/manual/`）、様式・変換の内部はテンプレート設計書（`docs/design/`）。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
-- 対象版: テンプレート 2.4.5（PlantUML 対応。§13）
+- 対象版: テンプレート 3.0.0-pre1（PlantUML 対応。§13）
 
 ---
 
@@ -76,10 +76,10 @@ quarto-template/
 ├── docs/                        … 設計リポジトリ（執筆フォルダ manual/ = 利用マニュアル、design/ = テンプレート設計書）
 ├── examples/                    … サンプルの設計書リポジトリ（docs/ = 受注管理システム基本設計書。--with-sample の同梱元）
 ├── extensions/                  … VSCode 拡張（1 フォルダ = 1 拡張。2.4.0 で extension/ から移した）
-│   ├── ddq-revision/            … 見出し・表・図のラベル付け（ddq tag list/apply の画面。2.4.0）
-│   └── ddq-table-editor/        … 表の視覚編集（2.1.0 で旧 quarto-table-support を統合。
-│                                   ddq release が npm でパッケージして VSIX を同梱する）
-├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release
+│   └── ddq-template/            … 旧 ddq-revision（ラベル付け・改訂履歴）と旧 ddq-table-editor（表の視覚編集）を
+│                                   統合し、ddq.exe を同梱して init / pdf / html / diagrams を VSCode から行う拡張
+│                                   （docs/ddq-template-study.md。ddq release が win32-x64 の VSIX を作る）
+├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release、その exe を同梱した VSIX のスモーク
 └── .github/workflows/extension.yml … 拡張の CI（Ubuntu / Windows × Node 20 / 22）
 ```
 
@@ -97,10 +97,11 @@ quarto-template-<版>/
 ├── THIRD-PARTY-NOTICES.md … 第三者のソフトウェアのライセンス表示（リポジトリ直下の生成物。下記）
 ├── はじめかた.pdf        … 最初の一歩（template/release-guide.typ を Quarto 同梱の Typst で PDF に。
 │                            Marp は npm 依存なので使わない）
-├── ddq-table-editor-<版>.vsix … VSCode 拡張（2.1.0 から。extensions/ の各拡張を `npm run package` したもの）
 └── manual/
     ├── 利用マニュアル.pdf
     └── html/index.html
+quarto-template-<版>.zip
+ddq-template-win32-x64-<版>.vsix … VSCode 拡張（ddq.exe 同梱）。zip には入れず隣に置き、リリースページの別資産にする
 ```
 
 `template/` は release に**含めない**（すべて exe に埋め込まれている）。
@@ -117,8 +118,14 @@ ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm �
 `tests/third_party.rs` が照合する。依存を変えたら作り直してコミットする（しないとリリースと CI が止まる）。
 テキストの入力は改行を LF に揃えてからハッシュする（`Cargo.lock` は checkout の設定で CRLF にもなる）。
 
-VSIX は `ddq release` が `extension/` で `npm ci`（`node_modules/` が無いときだけ）→
+VSIX は `ddq release` が `extensions/<拡張>/` で `npm ci`（`node_modules/` が無いときだけ）→
 `npm run package` を実行して作る（`--no-build` なら既存の VSIX を使う）。
+`package:win32-x64` スクリプトを持つ拡張（ddq-template）は ddq.exe を同梱する: release している exe を
+`<拡張>/bin/win32-x64/ddq.exe`（git 管理外）にコピーしてから `npm run package:win32-x64`
+（`vsce package --target win32-x64`）で `<name>-win32-x64-<版>.vsix` を作る。最後に VSIX の中の
+`extension/bin/win32-x64/ddq.exe` が release している exe とバイト一致することを確かめる
+（`--no-build` で前の版の ddq を同梱した VSIX を配らないため）。VSIX は zip に入れず、zip の隣に置く
+（CLI 利用者は zip、VSCode 利用者は VSIX と、別の資産として取れるようにする）。
 `extensions/<拡張>/package.json` の `version` が `template/VERSION` と違えば止める（拡張の版＝テンプレートの版）。
 発行者・執筆者の端末に Node.js が要らない点は変わらない（要るのは保守者のリリース作成時だけ）。
 Windows の `npm` は `npm.cmd` なので `cmd /C npm …` で起動する（`Command::new("npm")` は .cmd を解決しない）。
@@ -173,10 +180,10 @@ tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出�
 
 | コマンド | 処理 | 現行 |
 |---|---|---|
-| **init** | 1) リポジトリ直下に `.gitignore` `.gitattributes` `.vscode/settings.json` `README.md`（`{{CONTENT_DIR}}` 置換）を「無いものだけ」置く 2) `add <repo>/<name>` | init-doc |
+| **init** | 1) リポジトリ直下に `.gitignore` `.gitattributes` `.vscode/settings.json` `.vscode/extensions.json`（`quarto.quarto` を推奨）`README.md`（`{{CONTENT_DIR}}` 置換）を「無いものだけ」置く 2) `add <repo>/<name>` | init-doc |
 | **add** | 前提: 上のフォルダのどこかにリポジトリの目印（`.gitignore` / `.git` / `.svn` / `.hg`）がある（無ければ「先に `ddq init`」と案内。執筆フォルダは入れ子でもよい）。拒否: 対象に `_quarto.yml` が既にある。処理: scaffold の content 一式を無いものだけ置く → `update` → `quarto render --to html` で疎通確認（`--no-render` で省略） | （新規） |
 | **update** | 機構ファイル 5 本と `.template-version` を上書き。`--all <repo>` は配下の `_quarto.yml` を持つフォルダを列挙して全部に適用（`_book/` `.quarto/` `node_modules/` は探索しない） | update-doc |
-| **setup** | `.template-version` と機構ファイル 5 本が現在の `ddq` と一致するか検査 → PDF 側4ファイルを上書き。不一致時は `update` せず停止。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
+| **setup** | `.template-version` と機構ファイル 5 本が現在の `ddq` と一致するか検査 → PDF 側4ファイルを上書き。不一致時は `update` せず停止し、**終了コード 3** で終わる（VSCode 拡張 ddq-template が update を案内する契約。他の失敗は 1）。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
 | **html** | 版・機構の一致検査 → PlantUML サーバの用意（§13.3）→ `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN` `DDQ_PLANTUML_SERVER`）。出力 `_book/` | build-html |
 | **pdf** | `setup` → PlantUML サーバの用意 → `quarto render --to typst --profile publish`（env: `DDQ_BIN` `DDQ_PLANTUML_SERVER`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
 | **diagrams** | `diagrams/*.mmd *.puml` → 同名 `.svg`（キャッシュ `mmd-*` `puml-*` は対象外）。設定は執筆フォルダ直下の `mermaid-config.json` / `plantuml-config.puml`（無ければ埋め込み） | render-diagrams |
@@ -252,6 +259,8 @@ auto:
              --user-data-dir=<一時フォルダ>/profile
              --remote-debugging-port=0 about:blank
    ```
+   環境変数 `TMP` / `TEMP` は `<一時フォルダ>/tmp` に向ける（ブラウザは %TEMP% 直下にも `*.tmp` や
+   `Importer_*` を作り、止めると残る。PR #122 再検証 N-01）。
    起動した子プロセスの終了は成否に使わない（Edge は即終了する）。
    Windows では起動直後に子を Job Object（`crate::job`、KILL_ON_JOB_CLOSE）に入れる。ブラウザは
    子の下にレンダラ等の孫を作り、子を kill するだけでは孫が ddq の標準出力を握ったまま残る
@@ -264,11 +273,15 @@ auto:
    「Execution context was destroyed」になるので load を待つ。
    同じページで続けて描かないのは、mermaid が図をまたいで持つ連番（sequenceDiagram の
    actor id など）が前の図に依存し、mermaid-cli（1 図 1 ページ）と出力が変わるため。
-5. `Browser.close` で閉じる（閉じないと headless プロセスが残る）。続けて起動した子を kill し、Job Object を
-   閉じて子孫をすべて終わらせてから、一時フォルダを削除する（放されるまで最大 3 秒待ち直す）。
-   `Browser.close` は非同期なので、先に消そうとすると profile を握られて削除に失敗し、%TEMP% に
-   `ddq-mermaid-*` が 1 回ごとに溜まっていた（調査端末で 1,157 件）。ddq が強制終了されたときは
-   子孫は Job Object で終わるが、一時フォルダは残る
+5. `Browser.close` で閉じる（閉じないと headless プロセスが残る）。Windows では Job Object の中の
+   プロセスを開き、**終わりきるまで**待つ（`job::Handle::end_all`。`Browser.close` を受け付けたら最大 5 秒は
+   自分で終わるのを待ち、過ぎたら Job ごと止める。全体で最大 15 秒）。それから一時フォルダを削除する
+   （放されるまで最大 5 秒待ち直し、それでも消せなければ stderr に出す）。
+   `Browser.close` も Job の終了も非同期なので、先に消そうとすると profile を握られて削除に失敗し、%TEMP% に
+   `ddq-mermaid-*` が 1 回ごとに溜まっていた（調査端末で 1,157 件）。Job を閉じただけ、または Job の
+   「動いているプロセス数」が 0 になっただけでは、プロセスはまだ終わりきっていないことがある（実測）。
+   高負荷時はそのため後始末が間に合わなかった（8 並列で 40 回中 14 回。PR #122 再検証 N-01）。
+   ddq が強制終了されたときは子孫は Job Object で終わるが、一時フォルダは残る
 
 複数入力でも起動は 1 回（1 図 ≒ 1.5 秒、22 図 ≒ 3 秒）。
 

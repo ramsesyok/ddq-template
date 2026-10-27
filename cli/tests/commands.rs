@@ -51,6 +51,7 @@ fn init_then_add_then_update_all() {
         ".gitignore",
         ".gitattributes",
         ".vscode/settings.json",
+        ".vscode/extensions.json",
         "README.md",
     ] {
         assert!(repo.join(f).is_file(), "{f} がありません");
@@ -133,7 +134,8 @@ fn init_then_add_then_update_all() {
     // setup は追跡対象の機構ファイルを暗黙に直さない
     fs::write(docs.join("design-doc.lua"), "locally modified").unwrap();
     let out = ddq(&["setup", &docs.to_string_lossy()]);
-    assert!(!out.status.success());
+    // 機構の不一致は終了コード 3（VSCode 拡張が update を案内する。§3.2）
+    assert_eq!(out.status.code(), Some(3));
     assert!(String::from_utf8_lossy(&out.stderr).contains("ddq update"));
     assert_eq!(
         fs::read_to_string(docs.join("design-doc.lua")).unwrap(),
@@ -233,8 +235,12 @@ fn setup_rejects_different_template_version() {
     fs::write(docs.join(".template-version"), "0.0.0\n").unwrap();
 
     let out = ddq(&["setup", &docs.to_string_lossy()]);
-    assert!(!out.status.success());
+    assert_eq!(out.status.code(), Some(3), "版の不一致は終了コード 3");
     let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.starts_with("Error: "),
+        "anyhow の既定と同じ書き出し: {stderr}"
+    );
     assert!(stderr.contains("テンプレートの版が一致しません"));
     assert!(stderr.contains("ddq update"));
     assert_eq!(
@@ -278,7 +284,8 @@ fn init_rejects_dot_names() {
 fn update_rejects_folder_without_quarto_yml() {
     let tmp = tempfile::tempdir().unwrap();
     let out = ddq(&["update", &tmp.path().to_string_lossy()]);
-    assert!(!out.status.success());
+    // 機構の不一致以外の失敗は従来どおり終了コード 1
+    assert_eq!(out.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&out.stderr).contains("_quarto.yml"));
 }
 
