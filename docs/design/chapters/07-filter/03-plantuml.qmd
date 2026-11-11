@@ -43,13 +43,13 @@ Windows 同梱の `curl.exe` を `pandoc.pipe` で呼び、`POST /render`（JSON
 に当たらず設定が連結されない。実測）。
 
 既定の設定は `!pragma layout smetana`（Graphviz の Java 移植。dot の有無や版に依らず同じ配置）、
-`defaultFontName "Yu Gothic"`、`backgroundColor transparent`。
+`defaultFontName "Meiryo UI"`（PDF の本文 `JP-SANS`・HTML・mermaid と同じ書体）、`backgroundColor transparent`。
 
 ### フォントと文字幅
 
 PlantUML の SVG は各 `<text>` に `textLength` を持ち、Typst（resvg）はそれを尊重する（実測）。
 文字幅はサーバ側の Java が計測した値に固定されるため、**描く側にそのフォントが無くても
-箱からはみ出さない**（違いは行の高さだけ）。LAN のサーバが Linux で Yu Gothic を持たなくても
+箱からはみ出さない**（違いは行の高さだけ）。LAN のサーバが Linux で Meiryo UI を持たなくても
 実用になる理由である。
 
 ### 図の大きさ・採番

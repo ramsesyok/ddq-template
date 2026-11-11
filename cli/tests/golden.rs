@@ -1,7 +1,9 @@
 //! `ddq mermaid` の golden テスト（cli/DESIGN.md §10）。
 //!
 //! fixtures は tests/golden/: サンプル文書（examples/docs/）の全 ```mermaid フェンス（mmd-<hash>.mmd）と、
-//! 移行前の mermaid-cli 11.16 + Chrome が出した SVG（基準）。
+//! その基準 SVG。基準は当初 mermaid-cli 11.16 + Chrome で作り、browser エンジンの幾何が一致することを
+//! 確かめた。図の書体を Meiryo UI に変えた 3.0.0-pre2 で browser エンジン（ja-JP Windows・Edge）で作り直した。
+//! 書体・設定を変えたら作り直す（手順は cli/DESIGN.md §10）。
 //! - browser エンジン: 基準と **幾何（数値列）が一致** すること（§9 の実測どおり）。
 //!   Edge / Chrome が無い環境では skip する。
 //!   ただし sequenceDiagram は mermaid 既定の `"Open Sans", sans-serif` で文字幅を測るため、

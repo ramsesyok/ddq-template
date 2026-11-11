@@ -1,5 +1,17 @@
 # 変更履歴
 
+## 3.0.0-pre2（未リリース）
+
+**PDF・HTML・図の書体をそろえ、コードの文字サイズを直しました**（テンプレート側の変更。
+既存の設計書リポジトリでは `ddq update` が必要です）:
+
+- 本文の書体を PDF・HTML・図（Mermaid・PlantUML）とも **Meiryo UI** にそろえました。
+  これまで HTML と Mermaid は存在しない書体名（Noto Sans CJK JP）を指定していて、実際には Yu Gothic で、
+  PlantUML は Yu Gothic で描いていました。図は次のビルドで描き直され、大きさが少し変わります
+- コードの書体は PDF・HTML とも等幅の **BIZ UDゴシック**です（HTML はこれまで Quarto 既定の Consolas など）
+- コードの文字サイズ: インラインコード（`` `…` ``）は周りの文字と同じ大きさ、コードブロックは本文の
+  9.5 / 10.5（PDF で 9.5pt）にしました。これまで PDF は本文の 0.8 倍（8.4pt）、HTML は 0.875 倍でした
+
 ## 3.0.0-pre1（2026-10-27、プレリリース）
 
 **ddq-revision と ddq-table-editor を 1 本の拡張 DDQ Template（`ramsesyok.ddq-template`）に統合しました**

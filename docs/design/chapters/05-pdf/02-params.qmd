@@ -22,7 +22,9 @@
 ::: {.tbl caption="変えたいものと触る定数" label="tbl-lib-params" widths="40,60"}
 | 変えたいもの | 触る定数 |
 |---|---|
-| 本文・様式のフォント | `JP-SANS` / `JP-SERIF` / `MONO` / `SPEC-HEAD-FONT` |
+| 本文・様式のフォント（HTML の `design-doc.css`、図の `mermaid-config.json`・`plantuml-config.puml` もそろえる） | `JP-SANS` / `MONO` / `SPEC-HEAD-FONT` |
+| コードブロックの文字サイズ（インラインコードは周りと同じ大きさ） | `CODE-BLOCK-SIZE` |
+| 表紙・目次見出し・IPO 図の文字サイズ | `COVER-TITLE-SIZE` / `COVER-SUBTITLE-SIZE` / `COVER-AUTHOR-SIZE` / `TOC-TITLE-SIZE` / `IPO-SIZE` / `IPO-NUM-SIZE` |
 | 外枠の線の太さ／資料番号枠・IPO の罫線 | `FRAME` / `RULE` |
 | 本文・見出しの文字サイズ、行間、字下げ | `BODY-SIZE` / `BODY-LEADING` / `PARA-INDENT` / `LIST-INDENT` / `HEAD-SIZES` / `HEAD-INDENT-STEP` |
 | 番号付きリストの記号 | `ENUM-NUMBERING` |

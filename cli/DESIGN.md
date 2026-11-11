@@ -5,7 +5,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 利用手順は利用マニュアル（`docs/manual/`）、様式・変換の内部はテンプレート設計書（`docs/design/`）。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
-- 対象版: テンプレート 3.0.0-pre1（PlantUML 対応。§13）
+- 対象版: テンプレート 3.0.0-pre2（PlantUML 対応。§13）
 
 ---
 
@@ -484,7 +484,12 @@ cli/src/
 
 ## 10. テスト方針
 
-- fixtures: サンプル文書（`examples/docs/`）の mermaid フェンスと、mermaid-cli で作った golden SVG（`cli/tests/golden/`）。
+- fixtures: サンプル文書（`examples/docs/`）の mermaid フェンスと、golden SVG（`cli/tests/golden/`）。
+  golden は当初 mermaid-cli 11.16 + Chrome で作り、browser エンジンの幾何が全図一致することを確かめた。
+  3.0.0-pre2 で図の書体（`mermaid-config.json` の fontFamily）を Meiryo UI に変えたとき、
+  一致を確かめた browser エンジン（ja-JP Windows・Edge）で作り直した。書体や設定を変えたら同じ方法で作り直す
+  （`DDQ_MERMAID_ENGINE=browser ddq mermaid -c ../template/mermaid-config.json -i <全 .mmd> -o <同名 .svg>`）。
+
 - 比較: id（`my-svg` / `svg-<name>`）を正規化したうえで、**数値列（幾何）の一致**を見る。直列化の差（自己閉じタグ）は無視。
 - browser 系: Edge/Chrome が見つからなければ `skip`（`#[ignore]` ではなく実行時判定でメッセージを出して return）。
   sequenceDiagram は mermaid 既定の `"Open Sans", sans-serif` で文字幅を測るため、日本語の fallback フォントが
@@ -643,7 +648,7 @@ design-doc.lua ──┤                                        … POST /render
 | 共通設定 | `plantuml-config.puml`（機構ファイル 5 本目）。`-config` はサーバに渡せないので、中身を `@start…` の直後に**連結して送る**。連結後のソースとテンプレートの版をハッシュするので、設定を変えるとキャッシュが自動で無効になる（2.4.1 から mermaid も同じ）。サーバはキーに入れない（LAN とローカルを切り替えても描き直さない）既定: `!pragma layout smetana`、`defaultFontName "Yu Gothic"`、`backgroundColor transparent` |
 | 改行 | CRLF を LF に揃えてから連結する（CRLF だと `@startuml\n` に当たらず設定が連結されない。実測） |
 | キャッシュ | `diagrams/puml-<sha1 16 桁>.svg`（+ 送ったソース `.puml`）。git 管理外（`**/diagrams/puml-*`）。SVG 先頭に `<!-- ddq <版> engine=plantuml plantuml=<版> server=<url> fonts=<指紋> -->`（`fonts=` はローカルのサーバのとき。発行時の照合は §5.5） |
-| フォント | SVG の `<text>` は `textLength` で幅が固定され、Typst（resvg）はそれを尊重する（実測）。サーバ側と Typst 側でフォントが違っても箱からはみ出さず、違いは行の高さだけ。`Yu Gothic` は Windows のローカルと発行者の Typst が同じ実体を引くための既定 |
+| フォント | SVG の `<text>` は `textLength` で幅が固定され、Typst（resvg）はそれを尊重する（実測）。サーバ側と Typst 側でフォントが違っても箱からはみ出さず、違いは行の高さだけ。`Meiryo UI`（PDF の本文と同じ書体）は Windows のローカルと発行者の Typst が同じ実体を引くための既定 |
 | レイアウト | `!pragma layout smetana` 固定（決定 17）。Windows 版 jar は `%TEMP%\_graphviz\dot.exe`（2.44.1）を内蔵展開するので既定は本物の dot だが、Linux サーバには無い |
 
 ### 13.3 ddq 側（`src/plantuml/mod.rs`）
