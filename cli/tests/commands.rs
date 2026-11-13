@@ -181,6 +181,33 @@ fn update_prunes_diagram_cache_only_when_the_version_changes() {
 }
 
 #[test]
+fn diagrams_explains_that_fence_caches_are_not_its_target() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("order-design");
+    assert_ok(&ddq(&["init", &repo.to_string_lossy(), "--no-render"]));
+    let docs = repo.join("docs");
+    let diagrams = docs.join("diagrams");
+    // 本文の ```mermaid から PDF 作成時に書き出されたキャッシュだけがある状態
+    fs::write(
+        diagrams.join("mmd-0123456789abcdef.mmd"),
+        "flowchart LR\n  A --> B\n",
+    )
+    .unwrap();
+    fs::write(diagrams.join("mmd-0123456789abcdef.svg"), "<svg/>").unwrap();
+
+    let out = ddq(&["diagrams", &docs.to_string_lossy()]);
+    assert_ok(&out);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("1 件は本文の ```mermaid"), "{stdout}");
+    assert!(stdout.contains("PDF・HTML の作成時に自動で変換"), "{stdout}");
+    // キャッシュは変換しない（中身はそのまま）
+    assert_eq!(
+        fs::read_to_string(diagrams.join("mmd-0123456789abcdef.svg")).unwrap(),
+        "<svg/>"
+    );
+}
+
+#[test]
 fn diagrams_removes_the_old_svg_of_a_broken_mermaid() {
     // 内蔵レンダラ（merman）なら外部のブラウザ無しで確かめられる
     let tmp = tempfile::tempdir().unwrap();

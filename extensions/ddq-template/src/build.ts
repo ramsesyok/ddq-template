@@ -217,7 +217,20 @@ async function notifyDone(kind: BuildKind | 'update', folder: string, stdout: st
         else if (choice) channel().show(true);
         return;
     }
+    const warning = kind === 'diagrams' ? warningOf(stdout) : undefined;
+    if (warning) {
+        // 「変換する図が無い」は終了コード 0 なので、ここで見せないと「終わりました」とだけ出て気付けない
+        const choice = await vscode.window.showWarningMessage(`${name}: ${warning}`, '出力を表示');
+        if (choice) channel().show(true);
+        return;
+    }
     void vscode.window.showInformationMessage(`${name}: ${TITLES[kind]}が終わりました。`);
+}
+
+/** ddq の出力から最初の警告（`警告: …`）の本文を取る。 */
+export function warningOf(stdout: string): string | undefined {
+    const m = /^警告: (.+)$/m.exec(stdout);
+    return m?.[1].trim();
 }
 
 /** `ddq html` の出力から index.html のパスを取る（`OK: <パス>（…）`）。 */
