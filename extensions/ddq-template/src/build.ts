@@ -15,6 +15,7 @@ import { locateDdq } from './ddq/locate';
 import { run, runStreaming, versionOf, type StreamResult } from './ddq/run';
 import { TEMPLATE_MISMATCH_EXIT_CODE, classifyMismatch, compareVersions } from './ddq/version';
 import { TEMPLATE_VERSION_FILE, activeWritingFolder, resolveWritingFolder, watchWritingFolders } from './folders';
+import { openWithDefaultApp } from './openFile';
 import { envWithQuarto, hasQuarto } from './quarto';
 
 export type BuildKind = 'pdf' | 'html' | 'diagrams';
@@ -203,7 +204,7 @@ async function notifyDone(kind: BuildKind | 'update', folder: string, stdout: st
         const pdf = path.join(folder, 'design-doc.pdf');
         const open = 'PDF を開く';
         const choice = await vscode.window.showInformationMessage(`${name} の PDF を作りました。`, open, '出力を表示');
-        if (choice === open) await vscode.env.openExternal(vscode.Uri.file(pdf));
+        if (choice === open) await openWithDefaultApp(pdf);
         else if (choice) channel().show(true);
         return;
     }
@@ -212,7 +213,7 @@ async function notifyDone(kind: BuildKind | 'update', folder: string, stdout: st
         const open = 'HTML を開く';
         const buttons = index ? [open, '出力を表示'] : ['出力を表示'];
         const choice = await vscode.window.showInformationMessage(`${name} の HTML を作りました。`, ...buttons);
-        if (choice === open && index) await vscode.env.openExternal(vscode.Uri.file(index));
+        if (choice === open && index) await openWithDefaultApp(index);
         else if (choice) channel().show(true);
         return;
     }
