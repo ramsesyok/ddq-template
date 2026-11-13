@@ -496,6 +496,8 @@ cli/src/
   OS ロケールで変わり、基準環境（ja-JP Windows）以外では配置がずれる（GitHub の en-US ランナーで実測）。
   CI は `DDQ_GOLDEN_LOOSE=1` を設定し、一致しない図は「数値の個数が同じ・viewBox が 25% 以内」の緩い比較にする
   （実測: 幅は同じで高さが約 17% 低い = fallback フォントの行高の差）。
+  図の書体 Meiryo UI が無い環境（英語版 Windows のランナー）では文字の折り返しで数値の個数も変わるので、
+  緩い比較は viewBox の大きさだけを見る（実測: 幅が最大約 15% 広い）。
   保守者の手元（ja-JP）では厳密一致のまま。
 - merman 系: 常時実行。foreignObject を含まないことをアサート。
 - コマンド系: 一時ディレクトリに `init` → `add` → `update --all` を流し、置かれるファイル一覧と `.template-version` を検証。`quarto` の起動はモック（`quarto.rs` を trait 化）か、PATH に `quarto` があるときだけ実施。

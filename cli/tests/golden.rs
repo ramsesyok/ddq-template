@@ -12,6 +12,8 @@
 //!   高さが約 17% 低い = fallback フォントの行高の差）。
 //!   `DDQ_GOLDEN_LOOSE=1`（CI が設定）のときは、一致しない図について
 //!   「数値の個数が同じで viewBox の大きさが 25% 以内」の緩い比較に落とす。
+//!   図の書体 Meiryo UI が無い環境（英語版 Windows のランナー）では文字の折り返しで数値の個数も
+//!   変わるので、viewBox の大きさだけを比べる。
 //! - merman エンジン: 全図が変換でき、foreignObject を含まないこと（Typst で文字が消えないため）。
 
 use std::{
@@ -148,7 +150,10 @@ fn browser_engine_matches_mermaid_cli_geometry() {
         if expected == actual {
             continue;
         }
-        if loose && roughly_same_size(&expected_svg, &actual_svg) && expected.len() == actual.len() {
+        // 図の書体（Meiryo UI）が無い環境では代わりの書体で文字の折り返しが変わり、
+        // 数値の個数まで変わる。そのときは大きさだけを比べる。
+        let same_count = expected.len() == actual.len() || !figure_font_installed();
+        if loose && roughly_same_size(&expected_svg, &actual_svg) && same_count {
             eprintln!("loose: {name} は文字幅の差だけ（数値の個数と viewBox は同等）");
             continue;
         }
@@ -175,6 +180,14 @@ fn view_box(svg: &str) -> Option<(f64, f64)> {
         .filter_map(|n| n.parse().ok())
         .collect();
     (nums.len() == 4).then(|| (nums[2], nums[3]))
+}
+
+/// 図の書体 Meiryo UI（template/mermaid-config.json の fontFamily の先頭）が入っているか。
+/// 日本語版 Windows には標準で入るが、英語版（GitHub の Windows ランナー）には無い。
+fn figure_font_installed() -> bool {
+    std::env::var_os("WINDIR")
+        .map(PathBuf::from)
+        .is_some_and(|w| w.join(r"Fonts\meiryo.ttc").is_file())
 }
 
 /// viewBox の幅・高さが 25% 以内で一致するか（フォント差による配置ずれを許容する緩い比較。
