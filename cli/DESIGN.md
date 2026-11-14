@@ -116,6 +116,8 @@ ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm �
 `THIRD_PARTY_LICENSES/`、ratex-katex-fonts の KaTeX フォント（SIL OFL 1.1）も含む）。先頭に入力
 （`Cargo.lock`・`mermaid.min.js`・`plantuml.jar`・拡張の `package-lock.json`）の SHA-1 を書き、`ddq release` と
 `tests/third_party.rs` が照合する。依存を変えたら作り直してコミットする（しないとリリースと CI が止まる）。
+同じ集合（配布物 = `scope: required`）に開発・ビルド用の依存（`scope: excluded`）を加えた CycloneDX 1.6 の SBOM
+`sbom.cdx.json` を `python cli/tools/sbom.py` が作り、ライセンスの区分を確かめる（こちらは照合しないので手で作り直す）。
 テキストの入力は改行を LF に揃えてからハッシュする（`Cargo.lock` は checkout の設定で CRLF にもなる）。
 
 VSIX は `ddq release` が `extensions/<拡張>/` で `npm ci`（`node_modules/` が無いときだけ）→

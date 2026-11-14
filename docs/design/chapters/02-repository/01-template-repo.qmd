@@ -9,6 +9,7 @@ design-doc-quarto-template/
 ├── AGENT-GUIDE.md           … AI エージェント向けの執筆ガイド（リリースに同梱）
 ├── LICENSE                  … ライセンス（MIT。リリースに同梱）
 ├── THIRD-PARTY-NOTICES.md   … 第三者のライセンス表示（cli/tools/third_party.py が作る。リリースに同梱）
+├── sbom.cdx.json            … SBOM（CycloneDX 1.6。cli/tools/sbom.py が作る）
 ├── .gitignore              … 機構ファイルの写し・生成物を管理外にする（原本は template/）
 ├── .gitattributes           … 改行コードの固定（機構ファイル = LF）
 ├── .vscode/settings.json    … 日本語を等幅で表示する設定

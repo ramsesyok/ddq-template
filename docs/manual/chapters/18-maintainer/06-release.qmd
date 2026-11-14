@@ -67,6 +67,15 @@ python cli/tools/third_party.py
 `cargo test` も落ちる。plantuml.jar は公式の MIT 版と同一であることを確かめてから置く
 （`cli/vendor/README.md`）。
 
+同じときに、CycloneDX 1.6 形式の SBOM `sbom.cdx.json`（リポジトリ直下）も作り直してコミットする。
+配布物に入る部品は `scope: required`、開発・ビルドにだけ使う部品は `scope: excluded` で入り、
+最後にライセンスの区分（許容型・弱いコピーレフト・強いコピーレフト・不明）を表示する。
+mermaid の依存は、`template/vendor/mermaid.min.js` を作ったときの `node_modules` を渡すと入る。
+
+```bat
+python cli/tools/sbom.py --mermaid-modules <mermaid を npm install したフォルダ>
+```
+
 ### 閉域（オフライン）環境向けに作る
 
 特別な版は要らない。`ddq.exe` は単体で動き、mermaid の SVG 化には端末の Edge / Chrome
