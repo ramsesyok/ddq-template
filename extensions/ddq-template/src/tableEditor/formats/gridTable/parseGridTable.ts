@@ -32,6 +32,44 @@ export function isGridBorderLine(line: string): boolean {
   return /^\+[-=+:\s]*\+$/.test(s) && (s.match(/\+/g)?.length ?? 0) >= 2;
 }
 
+/**
+ * 縦結合の途中を通る行の区切り（`|     +-----+     |`）か。
+ *
+ * pandoc はこの形で書き出す（結合セルの部分は `-` を引かず、端は `|`）。結合セルの部分には
+ * 本文の続きが入りうるので文字は問わず、`+---+` の区間が 1 つでもあれば区切りとみなす。
+ */
+function isPartialSeparatorLine(line: string): boolean {
+  const s = line.trim();
+  return /^[+|]/.test(s) && /[+|]$/.test(s) && /\+[-=:]*[-=][-=:]*\+/.test(s);
+}
+
+/** 行の区切り（完全な罫線、または縦結合の途中を通るもの）か。 */
+function isSeparatorLine(line: string): boolean {
+  return isGridBorderLine(line) || isPartialSeparatorLine(line);
+}
+
+/** 罫線の 1 区間が線（`---` / `===` / コロン）か。空白や文字なら縦結合の続き。 */
+function isRuleSegment(segment: string): boolean {
+  return /^[-=:]+$/.test(segment);
+}
+
+/**
+ * 区切り行の中で列境界になる `+` の表示桁。
+ *
+ * 縦結合セルの部分には本文が入りうるので、線に接する `+` と行の両端の `+` だけを数える。
+ */
+function junctionCols(line: DisplayLine): number[] {
+  if (isGridBorderLine(line.raw)) return displayColsOf(line, '+');
+  const chars = [...line.raw];
+  const cols: number[] = [];
+  for (let i = 0; i < chars.length; i++) {
+    if (chars[i] !== '+') continue;
+    const edge = i === 0 || i === chars.length - 1;
+    if (edge || /[-=:]/.test(chars[i - 1]) || /[-=:]/.test(chars[i + 1])) cols.push(line.starts[i]);
+  }
+  return cols;
+}
+
 /** グリッド表の内容行（`| … |`）か。 */
 export function isGridContentLine(line: string): boolean {
   return line.trim().startsWith('|');
@@ -39,7 +77,7 @@ export function isGridContentLine(line: string): boolean {
 
 /** その行がグリッド表を構成しうる行か。 */
 export function isGridTableLine(line: string): boolean {
-  return isGridBorderLine(line) || isGridContentLine(line);
+  return isGridBorderLine(line) || isGridContentLine(line) || isPartialSeparatorLine(line);
 }
 
 /**
@@ -47,7 +85,8 @@ export function isGridTableLine(line: string): boolean {
  *
  * - 列境界は罫線の `+` の**表示桁**の集合から決める
  * - 横結合は、内容行で境界に `|` が無いこと
- * - 縦結合は、行の境界線でその区間が空白であること
+ * - 縦結合は、行の区切り行でその区間が線（`---`）でないこと。区切り行の端は `+` でも
+ *   `|` でもよい（pandoc は `|     +-----+     |` と書く）
  * - ヘッダ終端は `=` を含む罫線。それより上の行グループがヘッダ
  * - 列揃えはヘッダ終端行（無ければ最上段の罫線）のコロン
  */
@@ -72,36 +111,41 @@ export function parseGridTable(source: string, tableId = ''): ParseResult<TableM
     return { ok: false, message: 'グリッド表として読めません（1 行目が罫線ではありません）。' };
   }
 
-  // 列境界＝すべての罫線に現れる `+` の表示桁の和集合
-  const borderIdx = lines.map((l, i) => (isGridBorderLine(l.raw) ? i : -1)).filter(i => i >= 0);
+  // 列境界＝すべての区切り行に現れる `+` の表示桁の和集合
+  const separator = lines.map(l => isSeparatorLine(l.raw));
   const boundarySet = new Set<number>();
-  for (const i of borderIdx) for (const col of displayColsOf(lines[i], '+')) boundarySet.add(col);
+  lines.forEach((l, i) => {
+    if (separator[i]) for (const col of junctionCols(l)) boundarySet.add(col);
+  });
   const boundaries = [...boundarySet].sort((a, b) => a - b);
 
   if (boundaries.length < 2) {
     return { ok: false, message: 'グリッド表として読めません（列の境界が見つかりません）。' };
   }
   const colLen = boundaries.length - 1;
+  const segmentOf = (line: DisplayLine, c: number, span = 1): string =>
+    sliceByDisplay(line, boundaries[c] + 1, boundaries[c + span]);
 
-  // 内容行を罫線で区切ってグループ（＝1 行）にする
+  // 内容行を区切り行で区切ってグループ（＝1 行）にする
   type Group = { lines: DisplayLine[]; borderAfter: DisplayLine | undefined };
   const groups: Group[] = [];
   let current: DisplayLine[] = [];
-  const borderAfterGroup: DisplayLine[] = [];
   const headerEndAfter: number[] = [];
 
-  for (const line of lines) {
-    if (isGridBorderLine(line.raw)) {
+  lines.forEach((line, i) => {
+    if (separator[i]) {
       if (current.length > 0) {
         groups.push({ lines: current, borderAfter: line });
-        borderAfterGroup.push(line);
-        if (line.raw.includes('=')) headerEndAfter.push(groups.length - 1);
+        const isHeaderEnd = Array.from({ length: colLen }, (_, c) => segmentOf(line, c)).some(
+          s => isRuleSegment(s) && s.includes('=')
+        );
+        if (isHeaderEnd) headerEndAfter.push(groups.length - 1);
         current = [];
       }
     } else {
       current.push(line);
     }
-  }
+  });
   if (current.length > 0) groups.push({ lines: current, borderAfter: undefined });
 
   if (groups.length === 0) {
@@ -112,14 +156,15 @@ export function parseGridTable(source: string, tableId = ''): ParseResult<TableM
 
   // 列揃え: ヘッダ終端の `+===+` 行。無ければ最上段の罫線。
   const alignLine =
-    headerEndAfter.length > 0 ? borderAfterGroup[headerEndAfter[0]] : lines[borderIdx[0]];
+    headerEndAfter.length > 0 ? groups[headerEndAfter[0]].borderAfter! : lines[0];
   const columns: TableColumn[] = Array.from({ length: colLen }, (_, c) => {
-    const segment = sliceByDisplay(alignLine, boundaries[c] + 1, boundaries[c + 1]);
-    const align = gridSeparatorToAlign(segment);
+    const segment = segmentOf(alignLine, c);
+    const align = isRuleSegment(segment) ? gridSeparatorToAlign(segment) : undefined;
     return align ? { align } : {};
   });
 
-  // 境界に `|` があるか（無ければ横結合）／罫線区間が空白か（＝縦結合）
+  // 境界に `|` があるか（無ければ横結合）／区切り行の区間が線でないか（＝縦結合）。
+  // 縦結合の途中の区切り行は `+     +`（エディタの旧形式）でも `|     |`（pandoc）でもよい。
   const boundaryClosed: boolean[][] = groups.map(g =>
     Array.from({ length: boundaries.length }, (_, b) =>
       b === 0 || b === boundaries.length - 1
@@ -127,12 +172,11 @@ export function parseGridTable(source: string, tableId = ''): ParseResult<TableM
         : g.lines.some(l => hasCharAt(l, boundaries[b], '|'))
     )
   );
-  const segmentBlank: boolean[][] = groups.map((g, gi) => {
+  const segmentContinues: boolean[][] = groups.map((g, gi) => {
     const border = g.borderAfter;
     return Array.from({ length: colLen }, (_, c) => {
       if (!border || gi === groups.length - 1) return false;
-      const segment = sliceByDisplay(border, boundaries[c] + 1, boundaries[c + 1]);
-      return segment.trim() === '';
+      return !isRuleSegment(segmentOf(border, c));
     });
   });
 
@@ -152,16 +196,22 @@ export function parseGridTable(source: string, tableId = ''): ParseResult<TableM
       let rowspan = 1;
       while (r + rowspan < groups.length) {
         const allBlank = Array.from({ length: colspan }, (_, i) =>
-          segmentBlank[r + rowspan - 1][c + i]
+          segmentContinues[r + rowspan - 1][c + i]
         ).every(Boolean);
         if (!allBlank) break;
         rowspan++;
       }
 
+      // 縦結合の途中の区切り行も pandoc ではセルの本文（文字を置ける）。
+      // ただし空のときは読み飛ばす。pandoc は空行＝段落の区切りと読むが、そこに空行が
+      // 入るのは旧版のエディタが本文を行に振り分けて書いた表で、意図は改行だったため
+      // （段落の 2 つ目に字下げが付いて左寄せがずれる）。書き戻すと pandoc の形になって直る。
       const texts: string[] = [];
       for (let rr = r; rr < r + rowspan; rr++) {
-        for (const line of groups[rr].lines) {
-          texts.push(sliceByDisplay(line, boundaries[c] + 1, boundaries[c + colspan]));
+        for (const line of groups[rr].lines) texts.push(segmentOf(line, c, colspan));
+        if (rr < r + rowspan - 1) {
+          const between = segmentOf(groups[rr].borderAfter!, c, colspan);
+          if (between.trim() !== '') texts.push(between);
         }
       }
       // 行頭の字下げは入れ子リスト・項目内の折り返しに意味があるので、

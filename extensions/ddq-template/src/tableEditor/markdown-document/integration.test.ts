@@ -56,7 +56,7 @@ describe('結合あり → グリッド表', () => {
     }).join('\n');
 
     expect(out).toContain('+===');
-    expect(out).toMatch(/\+ +\+/); // rowspan の空白区間
+    expect(out).toMatch(/^\| +\+-/m); // rowspan の途中の区切り行（pandoc と同じ `|     +---`）
     expect(out).toContain('caption="機能分類"');
   });
 

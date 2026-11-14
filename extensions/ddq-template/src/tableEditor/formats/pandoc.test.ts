@@ -243,6 +243,48 @@ suite('pandoc との整合（pandoc が無い環境ではスキップ）', () =>
     expect(native).toContain('AlignRight');
   });
 
+  it('縦結合セル内の改行は 1 段落のまま（段落が割れて左寄せがずれない）', () => {
+    // 旧版はセルの本文を行に振り分けて書き、間の区切り行が空行＝段落の区切りになっていた
+    const legacy = [
+      '+----------------+-----+',
+      '| 列1            | 列2 |',
+      '+:===============+=====+',
+      '| このセルだけ\\  | 4   |',
+      '+                +-----+',
+      '| 左寄せがずれる | 5   |',
+      '+----------------+-----+'
+    ].join('\n');
+    expect(toNative(legacy)).toMatch(/Para/);
+
+    const parsed = parseGridTable(legacy);
+    if (!parsed.ok) throw new Error(parsed.message);
+    const native = toNative(serializeGridTable(parsed.value));
+    expect(native).toContain('RowSpan 2');
+    expect(native).toContain('LineBreak');
+    expect(native).not.toMatch(/Para/);
+  });
+
+  it('pandoc が書き出した結合表（縁が `|`）を読み、同じ構造で書き戻せる', () => {
+    const html = join(dir, `t${seq++}.html`);
+    writeFileSync(
+      html,
+      '<table><thead><tr><th>A</th><th>B</th><th>C</th></tr></thead><tbody>' +
+        '<tr><td rowspan="2">x<br>y</td><td colspan="2">横</td></tr>' +
+        '<tr><td>3</td><td>5</td></tr>' +
+        '<tr><td>q</td><td rowspan="2" colspan="2">縦横</td></tr>' +
+        '<tr><td>r</td></tr></tbody></table>',
+      'utf8'
+    );
+    const written = execFileSync(pandoc!, ['-f', 'html', '-t', 'markdown', html], { encoding: 'utf8' });
+    expect(written).toMatch(/^\| +\+-/m); // pandoc 自身が縁を `|` で書く
+
+    const parsed = parseGridTable(written.trim());
+    if (!parsed.ok) throw new Error(parsed.message);
+    const shape = (n: string) => (n.match(/RowSpan \d+\)\s+\(ColSpan \d+/g) ?? []).join(',');
+    expect(shape(toNative(serializeGridTable(parsed.value)))).toBe(shape(toNative(written)));
+    expect(parsed.value.rows[1][0].text).toBe('x\ny');
+  });
+
   it('パイプ表の列揃えとセル内 <br> が保たれる', () => {
     const src = ['| 品目   | 区分 |   単価 |', '|:-------|:----:|-------:|', '| りんご | 果物 |    120 |'].join('\n');
     const parsed = parsePipeTable(src);

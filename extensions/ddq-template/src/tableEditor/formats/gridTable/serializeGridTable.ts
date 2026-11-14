@@ -15,6 +15,13 @@ import { alignToGridSeparator } from '../pipeTable/pipeTableAlignment';
  * - 横結合（colspan）は、内容行でセル間の `|` を書かない
  * - 縦結合（rowspan）は、行の境界線をそのセルの部分だけ空白にする
  * - 列揃えはヘッダ終端行（ヘッダが無ければ最上段の罫線）にコロンを打つ
+ *
+ * 縦結合は pandoc の書き出しと同じ形にする:
+ * - 結合セルの本文は**最初の行にまとめて**書く（足りなければその行を高くする）。
+ *   行をまたいで書くと、間の区切り行が空行＝段落の区切りと読まれ、改行のつもりが
+ *   段落 2 つになる（PDF では 2 つ目の段落に字下げが付いて左寄せがずれる）
+ * - 結合の途中を通る区切り行は、線の端だけ `+`、結合セルの縁は `|`
+ *   （`|     +-----+     |`）。Word などから pandoc で変換した表と同じ見た目になる
  */
 export function serializeGridTable(model: TableModel): string {
   const colLen = model.columns.length;
@@ -41,7 +48,7 @@ export function serializeGridTable(model: TableModel): string {
 
   for (let r = 0; r < rowLen; r++) {
     for (let line = 0; line < heights[r]; line++) {
-      lines.push(contentLine(model, widths, spanWidth, cellLines, heights, r, line));
+      lines.push(contentLine(model, widths, spanWidth, cellLines, r, line));
     }
     const isHeaderEnd = headerRows > 0 && r === headerRows - 1;
     lines.push(
@@ -65,23 +72,35 @@ function borderLine(
   fill: '-' | '='
 ): string {
   const colLen = widths.length;
-  let out = '+';
+  const continues = Array.from({ length: colLen }, (_, c) => spansAcrossBorder(model, r, c));
+  let out = junction(model, continues, r, 0);
   for (let c = 0; c < colLen; c++) {
-    const continues = spansAcrossBorder(model, r, c);
     const segWidth = widths[c] + 2;
-    if (continues) {
+    if (continues[c]) {
       out += ' '.repeat(segWidth);
     } else if (alignModel) {
       out += alignToGridSeparator(alignModel.columns[c]?.align, segWidth, fill);
     } else {
       out += fill.repeat(segWidth);
     }
-    // 次の境界。結合セルの内側を横切る境界は、そのセルが縦にも続くときだけ空白にする。
-    const nextIsInsideContinuingCell =
-      c + 1 < colLen && continues && spansAcrossBorder(model, r, c + 1) && sameCell(model, r, c, c + 1);
-    out += nextIsInsideContinuingCell ? ' ' : '+';
+    out += junction(model, continues, r, c + 1);
   }
   return out;
+}
+
+/**
+ * 区切り行の列境界 `j`（0＝左端、colLen＝右端）に置く文字。
+ *
+ * 左右どちらかに線が来れば `+`。両側とも縦結合で続くなら、そこがセルの縁なら `|`、
+ * 1 つの結合セルの内側なら空白（pandoc の書き出しと同じ）。
+ */
+function junction(model: TableModel, continues: boolean[], r: number, j: number): string {
+  const colLen = continues.length;
+  const leftRule = j > 0 && !continues[j - 1];
+  const rightRule = j < colLen && !continues[j];
+  if (leftRule || rightRule) return '+';
+  if (j === 0 || j === colLen) return '|';
+  return sameCell(model, r, j - 1, j) ? ' ' : '|';
 }
 
 /** 行 r と r+1 の境界を、列 c のセルが縦にまたいでいるか。 */
@@ -105,7 +124,6 @@ function contentLine(
   widths: number[],
   spanWidth: (c: number, span: number) => number,
   cellLines: string[][][],
-  heights: number[],
   r: number,
   lineIndex: number
 ): string {
@@ -115,7 +133,7 @@ function contentLine(
   while (c < colLen) {
     const span = spanAt(model, r, c);
     const width = spanWidth(c, span);
-    const text = textLineFor(model, cellLines, heights, r, c, lineIndex);
+    const text = textLineFor(model, cellLines, r, c, lineIndex);
     out += ' ' + padToWidth(text, width) + ' ';
     c += span;
     out += '|';
@@ -134,22 +152,18 @@ function spanAt(model: TableModel, r: number, c: number): number {
 /**
  * 行 r・列 c の位置に描く 1 行分のテキスト。
  *
- * 縦結合されたセルの本文は、結合が覆う全行の内容行にまたがって上詰めで流し込む
- * （境界線の行には文字を置けないので、行ブロックを連結したものを 1 本の領域とみなす）。
+ * 縦結合されたセルの本文は最初の行にだけ書く（続きの行は空白）。
  */
 function textLineFor(
   model: TableModel,
   cellLines: string[][][],
-  heights: number[],
   r: number,
   c: number,
   lineIndex: number
 ): string {
   const cell = coveringCell(model, r, c);
-  if (!cell) return '';
-  let offset = lineIndex;
-  for (let rr = cell.row; rr < r; rr++) offset += heights[rr];
-  return cellLines[cell.row][cell.col][offset] ?? '';
+  if (!cell || cell.row !== r) return '';
+  return cellLines[cell.row][cell.col][lineIndex] ?? '';
 }
 
 /** 位置 (r, c) を覆っている表示セル。 */
@@ -199,30 +213,14 @@ function computeColumnWidths(model: TableModel, cellLines: string[][][]): number
   return widths;
 }
 
-/** 各行の内容行数。縦結合セルが入り切らなければ最終行を伸ばす。 */
+/** 各行の内容行数。縦結合セルも本文は最初の行に書くので、その行を高くする。 */
 function computeRowHeights(model: TableModel, cellLines: string[][][]): number[] {
-  const rowLen = model.rows.length;
-  const heights = Array.from({ length: rowLen }, () => 1);
-
-  for (let r = 0; r < rowLen; r++) {
-    for (const cell of model.rows[r]) {
-      if (cell.hidden || cell.rowspan > 1) continue;
-      const n = cellLines[r][cell.col].length;
-      if (n > heights[r]) heights[r] = n;
-    }
-  }
-
-  for (let r = 0; r < rowLen; r++) {
-    for (const cell of model.rows[r]) {
-      if (cell.hidden || cell.rowspan <= 1) continue;
-      const n = cellLines[r][cell.col].length;
-      let available = 0;
-      for (let i = r; i < r + cell.rowspan; i++) available += heights[i];
-      if (n > available) heights[r + cell.rowspan - 1] += n - available;
-    }
-  }
-
-  return heights;
+  return model.rows.map((row, r) =>
+    row.reduce(
+      (max, cell) => (cell.hidden ? max : Math.max(max, cellLines[r][cell.col].length)),
+      1
+    )
+  );
 }
 
 function maxLineWidth(lines: string[]): number {

@@ -68,6 +68,66 @@ describe('parseGridTable', () => {
   });
 });
 
+describe('parseGridTable（縦結合の区切り行）', () => {
+  it('pandoc の形（`|     +-----+     |`）を読める', () => {
+    // Word などから pandoc で変換した表はこの形になる
+    const src = [
+      '+-----+-----+-----+',
+      '| 列1 | 列2 | 列3 |',
+      '+=====+=====+=====+',
+      '| 1   | 2   | 4\\  |',
+      '|     +-----+     |',
+      '|     | 3   | 5   |',
+      '+-----+-----+-----+'
+    ].join('\n');
+    const parsed = parseGridTable(src);
+    if (!parsed.ok) throw new Error(parsed.message);
+    const m = parsed.value;
+    expect(m.rows).toHaveLength(3);
+    expect(m.rows[1].map(c => [c.text, c.rowspan])).toEqual([
+      ['1', 2],
+      ['2', 1],
+      ['4\n5', 2]
+    ]);
+    expect(m.rows[2].map(c => (c.hidden ? null : c.text))).toEqual([null, '3', null]);
+  });
+
+  it('区切り行の上の文字もセルの本文として読む（pandoc と同じ）', () => {
+    const src = [
+      '+-----+-----+-----+',
+      '| 列1 | 列2 | 列3 |',
+      '+=====+=====+=====+',
+      '| 1\\  | 2   | 4\\  |',
+      '| x   +-----+ y   |',
+      '| z   | 3   | 5   |',
+      '+-----+-----+-----+'
+    ].join('\n');
+    const parsed = parseGridTable(src);
+    if (!parsed.ok) throw new Error(parsed.message);
+    expect(parsed.value.rows[1][0].text).toBe('1\nx z');
+    expect(parsed.value.rows[1][2].text).toBe('4\ny 5');
+  });
+
+  it('旧版の書き出し（本文が区切り行をまたぐ）は改行として読み、書き戻しで直す', () => {
+    const src = [
+      '+----------------+-----+',
+      '| 列1            | 列2 |',
+      '+:===============+=====+',
+      '| このセルだけ\\  | 4   |',
+      '+                +-----+',
+      '| 左寄せがずれる | 5   |',
+      '+----------------+-----+'
+    ].join('\n');
+    const parsed = parseGridTable(src);
+    if (!parsed.ok) throw new Error(parsed.message);
+    expect(parsed.value.rows[1][0].text).toBe('このセルだけ\n左寄せがずれる');
+    const out = serializeGridTable(parsed.value).split('\n');
+    expect(out[3]).toMatch(/^\| このセルだけ\\ +\| 4 +\|$/);
+    expect(out[4]).toMatch(/^\| 左寄せがずれる +\| +\|$/);
+    expect(out[5]).toMatch(/^\| +\+-+\+$/);
+  });
+});
+
 describe('serializeGridTable', () => {
   it('罫線を表示幅（全角=2）で揃える', () => {
     const parsed = parseGridTable(MULTI_HEADER);
@@ -95,13 +155,57 @@ describe('serializeGridTable', () => {
     );
   });
 
-  it('rowspan は境界線をそのセルの部分だけ空白にする', () => {
+  it('rowspan の途中の区切り行は pandoc と同じく縁を `|` にする', () => {
     const parsed = parseGridTable(MULTI_HEADER);
     if (!parsed.ok) throw new Error('parse failed');
     const out = serializeGridTable(parsed.value).split('\n');
-    // 1 行目と 2 行目の間の罫線。先頭列は空白、残りは罫線
-    expect(out[2].startsWith('+     ')).toBe(true);
-    expect(out[2]).toMatch(/-\+$/);
+    // 1 行目と 2 行目の間の区切り行。先頭列は空白で縁は `|`、残りは罫線
+    expect(out[2]).toMatch(/^\| +\+-+\+-+\+$/);
+  });
+
+  it('縦結合セルの本文は最初の行にまとめて書く（区切り行をまたがない）', () => {
+    const src = [
+      '+-----+-----+-----+',
+      '| 列1 | 列2 | 列3 |',
+      '+=====+=====+=====+',
+      '| 1   | 2   | 4   |',
+      '+     +-----+     +',
+      '|     | 3   |     |',
+      '+-----+-----+-----+'
+    ].join('\n');
+    const parsed = parseGridTable(src);
+    if (!parsed.ok) throw new Error(parsed.message);
+    parsed.value.rows[1][2].text = '4\n5';
+    expect(serializeGridTable(parsed.value)).toBe(
+      [
+        '+-----+-----+-----+',
+        '| 列1 | 列2 | 列3 |',
+        '+=====+=====+=====+',
+        '| 1   | 2   | 4\\  |',
+        '|     |     | 5   |',
+        '|     +-----+     |',
+        '|     | 3   |     |',
+        '+-----+-----+-----+'
+      ].join('\n')
+    );
+  });
+
+  it('縦横の結合セルの内側は空白、縁は `|`（pandoc の書き出しと同じ）', () => {
+    const src = [
+      '+---+---+---+',
+      '| A | B | C |',
+      '+===+===+===+',
+      '| q | big   |',
+      '+---+       |',
+      '| r |       |',
+      '+---+-------+'
+    ].join('\n');
+    const parsed = parseGridTable(src);
+    if (!parsed.ok) throw new Error(parsed.message);
+    const big = parsed.value.rows[1][1];
+    expect([big.text, big.rowspan, big.colspan]).toEqual(['big', 2, 2]);
+    const out = serializeGridTable(parsed.value).split('\n');
+    expect(out[4]).toMatch(/^\+-+\+ +\|$/);
   });
 
   it('セル内改行を複数行として書き出す', () => {
