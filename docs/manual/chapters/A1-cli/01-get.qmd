@@ -9,7 +9,6 @@
 C:\tools\
 └── quarto-template-3.0.0-pre4/     … 配布 zip を展開したもの（git 共有しない）
     ├── ddq.exe                … 様式・変換・ビルドの実体（これを実行する）
-    ├── plantuml.jar           … PlantUML（MIT 版）。ローカルで PlantUML 図を描くとき使う
     ├── はじめかた.pdf          … 発行者向けの最初の一歩（スライド）
     ├── README.md              … テンプレートの概要
     ├── AGENT-GUIDE.md         … AI エージェント向けの執筆ガイド

@@ -55,10 +55,9 @@
    ```
 
    ::: {.callout-note}
-   `DDQ_PLANTUML_JAR` はテンプレートリポジトリで作業する保守者だけに要る。`ddq` は
-   `plantuml.jar` を exe の隣（配布 zip の展開フォルダ）から探すが、`cli\target\release\`
-   には無いので、`cli\vendor\plantuml.jar`（git 管理外。入手は `cli/vendor/README.md`）を
-   環境変数で指す。発行者は配布 zip の ddq.exe を使えば設定は要らない（@sec-plantuml-setup）。
+   `cli\vendor\plantuml.jar`（git 管理外。入手は `cli/vendor/README.md`）は、保守者が
+   試験と確認に使う jar である。リリースには同梱しない。`ddq` は exe の隣も探すが
+   `cli\target\release\` には無いので、環境変数で指す（@sec-plantuml-setup）。
    :::
 
 5. 本書（`docs\manual`）とテンプレート設計書（`docs\design`）でも出力を確認する

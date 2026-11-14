@@ -18,7 +18,7 @@
 ::: {.tbl caption="制約と未確認の動作" label="tbl-common-unverified" widths="34,66"}
 | 事項 | 内容 |
 |---|---|
-| `plantuml.jar` を同梱していない | 同梱 ddq の隣に `plantuml.jar` が無いので、拡張からの出力で PlantUML をローカルで描くには `ddqTemplate.ddqPath`（配布 zip の ddq）か `DDQ_PLANTUML_JAR` が要る。段階 4（plantuml）で扱う |
+| `plantuml.jar` を同梱していない | 同梱 ddq の隣に `plantuml.jar` が無いので、拡張からの出力で PlantUML をローカルで描くには `DDQ_PLANTUML_JAR` が要る。3.0.0 から配布 zip にも同梱しないので、jar は利用者が PlantUML の公式リリースから取得する |
 | `package`（ターゲットなし） | `bin/` に ddq.exe が残っていると、ターゲットなしの VSIX にも入る |
 | 通知・ダイアログの操作 | 「ddq update を実行」「HTML を開く」「Git リポジトリとして初期化」「執筆フォルダを追加」の名前入力・フォルダ選択・開き直し後の案内は、自動の検証に含まない（内部コマンドで同じ処理だけを通している） |
 | 右クリックメニューの `when` | `resourcePath in ddqTemplate.writingFolders` と、「執筆フォルダを追加」の `explorerResourceIsRoot && ddqTemplate.hasWritingFolders` の評価は自動で確かめていない |

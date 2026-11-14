@@ -35,7 +35,7 @@ actor 営業
 
 - 画像は `![キャプション](/diagrams/x.svg){#fig-id width=55%}`
 - PDF では mermaid を**ベクター SVG に焼き込み**（Windows 標準の Edge を headless で使用。Node.js 不要）
-- PlantUML は LAN の描画サーバか、無ければ同梱 `plantuml.jar` を `ddq` がローカルの Java で起動
+- PlantUML は LAN の描画サーバか、無ければ各自が用意した `plantuml.jar` を `ddq` がローカルの Java で起動
 
 ::: {.notes}
 【1:00】図も diff が取れる、が要点。PlantUML だけはサーバが要る、と正直に言う

@@ -65,7 +65,7 @@ quarto-template/
 │   ├── build.rs                 … ../template を埋め込み、VERSION を env に出す
 │   ├── src/…                    … §8 参照
 │   ├── tests/                   … golden テスト（§10）
-│   └── vendor/plantuml.jar      … リリースに同梱する PlantUML（MIT 版。git 管理外。vendor/README.md）
+│   └── vendor/plantuml.jar      … 試験・確認用の PlantUML（MIT 版。git 管理外。リリースには同梱しない。vendor/README.md）
 ├── template/                    … 機構ファイルのソース（従来どおり編集する）
 │   ├── VERSION
 │   ├── design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json / plantuml-config.puml
@@ -90,7 +90,6 @@ quarto-template/
 ```
 quarto-template-<版>/
 ├── ddq.exe
-├── plantuml.jar         … PlantUML（MIT 版）。ddq が exe の隣から探す（2.2.0 から。§13）
 ├── README.md            … リポジトリの README
 ├── AGENT-GUIDE.md       … AI エージェント向けの執筆ガイド（リポジトリ直下の同名ファイル）
 ├── LICENSE              … このリポジトリのライセンス（MIT。リポジトリ直下）
@@ -109,12 +108,14 @@ ddq-template-win32-x64-<版>.vsix … VSCode 拡張（ddq.exe 同梱）。zip �
 一式は隣の作業フォルダ（`quarto-template-<版>.building`）に集め、全部そろってから前回の配布フォルダと入れ替える。
 途中で失敗しても前回の配布フォルダは壊れない（以前は先に消してから集めたので、jar が無いと中途半端な配布フォルダが残った）。
 
+**plantuml.jar は同梱しない（3.0.0 から）**。2.2.0〜3.0.0-pre4 は `cli/vendor/plantuml.jar`（MIT 版）を同梱していたが、PlantUML の版・ライセンス・脆弱性への対応を利用者の組織の判断に任せるため外した。ローカルで描く利用者は PlantUML の公式リリースからjar を取得し、`DDQ_PLANTUML_JAR` か exe の隣に置く（§13.3 の探索順は変えていない）。
+
 **第三者のライセンス表示（`THIRD-PARTY-NOTICES.md`）**。配布物には ddq.exe に静的リンクする Rust のクレート、
-ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm の依存）、plantuml.jar、VSIX の Webview に
+ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm の依存）、VSIX の Webview に
 バンドルする React が入る。これらのライセンス表示を `python cli/tools/third_party.py` がリポジトリ直下に作る
-（本文はローカルの Cargo レジストリ・npm パッケージ・`java -jar plantuml.jar -license` から取る。merman の
+（本文はローカルの Cargo レジストリ・npm パッケージから取る。merman の
 `THIRD_PARTY_LICENSES/`、ratex-katex-fonts の KaTeX フォント（SIL OFL 1.1）も含む）。先頭に入力
-（`Cargo.lock`・`mermaid.min.js`・`plantuml.jar`・拡張の `package-lock.json`）の SHA-1 を書き、`ddq release` と
+（`Cargo.lock`・`mermaid.min.js`・拡張の `package-lock.json`）の SHA-1 を書き、`ddq release` と
 `tests/third_party.rs` が照合する。依存を変えたら作り直してコミットする（しないとリリースと CI が止まる）。
 テキストの入力は改行を LF に揃えてからハッシュする（`Cargo.lock` は checkout の設定で CRLF にもなる）。
 
@@ -188,7 +189,7 @@ tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出�
 | **pdf** | `setup` → PlantUML サーバの用意 → `quarto render --to typst --profile publish`（env: `DDQ_BIN` `DDQ_PLANTUML_SERVER`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
 | **diagrams** | `diagrams/*.mmd *.puml` → 同名 `.svg`（キャッシュ `mmd-*` `puml-*` は対象外）。設定は執筆フォルダ直下の `mermaid-config.json` / `plantuml-config.puml`（無ければ埋め込み） | render-diagrams |
 | **plantuml serve** | §13.4。Java と jar を探し、PicoWeb を既定ポートに上げて Ctrl-C まで待つ | （新規） |
-| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `docs/manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー、`cli/vendor/plantuml.jar` を `plantuml.jar` として同梱（無ければ停止）、`README.md`、`AGENT-GUIDE.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
+| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `docs/manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー（plantuml.jar は同梱しない）、`README.md`、`AGENT-GUIDE.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
 | **tag list** | 執筆フォルダの見出し・表・図と Quarto ラベルの有無を一覧する。ラベルが無いものには内容由来ハッシュの候補と**編集指示**（ファイル・行・行頭からの文字数・挿入する文字列）を付ける。`--json` は機械可読（VSCode 拡張・CI 向け）、`--unlabeled` はラベルの無いものだけ | （新規。§14） |
 | **tag apply** | `--all` で候補をすべて書き戻す。`--from <FILE>` は `tag list --json` の出力（人が候補を直したもの）を読んで書き戻し、当てる前に文書側と突き合わせる。`--dry-run` で書かずに内容だけ出す | （新規。§14） |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
@@ -671,7 +672,8 @@ design-doc.lua ──┤                                        … POST /render
 ### 13.3 ddq 側（`src/plantuml/mod.rs`）
 
 - 探索: java = `DDQ_JAVA` → `JAVA_HOME/bin` → PATH → レジストリ `JavaSoft\{JDK,JRE,…}` → 既知パス（Java / Adoptium / Microsoft / Zulu / Corretto / BellSoft）。
-  jar = `DDQ_PLANTUML_JAR` → exe の隣の `plantuml.jar` → `PLANTUML_JAR`。
+  jar = `DDQ_PLANTUML_JAR` → exe の隣の `plantuml.jar` → `PLANTUML_JAR`。jar はリリースに同梱しない（3.0.0 から）ので、
+  利用者が置いたものを探す。見つからないときは、公式リリースからの取得と `DDQ_PLANTUML_JAR` を案内する。
 - `ensure(dir)`（pdf / html / diagrams）: 設定済みサーバに届けばそれ → 既定ポートの `serve` が上がっていればそれ →
   原稿に ```` ```plantuml ```` が無ければ何もしない（**PlantUML を使わない文書に Java を要求しない**）→ ローカルを空きポートで起動。
   URL は `DDQ_PLANTUML_SERVER` で quarto に渡す。
@@ -702,7 +704,6 @@ design-doc.lua ──┤                                        … POST /render
 | `ddq plantuml serve [--port 18080] [--bind 127.0.0.1]` | 執筆者向け。Java と jar を探して PicoWeb を上げ、Ctrl-C まで待つ。既定ポートならフィルタが設定なしで見つける |
 | `ddq pdf` / `ddq html` | `ensure` でサーバを用意し、render 後に止める。打つのは 1 コマンドだけ |
 | `ddq diagrams` | `diagrams/*.puml`（キャッシュ `puml-*` を除く）も同名 `.svg` に。同じサーバの決め方 |
-| `ddq release` | `cli/vendor/plantuml.jar`（MIT 版）を `plantuml.jar` として同梱。無ければ停止（`cli/vendor/README.md`） |
 
 ### 13.5 テスト
 

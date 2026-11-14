@@ -20,28 +20,15 @@ fn third_party_notices_are_up_to_date() {
     let mut stale = Vec::new();
     for pair in line.trim_end_matches("-->").split_whitespace() {
         let (rel, want) = pair.split_once('=').expect("<path>=<sha1> の形");
-        let Ok(bytes) = fs::read(repo.join(rel)) else {
-            // plantuml.jar は git 管理外（CI はリリースから同じ MIT 版を取る）。無い手元では照合しない
-            assert!(
-                rel.ends_with(".jar") && std::env::var("DDQ_E2E").is_err(),
-                "{rel} が無い"
-            );
-            eprintln!("skip: {rel} が無い");
-            continue;
-        };
-        // テキストは改行を LF に揃えてから（release.rs の input_sha1・third_party.py と同じ規則）
-        let bytes = if rel.ends_with(".jar") {
-            bytes
-        } else {
-            let mut lf = Vec::with_capacity(bytes.len());
-            for (i, &b) in bytes.iter().enumerate() {
-                if !(b == b'\r' && bytes.get(i + 1) == Some(&b'\n')) {
-                    lf.push(b);
-                }
+        let bytes = fs::read(repo.join(rel)).unwrap_or_else(|_| panic!("{rel} が無い"));
+        // 改行を LF に揃えてから（release.rs の input_sha1・third_party.py と同じ規則）
+        let mut lf = Vec::with_capacity(bytes.len());
+        for (i, &b) in bytes.iter().enumerate() {
+            if !(b == b'\r' && bytes.get(i + 1) == Some(&b'\n')) {
+                lf.push(b);
             }
-            lf
-        };
-        let now: String = Sha1::digest(&bytes).iter().map(|b| format!("{b:02x}")).collect();
+        }
+        let now: String = Sha1::digest(&lf).iter().map(|b| format!("{b:02x}")).collect();
         if now != want {
             stale.push(rel.to_string());
         }

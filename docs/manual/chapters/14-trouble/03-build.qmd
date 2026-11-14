@@ -31,7 +31,7 @@
 | `quarto render が失敗しました`        | 原稿の変換に失敗した。直前の Quarto のメッセージを読む   |
 | `mermaid の変換に失敗しました`        | 続く説明のとおり `ddq` の呼び出し方（11章）。パスに CP932 に無い文字があれば @sec-ascii-path |
 | `PlantUML の図を描けませんでした`     | PlantUML サーバに届かない、または図の構文エラー。続く説明のとおり（@sec-plantuml-setup） |
-| `Java が見つかりません` / `plantuml.jar が見つかりません` | ローカルで描こうとして Java か jar が無い。LAN サーバを設定するか、Java を入れる・`DDQ_JAVA` を指定する（@sec-plantuml-setup） |
+| `Java が見つかりません` / `plantuml.jar が見つかりません` | ローカルで描こうとして Java か jar が無い。LAN サーバを設定するか、Java を入れる・`DDQ_JAVA` を指定する。jar は配布 zip に入っていないので、PlantUML の公式リリースから取得して `DDQ_PLANTUML_JAR` を設定する（@sec-plantuml-setup） |
 | `パスに Windows 版 Quarto が扱えない文字が含まれています` | 示された文字（絵文字・波ダッシュ `〜` など）をフォルダ名から外す（@sec-ascii-path） |
 | `… に PDF がありません`               | PDF の生成に失敗している。直前のメッセージを読む         |
 :::

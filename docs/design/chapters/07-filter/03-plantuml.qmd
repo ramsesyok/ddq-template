@@ -9,7 +9,7 @@ PlantUML（` ```plantuml `）は mermaid と違い**ブラウザ内で動く実�
 | 実行者 | 経路 | PlantUML の扱い | 追加で要るもの |
 |---|---|---|---|
 | 執筆者 | `quarto preview`（LAN サーバあり） | サーバに `POST /render` → SVG を `image()` | **なし**（`_quarto.yml` の `plantuml-server:`） |
-| 執筆者 | `quarto preview`（LAN サーバなし） | 同上。サーバは `ddq plantuml serve` で自分が上げる | リリース一式（`ddq.exe` + `plantuml.jar`）と Java |
+| 執筆者 | `quarto preview`（LAN サーバなし） | 同上。サーバは `ddq plantuml serve` で自分が上げる | 配布 zip の `ddq.exe`、各自が PlantUML の公式リリースから取得した `plantuml.jar`、Java |
 | 発行者 | PDF・配布 HTML | 同上。サーバは `ddq pdf` / `ddq html` が内部で上げて止める | 同左（LAN サーバがあれば不要） |
 :::
 

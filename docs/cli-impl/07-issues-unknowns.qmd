@@ -67,7 +67,7 @@
 
 - `cli/vendor/plantuml.jar`（v2.4.2 の配布物の jar も同じ）は、PlantUML 公式リリース v1.2026.8 の `plantuml-mit-1.2026.8.jar` と SHA-256（`3629c9cd…`）・大きさが一致し、`-license` の表示も MIT である。jar 自身が同梱物（Graphviz の一部、OpenIconic、Brotli、Twemoji など）の表示を持つ
 - `template/vendor/mermaid.min.js` は npm の `mermaid@11.16.1` の `dist/mermaid.min.js` とバイト一致する（改変なし。3.0.0 で 11.16.0 から更新し、2026-11-14 に照合。[E-0036](appendix-evidence.qmd#ev-e-0036)）
-- 配布物に入る第三者のソフトウェアは、ddq.exe に静的リンクする Rust のクレート188件（proc-macro 等のビルド時だけのものは除く）、mermaid とそのバンドルの依存77件（11.16.1 時点。11.16.0 では78件）、plantuml.jar、VSIX の Webview にバンドルする React 3件である。いずれも許容的なライセンスで、MPL-2.0 は3件（cssparser・dtoa-short・selectors。改変なし、入手先を明記）、DOMPurify は MPL-2.0 と Apache-2.0 から Apache-2.0 を選ぶ。merman の各クレートは移植元のライセンスを `THIRD_PARTY_LICENSES/` に持ち、ratex-katex-fonts は KaTeX のフォント（SIL OFL 1.1）を ddq.exe に埋め込む
+- 配布物に入る第三者のソフトウェアは、ddq.exe に静的リンクする Rust のクレート188件（proc-macro 等のビルド時だけのものは除く）、mermaid とそのバンドルの依存77件（11.16.1 時点。11.16.0 では78件）、VSIX の Webview にバンドルする React 3件である（plantuml.jar は 3.0.0 から同梱しない）。いずれも許容的なライセンスで、MPL-2.0 は3件（cssparser・dtoa-short・selectors。改変なし、入手先を明記）、DOMPurify は MPL-2.0 と Apache-2.0 から Apache-2.0 を選ぶ。merman の各クレートは移植元のライセンスを `THIRD_PARTY_LICENSES/` に持ち、ratex-katex-fonts は KaTeX のフォント（SIL OFL 1.1）を ddq.exe に埋め込む
 - **従来の配布物にはこれらのライセンス表示が無かった**。`cli/tools/third_party.py` が `THIRD-PARTY-NOTICES.md` を作り、`ddq release` が同梱する（入力のハッシュが合わなければ止まる）。`tests/third_party.rs` が CI で古さを検出する
 
 このリポジトリ自身（ddq 本体・テンプレート）のライセンスは未定だったが、保守者の判断で **MIT** とした（ルートの `LICENSE`、`cli/Cargo.toml` の `license`。VSCode 拡張と同じ）。配布物に入る第三者のもの（上記）は MIT の本体と組み合わせて配布でき（MPL-2.0 はファイル単位で元のライセンスのまま、OFL のフォントはソフトウェアへの同梱を認める）、それぞれのライセンスに従う。`ddq release` は `LICENSE` も同梱する。弁護士等による法的評価は行っていない。

@@ -21,7 +21,7 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | 図 | mermaid（文字で書いた図をベクター SVG に）、PlantUML（LAN のサーバか、同梱 jar をローカルの Java で） |
 | ビルド・配置の道具 | `ddq.exe`（Rust 製の単一実行ファイル。様式一式を内蔵） |
 | VSCode 拡張 | **DDQ Template**（`ddq.exe` 同梱。設計書リポジトリの作成・PDF / HTML の出力・ラベル付け・改訂履歴・表の視覚編集） |
-| 執筆者・発行者に要るもの | Quarto ＋ VSCode ＋ DDQ Template（VSIX）。PlantUML 図を使う文書で LAN にサーバが無いときだけ、配布 zip の `plantuml.jar` と Java も |
+| 執筆者・発行者に要るもの | Quarto ＋ VSCode ＋ DDQ Template（VSIX）。PlantUML 図を使う文書で LAN にサーバが無いときだけ、`plantuml.jar`（PlantUML の公式リリースから各自で取得）と Java も |
 
 > **このリポジトリは「様式の実体（`template/` と、それを内蔵する `cli/`）と、VSCode 拡張（`extensions/`）、
 > それにテンプレート自身の文書（`docs/`）とサンプル（`examples/`）」です。**
@@ -46,12 +46,11 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | 資産 | 中身 | 使う人 |
 |---|---|---|
 | `ddq-template-win32-x64-<版>.vsix` | VSCode 拡張 DDQ Template（`ddq.exe` 入り） | **全員**。VSCode の「VSIX からのインストール…」で入れる |
-| `quarto-template-<版>.zip` | `ddq.exe` 単体・`plantuml.jar`・利用マニュアル（PDF / HTML）・はじめかた.pdf・AGENT-GUIDE.md など | マニュアルを読む人、コマンド・バッチ・CI で使う人 |
+| `quarto-template-<版>.zip` | `ddq.exe` 単体・利用マニュアル（PDF / HTML）・はじめかた.pdf・AGENT-GUIDE.md など | マニュアルを読む人、コマンド・バッチ・CI で使う人 |
 
 ```
 quarto-template-3.0.0-pre4/       ← 配布 zip を展開したもの（設計書リポジトリの外に置く）
 ├── ddq.exe                  ← 様式・変換・ビルドの実体（コマンドで使うとき。インストール不要）
-├── plantuml.jar             ← PlantUML 図の描画（ローカルの Java で ddq が起動する）
 ├── はじめかた.pdf            ← 最初の一歩（スライド）
 ├── README.md                ← このファイル
 ├── AGENT-GUIDE.md           ← AI エージェント向けの執筆ガイド（設計書リポジトリの AGENTS.md やスキルに取り込む）
@@ -130,8 +129,8 @@ PDF は**中間版**としてコミットします。改ページ・横向きペ
 確認できないため、執筆者はこの PDF で紙面を見ます。
 mermaid 図は Windows 標準の Edge（または Chrome）を headless で使ってベクター SVG に
 焼き込みます。どちらも無い端末では `ddq` 内蔵のレンダラで描きます。
-PlantUML 図は LAN のサーバか、無ければ `plantuml.jar` をローカルの Java で
-`ddq` が起動して描きます。Node.js も npm も要りません。
+PlantUML 図は LAN のサーバか、無ければ各自が用意した `plantuml.jar` をローカルの Java で
+`ddq` が起動して描きます（jar は配布物に入れていません）。Node.js も npm も要りません。
 → 利用マニュアル 11章・12章
 
 ### テンプレートを更新するとき
@@ -180,6 +179,6 @@ cd C:\tools\quarto-template-3.0.0-pre4
 ## ライセンス
 
 このテンプレート（ddq 本体・機構ファイル・雛形・VSCode 拡張）は [MIT ライセンス](LICENSE) である。
-ddq.exe が内蔵する Rust のライブラリと mermaid、同梱の plantuml.jar、VSCode 拡張がバンドルする React は、
+ddq.exe が内蔵する Rust のライブラリと mermaid、VSCode 拡張がバンドルする React は、
 それぞれのライセンスに従う（[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)）。
 テンプレートで書いた設計書（原稿・図・PDF・HTML）は、書いた人のものであり、このライセンスの対象ではない。

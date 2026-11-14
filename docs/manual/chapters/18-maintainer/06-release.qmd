@@ -53,19 +53,18 @@ ddq-template-win32-x64-<版>.vsix               … VSCode 拡張 DDQ Template�
 
 ### 第三者のライセンス表示を作り直す
 
-リリースには、ddq.exe が内蔵する Rust のクレートと mermaid、同梱の plantuml.jar、VSCode 拡張が
-バンドルする React が入る。そのライセンス表示 `THIRD-PARTY-NOTICES.md`（リポジトリ直下）を、
-**依存を変えたとき**（`cli/Cargo.lock`・`template/vendor/mermaid.min.js`・`cli/vendor/plantuml.jar`・
-拡張の `package-lock.json`）に作り直してコミットする。
+リリースには、ddq.exe が内蔵する Rust のクレートと mermaid、VSCode 拡張がバンドルする React が入る。
+そのライセンス表示 `THIRD-PARTY-NOTICES.md`（リポジトリ直下）を、**依存を変えたとき**
+（`cli/Cargo.lock`・`template/vendor/mermaid.min.js`・拡張の `package-lock.json`）に作り直してコミットする。
 
 ```bat
-:: このリポジトリのルートで実行する（Python・Cargo・npm・Java が要る）
+:: このリポジトリのルートで実行する（Python・Cargo・npm が要る）
 python cli/tools/third_party.py
 ```
 
 作り直していないと `ddq release` が止まり（「THIRD-PARTY-NOTICES.md が古くなっています」）、CI の
-`cargo test` も落ちる。plantuml.jar は公式の MIT 版と同一であることを確かめてから置く
-（`cli/vendor/README.md`）。
+`cargo test` も落ちる。plantuml.jar は 3.0.0 から同梱しないので、表示の対象に入らない
+（利用者が PlantUML の公式リリースから取得する。@sec-plantuml-setup）。
 
 ### 閉域（オフライン）環境向けに作る
 

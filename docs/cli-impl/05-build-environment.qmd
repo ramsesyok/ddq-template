@@ -37,10 +37,10 @@ cli\target\release\ddq.exe release
 | merman | 0.8.0-alpha.6（要求も完全固定） | default-features無効、complete-svg有効。`resvg_safe` と図IDを維持 |
 | tungstenite | 0.30.0 | handshakeのみ、CDPのローカルWebSocket。TLS機能なし |
 | sha1 | 0.11.0 | 2.3.0で直接依存に追加。`tag` の候補ラベル。変えると未付与分の候補文字列が変わる（付与済みラベルは不変） |
-| zip | 8.6.0 | deflateのみ。配布ZIP作成とjar版読込み |
+| zip | 8.6.0 | deflateのみ。配布ZIP作成（3.0.0 で jar を同梱しなくなり、jar の版読込みは無くなった） |
 | windows-sys／winreg | 0.61.2／0.56.0 | ACP検査、Job Object、レジストリ探索。Windows限定 |
 | Mermaid JS | 11.16.1（埋込み文字列から抽出。3.0.0 で 11.16.0 から更新） | `template/vendor/mermaid.min.js`。ブラウザ描画の固定入力 |
-| PlantUML jar | 1.2026.8（ローカルMANIFEST） | `cli/vendor/plantuml.jar` はGit管理外。配布時に外部ファイルとしてコピー |
+| PlantUML jar | 1.2026.8（ローカルMANIFEST） | `cli/vendor/plantuml.jar` はGit管理外。試験・確認用で、3.0.0 から配布物には同梱しない |
 
 **確認済み（ローカル資料）**：直接依存のlicense宣言はローカルCargo registryのmanifestから採取し、`analysis/dependencies.json` に残した。CLI本体のmanifestには `[patch]` 指定がない。jarは公式リリースの `plantuml-mit-1.2026.8.jar` と SHA-256 が一致し、`mermaid.min.js` は npm の `mermaid@11.16.1` の `dist/mermaid.min.js` とバイト一致した（3.0.0 で更新。[E-0036](appendix-evidence.qmd#ev-e-0036)）。配布物に入る第三者のソフトウェアのライセンス表示は `THIRD-PARTY-NOTICES.md`（`cli/tools/third_party.py` の生成物）にまとめた。推移依存の法的評価とEOL調査は行っていない。[E-0018](appendix-evidence.qmd#ev-e-0018)、[E-0030](appendix-evidence.qmd#ev-e-0030)、[U-0003](07-issues-unknowns.qmd#u-0003)
 
