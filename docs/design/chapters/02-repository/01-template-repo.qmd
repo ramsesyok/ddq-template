@@ -6,7 +6,10 @@
 ```text
 design-doc-quarto-template/
 ├── README.md                … リポジトリの入口（何でできているか・役割・作業の流れ）
-├── .gitignore               … 機構ファイルの写し・生成物を管理外にする（原本は template/）
+├── AGENT-GUIDE.md           … AI エージェント向けの執筆ガイド（リリースに同梱）
+├── LICENSE                  … ライセンス（MIT。リリースに同梱）
+├── THIRD-PARTY-NOTICES.md   … 第三者のライセンス表示（cli/tools/third_party.py が作る。リリースに同梱）
+├── .gitignore              … 機構ファイルの写し・生成物を管理外にする（原本は template/）
 ├── .gitattributes           … 改行コードの固定（機構ファイル = LF）
 ├── .vscode/settings.json    … 日本語を等幅で表示する設定
 ├── .github/workflows/       … CI（配置ツール・VSCode 拡張）
@@ -28,13 +31,18 @@ design-doc-quarto-template/
 │
 ├── docs/                    … 設計リポジトリ（本テンプレートで書いた文書の執筆フォルダ群）
 │   ├── manual/              … 利用マニュアル（執筆者・発行者・保守者の手順）
-│   └── design/              … 本書（テンプレートの設計）
+│   ├── design/              … 本書（テンプレートの設計）
+│   ├── cli-impl/            … ddq ソフトウェア実装仕様書
+│   ├── ddq-template-impl/   … DDQ Template ソフトウェア実装仕様書
+│   ├── presentation/        … 紹介スライド（revealjs。ddq を使わず quarto render で出す）
+│   └── *-study.md           … 実装前の検討書（単一の Markdown。執筆フォルダではない）
 │
 ├── examples/                … サンプルの設計書リポジトリ（記法の実例・様式の検証用）
 │   ├── docs/                … 受注管理システム 基本設計書（mermaid・IPO 図・表の実例）
 │   └── plantuml/            … 受注管理システム プログラム概要設計書（PlantUML の実例）
 │
-├── cli/                     … 配置・ビルドの道具（template/ を内蔵する）。設計は cli/DESIGN.md
+├── migration/               … Word / PowerPoint の既存設計書を移す検討と支援ツール（リリースに入れない）
+├── cli/                     … 配置・ビルドの道具 ddq（template/ を内蔵する）。設計は cli/DESIGN.md
 └── extensions/              … VSCode 拡張（1 フォルダ = 1 拡張）
     └── ddq-template/        … DDQ Template（ddq.exe 同梱。作成・発行・ラベル付け・改訂履歴・表の視覚編集）
 ```
@@ -46,7 +54,7 @@ design-doc-quarto-template/
 ::: {.tbl caption="リポジトリ内の文書の置き場" label="tbl-doc-places" widths="22,40,38"}
 | 置き場 | 中身 | 位置づけ |
 |---|---|---|
-| `docs/<執筆フォルダ>` | 利用マニュアル（`manual/`）・本書（`design/`） | テンプレート自身の文書。**設計リポジトリ**として、執筆フォルダを兄弟に並べる |
+| `docs/<執筆フォルダ>` | 利用マニュアル（`manual/`）・本書（`design/`）・実装仕様書（`cli-impl/`・`ddq-template-impl/`） | テンプレート自身の文書。**設計リポジトリ**として、執筆フォルダを兄弟に並べる |
 | `examples/<執筆フォルダ>` | 受注管理システム 基本設計書（`docs/`）・同 プログラム概要設計書（`plantuml/`。PlantUML の実例） | サンプル。記法の実物見本であり、様式を変更したときの確認にも使う。サンプルを増やすときはここに執筆フォルダを足す |
 :::
 

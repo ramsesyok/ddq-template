@@ -19,9 +19,11 @@
 | 様式（外枠・採番・IPO 図）と変換の仕組み、調整箇所、保守の手順 | **本書**（`docs/design/`） | 保守者 |
 | リリースの作り方・配り方、版の上げ方の手順 | 利用マニュアル 18 章 | 保守者 |
 | 配置・ビルドを行う CLI の設計 | `cli/DESIGN.md` | 保守者 |
+| CLI の実装の詳細 | `docs/cli-impl/` | CLI の改修者 |
+| AI エージェントに原稿を書かせるときの要約 | `AGENT-GUIDE.md` | 発行者 |
 | VSCode 拡張 DDQ Template（作成・発行・ラベル付け・改訂履歴・表の視覚編集） | `extensions/ddq-template/README.md` | 執筆者・保守者 |
 | 拡張の設計（統合・ddq の同梱） | `docs/ddq-template-study.md` | 拡張の改修者 |
-| 拡張の実装の詳細 | `docs/ddq-template-impl/` | 拡張の改修者 |
+| 拡張の実装の詳細・開発の手順 | `docs/ddq-template-impl/`・`extensions/ddq-template/DEVELOPMENT.md` | 拡張の改修者 |
 
 本書は様式と変換の仕組み（`template/`）に絞る。配置・ビルドの道具や VSCode 拡張は、
 本書の対象外であり、それぞれの文書を参照する。
@@ -31,6 +33,7 @@
 | 改正番号 | 改正日     | 改正の根拠 | 改正の概要 |
 |----------|------------|------------|------------|
 | 基本版   | 2026-09-20 | ―         | 新規制定（旧 `ADVANCED.md`・`template/PIPELINE.md` を統合） |
+| A        | 2026-11-14 | 3.0.0      | DDQ Template 拡張への `ddq.exe` 同梱に合わせ、役割・方針・リポジトリ構成・ファイル一覧（改訂履歴 `revisions/`）・ビルドの流れを実装に合わせた |
 
 ## 用語の説明 {.unnumbered}
 
