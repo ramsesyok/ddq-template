@@ -267,6 +267,29 @@ fn split_url(url: &str) -> Result<(String, u16)> {
     Ok((host.to_string(), port))
 }
 
+/// 名前を解決したアドレスに順に繋ぐ（最初に繋がったものを使う）。
+///
+/// Windows では `localhost` が `::1`（IPv6）から先に解決される。PicoWeb は `-picoweb:…:localhost`
+/// でも IPv4 の 127.0.0.1 でしか待ち受けないので、先頭のアドレスだけを試すと繋がらない
+/// （`ddq plantuml serve --bind localhost` や `plantuml-server: http://localhost:…` が失敗していた）。
+fn connect(host: &str, port: u16, timeout: Duration) -> Result<TcpStream> {
+    let addrs: Vec<_> = (host, port)
+        .to_socket_addrs()
+        .with_context(|| format!("{host} を解決できません"))?
+        .collect();
+    let mut last = None;
+    for addr in &addrs {
+        match TcpStream::connect_timeout(addr, timeout) {
+            Ok(s) => return Ok(s),
+            Err(e) => last = Some(e),
+        }
+    }
+    match last {
+        Some(e) => Err(e.into()),
+        None => bail!("{host} を解決できません"),
+    }
+}
+
 /// 1 リクエストを送って応答を読む。
 fn request(
     url: &str,
@@ -276,13 +299,7 @@ fn request(
     timeout: Duration,
 ) -> Result<Response> {
     let (host, port) = split_url(url)?;
-    let addr = (host.as_str(), port)
-        .to_socket_addrs()
-        .with_context(|| format!("{host} を解決できません"))?
-        .next()
-        .with_context(|| format!("{host} を解決できません"))?;
-    let mut s =
-        TcpStream::connect_timeout(&addr, timeout).with_context(|| format!("{url} に接続できません"))?;
+    let mut s = connect(&host, port, timeout).with_context(|| format!("{url} に接続できません"))?;
     s.set_read_timeout(Some(timeout))?;
     s.set_write_timeout(Some(timeout))?;
     let mut head = format!("{method} {path} HTTP/1.1\r\nHost: {host}:{port}\r\nConnection: close\r\n");
@@ -853,6 +870,27 @@ mod tests {
             "閉じるのを待った: {:?}",
             t0.elapsed()
         );
+    }
+
+    #[test]
+    fn localhost_reaches_a_server_listening_only_on_ipv4() {
+        // PicoWeb と同じく 127.0.0.1 だけで待つ。Windows は localhost を ::1 から先に解決するので、
+        // 解決した先頭のアドレスだけに繋ぐと届かない（ddq plantuml serve --bind localhost が失敗した）
+        let svg = b"<svg/>";
+        let url = fake_server(
+            resp(&format!("HTTP/1.1 200 OK\nContent-Length: {}\n", svg.len()), svg),
+            Duration::ZERO,
+        );
+        let port = url.rsplit(':').next().unwrap();
+        let r = request(
+            &format!("http://localhost:{port}"),
+            "GET",
+            "/",
+            None,
+            Duration::from_secs(5),
+        )
+        .expect("localhost で届かない");
+        assert_eq!(r.body, svg);
     }
 
     #[test]

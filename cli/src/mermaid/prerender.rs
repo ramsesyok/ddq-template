@@ -185,4 +185,32 @@ mod tests {
             "bd6545fcd3bc59e4"
         );
     }
+
+    #[test]
+    fn cache_is_fresh_only_for_this_environment_unless_kept() {
+        let tmp = tempfile::tempdir().unwrap();
+        let here = "<!-- ddq 3.0.0 browser -->";
+        let svg = |name: &str, text: &str| {
+            let p = tmp.path().join(name);
+            fs::write(&p, text).unwrap();
+            p
+        };
+        let same = svg("same.svg", &format!("{here}\r\n<svg/>"));
+        let other = svg("other.svg", "<!-- ddq 3.0.0 merman -->\n<svg/>");
+        let broken = svg("broken.svg", "<!-- ddq 3.0.0 browser -->\nエラー");
+        let missing = tmp.path().join("missing.svg");
+
+        // いまの環境（ddq の版とエンジン）で描いたものだけを使い回す
+        assert!(fresh(&same, false, Some(here)));
+        assert!(!fresh(&other, false, Some(here)));
+        // DDQ_DIAGRAM_CACHE=keep なら、別の環境で描いたものも描き直さない（発行物を揃えたいとき）
+        assert!(fresh(&other, true, Some(here)));
+        // エンジンが分からない（どれも使えない）ときは、あるものを使う
+        assert!(fresh(&other, false, None));
+        // SVG でないもの・無いものは keep でも描き直す
+        for keep in [false, true] {
+            assert!(!fresh(&broken, keep, Some(here)));
+            assert!(!fresh(&missing, keep, Some(here)));
+        }
+    }
 }

@@ -364,3 +364,163 @@ fn stale_notices_stop_the_release() {
     write(&repo, "cli/Cargo.lock", b"changed\n");
     assert_fails_untouched(&repo, &tmp.path().join("out"), &[], "古くなっています");
 }
+
+// ------------------------------------------------------------------------
+//  実ビルドの経路（--no-build なし）: マニュアルを本当に PDF・HTML にし、拡張を npm で
+//  パッケージする。拡張の npm スクリプトは tests/fixtures/release/pack.js（無圧縮の zip を書く）で
+//  vsce の代わりをするので、通信もしない。Quarto と npm が要る（無ければ skip。DDQ_E2E なら失敗）
+// ------------------------------------------------------------------------
+
+fn npm_available() -> bool {
+    let ok = Command::new(if cfg!(windows) { "npm.cmd" } else { "npm" })
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success());
+    if !ok {
+        assert!(
+            std::env::var("DDQ_E2E").is_err(),
+            "DDQ_E2E なのに npm がありません"
+        );
+        eprintln!("skip: npm がありません");
+    }
+    ok
+}
+
+/// fake_repo のマニュアルと拡張を、ビルドできる本物に差し替える。
+/// - マニュアル: ddq init の雛形（図が無いのでブラウザ・Java は要らない）。PDF・HTML は無い
+/// - ddq-a（ddq.exe を同梱）: node_modules があるので npm ci はしない
+/// - ddq-b: node_modules が無いので npm ci（package-lock.json のとおり。依存は無い）をする
+fn real_build_repo(root: &Path, package_b: &str) {
+    fake_repo(root);
+    let v = version();
+    fs::remove_dir_all(root.join("docs")).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_ddq"))
+        .arg("init")
+        .arg(root.join("docs"))
+        .args(["manual", "--no-render"])
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "ddq init が失敗: {}", text(&out));
+
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/release");
+    for ext in ["ddq-a", "ddq-b"] {
+        let dir = root.join("extensions").join(ext);
+        for f in fs::read_dir(&dir).unwrap().map(|e| e.unwrap().path()) {
+            if f.extension().is_some_and(|e| e == "vsix") {
+                fs::remove_file(f).unwrap();
+            }
+        }
+        for js in ["pack.js", "mark.js"] {
+            fs::copy(fixture.join(js), dir.join(js)).unwrap();
+        }
+    }
+    write(
+        root,
+        "extensions/ddq-a/package.json",
+        format!(
+            r#"{{"name":"ddq-a","version":"{v}","scripts":{{"postinstall":"node mark.js","package:win32-x64":"node pack.js ddq-a-win32-x64-{v}.vsix extension/bin/win32-x64/ddq.exe=bin/win32-x64/ddq.exe"}}}}"#
+        )
+        .as_bytes(),
+    );
+    fs::create_dir_all(root.join("extensions/ddq-a/node_modules")).unwrap();
+    write(
+        root,
+        "extensions/ddq-b/package.json",
+        format!(
+            r#"{{"name":"ddq-b","version":"{v}","scripts":{{"postinstall":"node mark.js","package":"{package_b}"}}}}"#
+        )
+        .replace("{v}", &v)
+        .as_bytes(),
+    );
+    write(
+        root,
+        "extensions/ddq-b/package-lock.json",
+        format!(
+            r#"{{"name":"ddq-b","version":"{v}","lockfileVersion":3,"requires":true,"packages":{{"":{{"name":"ddq-b","version":"{v}","hasInstallScript":true}}}}}}"#
+        )
+        .as_bytes(),
+    );
+}
+
+fn release_with_build(repo: &Path, out: &Path) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_ddq"))
+        .arg("release")
+        .arg(out)
+        .current_dir(repo)
+        .output()
+        .unwrap()
+}
+
+#[test]
+#[cfg(windows)]
+fn real_build_makes_the_manual_and_packages_the_extensions() {
+    if !quarto_available() || !npm_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    real_build_repo(&repo, "node pack.js ddq-b-{v}.vsix");
+    let out = tmp.path().join("out");
+    let r = release_with_build(&repo, &out);
+    assert!(r.status.success(), "{}", text(&r));
+
+    // マニュアルはこの場でビルドしたもの（PDF と HTML）
+    let stage = stage_of(&out);
+    let pdf = fs::read(stage.join("manual/利用マニュアル.pdf")).unwrap();
+    assert!(pdf.starts_with(b"%PDF-"), "マニュアルの PDF ではない");
+    let html = fs::read_to_string(stage.join("manual/html/index.html")).unwrap();
+    assert!(html.contains("<html"), "マニュアルの HTML ではない");
+
+    // node_modules の無い拡張だけ npm ci した
+    let ext = repo.join("extensions");
+    assert!(
+        ext.join("ddq-b/npm-ci-ran").is_file(),
+        "ddq-b で npm ci していない"
+    );
+    assert!(
+        !ext.join("ddq-a/npm-ci-ran").exists(),
+        "node_modules があるのに ddq-a で npm ci した"
+    );
+
+    // 同梱の拡張には、release している ddq をコピーしてからパッケージした
+    let v = version();
+    let vsix = out.join(format!("ddq-a-win32-x64-{v}.vsix"));
+    let mut zip = zip::ZipArchive::new(fs::File::open(&vsix).unwrap()).unwrap();
+    let mut bundled = Vec::new();
+    zip.by_name("extension/bin/win32-x64/ddq.exe")
+        .unwrap()
+        .read_to_end(&mut bundled)
+        .unwrap();
+    assert!(
+        bundled == ddq_bytes(),
+        "VSIX の ddq.exe が release した ddq と違う"
+    );
+    assert!(
+        out.join(format!("ddq-b-{v}.vsix")).is_file(),
+        "ddq-b の VSIX が無い"
+    );
+}
+
+#[test]
+#[cfg(windows)]
+fn failing_npm_package_stops_before_touching_the_stage() {
+    if !quarto_available() || !npm_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    real_build_repo(&repo, "node -e process.exit(7)");
+    let out = tmp.path().join("out");
+    write(&stage_of(&out), "previous.txt", b"previous");
+    let r = release_with_build(&repo, &out);
+    assert!(!r.status.success(), "成功してしまった");
+    assert!(
+        text(&r).contains("npm run package（extensions/ddq-b） が失敗しました"),
+        "{}",
+        text(&r)
+    );
+    assert!(
+        stage_of(&out).join("previous.txt").exists(),
+        "失敗したのに前回の配布フォルダを消した"
+    );
+}

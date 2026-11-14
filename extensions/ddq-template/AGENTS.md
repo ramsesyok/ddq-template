@@ -160,6 +160,12 @@ UI 以外のロジックにユニットテストを書く。純粋な TypeScript
 表エディタは `src/tableEditor/webview/TableEditor.test.tsx`）。ボタンや欄を足したら、ここにも操作を足す。
 IME の変換と実際の描画位置は jsdom では見られないので、実 Webview で確かめる。
 
+通知・ダイアログ（名前の入力欄・フォルダ選択・通知のボタン）は実拡張ホストでは押せないので、
+`src/dialogs.test.ts` で VSCode を差し替えて（`src/testing/fakeVscode.ts`。答えを積むと順に返す）
+コマンドを最後まで通す。ボタンや分岐を足したら、ここにも足す。右クリックメニューの `when` 句は
+VSCode が評価するので拡張からは見えない。`src/menus.test.ts` が package.json の `when` を
+setContext の値で評価して突き合わせる（キー名を片方だけ変えると落ちる）。
+
 表の記法まわりの検証は `src/tableEditor/formats/pandoc.test.ts` が**本物の pandoc**に対して行う。
 pandoc が無い環境では自動スキップし、CI では `REQUIRE_PANDOC=1` でスキップを禁止する
 （検査が黙って素通りしないように）。新しい記法を足したらここにケースを追加すること。

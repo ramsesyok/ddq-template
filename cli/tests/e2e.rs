@@ -257,3 +257,80 @@ fn rejects_path_outside_code_page() {
         _ => assert!(err.contains("扱えない文字"), "{err}"),
     }
 }
+
+/// 図のキャッシュの環境照合（design-doc.lua の mermaid_env_matches と ddq の prerender）。
+/// 別の環境（ddq の版・mermaid のエンジン）で描いた SVG は、発行時に描き直す。
+/// `DDQ_DIAGRAM_CACHE=keep` なら描き直さずに使う（接続環境で作ったキャッシュをオフラインの
+/// 端末へ持ち込むとき。利用マニュアル 11 章）。PlantUML は使わないので Java は要らない。
+#[test]
+fn diagram_cache_from_another_environment_is_redrawn_unless_kept() {
+    if !quarto_available() {
+        assert!(
+            std::env::var("DDQ_E2E").is_err(),
+            "DDQ_E2E=1 なのに quarto が PATH にありません"
+        );
+        eprintln!("skip: quarto が PATH にありません");
+        return;
+    }
+    let _lock = QUARTO_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    let dir_s = repo.join("docs");
+    assert_ok(
+        &ddq(&["init", &repo.to_string_lossy(), "docs", "--no-render"]),
+        "ddq init",
+    );
+    let chapter = dir_s.join("chapters/01-overview/index.qmd");
+    let mut text = fs::read_to_string(&chapter).unwrap();
+    text.push_str("\n```mermaid\nflowchart LR\n  受付 --> 出荷\n```\n");
+    fs::write(&chapter, text).unwrap();
+    let dir = dir_s.to_string_lossy().into_owned();
+    let html = |keep: bool| {
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_ddq"));
+        cmd.args(["html", &dir]);
+        if keep {
+            cmd.env("DDQ_DIAGRAM_CACHE", "keep");
+        } else {
+            cmd.env_remove("DDQ_DIAGRAM_CACHE");
+        }
+        let out = cmd.output().unwrap();
+        assert_ok(&out, if keep { "ddq html（keep）" } else { "ddq html" });
+    };
+
+    html(false);
+    let diagrams = dir_s.join("diagrams");
+    let svgs: Vec<PathBuf> = fs::read_dir(&diagrams)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| {
+            let n = p.file_name().unwrap().to_string_lossy().into_owned();
+            n.starts_with("mmd-") && n.ends_with(".svg")
+        })
+        .collect();
+    assert_eq!(svgs.len(), 1, "mermaid の図が 1 つ描かれていない: {svgs:?}");
+    let svg = &svgs[0];
+    let here = fs::read_to_string(svg).unwrap();
+    let header = here.lines().next().unwrap().to_string();
+    assert!(header.starts_with("<!-- ddq "), "先頭コメントが無い: {header}");
+
+    // 別の環境で描いたことにする（先頭コメントだけ違う、目印の入った SVG）
+    let foreign = "<!-- ddq 0.0.1 elsewhere -->\n<svg xmlns=\"http://www.w3.org/2000/svg\"><text>持ち込んだ絵</text></svg>\n";
+    fs::write(svg, foreign).unwrap();
+    html(true);
+    assert_eq!(fs::read_to_string(svg).unwrap(), foreign, "keep なのに描き直した");
+    let published = dir_s.join("_book").join(svg.strip_prefix(&dir_s).unwrap());
+    assert!(
+        fs::read_to_string(&published).unwrap().contains("持ち込んだ絵"),
+        "keep のキャッシュが HTML に入っていない: {}",
+        published.display()
+    );
+
+    html(false);
+    let redrawn = fs::read_to_string(svg).unwrap();
+    assert!(!redrawn.contains("持ち込んだ絵"), "別の環境の絵のまま発行した");
+    assert_eq!(
+        redrawn.lines().next().unwrap(),
+        header,
+        "いまの環境の先頭コメントで描き直していない"
+    );
+}

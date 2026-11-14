@@ -689,6 +689,9 @@ design-doc.lua ──┤                                        … POST /render
 - HTTP は手書き（`TcpStream`、HTTP/1.1、`Connection: close`、chunked 対応）。新しいクレートは足さない。
   応答は Content-Length か chunked の終端で読み終える（`Connection: close` を無視して閉じないサーバ・プロキシで
   時間切れまで待たないため）。宣言より短い応答はエラー。プロキシは使わない（直接つなぐ）。
+  ホスト名は解決したアドレスを順に試す（Windows は `localhost` を `::1` から返すが、PicoWeb は IPv4 でしか
+  待たない。2.2.0 から先頭だけ試していたので、`serve --bind localhost` や `PLANTUML_SERVER=http://localhost:…` が
+  繋がらずに失敗していた。3.0.0 で修正）。
 - フィルタの curl には `--noproxy`（127.0.0.1・localhost・::1 と利用者の `NO_PROXY`）を渡す。`http_proxy` の
   ある端末で、ローカルのサーバ宛てがプロキシへ送られて描けなかったため（2.4.3 から）。
 

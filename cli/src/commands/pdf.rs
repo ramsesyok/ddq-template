@@ -46,3 +46,33 @@ fn find_pdf(book: &Path) -> Result<std::path::PathBuf> {
         many => bail!("{} に PDF が複数あります: {:?}", book.display(), many),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exactly_one_pdf_is_taken_from_the_output_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let book = tmp.path();
+        fs::write(book.join("index.html"), "").unwrap();
+
+        // 0 件: render が PDF を作らなかった
+        let err = format!("{:#}", find_pdf(book).unwrap_err());
+        assert!(err.contains("PDF がありません"), "{err}");
+
+        // 1 件: 拡張子の大小は問わない
+        fs::write(book.join("設計書.PDF"), "").unwrap();
+        assert_eq!(find_pdf(book).unwrap(), book.join("設計書.PDF"));
+
+        // 複数: どれを取り出すか決められないので止め、両方の名前を出す
+        fs::write(book.join("old.pdf"), "").unwrap();
+        let err = format!("{:#}", find_pdf(book).unwrap_err());
+        assert!(err.contains("PDF が複数あります"), "{err}");
+        assert!(err.contains("old.pdf") && err.contains("設計書.PDF"), "{err}");
+
+        // 出力先そのものが無い
+        let err = format!("{:#}", find_pdf(&book.join("_book")).unwrap_err());
+        assert!(err.contains("を読めません"), "{err}");
+    }
+}
