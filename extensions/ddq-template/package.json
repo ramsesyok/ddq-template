@@ -2,7 +2,7 @@
   "name": "ddq-template",
   "displayName": "DDQ Template",
   "description": "設計書テンプレート ddq の執筆支援。設計書リポジトリの作成、PDF / HTML の作成、見出し・表・図のラベル付けと改訂履歴、表エディタ",
-  "version": "3.0.0-pre3",
+  "version": "3.0.0-pre4",
   "publisher": "ramsesyok",
   "license": "MIT",
   "repository": {

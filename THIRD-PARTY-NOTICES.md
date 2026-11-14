@@ -1,6 +1,6 @@
 # 第三者のソフトウェアとライセンス（THIRD-PARTY-NOTICES）
 
-<!-- ddq-third-party inputs: cli/Cargo.lock=a32559f9cf9e8648085b71a21b59f133802ee8e5 template/vendor/mermaid.min.js=0a6b4761f8ad1e3d42fe17e66033fa5cf2785ae1 cli/vendor/plantuml.jar=ef49f4f313d06de6575dcaa67361df432c028048 extensions/ddq-template/package-lock.json=7fcd0f5206b188593fb247f1a7728d2a3afece86 -->
+<!-- ddq-third-party inputs: cli/Cargo.lock=a32559f9cf9e8648085b71a21b59f133802ee8e5 template/vendor/mermaid.min.js=0a6b4761f8ad1e3d42fe17e66033fa5cf2785ae1 cli/vendor/plantuml.jar=ef49f4f313d06de6575dcaa67361df432c028048 extensions/ddq-template/package-lock.json=f1b62a7e164810f1f48aa6ddccb4a07ee45da3b1 -->
 <!-- 生成物。手で直さない（python cli/tools/third_party.py で作り直す） -->
 
 この配布物（quarto-template）の ddq 本体とテンプレートは MIT ライセンスである（同梱の LICENSE）。
