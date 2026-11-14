@@ -11,7 +11,7 @@
 | `package` | `vsce package`。ddq.exe を入れない VSIX（開発・拡張の CI 用） |
 | `package:win32-x64` | `vsce package --target win32-x64` → `ddq-template-win32-x64-<版>.vsix`。`bin/win32-x64/ddq.exe` を置いてから実行する |
 | `test` / `typecheck` / `check:offline` / `check:audit` / `verify` | ユニットテスト・型検査・成果物の通信 API と外部 URL の検査・本番依存の脆弱性検査・その一括 |
-| `test:host` | 実拡張ホスト（ソースから起動。ddq は手元のビルドか golden を返す差し替え。差し替えは Windows では `rustc` で作る小さな exe で包むので、`rustc` が要る） |
+| `test:host` | 実拡張ホスト（ソースから起動。ddq は手元のビルドか golden を返す差し替え。差し替えは Windows では `rustc` で作る小さな exe で包むので、`rustc` が要る。`DDQ_HOST_REAL=1` なら差し替えに落ちずに失敗する） |
 | `test:smoke` | 同梱版のスモーク。VSIX を `System32\tar.exe` で展開し、展開した `extension/` を拡張として起動。設定・`PATH` なしで同梱 ddq に決まること、`init` → `html` |
 :::
 
@@ -34,7 +34,7 @@ VSIX は約 10.7 MB（ddq.exe は約 30 MB で、zip 圧縮で縮む）。確認
 
 | ワークフロー | ジョブ | 内容 |
 |---|---|---|
-| `extension.yml` | test / host / audit / package | 拡張のユニットテスト（Ubuntu・Windows × Node 20・22）、実拡張ホスト（golden 差し替えの ddq）、脆弱性、ddq なし VSIX |
+| `extension.yml` | test / host / audit / package | 拡張のユニットテスト（Ubuntu・Windows × Node 20・22）、実拡張ホスト（同じコミットの ddq をビルドし、Quarto を入れて実物で回す。`DDQ_HOST_REAL=1`）、脆弱性、ddq なし VSIX。`cli/`・`template/` の変更でも走る |
 | `ci.yml` | cli | ddq の fmt / clippy / test / build。`ddq-windows-x64` を成果物に |
 | `ci.yml` | vsix-smoke | 上の ddq.exe を同梱して VSIX を作り `test:smoke`。main への push と手動実行のみ（PR では走らない） |
 

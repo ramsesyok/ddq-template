@@ -371,28 +371,50 @@ async function build(docs) {
 }
 
 /**
+ * 執筆フォルダの名前。ddq は Windows の ANSI コードページで表せない名前を拒否するので、
+ * 実行環境のコードページで表せる非 ASCII の名前を選ぶ（cli/tests/e2e.rs の non_ascii_layout と同じ考え方）。
+ * 手元（CP932）は日本語、CI の runner（en-US、CP1252）は「Übung」、それ以外は ASCII。
+ */
+function writingFolderName() {
+    if (process.platform !== 'win32') return '設計書';
+    let acp = '';
+    try {
+        const out = execFileSync('reg', ['query', 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage', '/v', 'ACP'], {
+            encoding: 'utf8'
+        });
+        acp = (out.match(/ACP\s+REG_SZ\s+(\d+)/) || [])[1] || '';
+    } catch {
+        /* 読めなければ ASCII にする */
+    }
+    if (acp === '932' || acp === '65001') return '設計書';
+    if (acp === '1252') return 'Übung';
+    return 'design';
+}
+
+/**
  * 設計書リポジトリの作成（ddq-template-study.md §5）。ダイアログは通せないので、
- * 名前を決めたあとの作成処理（ddq init）を内部コマンドで通す。執筆フォルダ名は日本語にする。
+ * 名前を決めたあとの作成処理（ddq init）を内部コマンドで通す。執筆フォルダ名は非 ASCII にする。
  */
 async function init() {
     const repo = path.join(process.env.HOST_OUT, 'new-repo');
-    const outcome = await vscode.commands.executeCommand('ddqTemplate.internal.init', repo, '設計書');
-    assert.strictEqual(outcome, 'ok', `init が通らない: ${outcome}`);
-    for (const f of ['.gitignore', '.vscode/settings.json', '.vscode/extensions.json', '設計書/_quarto.yml', '設計書/.template-version']) {
+    const name = writingFolderName();
+    const outcome = await vscode.commands.executeCommand('ddqTemplate.internal.init', repo, name);
+    assert.strictEqual(outcome, 'ok', `init が通らない（執筆フォルダ名 ${name}）: ${outcome}`);
+    for (const f of ['.gitignore', '.vscode/settings.json', '.vscode/extensions.json', `${name}/_quarto.yml`, `${name}/.template-version`]) {
         assert.ok(fs.existsSync(path.join(repo, f)), `${f} が無い`);
     }
     assert.ok(
         fs.readFileSync(path.join(repo, '.vscode', 'extensions.json'), 'utf8').includes('quarto.quarto'),
         'extensions.json に quarto.quarto が無い'
     );
-    say('設計書リポジトリを作れる（日本語の執筆フォルダ名、.vscode/extensions.json に quarto.quarto）');
+    say(`設計書リポジトリを作れる（執筆フォルダ名「${name}」、.vscode/extensions.json に quarto.quarto）`);
 
     // 2 つ目の文書（ddq add）。名前を決めたあとの追加処理を内部コマンドで通す
-    const second = path.join(repo, '設計書2');
+    const second = path.join(repo, `${name}2`);
     const added = await vscode.commands.executeCommand('ddqTemplate.internal.add', second);
     assert.strictEqual(added, 'ok', `add が通らない: ${added}`);
     for (const f of ['_quarto.yml', '.template-version', 'design-doc.lua']) {
-        assert.ok(fs.existsSync(path.join(second, f)), `設計書2/${f} が無い`);
+        assert.ok(fs.existsSync(path.join(second, f)), `${name}2/${f} が無い`);
     }
     // 既存の文書には足さない（ddq add が拒否する）
     const again = await vscode.commands.executeCommand('ddqTemplate.internal.add', second);

@@ -2,14 +2,17 @@
 # 拡張は 1 フォルダ = 1 つで、どれも同じ作法（npm ci / typecheck / test / build /
 # check:offline / package）に揃える。増やすときは matrix.ext に足すだけでよい。
 # ddq（cli/）の CI は ci.yml。
+# 実拡張ホスト（host）は同じコミットの ddq をビルドして本物で回すので、拡張と ddq の
+# 取り決め（終了コード 3・`OK:` 行・`警告:` 行・`tag list --json`）が変われば、cli/・template/
+# の変更でもここを走らせる。
 name: extension
 
 on:
   push:
     branches: [main]
-    paths: [extensions/**, .github/workflows/extension.yml]
+    paths: [extensions/**, cli/**, template/**, .github/workflows/extension.yml]
   pull_request:
-    paths: [extensions/**, .github/workflows/extension.yml]
+    paths: [extensions/**, cli/**, template/**, .github/workflows/extension.yml]
   workflow_dispatch:
 
 # 同じブランチへ続けて push したら古い実行は打ち切る
@@ -92,6 +95,19 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: extensions/${{ matrix.ext }}/package-lock.json
+      # 改訂履歴の編集画面・発行（update → html）・作成（init）・追加（add）は本物の ddq が要る。
+      # 差し替え（fake-ddq）ではこれらが飛ぶので、同じコミットの ddq をビルドして渡す。
+      # html と init の疎通確認に Quarto も要る（版は ci.yml と同じ）
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+      - name: ddq をビルド
+        working-directory: cli
+        run: cargo build --release
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.9.38
       - run: npm ci
       - run: npm run build
       - name: 検証用の VSCode をキャッシュ
@@ -99,7 +115,10 @@ jobs:
         with:
           path: extensions/${{ matrix.ext }}/.vscode-test
           key: vscode-test-${{ runner.os }}
+      # DDQ_HOST_REAL=1: cli/target/release/ddq.exe が無ければ差し替えに落ちずに失敗する
       - run: npm run test:host
+        env:
+          DDQ_HOST_REAL: '1'
 
   audit:
     name: 脆弱性チェック (${{ matrix.ext }})

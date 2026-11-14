@@ -55,7 +55,9 @@ VSCode を起動して、一覧が開くこと・書き戻しが当たること�
   `@vscode/test-electron` がテスト用の VSCode を取得します（CI 用。`.vscode-test/` に入り、
   **配布物には一切入りません**）
 - **ddq**: `../../cli/target/release/` にあればそれを、無ければ `tests/host/fake-ddq.mjs`
-  （実物の出力を採取した golden を返す差し替え）を使います。引数や `DDQ_BIN` でも渡せます
+  （実物の出力を採取した golden を返す差し替え）を使います。引数や `DDQ_BIN` でも渡せます。
+  差し替えでは改訂履歴・発行・作成・追加の確認を飛ばします。CI は同じコミットの ddq をビルドし、
+  `DDQ_HOST_REAL=1` で「実物が無ければ失敗」にして回します
 
 ## pandoc 連携テスト
 
