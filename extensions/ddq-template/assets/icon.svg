@@ -1,0 +1,21 @@
+<!-- DDQ Template の拡張アイコンの原本。icon.png（256px）と icon-1024.png はここから書き出す:
+     inkscape assets/icon.svg --export-type=png --export-filename=icon.png -w 256 -h 256 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <path d="M48 20 H152 L196 64 V228 a8 8 0 0 1 -8 8 H48 a8 8 0 0 1 -8 -8 V28 a8 8 0 0 1 8 -8 Z" fill="#ffffff" stroke="#2f5d3a" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M152 20 V56 a8 8 0 0 0 8 8 H196" fill="#dfeccf" stroke="#2f5d3a" stroke-width="8" stroke-linejoin="round"/>
+  <rect x="64" y="76" width="96" height="14" rx="3" fill="#2f5d3a"/>
+  <g stroke="#2f5d3a" stroke-width="5" fill="none">
+    <rect x="64" y="106" width="108" height="66"/>
+    <line x1="64" y1="128" x2="172" y2="128"/><line x1="64" y1="150" x2="172" y2="150"/>
+    <line x1="100" y1="106" x2="100" y2="172"/><line x1="136" y1="106" x2="136" y2="172"/>
+  </g>
+  <rect x="66.5" y="108.5" width="103" height="17" fill="#8bb174"/>
+  <rect x="64" y="190" width="70" height="8" rx="3" fill="#8bb174"/>
+  <rect x="64" y="208" width="54" height="8" rx="3" fill="#8bb174"/>
+  <g transform="translate(-14 6) rotate(45 190 170)">
+    <rect x="174" y="70" width="32" height="120" rx="4" fill="#2f5d3a"/>
+    <rect x="174" y="70" width="32" height="18" rx="4" fill="#8bb174"/>
+    <path d="M174 190 H206 L190 222 Z" fill="#dfeccf" stroke="#2f5d3a" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M184 210 L196 210 L190 222 Z" fill="#2f5d3a"/>
+  </g>
+</svg>

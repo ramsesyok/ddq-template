@@ -92,3 +92,12 @@ VSCode を起動して、一覧が開くこと・書き戻しが当たること�
 版はテンプレートの版（`../../template/VERSION`）と揃えます。`ddq release` が照合し、
 違っていれば止まります。テンプレートの版を上げたら `npm version <版> --no-git-tag-version`
 でここも上げてください。
+
+## アイコン
+
+原本は `assets/icon.svg`（VSIX には入らない）。直したら `icon.png`（256px）と `assets/icon-1024.png` を書き出す。
+
+```bash
+inkscape assets/icon.svg --export-type=png --export-filename=icon.png -w 256 -h 256
+inkscape assets/icon.svg --export-type=png --export-filename=assets/icon-1024.png -w 1024 -h 1024
+```
