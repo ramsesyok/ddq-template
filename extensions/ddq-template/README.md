@@ -1,37 +1,42 @@
 # DDQ Template
 
-設計書テンプレート（[design-doc-quarto-template](../../README.md)、略称 ddq）で書く設計書のための
-VSCode 拡張です。旧 **DDQ Revision**（ラベル付け・改訂履歴）と旧 **DDQ Table Editor**（表エディタ）を
-1 本にまとめました（設計は [docs/ddq-template-study.md](../../docs/ddq-template-study.md)）。
+設計書テンプレート **design-doc-quarto-template**（略称 ddq）で設計書を書くための VSCode 拡張です。
+Markdown（Quarto）で書いた原稿から、社内様式の PDF とレビュー用の HTML を作ります。
 
-- **作成** … 設計書リポジトリを新しく作る（`ddq init`）
-- **発行** … `ddq pdf` / `ddq html` / `ddq diagrams` を VSCode から実行する
+- **作成** … 設計書リポジトリを新しく作る。2 つ目以降の文書（執筆フォルダ）を足す
+- **発行** … PDF / HTML の作成と、図（Mermaid / PlantUML）の変換を VSCode から実行する
 - **ラベル一覧** … 見出し・表・図の Quarto ラベルを一覧し、無いものに付ける
 - **改訂履歴** … 見出し・表・図の単位で変更を並べ、修正内容を書いて改訂履歴表を作る
-- **表エディタ** … 統一テーブル記法 `::: {.tbl …}` を表計算のように編集する
+- **表エディタ** … 統一テーブル記法 `::: {.tbl …}` を表計算のように編集する（セル結合も可）
+
+インターネットに接続しない環境でも動きます。
+
+## 必要なもの
+
+| もの | 説明 |
+|---|---|
+| Visual Studio Code | 1.85 以上 |
+| Quarto | PDF / HTML の作成に使う。見つからないときは案内が出ます |
+| ddq | 拡張に同梱しています（Windows x64）。別に入れる必要はありません |
+| PlantUML（使うときだけ） | LAN 内の PlantUML サーバ、または配布 zip の `plantuml.jar` と Java 8 以上。`plantuml.jar` は拡張に入っていません（利用マニュアル 11 章） |
+
+## 導入
+
+リリースページの `ddq-template-win32-x64-<版>.vsix` を、VSCode の「拡張機能」→「…」→
+「VSIX からのインストール…」で入れます。Marketplace には公開していません。
 
 旧拡張（`ramsesyok.ddq-revision` / `ramsesyok.ddq-table-editor`）が入っていると、起動時に
-アンインストールを案内します。同じファイルに既定の編集画面が 2 つ登録され、メニューも重複するためです。
-
-## 使うもの
-
-発行・ラベル一覧・改訂履歴には `ddq` が要ります。文書の解釈はすべて ddq が行い、この拡張は
-画面と書き戻しだけを担当します。使う ddq は次の順に決まります。
-
-1. 設定 **`ddqTemplate.ddqPath`**（指定すれば最優先。チームで ddq の版を固定したいときなど。
-   `ddq.exe` を指定します。`.cmd` / `.bat` は引数をコマンドプロンプトが解釈してしまうので起動しません）
-2. 拡張に同梱した `ddq.exe`（Windows x64 向けの VSIX に入っています）
-3. `PATH` の `ddq`
-
-PDF / HTML には **Quarto** も要ります。見つからないときは案内が出ます。インストール直後で
-`PATH` が反映されていないときは、VSCode を開き直すか、設定 **`ddqTemplate.quartoPath`** に
-`quarto.exe` のパスを入れてください。
-
-表エディタは ddq を使いません。
+アンインストールを案内します（機能はこの拡張に入っています。両方あるとメニューが重複します）。
 
 信頼されていないワークスペース（制限モード）では動きません（ワークスペースで ddq を実行するため）。
 
----
+## はじめかた
+
+1. フォルダを開いていない VSCode で、コマンドパレット（Ctrl+Shift+P）から **DDQ: 設計書リポジトリを作成**
+2. 作られた執筆フォルダの `_quarto.yml` で表題・資料番号・会社名・章立てを直し、`chapters/` に原稿を書く
+3. ステータスバーの **`PDF: <執筆フォルダ名>`** を押すと PDF ができます
+
+書き方（記法・表・図・改訂履歴の運用）は、配布 zip に入っている利用マニュアルを参照してください。
 
 ## 設計書リポジトリを作る
 
@@ -277,111 +282,11 @@ Excel / Handsontable と同じ流儀です。
 - Excel の**結合は取り込みません**（`text/plain` の TSV のみ）
 - IPO 図（`.ipo`）、旧記法 `.split-table` / `.merge-rows` は対象外です
 
-詳しい仕様は [tableEditor-requirements.md](tableEditor-requirements.md) を参照してください。
+## 設定
 
----
-
-## 開発
-
-VSCode で**この `extensions/ddq-template/` フォルダを開き**（リポジトリのルートではなく）、
-`F5`（**Run Extension**）で拡張開発ホストを起動します。起動前に `npm: build` が自動で走り、
-`sample/` フォルダを開いた状態で立ち上がります。
-
-```bash
-npm install
-npm run verify      # 型検査・テスト・ビルド・オフライン検査・脆弱性検査
-npm run test:host   # 実拡張ホストでの検証
-npm run package     # VSIX を作る（ddq.exe なし。開発・CI 用）
-```
-
-配布する VSIX は ddq.exe を同梱したターゲット指定の版で、`ddq release` が作ります
-（exe を `bin/win32-x64/ddq.exe` にコピーしてから `npm run package:win32-x64`）。手で作るときは:
-
-```bash
-npm run package:win32-x64   # bin/win32-x64/ddq.exe を置いてから。ddq-template-win32-x64-<版>.vsix ができる
-npm run test:smoke          # その VSIX を展開した中身で VSCode を起動し、同梱 ddq で init → html を通す
-```
-
-| コマンド | 内容 |
-|----------|------|
-| `npm test` | ユニットテスト（pandoc があれば pandoc 連携テストも実行） |
-| `npm run typecheck` | 拡張ホストと Webview の型チェック |
-| `npm run build` | 拡張ホスト（esbuild）と Webview 2 画面（vite。`--mode revision` / `--mode tableEditor`）のビルド |
-| `npm run check:offline` | 配布物に通信 API・外部 URL が無いことを検査 |
-| `npm run check:audit` | 本番依存の脆弱性（0 件必須） |
-
-### ソースの配置
-
-| パス | 内容 |
+| 設定 | 内容 |
 |---|---|
-| `src/extension.ts` | 入口。機能ごとの登録を束ねる |
-| `src/legacy.ts` | 旧拡張の検出とアンインストールの案内 |
-| `src/build.ts` | 発行（pdf / html / diagrams）、版不一致の案内と update、ステータスバー |
-| `src/init.ts` | 設計書リポジトリの作成（`ddq init`）、開き直したあとの案内、Git の初期化ボタン |
-| `src/add.ts` | 執筆フォルダの追加（`ddq add`） |
-| `src/folders.ts` | 執筆フォルダの決定と、右クリックメニュー用の一覧（`setContext`） |
-| `src/quarto.ts` | Quarto の有無の検査と `ddqTemplate.quartoPath` |
-| `src/ddq/locate.ts` `lock.ts` `version.ts` | ddq の解決順、執筆フォルダごとの実行中フラグ、版の比較 |
-| `src/activateRevision.ts` | ラベル一覧・改訂履歴のコマンド登録（旧 ddq-revision の入口） |
-| `src/ddq/` `src/tagging/` `src/revision/` | ddq の起動、ラベル付け、改訂履歴の Custom Editor |
-| `src/revisionWebview/` | ラベル一覧・改訂履歴の画面（React） |
-| `src/tableEditor/` | 表エディタ一式（旧 ddq-table-editor の `src/` をそのまま移した） |
+| `ddqTemplate.ddqPath` | 使う `ddq.exe` のパス。空なら同梱の ddq、それも無ければ `PATH` の `ddq`。チームで ddq の版を固定したいときに指定します（`.cmd` / `.bat` は起動しません） |
+| `ddqTemplate.quartoPath` | `quarto.exe` のパス（またはそのフォルダ）。空なら `PATH` の `quarto`。インストール直後で `PATH` が反映されていないときなどに指定します |
 
-### 実拡張ホストでの検証
-
-`npm run test:host` は一時フォルダに検証用の執筆フォルダを作り、専用のプロファイルで
-VSCode を起動して、一覧が開くこと・書き戻しが当たること・Undo で戻ることを確かめます。
-
-- **VSCode**: インストール済みのものがあればそれを使います（通信しません）。無い場合だけ
-  `@vscode/test-electron` がテスト用の VSCode を取得します（CI 用。`.vscode-test/` に入り、
-  **配布物には一切入りません**）
-- **ddq**: `../../cli/target/release/` にあればそれを、無ければ `tests/host/fake-ddq.mjs`
-  （実物の出力を採取した golden を返す差し替え）を使います。引数や `DDQ_BIN` でも渡せます
-
-### pandoc 連携テスト
-
-`src/tableEditor/formats/pandoc.test.ts` はグリッド表の記法が pandoc の解釈と一致するかを
-**本物の pandoc** に通して確かめます。pandoc が無い環境では自動でスキップされるので、
-オフライン環境でも `npm test` は通ります。特定の pandoc を使いたいときは環境変数
-`PANDOC` にパスを指定してください。
-
-### 表エディタのデバッグ用サンプル
-
-`sample/tables.qmd` には検出パターンが一通り並んでいるので、表にカーソルを置いて
-**DDQ: 表エディタを開く** を実行すると動作を確認できます。
-
-| 節 | 確認できること |
-|----|----------------|
-| 1 | 通常の `.tbl`（属性を編集できる単一表） |
-| 2 | `merge-cols="1,2"` の階層連鎖を展開して表示 |
-| 3 | `merge-cols="2,3"`（1 列目の連番は結合しない） |
-| 4 | グリッド表のマルチヘッダ・横結合 |
-| 5 | 分割表のパート単位編集（属性は読み取り専用） |
-| 6 | `.landscape` の入れ子（外側は保持のみ） |
-| 7 | `.tbl` の外にある素の表の取り込み |
-| 8 | 表が無い場所での新規作成 |
-| 9 | セル内改行 |
-
-ソースを直しながら試すときは、`npm: watch:ext` と `npm: watch:webview:*` タスクを走らせた
-うえで **Run Extension (ビルドせずに起動)** を使うと、ビルド待ちなしで起動できます。
-
-### CI
-
-`../../.github/workflows/extension.yml` で GitHub Actions が動きます
-（`extensions/` 配下の push / pull request、手動実行）。
-
-版はテンプレートの版（`../../template/VERSION`）と揃えます。`ddq release` が照合し、
-違っていれば止まります。テンプレートの版を上げたら `npm version <版> --no-git-tag-version`
-でここも上げてください。
-
----
-
-## 動作要件
-
-- Visual Studio Code 1.85 以上
-- ネットワーク接続不要（完全オフライン対応）
-
-## 導入（利用者）
-
-リリースページの `ddq-template-win32-x64-<版>.vsix`（ddq.exe 入り。配布 zip とは別の資産）を
-VSCode の「VSIX からのインストール…」で入れます。Marketplace には公開していません。
+表エディタは ddq も Quarto も使いません。

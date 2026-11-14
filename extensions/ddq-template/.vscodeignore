@@ -15,4 +15,5 @@ vitest.config.mts
 esbuild.mjs
 tableEditor-requirements.md
 AGENTS.md
+DEVELOPMENT.md
 .gitignore

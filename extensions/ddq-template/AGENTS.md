@@ -144,7 +144,7 @@ init → html を通して確かめる（CI では ci.yml の vsix-smoke。main 
 
 `test:host` の VSCode は「インストール済み → 無ければ `@vscode/test-electron` で取得」、
 ddq は「ビルド済み → 無ければ golden を返す差し替え」の順に決まる。どちらも開発時だけの
-話で、配布物（VSIX）には入らない。golden を採り直すときは README を参照。
+話で、配布物（VSIX）には入らない。golden を採り直すときは DEVELOPMENT.md を参照。
 
 UI 以外のロジックにユニットテストを書く。純粋な TypeScript 関数を Webview の外で
 テストすることを優先し、手動 UI テストだけに頼らない。

@@ -1,7 +1,7 @@
 {
   "name": "ddq-template",
   "displayName": "DDQ Template",
-  "description": "VSCode extension for design-doc-quarto-template (ddq): label tagging, revision history and table editor",
+  "description": "設計書テンプレート ddq の執筆支援。設計書リポジトリの作成、PDF / HTML の作成、見出し・表・図のラベル付けと改訂履歴、表エディタ",
   "version": "3.0.0-pre3",
   "publisher": "ramsesyok",
   "license": "MIT",
@@ -14,7 +14,6 @@
     "vscode": "^1.85.0"
   },
   "icon": "icon.png",
-  "preview": true,
   "categories": [
     "Other"
   ],

@@ -168,7 +168,8 @@ cd C:\tools\quarto-template-3.0.0-pre3
 | [docs/manual/](docs/manual/)（リリース展開フォルダでは `manual/`） | **利用マニュアル**（役割別の環境構築・執筆・確認・出力・記法・制限事項・トラブル対処、保守者向けの版の上げ方とリリースの作り方）。本テンプレート自身で書かれており、`ddq pdf docs\manual` で PDF になります | 全員（執筆者にはこの PDF/HTML を配る） |
 | [docs/design/](docs/design/) | **テンプレート設計書**（リポジトリの構成、出力経路、様式 `lib.typ` と変換 `design-doc.lua` の仕組み、HTML 採番の後処理、版の考え方、保守の観点）。**このリポジトリのみ**（リリースには同梱しません） | 保守者 |
 | [cli/DESIGN.md](cli/DESIGN.md) | `ddq` の設計（コマンド・mermaid エンジン・PlantUML サーバ・ビルド・検証） | 保守者 |
-| [extensions/ddq-template/README.md](extensions/ddq-template/README.md) | VSCode 拡張 DDQ Template（作成・発行・ラベル付け・改訂履歴・表エディタ）の使い方・開発・デバッグ | 執筆者（使い方）・保守者 |
+| [extensions/ddq-template/README.md](extensions/ddq-template/README.md) | VSCode 拡張 DDQ Template（作成・発行・ラベル付け・改訂履歴・表エディタ）の使い方（拡張の詳細ページに出る） | 執筆者 |
+| [extensions/ddq-template/DEVELOPMENT.md](extensions/ddq-template/DEVELOPMENT.md) | 拡張の開発・検証・デバッグ | 保守者 |
 | [AGENT-GUIDE.md](AGENT-GUIDE.md)（リリース直下にも同梱） | **AI エージェント向けの執筆ガイド**。利用マニュアル全体を読まずに、執筆フォルダの構成・`_quarto.yml`・記法（`.tbl`・IPO 図・相互参照）・コマンドを把握できる要約。設計書リポジトリの `AGENTS.md` / `CLAUDE.md` やスキルにそのまま取り込む | 発行者（AI に原稿を書かせるとき） |
 
 `examples/docs/` はこのリポジトリ同梱の**サンプル**（受注管理システムの基本設計書）です。
