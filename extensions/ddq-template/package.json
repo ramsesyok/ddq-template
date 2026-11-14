@@ -2,7 +2,7 @@
   "name": "ddq-template",
   "displayName": "DDQ Template",
   "description": "VSCode extension for design-doc-quarto-template (ddq): label tagging, revision history and table editor",
-  "version": "3.0.0-pre2",
+  "version": "3.0.0-pre3",
   "publisher": "ramsesyok",
   "license": "MIT",
   "repository": {
