@@ -1,6 +1,6 @@
 # 第三者のソフトウェアとライセンス（THIRD-PARTY-NOTICES）
 
-<!-- ddq-third-party inputs: cli/Cargo.lock=a32559f9cf9e8648085b71a21b59f133802ee8e5 template/vendor/mermaid.min.js=0a6b4761f8ad1e3d42fe17e66033fa5cf2785ae1 cli/vendor/plantuml.jar=ef49f4f313d06de6575dcaa67361df432c028048 extensions/ddq-template/package-lock.json=f1b62a7e164810f1f48aa6ddccb4a07ee45da3b1 -->
+<!-- ddq-third-party inputs: cli/Cargo.lock=2db0461305e22e1ad4561ad998edca45f964b1d8 template/vendor/mermaid.min.js=7a3075f9fd946bc6306b43e3b432483de74653c5 cli/vendor/plantuml.jar=ef49f4f313d06de6575dcaa67361df432c028048 extensions/ddq-template/package-lock.json=d5052535f8c6c1e26205daed53943421ffe0f2ae -->
 <!-- 生成物。手で直さない（python cli/tools/third_party.py で作り直す） -->
 
 この配布物（quarto-template）の ddq 本体とテンプレートは MIT ライセンスである（同梱の LICENSE）。
@@ -118,7 +118,7 @@
 | potential_utf | 0.1.6 | Unicode-3.0 | <https://crates.io/crates/potential_utf/0.1.6> |
 | precomputed-hash | 0.1.1 | MIT | <https://crates.io/crates/precomputed-hash/0.1.1> |
 | proc-macro2 | 1.0.107 | MIT OR Apache-2.0 | <https://crates.io/crates/proc-macro2/1.0.107> |
-| pulldown-cmark | 0.13.4 | MIT | <https://crates.io/crates/pulldown-cmark/0.13.4> |
+| pulldown-cmark | 0.13.6 | MIT | <https://crates.io/crates/pulldown-cmark/0.13.6> |
 | quick-xml | 0.41.0 | MIT | <https://crates.io/crates/quick-xml/0.41.0> |
 | quote | 1.0.47 | MIT OR Apache-2.0 | <https://crates.io/crates/quote/1.0.47> |
 | rand | 0.10.2 | MIT OR Apache-2.0 | <https://crates.io/crates/rand/0.10.2> |
@@ -202,9 +202,9 @@
 | zmij | 1.0.23 | MIT | <https://crates.io/crates/zmij/1.0.23> |
 | zopfli | 0.8.3 | Apache-2.0 | <https://crates.io/crates/zopfli/0.8.3> |
 
-### ddq.exe に埋め込んだ mermaid.min.js（mermaid 11.16.0 とバンドルされる依存 77 件）
+### ddq.exe に埋め込んだ mermaid.min.js（mermaid 11.16.1 とバンドルされる依存 77 件）
 
-`template/vendor/mermaid.min.js` は npm の `mermaid@11.16.0` の `dist/mermaid.min.js` と同一である。
+`template/vendor/mermaid.min.js` は npm の `mermaid@11.16.1` の `dist/mermaid.min.js` と同一である。
 依存の版は、この一覧を作ったときに npm が解決した版で、バンドル作成時の版と細部が違い得る
 （例: バンドル内の表示は DOMPurify 3.4.0）。ライセンスは同じである。
 
@@ -275,7 +275,7 @@
 | layout-base | 2.0.1 | MIT | <https://www.npmjs.com/package/layout-base/v/2.0.1> |
 | lodash-es | 4.18.1 | MIT | <https://www.npmjs.com/package/lodash-es/v/4.18.1> |
 | marked | 16.4.2 | MIT | <https://www.npmjs.com/package/marked/v/16.4.2> |
-| mermaid | 11.16.0 | MIT | <https://www.npmjs.com/package/mermaid/v/11.16.0> |
+| mermaid | 11.16.1 | MIT | <https://www.npmjs.com/package/mermaid/v/11.16.1> |
 | package-manager-detector | 1.9.0 | MIT | <https://www.npmjs.com/package/package-manager-detector/v/1.9.0> |
 | path-data-parser | 0.1.0 | MIT | <https://www.npmjs.com/package/path-data-parser/v/0.1.0> |
 | points-on-curve | 0.2.0 | MIT | <https://www.npmjs.com/package/points-on-curve/v/0.2.0> |
@@ -6004,7 +6004,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 106
 
-対象: merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/mermaid/LICENSE）、merman-render 0.8.0-alpha.6（THIRD_PARTY_LICENSES/mermaid/LICENSE）、mermaid 11.16.0（LICENSE）
+対象: merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/mermaid/LICENSE）、merman-render 0.8.0-alpha.6（THIRD_PARTY_LICENSES/mermaid/LICENSE）、mermaid 11.16.1（LICENSE）
 
 ```text
 The MIT License (MIT)
@@ -6494,7 +6494,7 @@ SOFTWARE.
 
 ### 本文 124
 
-対象: pulldown-cmark 0.13.4（LICENSE）
+対象: pulldown-cmark 0.13.6（LICENSE）
 
 ```text
 The MIT License

@@ -79,7 +79,7 @@ pub const RELEASE_GUIDE_TYP: &str = include_str!("../../template/release-guide.t
 /// 上を PDF にしたときのファイル名（リリース直下）
 pub const RELEASE_GUIDE_PDF: &str = "はじめかた.pdf";
 
-/// 埋め込み mermaid.min.js の版（`version:"11.16.0"` を拾う。SVG 先頭コメントに使う）
+/// 埋め込み mermaid.min.js の版（`version:"11.16.1"` を拾う。SVG 先頭コメントに使う）
 pub fn mermaid_js_version() -> &'static str {
     MERMAID_JS
         .find("version:\"")

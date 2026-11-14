@@ -39,7 +39,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 | 4 | mermaid エンジン | 自動: **Edge → Chrome → merman**。`DDQ_MERMAID_ENGINE` / `EXECUTABLE_BROWSER` で上書き可 | ブラウザ経路は mermaid-cli と幾何一致。merman は保険 |
 | 5 | `quarto preview` | **常にクライアント描画**（現状維持）。SVG を焼くのは `ddq html` / `ddq pdf` だけ | プレビューは Quarto だけで動く速いクイックレビュー。発行物と図が微妙に違い得ることはマニュアルに明記 |
 | 6 | フィルタ⇔exe | フィルタが**図ごとに** `ddq mermaid` を呼ぶ（現行 `quarto run mmdc` の置換のみ）。CLI は複数入力対応にしておく | 正しさ優先。一括事前変換はフェンス抽出と hash の二重実装になるので保留 |
-| 7 | mermaid.min.js | `template/vendor/mermaid.min.js`（11.16.0）をコミットして埋め込む。npm / node_modules 廃止 | 版の固定と再現性。Quarto 同梱 11.12 は見た目が違う（§9） |
+| 7 | mermaid.min.js | `template/vendor/mermaid.min.js`（11.16.1）をコミットして埋め込む。npm / node_modules 廃止 | 版の固定と再現性。Quarto 同梱 11.12 は見た目が違う（§9） |
 | 8 | リポジトリ構成 | `template/` はソース置き場として残し、`cli/` に Cargo プロジェクトを追加。`build.rs` で `../template` を埋め込む | Lua/CSS/typ の編集体験と利用マニュアルの導線を壊さない |
 | 9 | 対象 OS | **Windows x64 のみ**（msvc, `+crt-static`）。CI も Windows 1 本 | まず簡易に。OS 依存部は `cfg(windows)` で分離し、後から他 OS を足せる形にする |
 | 10 | 名前 | `ddq`（design-doc-quarto）。環境変数は `DDQ_*` | 短く衝突しにくい |
@@ -72,7 +72,7 @@ quarto-template/
 │   ├── lib.typ / typst-template.typ / typst-show.typ / quarto-publish.yml
 │   ├── release-guide.typ        … 「はじめかた」スライド（Typst。ddq release が PDF にする）
 │   ├── scaffold/{repo,content}/
-│   └── vendor/mermaid.min.js    … 新規（11.16.0）
+│   └── vendor/mermaid.min.js    … 新規（11.16.1）
 ├── docs/                        … 設計リポジトリ（執筆フォルダ manual/ = 利用マニュアル、design/ = テンプレート設計書）
 ├── examples/                    … サンプルの設計書リポジトリ（docs/ = 受注管理システム基本設計書。--with-sample の同梱元）
 ├── extensions/                  … VSCode 拡張（1 フォルダ = 1 拡張。2.4.0 で extension/ から移した）
@@ -603,7 +603,7 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 - [x] **移行前に** §12.1 の基準を `docs/` `manual/` について採取する（現行 bat、1.3.0）
 
 - [x] `cli/` 作成（Cargo、`.cargo/config.toml` に `+crt-static`、`build.rs`）
-- [x] `template/vendor/mermaid.min.js` を `node_modules/mermaid/dist/mermaid.min.js`（11.16.0）からコミット
+- [x] `template/vendor/mermaid.min.js` を `node_modules/mermaid/dist/mermaid.min.js`（11.16.1）からコミット
 - [x] `design-doc.lua` の `render_mermaid()` を `DDQ_BIN` / PATH 探索に差し替え、エラーメッセージを更新
 - [x] `template/*.bat` `*.sh` `package.json` `package-lock.json` `node_modules` `puppeteer.json` を削除、`.gitignore` の `node_modules/` `puppeteer.json` を整理
 - [x] `template/release-README.md`（→ 後に `release-guide.typ` のスライドに置換）`README.md` `ADVANCED.md` `template/PIPELINE.md` §1・§5.1 の手順を `ddq` に書き換え
