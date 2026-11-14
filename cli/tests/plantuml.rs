@@ -128,6 +128,82 @@ fn diagrams_renders_puml_and_rejects_syntax_error() {
     );
 }
 
+/// `ddq plantuml serve` を起動し、「起動しました」の行（URL）と、それまでの出力を返す。
+fn start_serve(args: &[&str]) -> (std::process::Child, String, Vec<String>) {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_ddq"));
+    cmd.args(["plantuml", "serve"])
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    common::with_plantuml_jar(&mut cmd);
+    let mut child = cmd.spawn().expect("ddq plantuml serve を起動できません");
+    let mut lines = BufReader::new(child.stdout.take().unwrap())
+        .lines()
+        .map_while(Result::ok);
+    let mut seen = Vec::new();
+    let t0 = Instant::now();
+    loop {
+        let Some(line) = lines.next() else {
+            let _ = child.kill();
+            let err = child.wait_with_output().map(|o| o.stderr).unwrap_or_default();
+            panic!(
+                "起動メッセージが出ない: {seen:?}\n{}",
+                String::from_utf8_lossy(&err)
+            );
+        };
+        seen.push(line.clone());
+        if let Some(rest) = line.split("起動しました: ").nth(1) {
+            let url = rest.split('（').next().unwrap().trim().to_string();
+            // 案内の行（既定と違うときの PLANTUML_SERVER）も読んでおく
+            seen.extend(lines.by_ref().take(2));
+            return (child, url, seen);
+        }
+        assert!(
+            t0.elapsed() < Duration::from_secs(60),
+            "起動メッセージが出ない: {seen:?}"
+        );
+    }
+}
+
+#[test]
+fn serve_with_bind_localhost_starts_and_explains_the_url() {
+    // --bind に名前を渡せる。Windows は localhost を ::1 から解決するが、PicoWeb は
+    // IPv4 でしか待たない。ddq はどちらのアドレスにも繋いでみて起動を確かめる
+    if skip() {
+        return;
+    }
+    let (mut child, url, seen) = start_serve(&["--port", "0", "--bind", "localhost"]);
+    let port = url
+        .strip_prefix("http://localhost:")
+        .unwrap_or_else(|| panic!("--bind の名前が URL に入っていない: {url}"));
+    // 既定（127.0.0.1:18080）と違うので、quarto preview 用に環境変数を案内する
+    assert!(
+        seen.iter().any(|l| l.contains(&format!("PLANTUML_SERVER={url}"))),
+        "{seen:?}"
+    );
+    let info = http_get(&format!("http://127.0.0.1:{port}/serverinfo")).expect("/serverinfo に届かない");
+    assert!(info.contains("\"PicoWebServer\":true"), "{info}");
+    child.kill().unwrap();
+    child.wait().unwrap();
+}
+
+#[test]
+fn serve_with_an_unusable_bind_fails_with_a_reason() {
+    if skip() {
+        return;
+    }
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_ddq"));
+    cmd.args(["plantuml", "serve", "--port", "0", "--bind", "256.0.0.1"]);
+    common::with_plantuml_jar(&mut cmd);
+    let out = cmd.output().unwrap();
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("PlantUML サーバ（PicoWeb）が起動しませんでした"),
+        "{err}"
+    );
+}
+
 #[test]
 fn serve_answers_serverinfo_and_stops_with_parent() {
     if skip() {

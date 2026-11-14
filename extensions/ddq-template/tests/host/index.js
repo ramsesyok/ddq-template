@@ -364,6 +364,16 @@ async function build(docs) {
     assert.ok(fs.existsSync(path.join(docs, '_book', 'index.html')), '_book/index.html ができていない');
     say('html が通り、実行中の同じ執筆フォルダの 2 本目は受け付けない');
 
+    // PDF は右クリックと同じコマンドで、章のフォルダから執筆フォルダを決めて作る
+    // （完了の通知のボタンは押せないので、通知は出たまま残る。ボタンの先は dialogs.test.ts）
+    const pdf = path.join(docs, 'design-doc.pdf');
+    fs.rmSync(pdf, { force: true });
+    const chapter = path.join(docs, 'chapters');
+    const outcome = await vscode.commands.executeCommand('ddqTemplate.pdf', vscode.Uri.file(chapter));
+    assert.strictEqual(outcome, 'ok', `pdf が通らない: ${outcome}`);
+    assert.ok(fs.readFileSync(pdf).subarray(0, 5).toString() === '%PDF-', 'design-doc.pdf ができていない');
+    say('pdf が通る（章のフォルダの右クリックと同じコマンドで、執筆フォルダの design-doc.pdf ができる）');
+
     // ddq diagrams は diagrams/ が無いと失敗する（図が無いだけなら警告で通る）
     fs.mkdirSync(path.join(docs, 'diagrams'), { recursive: true });
     assert.strictEqual(await run('diagrams'), 'ok', '終わったあとの diagrams が通らない');
