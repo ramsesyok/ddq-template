@@ -5,7 +5,7 @@
 |--------------------------|---------------------------------------------|-----------------------------------------------|-------|
 | 確認用 HTML を出す（執筆者） | DDQ: HTML を作成                         | `cd docs` ＋ `quarto render`                  | 5章   |
 | 設計書リポジトリを作る   | DDQ: 設計書リポジトリを作成                 | `.\ddq init C:\work\order-design`             | 4章   |
-| 執筆フォルダを増やす     | ―                                          | `.\ddq add C:\work\order-design\design-doc2`  | 4章   |
+| 執筆フォルダを増やす     | DDQ: 執筆フォルダを追加（リポジトリを右クリック） | `.\ddq add C:\work\order-design\design-doc2`  | 4章   |
 | 機構ファイルを更新する   | 版が合わないときの通知から ddq update を実行 | `.\ddq update C:\work\order-design\docs`（全部なら `--all C:\work\order-design`） | 11章 |
 | PDF を出す               | DDQ: PDF を作成（ステータスバーの PDF ボタン） | `.\ddq pdf C:\work\order-design\docs`       | 12章  |
 | 配布 HTML を出す         | DDQ: HTML を作成                            | `.\ddq html C:\work\order-design\docs`        | 12章  |

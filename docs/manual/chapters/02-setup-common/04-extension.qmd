@@ -26,6 +26,7 @@ code --install-extension ddq-template-win32-x64-3.0.0-pre2.vsix
 | コマンド | 内容 | 参照 |
 |---|---|---|
 | DDQ: 設計書リポジトリを作成 | 設計書リポジトリを新しく作る | @sec-newdoc |
+| DDQ: 執筆フォルダを追加（文書を増やす） | 設計書リポジトリに 2 つ目以降の文書のフォルダを足す | @sec-newdoc |
 | DDQ: PDF を作成 | `<執筆フォルダ>\design-doc.pdf` を作る | @sec-build |
 | DDQ: HTML を作成 | 配布 HTML（`<執筆フォルダ>\_book\`）を作る | @sec-build |
 | DDQ: 図を変換 | `diagrams/` の `.mmd` / `.puml` を `.svg` にする | @sec-figure |

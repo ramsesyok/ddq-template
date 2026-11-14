@@ -4,7 +4,7 @@
  * コマンドは 1 つで、状況により入口を変える。
  *   - フォルダを開いていない     … 親フォルダとリポジトリ名を選ぶ → 作る → そのフォルダを開く
  *   - 空（ほぼ空）のフォルダを開いている … そこに作る → `_quarto.yml` を開く
- *   - 既に設計書リポジトリ       … 作らない（執筆フォルダの追加は `ddq add`。段階 3）
+ *   - 既に設計書リポジトリ       … 作らない（執筆フォルダの追加は「執筆フォルダを追加」= add.ts）
  * 作り終えたら「Git リポジトリとして初期化」を出す（組み込みの `git.init`。ddq は git を扱わない）。
  * フォルダを開き直すとウィンドウが読み直されるので、その案内は開き直した先で出す（globalState）。
  */
@@ -81,10 +81,13 @@ async function initCommand(context: vscode.ExtensionContext): Promise<InitOutcom
     const here = folders.length === 1 ? folders[0].uri.fsPath : await pickWorkspaceFolder(folders);
     if (!here) return undefined;
     if (writingFoldersIn(here, await listWritingFolders()).length > 0) {
-        void vscode.window.showInformationMessage(
+        const add = '執筆フォルダを追加';
+        const choice = await vscode.window.showInformationMessage(
             `${path.basename(here)} は既に設計書リポジトリです（執筆フォルダがあります）。` +
-                '文書を増やすときは ddq add を使います（拡張からの実行は今後対応）。'
+                '文書を増やすときは「執筆フォルダを追加」を使います。',
+            add
         );
+        if (choice === add) await vscode.commands.executeCommand('ddqTemplate.add', vscode.Uri.file(here));
         return 'exists';
     }
     if (!isNearlyEmpty(fs.readdirSync(here))) {
@@ -156,7 +159,7 @@ async function initNew(context: vscode.ExtensionContext): Promise<InitOutcome | 
 async function askWritingFolderName(): Promise<string | undefined> {
     const name = await vscode.window.showInputBox({
         title: '執筆フォルダの名前',
-        prompt: '文書 1 つ分のフォルダです。あとから増やせます（ddq add）',
+        prompt: '文書 1 つ分のフォルダです。あとから「執筆フォルダを追加」で増やせます',
         value: 'docs',
         validateInput: validateFolderName
     });

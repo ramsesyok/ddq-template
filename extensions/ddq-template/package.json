@@ -36,6 +36,11 @@
         "category": "DDQ"
       },
       {
+        "command": "ddqTemplate.add",
+        "title": "執筆フォルダを追加（文書を増やす）",
+        "category": "DDQ"
+      },
+      {
         "command": "ddqTemplate.pdf",
         "title": "PDF を作成",
         "category": "DDQ",
@@ -69,6 +74,11 @@
     ],
     "menus": {
       "explorer/context": [
+        {
+          "command": "ddqTemplate.add",
+          "when": "explorerResourceIsFolder && explorerResourceIsRoot && ddqTemplate.hasWritingFolders",
+          "group": "ddq@0"
+        },
         {
           "command": "ddqTemplate.pdf",
           "when": "explorerResourceIsFolder && resourcePath in ddqTemplate.writingFolders",

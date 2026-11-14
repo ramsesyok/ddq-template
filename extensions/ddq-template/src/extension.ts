@@ -11,6 +11,7 @@ import * as vscode from 'vscode';
 import { activateRevision, deactivateRevision } from './activateRevision';
 import { activateBuild, deactivateBuild } from './build';
 import { initLocate } from './ddq/locate';
+import { activateAdd } from './add';
 import { activateInit } from './init';
 import { warnLegacyExtensions } from './legacy';
 import { activateTableEditor, deactivateTableEditor } from './tableEditor/activateTableEditor';
@@ -19,6 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
     initLocate(context.extensionPath);
     activateBuild(context);
     activateInit(context);
+    activateAdd(context);
     activateRevision(context);
     activateTableEditor(context);
     warnLegacyExtensions();

@@ -386,6 +386,18 @@ async function init() {
         'extensions.json に quarto.quarto が無い'
     );
     say('設計書リポジトリを作れる（日本語の執筆フォルダ名、.vscode/extensions.json に quarto.quarto）');
+
+    // 2 つ目の文書（ddq add）。名前を決めたあとの追加処理を内部コマンドで通す
+    const second = path.join(repo, '設計書2');
+    const added = await vscode.commands.executeCommand('ddqTemplate.internal.add', second);
+    assert.strictEqual(added, 'ok', `add が通らない: ${added}`);
+    for (const f of ['_quarto.yml', '.template-version', 'design-doc.lua']) {
+        assert.ok(fs.existsSync(path.join(second, f)), `設計書2/${f} が無い`);
+    }
+    // 既存の文書には足さない（ddq add が拒否する）
+    const again = await vscode.commands.executeCommand('ddqTemplate.internal.add', second);
+    assert.strictEqual(again, 'failed', `既存の文書に足せてしまう: ${again}`);
+    say('執筆フォルダを追加できる（ddq add。既存の文書には足さない）');
 }
 
 module.exports.run = () =>

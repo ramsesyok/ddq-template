@@ -142,6 +142,8 @@ export function watchWritingFolders(context: vscode.ExtensionContext, onChange: 
             }
         }
         await vscode.commands.executeCommand('setContext', 'ddqTemplate.writingFolders', keys);
+        // 「執筆フォルダを追加」をリポジトリ（ルート）の右クリックに出すかどうか
+        await vscode.commands.executeCommand('setContext', 'ddqTemplate.hasWritingFolders', writing.length > 0);
         onChange();
     };
     for (const name of [TEMPLATE_VERSION_FILE, QUARTO_YML]) {
