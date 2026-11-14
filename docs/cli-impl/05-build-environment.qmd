@@ -57,7 +57,7 @@ cli\target\release\ddq.exe release
 | `tests/rev.rs` | 一時Gitリポジトリでの next、全種別の差分、strict、未ラベル、`--write` の note 引継ぎと stale、build の表と警告・`--check`、`--write --json`、付録、既存の別形式 ID の案内 | **確認済み**：13件成功（git有り、skipなし） |
 | `tests/golden.rs` merman | 22図の生成、コメント、foreignObject不在、text存在 | **確認済み**：1テスト成功 |
 | golden browser | pathの乱数成分等を除いた数値列の比較。loose時は数値個数とviewBox 25%以内 | **確認済み**：1件成功（厳格比較、Edge 153.0.4234.48、22組） |
-| `tests/faults.rs` | 故障注入（Windows）：無出力のJVM・すぐ落ちるJVM・起動中のddqの強制終了、すぐ落ちるブラウザ・無応答のブラウザ・起動中のddqの強制終了、本物のブラウザでの一時フォルダ | **確認済み**：7件成功 |
+| `tests/faults.rs` | 故障注入（Windows）：無出力のJVM・すぐ落ちるJVM・起動中のddqの強制終了、すぐ落ちるブラウザ・無応答のブラウザ・起動中のddqの強制終了、本物のブラウザでの一時フォルダ（単独と 8 並列） | **確認済み**：8件成功 |
 | `tests/plantuml.rs` | 静的puml、構文エラー、serve起動・親終了後の停止 | **確認済み**：2件成功（Java 17、ローカルjar） |
 | `tests/e2e.rs` | ASCII／非ASCIIパス、PDF、SVG件数、HTML内参照と検索索引。サンプルの `revisions/` も複写 | **確認済み**：`DDQ_E2E=1` で3件成功（2.4.2） |
 | `tools/regress.py` | 機構hash、Typst、ページ画像、PDF文字、HTML、SVGの比較 | **未確認**：今回未実行。旧bat比較には過去版資産も必要 |

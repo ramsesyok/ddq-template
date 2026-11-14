@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 500" width="100%" role="img" aria-label="受注入力画面">
   <style>
-    .t     { font-family: 'Yu Gothic','Noto Sans CJK JP',sans-serif; }
+    .t     { font-family: 'Meiryo UI','Yu Gothic','MS PGothic',sans-serif; }
     .title { fill:#ffffff; font-size:15px; font-weight:bold; }
     .menu  { fill:#33405a; font-size:13px; }
     .label { fill:#33405a; font-size:13px; }

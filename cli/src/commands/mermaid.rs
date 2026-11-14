@@ -33,7 +33,7 @@ pub fn run(inputs: &[PathBuf], outputs: &[PathBuf], config: Option<&Path>, backg
 /// （ブラウザの更新・入れ替え、フォントの追加・差し替え。cli/DESIGN.md §5.5）。
 ///
 /// ```json
-/// {"version": "2.4.2", "mermaid": "engine=browser mermaid=11.16.0 browser=msedge/… fonts=…", "fonts": "…"}
+/// {"version": "2.4.2", "mermaid": "engine=browser mermaid=11.16.1 browser=msedge/… fonts=…", "fonts": "…"}
 /// ```
 pub fn identity() -> Result<()> {
     let engine = mermaid::choose_engine_quiet()?;

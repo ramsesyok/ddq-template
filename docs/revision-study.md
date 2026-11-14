@@ -2,6 +2,7 @@
 
 - 日付: 2026-09-22
 - 対象: テンプレート 2.2.2（`ddq` + `design-doc.lua` + `lib.typ` + ddq-table-editor 2.2.2）
+- 2026-10-25 追記: 拡張 ddq-revision は ddq-table-editor とともに **ddq-template** に統合した（`docs/ddq-template-study.md`）。本書中の `ddq-revision`・`ddqRevision.*`・`docs/revision-impl/` は、統合後は `extensions/ddq-template/`・`ddqTemplate.*`・`docs/ddq-template-impl/` に読み替える
 - 位置づけ: 実装前の検討書。実装後は `docs/cli-impl/` / 拡張ごとの実装仕様書（`docs/table-editor-impl/` と同じ形）へ昇格する
 - 経緯: 2026-09-22 の一問一答（Q1〜Q19）で決めた前提を §2 にまとめ、それに基づく設計を §3 以降に記す。同日に**検証 V1〜V5 をすべて実機で行い**、結果を §8 に記した。V1 で見つかった HTML のリンク切れは 2.2.2 として先行修正済み（PR #97）。`lib.typ` の `_xref-page`（V2）は ddq-revision 実装時に入れる
 

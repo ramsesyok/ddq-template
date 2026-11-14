@@ -1,19 +1,16 @@
-## VSCode と Quarto 拡張　{#sec-vscode}
+## VSCode の設定と拡張　{#sec-vscode}
 
-### VSCode の導入
-
-原稿は `.qmd`（中身はほぼ Markdown）のテキストファイルなので、どのエディタでも
-書ける。ただし本書は VSCode を前提として手順を示す。プレビューが使えるため、
-書きながら仕上がりを確認できる。
-
-VSCode の公式サイト（<https://code.visualstudio.com/>）からインストーラを
-ダウンロードして実行する。
+VSCode と DDQ Template 拡張の導入は 2章（@sec-extension）で済んでいる。ここでは、
+執筆に便利な Quarto 拡張と、表の視覚編集の使い方を述べる。
 
 ### Quarto 拡張機能の導入
 
-1. VSCode を起動する。
-2. 拡張機能ビューを開く（左端のアイコン、または `Ctrl+Shift+X`）。
-3. 検索欄に **Quarto** と入力し、拡張機能 ID が `quarto.quarto`（発行元 `quarto`）の
+原稿の色分けとプレビューには、Quarto 公式の拡張を使う。設計書リポジトリを開くと
+「このリポジトリにはおすすめの拡張機能があります」と通知が出るので、そこから入れてよい
+（`ddq init` が `.vscode/extensions.json` に `quarto.quarto` を書いている）。手で入れる場合は:
+
+1. 拡張機能ビューを開く（左端のアイコン、または `Ctrl+Shift+X`）。
+2. 検索欄に **Quarto** と入力し、拡張機能 ID が `quarto.quarto`（発行元 `quarto`）の
    ものをインストールする。
 
 ::: {.callout-note}
@@ -32,7 +29,7 @@ ID は拡張機能の詳細ページに表示される。
 
 プレビューの使い方は @sec-review に示す。
 
-### 閉域網で拡張機能を入れる（VSIX）
+### 閉域網で Quarto 拡張を入れる（VSIX）
 
 拡張機能マーケットプレースに接続できない環境では、**VSIX ファイル**（拡張機能の
 配布形式）を持ち込んで導入する。
@@ -44,45 +41,20 @@ ID は拡張機能の詳細ページに表示される。
 3. VSCode で拡張機能ビューを開き、右上の **「…」→「VSIX からのインストール…」**
    を選んで VSIX を指定する。
 
-コマンドでも入れられる。
-
-```bat
-code --install-extension quarto.quarto-1.135.0.vsix
-```
-
-::: {.callout-important}
-VSIX で入れた拡張は**自動更新されない**。版を上げるときは新しい VSIX を
-持ち込んで同じ手順を繰り返す。
-:::
-
 ::: {.callout-note}
-拡張機能はプレビューを便利にするためのものであり、**出力そのものには要らない**。
-VSIX を用意できない場合でも、ターミナルから `quarto render` を実行すれば
-HTML は出せる（@sec-review）。
+Quarto 拡張はプレビューを便利にするためのものであり、**出力そのものには要らない**。
+用意できない場合でも、DDQ Template の **DDQ: HTML を作成** で HTML は出せる（@sec-review）。
 :::
 
-### 表の編集拡張（DDQ Table Editor）を入れる {#sec-vscode-table-editor}
+### 表を視覚的に編集する（表エディタ） {#sec-vscode-table-editor}
 
 本テンプレートの統一テーブル `::: {.tbl …}`（@sec-table）を、**Excel のようにセルを
-結合しながら視覚的に編集する** VSCode 拡張 `ddq-table-editor` が、リリース一式に
-`ddq-table-editor-<版>.vsix` として同梱されている（テンプレート 2.1.0 から）。
-Marketplace には公開していないので、**発行者から VSIX を受け取って**入れる。
-任意であり、入れなくても表は手で書ける。
-
-1. 発行者からリリース一式の `ddq-table-editor-<版>.vsix` を受け取る
-   （設計書リポジトリの `.template-version` と同じ版のもの）。
-2. VSCode で拡張機能ビューを開き、右上の **「…」→「VSIX からのインストール…」**
-   を選んで VSIX を指定する。コマンドでも入れられる。
-
-```bat
-code --install-extension ddq-table-editor-2.4.5.vsix
-```
-
-使い方は次のとおり。
+結合しながら視覚的に編集する**表エディタが DDQ Template に入っている。任意であり、
+使わなくても表は手で書ける。
 
 | 操作 | 方法 |
 |------|------|
-| 表を開く | `.qmd` の表（`::: {.tbl …}` の中、または素のパイプ表・グリッド表）にカーソルを置き、右クリック → **Open Table Editor**（コマンドパレットでは **DDQ Table Editor: Open Table Editor**） |
+| 表を開く | `.qmd` の表（`::: {.tbl …}` の中、または素のパイプ表・グリッド表）にカーソルを置き、右クリック → **DDQ: 表エディタを開く** |
 | 新規に作る | 表の無い場所で同じコマンドを実行する。カーソル位置に挿入される |
 | セル結合 | 範囲を選んで右クリック → 結合。結合が無ければパイプ表、あればグリッド表（または `merge-cols`）として書き出される |
 | 属性 | `caption` / `label` / `widths` / `.unnumbered` を画面右の欄で編集する |
@@ -90,11 +62,8 @@ code --install-extension ddq-table-editor-2.4.5.vsix
 | 反映 | **Apply** でドキュメントへ書き戻す |
 
 ::: {.callout-note}
-- ネットワーク接続は不要（完全オフラインで動く）。
-- 分割表（@sec-tbl-split）はカーソルのあるパートだけを編集し、パートの区切りと
-  div の属性は変更しない。IPO 図（@sec-ipo）は対象外。
-- VSIX で入れた拡張は自動更新されない。テンプレートの版が上がったら、新しい
-  `ddq-table-editor-<版>.vsix` を受け取って入れ直す。
+分割表（@sec-tbl-split）はカーソルのあるパートだけを編集し、パートの区切りと
+div の属性は変更しない。IPO 図（@sec-ipo）は対象外。
 :::
 
 ### フォルダを開く
@@ -104,9 +73,8 @@ VSCode では**設計書リポジトリのルートフォルダを開く**こと
 
 - `.vscode/settings.json`（後述のフォント設定）がこのフォルダにあるため、
   ルートを開かないと設定が効かない。
-- プレビューは執筆フォルダの `_quarto.yml` を自動で見つけるため、
+- DDQ Template とプレビューは執筆フォルダの `_quarto.yml` を自動で見つけるため、
   ルートを開いたままでよい。
 
-執筆フォルダ（`docs`）だけを開くと、フォント設定が効かない。
-
-{{< pagebreak >}}
+執筆フォルダ（`docs`）だけを開くと、フォント設定が効かない。改訂履歴の「差分」も
+追加の設定が要る（@sec-revision）。

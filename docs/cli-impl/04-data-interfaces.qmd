@@ -31,7 +31,7 @@
 | IF-04 | Rust `plantuml`／Lua → PlantUML | HTTP GET `/serverinfo`、POST `/render`。UTF-8 JSON→SVG | HTTP状態・エラーヘッダ・本文を確認 |
 | IF-05 | `release` → npm／Quarto Typst／ZIP | 拡張ごとのVSIXビルド、案内PDFコンパイル、ファイル群の圧縮 | 各段階で停止。全体の巻戻しなし |
 | IF-06 | `doc::gitsrc` → git | `rev-parse`、`tag --list rev-*`、`ls-tree -r --name-only`、`show <commit>:<path>`。常に `-c core.quotepath=off` | 非成功はstderr付きのエラー。旧版に無いファイルは `ls-tree` の一覧で先に除外 |
-| IF-07 | VSCode拡張 ddq-revision → `ddq tag`／`ddq rev` | `tag list --json`、`rev next/diff --json`、`rev diff --write`、`rev build` の標準出力とファイル | 拡張側の扱いは `docs/revision-impl` |
+| IF-07 | VSCode拡張 ddq-template（旧 ddq-revision） → `ddq tag`／`ddq rev` | `tag list --json`、`rev next/diff --json`、`rev diff --write`、`rev build` の標準出力とファイル | 拡張側の扱いは `docs/ddq-template-impl` |
 | IF-08 | `rev build` の生成qmd → `lib.typ` | 「頁」列の `` `#_xref-page("ラベル")`{=typst} `` | 参照先が無ければTypst側が赤い「?」を出す |
 
 根拠：[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)～[E-0023](appendix-evidence.qmd#ev-e-0023)。

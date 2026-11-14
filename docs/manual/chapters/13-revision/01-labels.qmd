@@ -7,7 +7,7 @@
 
 ### 一覧して付ける（拡張）
 
-コマンドパレット（`Ctrl+Shift+P`）で **DDQ Revision: 見出し・表・図のラベルを一覧する**
+コマンドパレット（`Ctrl+Shift+P`）で **DDQ: 見出し・表・図のラベルを一覧する**
 を選ぶ。エクスプローラで執筆フォルダを右クリックしても開ける。
 
 ::: {.tbl caption="ラベル一覧の画面" label="tbl-revision-taglist" widths="18,82"}

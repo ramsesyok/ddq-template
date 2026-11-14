@@ -4,6 +4,6 @@
   "flowchart": { "htmlLabels": false },
   "class": { "htmlLabels": false },
   "themeVariables": {
-    "fontFamily": "Noto Sans CJK JP, Yu Gothic, sans-serif"
+    "fontFamily": "Meiryo UI, Yu Gothic, MS PGothic, sans-serif"
   }
 }

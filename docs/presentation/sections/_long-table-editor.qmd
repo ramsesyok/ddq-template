@@ -1,4 +1,4 @@
-## 表を視覚的に組む：VSCode 拡張 `ddq-table-editor`
+## 表を視覚的に組む：VSCode 拡張 DDQ Template の表エディタ
 
 :::: {.columns}
 ::: {.column width="55%"}

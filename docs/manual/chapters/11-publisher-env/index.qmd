@@ -1,16 +1,16 @@
 # 発行者の環境構築 {#sec-publisher-env}
 
-本章では、発行版 PDF・配布 HTML・中間版 PDF を出力するために**追加で**必要な準備を
-述べる。@sec-setup-common （基礎的な環境構築）が済んでいることを前提とする。
+本章では、発行版 PDF・配布 HTML・中間版 PDF を出力するために必要な準備と、
+テンプレートの更新を述べる。@sec-setup-common （基礎的な環境構築）が済んでいることを前提とする。
 
-出力に要るのは **Quarto と、リリース一式に入っている `ddq.exe`** だけである。
+出力に要るのは **Quarto と、DDQ Template 拡張に同梱の `ddq.exe`** だけで、どちらも 2章で入っている。
 mermaid 図の SVG 化には Windows に標準搭載の Edge（または Chrome）を使い、
 どちらも無ければ `ddq` に内蔵されたレンダラで描く。**Node.js も npm も要らない。**
 PlantUML 図（@sec-plantuml）を含む文書だけは、LAN 内の PlantUML サーバか、
-ローカルの Java（同梱の `plantuml.jar` を動かす）のどちらかが要る（@sec-plantuml-setup）。
+ローカルの Java（配布 zip の `plantuml.jar` を動かす）のどちらかが要る（@sec-plantuml-setup）。
 
 ::: {.callout-note}
-設計書と同じ版の `ddq.exe` があれば、執筆者も同じ手順で PDF・配布 HTML を出力できる。
+DDQ Template を入れていれば、執筆者も同じ手順で PDF・配布 HTML を出力できる。
 本書で「発行者」と呼ぶのは役割であって、環境の違いではない（@sec-roles）。
 :::
 

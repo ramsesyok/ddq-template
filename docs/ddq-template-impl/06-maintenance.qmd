@@ -1,0 +1,46 @@
+# 変更時の注意点 {#sec-maintenance}
+
+## 共通の基盤 {#sec-maintenance-common}
+
+### 一緒に直す箇所
+
+::: {.tbl caption="一緒に直す箇所" label="tbl-common-impact" widths="36,64"}
+| 変えるもの | 一緒に直すもの |
+|---|---|
+| 版不一致の終了コード（3） | `cli/src/commands/setup.rs` の `TEMPLATE_MISMATCH_EXIT_CODE` と `src/ddq/version.ts` の `TEMPLATE_MISMATCH_EXIT_CODE`、`cli/tests/commands.rs`、`cli/DESIGN.md` |
+| 同梱 ddq の置き場（`bin/win32-x64/ddq.exe`） | `src/ddq/locate.ts` の `bundledPath`、`cli/src/commands/release.rs` の `BUNDLED_EXE`、`tests/host/smoke.mjs` |
+| ターゲット（`win32-x64`） | `package.json` の `package:win32-x64`、`release.rs` の `BUNDLE_SCRIPT` / `BUNDLE_TARGET`（VSIX 名に入る） |
+| `ddq html` の完了行（`OK: …index.html`） | `src/build.ts` の `htmlIndexOf`（読めなければ「HTML を開く」が出ないだけ） |
+| 執筆フォルダの目印 | `src/folders.ts` の `QUARTO_YML` / `TEMPLATE_VERSION_FILE`、`tests/host/run.mjs`（検証用フォルダに版ファイルを置いている） |
+| コマンド・設定の ID | `package.json`、`tests/host/index.js`、利用マニュアル（2・12・13 章・付録 A） |
+:::
+
+### 守る作法
+
+- **ddq は `locateDdq` を通して決める。** 直接 `'ddq'` を起動しない（設定と同梱が効かなくなる）。
+- **拡張は版不一致を事前に照合しない。** ddq の終了コード 3 を受けてから版を比べる。版の判定を
+  二重に持たないため（`docs/ddq-template-study.md` Q4）。
+- **追跡対象の機構ファイルを黙って更新しない。** update は通知のボタン（人の了承）から行う。
+- **外部 URL を成果物に入れない。** `check:offline` が失敗する。Quarto のダウンロードページも出さない
+  （オフライン前提。利用マニュアルの環境構築の章へ誘導する）。
+- **子プロセスは `running` に登録し、`deactivate` で止める。** Windows は実行中の exe を上書きできないので、
+  残ると VSIX の入れ直しが失敗する。止めるときは `taskkill /T`（quarto・pandoc・typst の孫まで）。
+
+### 検証の仕方
+
+| 層 | 内容 |
+|---|---|
+| ユニット（vitest） | 解決順・版の分類・実行中フラグ・`PATH` の付け足し・執筆フォルダの探索・`index.html` の読み取り・作成の名前検査 |
+| 実拡張ホスト（`test:host`） | 実物の ddq があれば、発行（mismatch → update → html、同時実行の拒否）と作成まで。差し替えの ddq では発行と作成を飛ばす |
+| 同梱版のスモーク（`test:smoke`） | 配る VSIX そのもので、同梱 ddq の解決と init → html |
+
+実物の ddq で `test:host` を回すときは、拡張と同じ版の ddq（`cli/target/release/ddq.exe`）を使う。
+古い ddq は終了コード 3 を返さないので、版不一致の検証が `failed` になる。
+
+## ラベル付け・改訂履歴（旧 DDQ Revision） {#sec-maintenance-rev}
+
+{{< include parts/revision/06-maintenance.qmd >}}
+
+## 表エディタ（旧 DDQ Table Editor） {#sec-maintenance-te}
+
+{{< include parts/table-editor/06-maintenance.qmd >}}

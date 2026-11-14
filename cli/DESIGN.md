@@ -5,7 +5,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 利用手順は利用マニュアル（`docs/manual/`）、様式・変換の内部はテンプレート設計書（`docs/design/`）。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
-- 対象版: テンプレート 2.4.5（PlantUML 対応。§13）
+- 対象版: テンプレート 3.0.0-pre4（PlantUML 対応。§13）
 
 ---
 
@@ -39,7 +39,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 | 4 | mermaid エンジン | 自動: **Edge → Chrome → merman**。`DDQ_MERMAID_ENGINE` / `EXECUTABLE_BROWSER` で上書き可 | ブラウザ経路は mermaid-cli と幾何一致。merman は保険 |
 | 5 | `quarto preview` | **常にクライアント描画**（現状維持）。SVG を焼くのは `ddq html` / `ddq pdf` だけ | プレビューは Quarto だけで動く速いクイックレビュー。発行物と図が微妙に違い得ることはマニュアルに明記 |
 | 6 | フィルタ⇔exe | フィルタが**図ごとに** `ddq mermaid` を呼ぶ（現行 `quarto run mmdc` の置換のみ）。CLI は複数入力対応にしておく | 正しさ優先。一括事前変換はフェンス抽出と hash の二重実装になるので保留 |
-| 7 | mermaid.min.js | `template/vendor/mermaid.min.js`（11.16.0）をコミットして埋め込む。npm / node_modules 廃止 | 版の固定と再現性。Quarto 同梱 11.12 は見た目が違う（§9） |
+| 7 | mermaid.min.js | `template/vendor/mermaid.min.js`（11.16.1）をコミットして埋め込む。npm / node_modules 廃止 | 版の固定と再現性。Quarto 同梱 11.12 は見た目が違う（§9） |
 | 8 | リポジトリ構成 | `template/` はソース置き場として残し、`cli/` に Cargo プロジェクトを追加。`build.rs` で `../template` を埋め込む | Lua/CSS/typ の編集体験と利用マニュアルの導線を壊さない |
 | 9 | 対象 OS | **Windows x64 のみ**（msvc, `+crt-static`）。CI も Windows 1 本 | まず簡易に。OS 依存部は `cfg(windows)` で分離し、後から他 OS を足せる形にする |
 | 10 | 名前 | `ddq`（design-doc-quarto）。環境変数は `DDQ_*` | 短く衝突しにくい |
@@ -72,14 +72,14 @@ quarto-template/
 │   ├── lib.typ / typst-template.typ / typst-show.typ / quarto-publish.yml
 │   ├── release-guide.typ        … 「はじめかた」スライド（Typst。ddq release が PDF にする）
 │   ├── scaffold/{repo,content}/
-│   └── vendor/mermaid.min.js    … 新規（11.16.0）
+│   └── vendor/mermaid.min.js    … 新規（11.16.1）
 ├── docs/                        … 設計リポジトリ（執筆フォルダ manual/ = 利用マニュアル、design/ = テンプレート設計書）
 ├── examples/                    … サンプルの設計書リポジトリ（docs/ = 受注管理システム基本設計書。--with-sample の同梱元）
 ├── extensions/                  … VSCode 拡張（1 フォルダ = 1 拡張。2.4.0 で extension/ から移した）
-│   ├── ddq-revision/            … 見出し・表・図のラベル付け（ddq tag list/apply の画面。2.4.0）
-│   └── ddq-table-editor/        … 表の視覚編集（2.1.0 で旧 quarto-table-support を統合。
-│                                   ddq release が npm でパッケージして VSIX を同梱する）
-├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release
+│   └── ddq-template/            … 旧 ddq-revision（ラベル付け・改訂履歴）と旧 ddq-table-editor（表の視覚編集）を
+│                                   統合し、ddq.exe を同梱して init / pdf / html / diagrams を VSCode から行う拡張
+│                                   （docs/ddq-template-study.md。ddq release が win32-x64 の VSIX を作る）
+├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release、その exe を同梱した VSIX のスモーク
 └── .github/workflows/extension.yml … 拡張の CI（Ubuntu / Windows × Node 20 / 22）
 ```
 
@@ -97,10 +97,11 @@ quarto-template-<版>/
 ├── THIRD-PARTY-NOTICES.md … 第三者のソフトウェアのライセンス表示（リポジトリ直下の生成物。下記）
 ├── はじめかた.pdf        … 最初の一歩（template/release-guide.typ を Quarto 同梱の Typst で PDF に。
 │                            Marp は npm 依存なので使わない）
-├── ddq-table-editor-<版>.vsix … VSCode 拡張（2.1.0 から。extensions/ の各拡張を `npm run package` したもの）
 └── manual/
     ├── 利用マニュアル.pdf
     └── html/index.html
+quarto-template-<版>.zip
+ddq-template-win32-x64-<版>.vsix … VSCode 拡張（ddq.exe 同梱）。zip には入れず隣に置き、リリースページの別資産にする
 ```
 
 `template/` は release に**含めない**（すべて exe に埋め込まれている）。
@@ -117,8 +118,14 @@ ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm �
 `tests/third_party.rs` が照合する。依存を変えたら作り直してコミットする（しないとリリースと CI が止まる）。
 テキストの入力は改行を LF に揃えてからハッシュする（`Cargo.lock` は checkout の設定で CRLF にもなる）。
 
-VSIX は `ddq release` が `extension/` で `npm ci`（`node_modules/` が無いときだけ）→
+VSIX は `ddq release` が `extensions/<拡張>/` で `npm ci`（`node_modules/` が無いときだけ）→
 `npm run package` を実行して作る（`--no-build` なら既存の VSIX を使う）。
+`package:win32-x64` スクリプトを持つ拡張（ddq-template）は ddq.exe を同梱する: release している exe を
+`<拡張>/bin/win32-x64/ddq.exe`（git 管理外）にコピーしてから `npm run package:win32-x64`
+（`vsce package --target win32-x64`）で `<name>-win32-x64-<版>.vsix` を作る。最後に VSIX の中の
+`extension/bin/win32-x64/ddq.exe` が release している exe とバイト一致することを確かめる
+（`--no-build` で前の版の ddq を同梱した VSIX を配らないため）。VSIX は zip に入れず、zip の隣に置く
+（CLI 利用者は zip、VSCode 利用者は VSIX と、別の資産として取れるようにする）。
 `extensions/<拡張>/package.json` の `version` が `template/VERSION` と違えば止める（拡張の版＝テンプレートの版）。
 発行者・執筆者の端末に Node.js が要らない点は変わらない（要るのは保守者のリリース作成時だけ）。
 Windows の `npm` は `npm.cmd` なので `cmd /C npm …` で起動する（`Command::new("npm")` は .cmd を解決しない）。
@@ -173,10 +180,10 @@ tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出�
 
 | コマンド | 処理 | 現行 |
 |---|---|---|
-| **init** | 1) リポジトリ直下に `.gitignore` `.gitattributes` `.vscode/settings.json` `README.md`（`{{CONTENT_DIR}}` 置換）を「無いものだけ」置く 2) `add <repo>/<name>` | init-doc |
+| **init** | 1) リポジトリ直下に `.gitignore` `.gitattributes` `.vscode/settings.json` `.vscode/extensions.json`（`quarto.quarto` を推奨）`README.md`（`{{CONTENT_DIR}}` 置換）を「無いものだけ」置く 2) `add <repo>/<name>` | init-doc |
 | **add** | 前提: 上のフォルダのどこかにリポジトリの目印（`.gitignore` / `.git` / `.svn` / `.hg`）がある（無ければ「先に `ddq init`」と案内。執筆フォルダは入れ子でもよい）。拒否: 対象に `_quarto.yml` が既にある。処理: scaffold の content 一式を無いものだけ置く → `update` → `quarto render --to html` で疎通確認（`--no-render` で省略） | （新規） |
 | **update** | 機構ファイル 5 本と `.template-version` を上書き。`--all <repo>` は配下の `_quarto.yml` を持つフォルダを列挙して全部に適用（`_book/` `.quarto/` `node_modules/` は探索しない） | update-doc |
-| **setup** | `.template-version` と機構ファイル 5 本が現在の `ddq` と一致するか検査 → PDF 側4ファイルを上書き。不一致時は `update` せず停止。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
+| **setup** | `.template-version` と機構ファイル 5 本が現在の `ddq` と一致するか検査 → PDF 側4ファイルを上書き。不一致時は `update` せず停止し、**終了コード 3** で終わる（VSCode 拡張 ddq-template が update を案内する契約。他の失敗は 1）。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
 | **html** | 版・機構の一致検査 → PlantUML サーバの用意（§13.3）→ `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN` `DDQ_PLANTUML_SERVER`）。出力 `_book/` | build-html |
 | **pdf** | `setup` → PlantUML サーバの用意 → `quarto render --to typst --profile publish`（env: `DDQ_BIN` `DDQ_PLANTUML_SERVER`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
 | **diagrams** | `diagrams/*.mmd *.puml` → 同名 `.svg`（キャッシュ `mmd-*` `puml-*` は対象外）。設定は執筆フォルダ直下の `mermaid-config.json` / `plantuml-config.puml`（無ければ埋め込み） | render-diagrams |
@@ -252,6 +259,8 @@ auto:
              --user-data-dir=<一時フォルダ>/profile
              --remote-debugging-port=0 about:blank
    ```
+   環境変数 `TMP` / `TEMP` は `<一時フォルダ>/tmp` に向ける（ブラウザは %TEMP% 直下にも `*.tmp` や
+   `Importer_*` を作り、止めると残る。PR #122 再検証 N-01）。
    起動した子プロセスの終了は成否に使わない（Edge は即終了する）。
    Windows では起動直後に子を Job Object（`crate::job`、KILL_ON_JOB_CLOSE）に入れる。ブラウザは
    子の下にレンダラ等の孫を作り、子を kill するだけでは孫が ddq の標準出力を握ったまま残る
@@ -264,11 +273,15 @@ auto:
    「Execution context was destroyed」になるので load を待つ。
    同じページで続けて描かないのは、mermaid が図をまたいで持つ連番（sequenceDiagram の
    actor id など）が前の図に依存し、mermaid-cli（1 図 1 ページ）と出力が変わるため。
-5. `Browser.close` で閉じる（閉じないと headless プロセスが残る）。続けて起動した子を kill し、Job Object を
-   閉じて子孫をすべて終わらせてから、一時フォルダを削除する（放されるまで最大 3 秒待ち直す）。
-   `Browser.close` は非同期なので、先に消そうとすると profile を握られて削除に失敗し、%TEMP% に
-   `ddq-mermaid-*` が 1 回ごとに溜まっていた（調査端末で 1,157 件）。ddq が強制終了されたときは
-   子孫は Job Object で終わるが、一時フォルダは残る
+5. `Browser.close` で閉じる（閉じないと headless プロセスが残る）。Windows では Job Object の中の
+   プロセスを開き、**終わりきるまで**待つ（`job::Handle::end_all`。`Browser.close` を受け付けたら最大 5 秒は
+   自分で終わるのを待ち、過ぎたら Job ごと止める。全体で最大 15 秒）。それから一時フォルダを削除する
+   （放されるまで最大 5 秒待ち直し、それでも消せなければ stderr に出す）。
+   `Browser.close` も Job の終了も非同期なので、先に消そうとすると profile を握られて削除に失敗し、%TEMP% に
+   `ddq-mermaid-*` が 1 回ごとに溜まっていた（調査端末で 1,157 件）。Job を閉じただけ、または Job の
+   「動いているプロセス数」が 0 になっただけでは、プロセスはまだ終わりきっていないことがある（実測）。
+   高負荷時はそのため後始末が間に合わなかった（8 並列で 40 回中 14 回。PR #122 再検証 N-01）。
+   ddq が強制終了されたときは子孫は Job Object で終わるが、一時フォルダは残る
 
 複数入力でも起動は 1 回（1 図 ≒ 1.5 秒、22 図 ≒ 3 秒）。
 
@@ -471,13 +484,20 @@ cli/src/
 
 ## 10. テスト方針
 
-- fixtures: サンプル文書（`examples/docs/`）の mermaid フェンスと、mermaid-cli で作った golden SVG（`cli/tests/golden/`）。
+- fixtures: サンプル文書（`examples/docs/`）の mermaid フェンスと、golden SVG（`cli/tests/golden/`）。
+  golden は当初 mermaid-cli 11.16 + Chrome で作り、browser エンジンの幾何が全図一致することを確かめた。
+  3.0.0-pre2 で図の書体（`mermaid-config.json` の fontFamily）を Meiryo UI に変えたとき、
+  一致を確かめた browser エンジン（ja-JP Windows・Edge）で作り直した。書体や設定を変えたら同じ方法で作り直す
+  （`DDQ_MERMAID_ENGINE=browser ddq mermaid -c ../template/mermaid-config.json -i <全 .mmd> -o <同名 .svg>`）。
+
 - 比較: id（`my-svg` / `svg-<name>`）を正規化したうえで、**数値列（幾何）の一致**を見る。直列化の差（自己閉じタグ）は無視。
 - browser 系: Edge/Chrome が見つからなければ `skip`（`#[ignore]` ではなく実行時判定でメッセージを出して return）。
   sequenceDiagram は mermaid 既定の `"Open Sans", sans-serif` で文字幅を測るため、日本語の fallback フォントが
   OS ロケールで変わり、基準環境（ja-JP Windows）以外では配置がずれる（GitHub の en-US ランナーで実測）。
   CI は `DDQ_GOLDEN_LOOSE=1` を設定し、一致しない図は「数値の個数が同じ・viewBox が 25% 以内」の緩い比較にする
   （実測: 幅は同じで高さが約 17% 低い = fallback フォントの行高の差）。
+  図の書体 Meiryo UI が無い環境（英語版 Windows のランナー）では文字の折り返しで数値の個数も変わるので、
+  緩い比較は viewBox の大きさだけを見る（実測: 幅が最大約 15% 広い）。
   保守者の手元（ja-JP）では厳密一致のまま。
 - merman 系: 常時実行。foreignObject を含まないことをアサート。
 - コマンド系: 一時ディレクトリに `init` → `add` → `update --all` を流し、置かれるファイル一覧と `.template-version` を検証。`quarto` の起動はモック（`quarto.rs` を trait 化）か、PATH に `quarto` があるときだけ実施。
@@ -583,7 +603,7 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 - [x] **移行前に** §12.1 の基準を `docs/` `manual/` について採取する（現行 bat、1.3.0）
 
 - [x] `cli/` 作成（Cargo、`.cargo/config.toml` に `+crt-static`、`build.rs`）
-- [x] `template/vendor/mermaid.min.js` を `node_modules/mermaid/dist/mermaid.min.js`（11.16.0）からコミット
+- [x] `template/vendor/mermaid.min.js` を `node_modules/mermaid/dist/mermaid.min.js`（11.16.1）からコミット
 - [x] `design-doc.lua` の `render_mermaid()` を `DDQ_BIN` / PATH 探索に差し替え、エラーメッセージを更新
 - [x] `template/*.bat` `*.sh` `package.json` `package-lock.json` `node_modules` `puppeteer.json` を削除、`.gitignore` の `node_modules/` `puppeteer.json` を整理
 - [x] `template/release-README.md`（→ 後に `release-guide.typ` のスライドに置換）`README.md` `ADVANCED.md` `template/PIPELINE.md` §1・§5.1 の手順を `ddq` に書き換え
@@ -630,7 +650,7 @@ design-doc.lua ──┤                                        … POST /render
 | 共通設定 | `plantuml-config.puml`（機構ファイル 5 本目）。`-config` はサーバに渡せないので、中身を `@start…` の直後に**連結して送る**。連結後のソースとテンプレートの版をハッシュするので、設定を変えるとキャッシュが自動で無効になる（2.4.1 から mermaid も同じ）。サーバはキーに入れない（LAN とローカルを切り替えても描き直さない）既定: `!pragma layout smetana`、`defaultFontName "Yu Gothic"`、`backgroundColor transparent` |
 | 改行 | CRLF を LF に揃えてから連結する（CRLF だと `@startuml\n` に当たらず設定が連結されない。実測） |
 | キャッシュ | `diagrams/puml-<sha1 16 桁>.svg`（+ 送ったソース `.puml`）。git 管理外（`**/diagrams/puml-*`）。SVG 先頭に `<!-- ddq <版> engine=plantuml plantuml=<版> server=<url> fonts=<指紋> -->`（`fonts=` はローカルのサーバのとき。発行時の照合は §5.5） |
-| フォント | SVG の `<text>` は `textLength` で幅が固定され、Typst（resvg）はそれを尊重する（実測）。サーバ側と Typst 側でフォントが違っても箱からはみ出さず、違いは行の高さだけ。`Yu Gothic` は Windows のローカルと発行者の Typst が同じ実体を引くための既定 |
+| フォント | SVG の `<text>` は `textLength` で幅が固定され、Typst（resvg）はそれを尊重する（実測）。サーバ側と Typst 側でフォントが違っても箱からはみ出さず、違いは行の高さだけ。`Meiryo UI`（PDF の本文と同じ書体）は Windows のローカルと発行者の Typst が同じ実体を引くための既定 |
 | レイアウト | `!pragma layout smetana` 固定（決定 17）。Windows 版 jar は `%TEMP%\_graphviz\dot.exe`（2.44.1）を内蔵展開するので既定は本物の dot だが、Linux サーバには無い |
 
 ### 13.3 ddq 側（`src/plantuml/mod.rs`）

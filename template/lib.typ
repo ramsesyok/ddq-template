@@ -54,10 +54,11 @@
 // ============================================================
 
 // ---- フォント ----
-// 実運用は Noto CJK を前提。無い環境では Yu Gothic → MS PGothic に落ちる
-// （字形確認は Noto を入れて行うこと）。
+// 本文（見出し・表・キャプション・様式の文字も）の書体。Meiryo UI を既定にし、
+// 無い環境では Yu Gothic → MS PGothic に落ちる。
+// **HTML（design-doc.css の --ddq-sans）と図（mermaid-config.json の fontFamily・
+// plantuml-config.puml の defaultFontName）も同じ書体にそろえてある。変えるなら 3 か所とも。**
 #let JP-SANS = ("Meiryo UI", "Yu Gothic", "MS PGothic")
-#let JP-SERIF = ("Meiryo UI", "Yu Mincho", "MS PMincho")
 // コードブロック・インラインコード（```…``` と `…`）の書体。
 // 満たしたい条件は2つ:
 //   (a) 完全な等幅 … 欧文が和文のちょうど半分幅（10pt なら 5pt / 10pt）。
@@ -83,6 +84,7 @@
 //         等幅と `\` を両立できるが、欧文がタイプライタ体（明朝系）になる。
 //   ((name: "Consolas", covers: regex("[ -~]")), "BIZ UDGothic", …)
 //       … 欧文は見慣れた Consolas。ただし桁そろえは崩れる。
+// HTML（design-doc.css の --ddq-mono）も同じ書体にしてある。
 #let MONO = ("BIZ UDGothic", "MS Gothic", "Consolas", "Courier New")
 // spec: true の表題欄（ヘッダ領域）の書体。MS Gothic を既定にし、無い環境では JP-SANS に落ちる。
 #let SPEC-HEAD-FONT = ("MS Gothic", "Yu Gothic", "MS PGothic")
@@ -103,6 +105,17 @@
 #let PARA-INDENT = 1em         // 段落先頭の字下げ（1文字ぶん）
 #let LIST-INDENT = 1em         // 箇条書きの追加字下げ（見出しレベルぶんに加えて1文字ぶん）
 #let FURNITURE-SIZE = 9pt      // 様式の文字（ページ番号）
+// コードの文字サイズ。インラインコード（`…`）は周りの文字と同じ大きさ（本文なら
+// BODY-SIZE、表のセルならセルの大きさ）。コードブロックは長いコマンド行の折り返しを
+// 減らすため本文より一回り小さくする。HTML（design-doc.css）も同じ比率にしてある。
+// （typst は何もしないとコードを周りの 0.8 倍で描く。§本文の体裁 の show raw 参照）
+#let CODE-BLOCK-SIZE = 9.5pt
+// 表紙・目次の文字サイズ（cover: true の表紙、toc: true / design-toc() の目次見出し）
+#let COVER-TITLE-SIZE = 24pt
+#let COVER-SUBTITLE-SIZE = 13pt
+#let COVER-AUTHOR-SIZE = 11pt
+#let TOC-TITLE-SIZE = 16pt
+#let IPO-SIZE = 10pt           // IPO 図の文字サイズ（表番号は IPO-NUM-SIZE）
 #let TBL-CAP-GAP = 0.45em      // .tbl のキャプション行と列見出しの間隔（_tbl-auto）
 
 // 番号付きリスト（enum）の採番。規格 表Ｂ.４ の細別番号に合わせ、入れ子の深さで
@@ -574,7 +587,15 @@
   show block.where(fill: CODE-BG): set par(justify: false, first-line-indent: 0pt)
   // コード（ブロック・インラインとも）は等幅書体にする。Quarto の構文強調は
   // トークンごとの inline raw なので、raw への set text がそのまま効く。
-  show raw: set text(font: MONO)
+  //
+  // 大きさ（実測）: typst はコードを**周りの 0.8 倍**で描く（10.5pt の本文で 8.4pt）。
+  // この 0.8em は利用者の show-set より先に掛かるので、相対値 1.25em（= 1 / 0.8）で
+  // 打ち消すとインラインコードが周りと同じ大きさになる（表のセル等でも周りに追従する）。
+  // ブロックは絶対値 CODE-BLOCK-SIZE で上書きする。構文強調のブロックは block の中の
+  // inline raw なので、block 側で CODE-BLOCK-SIZE にすれば中の raw も 1.25 × 0.8 で同じになる。
+  show raw: set text(font: MONO, size: 1.25em)
+  show raw.where(block: true): set text(size: CODE-BLOCK-SIZE)
+  show block.where(fill: CODE-BG): set text(size: CODE-BLOCK-SIZE)
   // 箇条書き（list/enum）は「最上位のリストだけ」を見出しレベルぶん＋LIST-INDENT
   // 字下げする（段落の先頭字下げと頭を揃える）。入れ子のリストには重ね掛けせず、
   // Typst 標準のネスト字下げに任せる（重ね掛けすると段ごとに右へ流れてしまう）。
@@ -726,11 +747,11 @@
   // 表紙を出さないときは pagebreak も打たない（先頭の空ページを避けるため）。
   if cover {
     align(center + horizon)[
-      #text(font: JP-SANS, size: 24pt, weight: "bold", title)
+      #text(font: JP-SANS, size: COVER-TITLE-SIZE, weight: "bold", title)
       #v(6pt)
-      #if subtitle != "" { text(size: 13pt, fill: rgb("#666"), subtitle) }
+      #if subtitle != "" { text(size: COVER-SUBTITLE-SIZE, fill: rgb("#666"), subtitle) }
       #v(24pt)
-      #text(size: 11pt, fill: rgb("#666"), author)
+      #text(size: COVER-AUTHOR-SIZE, fill: rgb("#666"), author)
     ]
     pagebreak()
   }
@@ -742,7 +763,7 @@
   if toc {
     show outline.entry.where(level: 1): set block(above: 1.2em)
     block(above: 1.4em, below: 0.8em,
-      text(font: JP-SANS, size: 16pt, weight: "bold")[#toc-title])
+      text(font: JP-SANS, size: TOC-TITLE-SIZE, weight: "bold")[#toc-title])
     outline(title: none, depth: toc-depth, indent: 2em)
     pagebreak()
   }
@@ -774,7 +795,7 @@
 #let design-toc(title: "目 次", depth: 3) = context {
   show outline.entry.where(level: 1): set block(above: 1.2em)
   block(above: 1.4em, below: 0.8em,
-    text(font: JP-SANS, size: 16pt, weight: "bold")[#title])
+    text(font: JP-SANS, size: TOC-TITLE-SIZE, weight: "bold")[#title])
   // after(here()) で「この目次より後ろ」の見出しだけを収集する。
   // 目次より前（改訂履歴など）の見出しは自動的に載らない。
   outline(title: none, depth: depth, indent: 2em,
@@ -948,7 +969,7 @@
     header: none, footer: none,
     background: _side-furniture,
   )
-  set text(font: JP-SANS, size: 10pt)
+  set text(font: JP-SANS, size: IPO-SIZE)
   // 欄見出し（機能名/処理名/入力/処理/出力）の共通スタイル
   let head(t) = align(center + horizon,
     text(weight: "bold", tracking: IPO-HEAD-TRACKING, t))

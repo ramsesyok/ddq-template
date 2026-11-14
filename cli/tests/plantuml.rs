@@ -96,9 +96,9 @@ fn diagrams_renders_puml_and_rejects_syntax_error() {
             "{name}: フォントの指紋が無い"
         );
         assert!(svg.contains("<svg"), "{name}: SVG ではない");
-        // 共通設定（Yu Gothic）が連結されて効いている
+        // 共通設定（Meiryo UI）が連結されて効いている
         assert!(
-            svg.contains("Yu Gothic"),
+            svg.contains("Meiryo UI"),
             "{name}: plantuml-config.puml が効いていない"
         );
     }

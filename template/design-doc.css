@@ -11,12 +11,34 @@
      - 図表番号の書式（章.節-連番） … postprocess-html.mjs
      - PDF の見た目                 … lib.typ（このファイルは PDF に影響しない）
 
-   ■ PDF と揃えるべき箇所
-     IPO 図の列比だけは lib.typ の IPO-COLS と同じ値にしてある。
-     片方を変えたらもう片方も変えること。
+   ■ PDF と揃えるべき箇所（片方を変えたらもう片方も変えること）
+     - IPO 図の列比 … lib.typ の IPO-COLS
+     - 書体         … lib.typ の JP-SANS（本文）・MONO（コード）
+     - コードの大きさ … lib.typ の CODE-BLOCK-SIZE（本文 BODY-SIZE との比）
    ============================================================ */
 
-body { font-family: "Noto Sans CJK JP", "Yu Gothic", sans-serif; }
+/* 書体。本文は PDF の JP-SANS、コードは MONO と同じ（図の mermaid-config.json・
+   plantuml-config.puml も本文と同じ書体）。Bootstrap の変数を上書きするので、
+   Quarto が使う本文・コード（code / pre / kbd）のすべてに効く。
+   BIZ UDGothic は和文の名前（BIZ UDゴシック）も並べる（環境により和文名でしか一致しないため）。 */
+:root {
+  --ddq-sans: "Meiryo UI", "Yu Gothic", "MS PGothic", sans-serif;
+  --ddq-mono: "BIZ UDGothic", "BIZ UDゴシック", "MS Gothic", Consolas, monospace;
+  --bs-body-font-family: var(--ddq-sans);
+  --bs-font-sans-serif: var(--ddq-sans);
+  --bs-font-monospace: var(--ddq-mono);
+}
+body { font-family: var(--ddq-sans); }
+code, kbd, samp, pre { font-family: var(--ddq-mono); }
+
+/* コードの大きさ。PDF と同じ比率にする: インラインコードは周りの文字と同じ、
+   コードブロックは本文の 9.5 / 10.5（lib.typ の CODE-BLOCK-SIZE / BODY-SIZE）。
+   Bootstrap・Quarto は code / pre を 0.875em にするので、それを打ち消す。
+   ブロックは外側の箱（構文強調ありは div.sourceCode、なしは pre）だけで小さくし、
+   中の pre / code は inherit にする（em を重ねて掛けない）。 */
+code { font-size: 1em; }
+div.sourceCode, pre:not(.sourceCode) { font-size: calc(9.5em / 10.5); }
+div.sourceCode pre, pre code { font-size: inherit; }
 
 /* 見出しレベル1（章）の番号を PDF と同じ「1.」表記にする。
    Quarto は HTML では章番号を末尾ピリオドなし（1）で出すため CSS で補う。

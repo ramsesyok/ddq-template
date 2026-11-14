@@ -19,15 +19,15 @@ pub fn run(dir: &Path) -> Result<()> {
     }
     // フェンスのキャッシュ（mmd-<hash>.mmd / puml-<hash>.puml。design-doc.lua が置く）は対象外。
     // puml-* は共通設定を連結済みなので、もう一度連結すると設定が二重になる。
-    let mut inputs: Vec<std::path::PathBuf> = fs::read_dir(&diagrams)
+    let is_cache = |p: &std::path::PathBuf| {
+        p.file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.starts_with("mmd-") || n.starts_with("puml-"))
+    };
+    let (caches, mut inputs): (Vec<std::path::PathBuf>, Vec<std::path::PathBuf>) = fs::read_dir(&diagrams)
         .with_context(|| format!("{} を読めません", diagrams.display()))?
         .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| {
-            !p.file_name()
-                .and_then(|n| n.to_str())
-                .is_some_and(|n| n.starts_with("mmd-") || n.starts_with("puml-"))
-        })
-        .collect();
+        .partition(is_cache);
     inputs.sort();
     let mmd: Vec<Job> = inputs
         .iter()
@@ -42,7 +42,20 @@ pub fn run(dir: &Path) -> Result<()> {
         .filter(|p| p.extension().is_some_and(|x| x == "puml"))
         .collect();
     if mmd.is_empty() && puml.is_empty() {
-        println!("警告: {} に .mmd / .puml がありません", diagrams.display());
+        let cached = caches
+            .iter()
+            .filter(|p| p.extension().is_some_and(|x| x == "mmd" || x == "puml"))
+            .count();
+        if cached > 0 {
+            // mmd-* / puml-* は本文のフェンスのキャッシュ。「図があるのに変換されない」と誤解されやすい
+            println!(
+                "警告: {} に変換する図がありません。mmd- / puml- で始まる {cached} 件は本文の ```mermaid / ```plantuml の\
+                 キャッシュで、PDF・HTML の作成時に自動で変換されます。図の変換の対象は、diagrams に自分で置いた .mmd / .puml です",
+                diagrams.display()
+            );
+        } else {
+            println!("警告: {} に .mmd / .puml がありません", diagrams.display());
+        }
         return Ok(());
     }
 

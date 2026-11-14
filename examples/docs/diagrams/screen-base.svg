@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" width="100%" role="img" aria-label="基本画面レイアウト">
   <style>
-    .t   { font-family: 'Yu Gothic','Noto Sans CJK JP',sans-serif; }
+    .t   { font-family: 'Meiryo UI','Yu Gothic','MS PGothic',sans-serif; }
     .title { fill:#ffffff; font-size:15px; font-weight:bold; }
     .region { fill:#5a6472; font-size:15px; }
     .tag  { fill:#ffffff; font-size:11px; }

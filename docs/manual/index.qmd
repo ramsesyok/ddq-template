@@ -32,8 +32,11 @@
 
 ## 本書の表記 {.unnumbered}
 
-- コマンドは Windows のコマンドプロンプト（`cmd`）を基準に示す。出力に使う `ddq.exe` は
-  Windows 用である（執筆だけなら macOS / Linux でも Quarto があればできる）。
+- 操作は VSCode の **DDQ Template 拡張**のコマンド（コマンドパレット `Ctrl+Shift+P` で
+  `DDQ:` と打つと並ぶもの）を基準に示す。同じ操作をコマンドで行う方法は付録（@sec-cli）にまとめた。
+  コマンド例は Windows のコマンドプロンプト（`cmd`）である。
+- DDQ Template と、それに同梱の `ddq.exe` は Windows 用である（執筆だけなら macOS / Linux でも
+  Quarto があればできる）。
 - ファイル名・フォルダ名・コマンド・記法は `等幅` で示す。
 - 実際に入力する箇所のうち、環境に応じて変える部分は `<…>` で囲んで示す。
 

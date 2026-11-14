@@ -1,0 +1,8 @@
+{
+  // このフォルダを VSCode で開いたときに「おすすめの拡張」として出すもの。
+  //
+  // quarto.quarto … Quarto 公式の拡張（.qmd の色分け・プレビュー）。入れなくても ddq は動きます。
+  // DDQ Template 拡張（ddq-template）は Marketplace に無いのでここには書けません。
+  // リリース一式の VSIX から入れてください（利用マニュアルの環境構築の章）。
+  "recommendations": ["quarto.quarto"]
+}

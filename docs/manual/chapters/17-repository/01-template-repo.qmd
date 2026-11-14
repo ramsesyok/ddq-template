@@ -6,7 +6,7 @@ design-doc-quarto-template/
 ├── .gitignore
 ├── .gitattributes           … 改行コードの固定（機構ファイル=LF）
 ├── .vscode/settings.json    … サンプル設定（日本語を等幅にする）
-├── .github/workflows/ci.yml … ddq の CI（fmt / clippy / test / build）
+├── .github/workflows/ci.yml … ddq の CI（fmt / clippy / test / build）と、その ddq.exe を同梱した VSIX のスモーク
 ├── .github/workflows/extension.yml … VSCode 拡張の CI
 │
 ├── docs/                     … 設計リポジトリ（本テンプレートで書いた文書。執筆フォルダを並べる）
@@ -38,10 +38,12 @@ design-doc-quarto-template/
 │   ├── tests/                … golden テスト（mermaid の幾何一致）・コマンドのテスト
 │   └── tools/regress.py      … 移行前後で PDF / HTML が変わらないことの確認
 │
-└── extension/                … VSCode 拡張 ddq-table-editor（.tbl の視覚編集。TypeScript + React）
-    ├── README.md             … 使い方・開発・デバッグ
-    ├── package.json          … 拡張の定義（version は template/VERSION と揃える）
-    └── src/                  … ddq release が npm でパッケージし、リリース一式に VSIX を同梱する
+└── extensions/
+    └── ddq-template/         … VSCode 拡張 DDQ Template（TypeScript + React。docs/ddq-template-study.md）
+        ├── README.md         … 使い方・開発・デバッグ
+        ├── package.json      … 拡張の定義（version は template/VERSION と揃える）
+        ├── src/              … 作成・発行・ラベル付け・改訂履歴・表エディタ
+        └── bin/win32-x64/    … ddq release が ddq.exe をコピーする場所（git 管理外）
 ```
 
 `docs/` と `examples/` の執筆フォルダは、設計書リポジトリの執筆フォルダ（@sec-doc-repo）と

@@ -1,0 +1,19 @@
+# コマンドで使う（ddq） {#sec-cli}
+
+本付録では、VSCode を使わずに **`ddq.exe` をコマンドで使う**方法をまとめる。
+本文の手順は VSCode の **DDQ Template 拡張**（@sec-extension）を前提としており、
+拡張の操作は内部でここに示すコマンドを実行している。したがって、拡張を使う人は
+本付録を読まなくてよい。
+
+本付録が要るのは次の場合である。
+
+- VSCode を使わない（コマンドプロンプトやバッチで出力したい）
+- CI（GitHub Actions など）で PDF を作る・改訂履歴の抜けを検査する
+- 拡張にまだ無い操作をする（執筆フォルダの追加 `ddq add`・まとめての更新 `ddq update --all`・
+  PlantUML サーバの起動 `ddq plantuml serve`）
+
+{{< include 01-get.qmd >}}
+
+{{< include 02-commands.qmd >}}
+
+{{< include 03-batch.qmd >}}

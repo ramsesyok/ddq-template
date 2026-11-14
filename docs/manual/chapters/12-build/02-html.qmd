@@ -2,18 +2,9 @@
 
 ### 手順
 
-リリースを展開したフォルダで次を実行する。
-
-```bat
-cd C:\tools\quarto-template-2.4.5
-.\ddq html C:\work\order-design\docs
-```
-
-次のように表示されれば成功である。
-
-```text
-OK: C:\work\order-design\docs\_book\index.html（直接開くと全文検索は使えません）
-```
+1. 執筆フォルダを右クリック → **DDQ: HTML を作成**（コマンドパレットからでもよい）。
+2. 「HTML を作りました」と通知が出たら成功である。**HTML を開く** でブラウザに表示できる
+   （直接開くと全文検索は使えない。@sec-distribute）。
 
 ### 何が行われるか
 
@@ -26,16 +17,16 @@ OK: C:\work\order-design\docs\_book\index.html（直接開くと全文検索は�
 
 ::: {.callout-note}
 手順3は執筆者の `quarto render` でも同じように走る。したがって**図表番号は
-執筆者の HTML と配布 HTML で同じ**である。`ddq` が要るのは手順2の mermaid だけである。
+執筆者の HTML と配布 HTML で同じ**である。違いは手順2の mermaid だけである。
 :::
 
 ### 執筆者の確認用 HTML との違い
 
 ::: {.tbl caption="確認用HTMLと配布HTMLの違い" label="tbl-html-diff" widths="24,38,38"}
-| 項目           | 執筆者の `quarto render`  | `ddq html`                       |
+| 項目           | 執筆者の `quarto render`  | DDQ: HTML を作成（`ddq html`）   |
 |----------------|---------------------------|----------------------------------|
-| 実行場所       | 執筆フォルダの中          | リリースを展開したフォルダ       |
-| 必要な環境     | Quarto のみ               | Quarto ＋ `ddq.exe`              |
+| 実行のしかた   | 執筆フォルダの中のターミナル | VSCode のコマンド・右クリック  |
+| 必要な環境     | Quarto のみ               | Quarto ＋ DDQ Template           |
 | mermaid の描画 | ブラウザ内で描画          | ベクター SVG に焼き込み          |
 | 図表番号       | 図 3.2-1 形式（同じ）     | 図 3.2-1 形式                    |
 | 用途           | 執筆者の確認              | 社内レビュー・配布               |

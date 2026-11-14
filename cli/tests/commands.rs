@@ -51,6 +51,7 @@ fn init_then_add_then_update_all() {
         ".gitignore",
         ".gitattributes",
         ".vscode/settings.json",
+        ".vscode/extensions.json",
         "README.md",
     ] {
         assert!(repo.join(f).is_file(), "{f} がありません");
@@ -133,7 +134,8 @@ fn init_then_add_then_update_all() {
     // setup は追跡対象の機構ファイルを暗黙に直さない
     fs::write(docs.join("design-doc.lua"), "locally modified").unwrap();
     let out = ddq(&["setup", &docs.to_string_lossy()]);
-    assert!(!out.status.success());
+    // 機構の不一致は終了コード 3（VSCode 拡張が update を案内する。§3.2）
+    assert_eq!(out.status.code(), Some(3));
     assert!(String::from_utf8_lossy(&out.stderr).contains("ddq update"));
     assert_eq!(
         fs::read_to_string(docs.join("design-doc.lua")).unwrap(),
@@ -176,6 +178,33 @@ fn update_prunes_diagram_cache_only_when_the_version_changes() {
     left.sort();
     left.retain(|n| n != ".gitkeep"); // 雛形が置く
     assert_eq!(left, ["network.mmd", "network.svg"]);
+}
+
+#[test]
+fn diagrams_explains_that_fence_caches_are_not_its_target() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("order-design");
+    assert_ok(&ddq(&["init", &repo.to_string_lossy(), "--no-render"]));
+    let docs = repo.join("docs");
+    let diagrams = docs.join("diagrams");
+    // 本文の ```mermaid から PDF 作成時に書き出されたキャッシュだけがある状態
+    fs::write(
+        diagrams.join("mmd-0123456789abcdef.mmd"),
+        "flowchart LR\n  A --> B\n",
+    )
+    .unwrap();
+    fs::write(diagrams.join("mmd-0123456789abcdef.svg"), "<svg/>").unwrap();
+
+    let out = ddq(&["diagrams", &docs.to_string_lossy()]);
+    assert_ok(&out);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("1 件は本文の ```mermaid"), "{stdout}");
+    assert!(stdout.contains("PDF・HTML の作成時に自動で変換"), "{stdout}");
+    // キャッシュは変換しない（中身はそのまま）
+    assert_eq!(
+        fs::read_to_string(diagrams.join("mmd-0123456789abcdef.svg")).unwrap(),
+        "<svg/>"
+    );
 }
 
 #[test]
@@ -233,8 +262,12 @@ fn setup_rejects_different_template_version() {
     fs::write(docs.join(".template-version"), "0.0.0\n").unwrap();
 
     let out = ddq(&["setup", &docs.to_string_lossy()]);
-    assert!(!out.status.success());
+    assert_eq!(out.status.code(), Some(3), "版の不一致は終了コード 3");
     let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.starts_with("Error: "),
+        "anyhow の既定と同じ書き出し: {stderr}"
+    );
     assert!(stderr.contains("テンプレートの版が一致しません"));
     assert!(stderr.contains("ddq update"));
     assert_eq!(
@@ -278,7 +311,8 @@ fn init_rejects_dot_names() {
 fn update_rejects_folder_without_quarto_yml() {
     let tmp = tempfile::tempdir().unwrap();
     let out = ddq(&["update", &tmp.path().to_string_lossy()]);
-    assert!(!out.status.success());
+    // 機構の不一致以外の失敗は従来どおり終了コード 1
+    assert_eq!(out.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&out.stderr).contains("_quarto.yml"));
 }
 

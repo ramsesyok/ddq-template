@@ -177,6 +177,7 @@ pub fn render(
     // Job Object に入れ、抜けるとき（成功・エラー・ddq の強制終了）に子孫ごと終わらせる。
     #[cfg(windows)]
     let mut job = crate::job::attach_or_kill(&mut launcher)?;
+    let mut closed = false;
     let outcome = (|| {
         let mut cdp = Cdp::connect(&wait_for_devtools_endpoint(&profile, &mut launcher)?)?;
         let page_url = file_url(&page);
@@ -185,25 +186,53 @@ pub fn render(
             .map(|source| cdp.render_one(&page_url, source))
             .collect::<Result<Vec<_>>>();
         // 結果の成否にかかわらずブラウザを閉じる（閉じないと headless プロセスが残る）
-        let _ = cdp.call("Browser.close", json!({}), None);
+        closed = cdp.call("Browser.close", json!({}), None).is_ok();
         results
     })();
-    let _ = launcher.kill();
-    // 先にブラウザの子孫をすべて終わらせてから一時フォルダを消す。Browser.close は非同期で、
-    // 消す時点でまだ profile を握っていると削除に失敗し、%TEMP% に ddq-mermaid-* が 1 回ごとに
-    // 溜まっていた（U-0002 の調査で 1,000 件以上を確認）。
+    // 先にブラウザの子孫をすべて終わらせ、**終わりきってから**一時フォルダを消す。Browser.close も
+    // Job の終了も非同期で、消す時点でまだ profile を握っていると削除に失敗し、%TEMP% に
+    // ddq-mermaid-* が溜まる（U-0002 で 1,000 件以上、N-01 で負荷時に 40 回中 14 回）。
+    // Browser.close を受け付けたなら、自分で後片付けして終わるのを少し待ってから止める。
     #[cfg(windows)]
-    job.close();
+    {
+        let grace = if closed {
+            Duration::from_secs(5)
+        } else {
+            Duration::ZERO
+        };
+        if !job.end_all(grace, Duration::from_secs(15)) {
+            eprintln!("ddq: ブラウザのプロセスが終わりきりません（一時フォルダが残ることがあります）");
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = closed;
+        let _ = launcher.kill();
+    }
+    let _ = launcher.wait();
     remove_dir_patiently(work);
     outcome
 }
 
 /// 一時フォルダを消す。終わったばかりのプロセスがファイルを放すまで、少しだけ待ち直す。
-/// 消せなくてもエラーにはしない（変換の結果には関係しない）。
+/// 消せなくてもエラーにはしない（変換の結果には関係しない）が、残したことは stderr に出す
+/// （黙って残すと %TEMP% に溜まっても気付けない）。
 fn remove_dir_patiently(work: tempfile::TempDir) {
     let path = work.keep();
     let t0 = Instant::now();
-    while fs::remove_dir_all(&path).is_err() && path.exists() && t0.elapsed() < Duration::from_secs(3) {
+    loop {
+        let error = match fs::remove_dir_all(&path) {
+            Ok(()) => return,
+            Err(_) if !path.exists() => return,
+            Err(e) => e,
+        };
+        if t0.elapsed() >= Duration::from_secs(5) {
+            eprintln!(
+                "ddq: 一時フォルダを消せませんでした（{error}）: {}",
+                path.display()
+            );
+            return;
+        }
         thread::sleep(Duration::from_millis(100));
     }
 }
@@ -247,6 +276,8 @@ window.__ddqRender = async (source) => {{
 /// headless で起動する。`--remote-debugging-port=0` で空きポートを取り、profile 内の
 /// `DevToolsActivePort` に書かせる。
 fn launch(browser: &Path, profile: &Path) -> Result<std::process::Child> {
+    let temp = profile.with_file_name("tmp");
+    fs::create_dir_all(&temp).context("ブラウザ用の一時フォルダを作れません")?;
     Command::new(browser)
         .arg("--headless=new")
         .arg("--disable-gpu")
@@ -258,6 +289,10 @@ fn launch(browser: &Path, profile: &Path) -> Result<std::process::Child> {
         .arg(format!("--user-data-dir={}", profile.display()))
         .arg("--remote-debugging-port=0")
         .arg("about:blank")
+        // ブラウザは %TEMP% の直下にも一時ファイル（*.tmp や Importer_*）を作り、止めると残る（N-01）。
+        // 一時フォルダの中に向けて、profile と一緒に消す
+        .env("TMP", &temp)
+        .env("TEMP", &temp)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())

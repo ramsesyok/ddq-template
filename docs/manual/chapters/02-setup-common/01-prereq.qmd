@@ -4,41 +4,44 @@
 
 | 項目 | 内容 |
 |------|------|
-| OS | Windows 10 / 11（執筆だけなら macOS / Linux でも可） |
+| OS | Windows 10 / 11（64 ビット）。執筆だけなら macOS / Linux でも可 |
 | 必須ソフトウェア | Quarto（PDF 生成に使う Typst は同梱） |
+| エディタ | Visual Studio Code（以下 VSCode）1.85 以上 |
+| VSCode 拡張 | DDQ Template（`ddq.exe` 同梱。リリースページの VSIX）、Quarto（`quarto.quarto`。任意） |
 | 任意 | Java 8 以上（PlantUML 図をローカルで描くときだけ。LAN にサーバがあれば不要。@sec-plantuml-setup） |
-| 推奨エディタ | Visual Studio Code（以下 VSCode） |
 | 権限 | Quarto のインストールに管理者権限が要る場合がある |
 
-本書のコマンド例は Windows のコマンドプロンプト（`cmd`）を基準とする。
-出力に使う `ddq.exe` は Windows 用に作られており、発行（PDF・配布 HTML）は Windows で
-行う。執筆（原稿の編集と `quarto preview`）は Quarto さえ動けば macOS / Linux でもできる。
+DDQ Template 拡張と同梱の `ddq.exe` は Windows（x64）用である。発行（PDF・配布 HTML）は
+Windows で行う。執筆（原稿の編集と `quarto preview`）は Quarto さえ動けば macOS / Linux でも
+できる。
 
-| 作業 | コマンド |
-|------|----------|
-| 設計書リポジトリを作る | `.\ddq init C:\work\order-design` |
-| 機構ファイルを更新する | `.\ddq update C:\work\order-design\docs` |
-| PDF を出す | `.\ddq pdf C:\work\order-design\docs` |
-| 配布 HTML を出す | `.\ddq html C:\work\order-design\docs` |
+本書の操作は、**VSCode のコマンドパレット**（`Ctrl+Shift+P`）から実行するコマンドを
+基準に示す。
 
-いずれも**リリースを展開したフォルダを開いた状態**で実行する（@sec-place）。
-`.\ddq` はそのフォルダにある実行ファイル、設計書リポジトリのパスは絶対で書く。
+| 作業 | VSCode での操作 | 参照 |
+|------|-----------------|------|
+| 設計書リポジトリを作る | **DDQ: 設計書リポジトリを作成** | @sec-newdoc |
+| PDF を出す | **DDQ: PDF を作成**（ステータスバーの `PDF: <執筆フォルダ名>` でも可） | @sec-build |
+| 配布 HTML を出す | **DDQ: HTML を作成** | @sec-build |
+| 機構ファイルを更新する | 版が合わないときに出る通知の **ddq update を実行** | @sec-update-doc |
 
-### 共通で入れるものは Quarto だけ
+同じ操作はコマンド（`ddq pdf <執筆フォルダ>` など）でも行える（@sec-cli）。
+
+### 共通で入れるものは3つだけ
 
 ::: {.callout-important}
-**この章で入れるのは Quarto ひとつだけ**である。PDF 組版に使う Typst は Quarto に
-同梱されているため、別途インストールする必要はない。TeX / LaTeX も不要である。
+**この章で入れるのは Quarto・VSCode・DDQ Template 拡張の3つだけ**である。PDF 組版に使う
+Typst は Quarto に同梱されているため、別途インストールする必要はない。TeX / LaTeX も不要である。
 :::
 
-PDF・配布 HTML の出力にはリリース一式の `ddq.exe` を使う（インストール不要。@sec-publisher-env）。
+PDF・配布 HTML の出力には、DDQ Template 拡張に同梱の `ddq.exe` を使う（インストール不要）。
 mermaid 図の焼き込みには Windows 標準の Edge が使われ、無ければ `ddq` 内蔵のレンダラで描く。
 **Node.js も npm もどの端末にも要らない。** PlantUML 図を使う文書だけは、LAN の PlantUML
 サーバか Java のどちらかが要る（@sec-plantuml-setup）。
 
 ### パスに使える文字 {#sec-ascii-path}
 
-設計書リポジトリ・執筆フォルダ・リリースの展開フォルダの名前には**日本語を使ってよい**
+設計書リポジトリ・執筆フォルダの名前には**日本語を使ってよい**
 （例: `C:\work\受注管理\設計書`）。ユーザー名が日本語の環境（`C:\Users\山田\...`）でも
 問題ない。
 
@@ -53,7 +56,7 @@ mermaid 図の焼き込みには Windows 標準の Edge が使われ、無けれ
 - アクセント付きラテン文字（`é` など）
 
 ひらがな・カタカナ・漢字・全角英数・全角空白は CP932 にあるので使える。
-`ddq init` / `ddq add` / `ddq pdf` / `ddq html` は使えない文字を検出して、その文字を示して止まる。
+設計書リポジトリの作成・PDF・HTML の出力は、使えない文字を検出して、その文字を示して止まる。
 
 裏返すと、**日本語版でない Windows**（英語版など。ANSI コードページが CP1252）では日本語の
 フォルダ名がコードページに無いので使えない。海外拠点の端末でも同じ設計書リポジトリを

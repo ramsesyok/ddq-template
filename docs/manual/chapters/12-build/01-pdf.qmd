@@ -2,20 +2,18 @@
 
 ### 手順
 
-リリースを展開したフォルダで次を実行する。
-
-```bat
-cd C:\tools\quarto-template-2.4.5
-.\ddq pdf C:\work\order-design\docs
-```
-
-次のように表示されれば成功である。
-
-```text
-OK -> C:\work\order-design\docs\design-doc.pdf
-```
+1. VSCode で設計書リポジトリを開き、執筆フォルダの中のファイルを開く。
+2. ステータスバー（画面下）の **`PDF: <執筆フォルダ名>`** を押す。
+   コマンドパレットの **DDQ: PDF を作成**、執筆フォルダの右クリックからでもよい。
+3. 「PDF を作りました」と通知が出たら成功である。**PDF を開く** で表示できる。
 
 初回は少し時間がかかる。2回目以降は図のキャッシュが効くため速くなる。
+
+::: {.callout-note}
+「ddq update を実行」の通知が出たときは、執筆フォルダの機構ファイルと DDQ Template の
+版が違う。発行者なら押して更新し、差分をコミットする。執筆者は押さずに発行者へ伝える
+（@sec-update-doc）。「Quarto が見つかりません」と出たときは @sec-quarto-install を見る。
+:::
 
 ### 何が行われるか
 
@@ -39,7 +37,7 @@ PDF は 2 か所にできる。`_book\<output-file>.pdf` は Quarto が作るも
 :::
 
 ::: {.callout-note}
-`ddq pdf` は先頭で `setup` を呼ぶため、単体で実行すれば PDF 用の準備も済む。
+PDF の出力は先頭で `setup` を呼ぶため、PDF 用の準備も済む。
 `setup` を明示的に実行する必要はない。
 :::
 
@@ -54,7 +52,7 @@ PDF は 2 か所にできる。`_book\<output-file>.pdf` は Quarto が作るも
 OS にインストールされているフォントではない。
 :::
 
-様式付き PDF のビルドは必ず `ddq pdf` を使うこと。VSCode の通常の Render は既定の
+様式付き PDF のビルドは必ず **DDQ: PDF を作成**（コマンドでは `ddq pdf`）を使うこと。VSCode の通常の Render は既定の
 HTML を生成し、PDF 用の `publish` プロファイルを適用しない。
 
 どうしても `typst compile` を直接使って様式を試したいときは、フォントの場所を

@@ -1,0 +1,63 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "build",
+      "label": "npm: build",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "拡張ホストと Webview をビルドする"
+    },
+    {
+      "type": "npm",
+      "script": "watch:ext",
+      "label": "npm: watch:ext",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "esbuild",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\[watch\\]",
+          "endsPattern": "(Done in|build finished)"
+        }
+      },
+      "detail": "拡張ホストを監視ビルドする"
+    },
+    {
+      "type": "npm",
+      "script": "watch:webview:revision",
+      "label": "npm: watch:webview:revision",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "ラベル一覧・改訂履歴の Webview を監視ビルドする"
+    },
+    {
+      "type": "npm",
+      "script": "watch:webview:tableEditor",
+      "label": "npm: watch:webview:tableEditor",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "表エディタの Webview を監視ビルドする"
+    },
+    {
+      "type": "npm",
+      "script": "test",
+      "label": "npm: test",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}
