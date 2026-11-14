@@ -155,6 +155,11 @@ ddq は「ビルド済み → 無ければ golden を返す差し替え」の順
 UI 以外のロジックにユニットテストを書く。純粋な TypeScript 関数を Webview の外で
 テストすることを優先し、手動 UI テストだけに頼らない。
 
+画面（Webview）は jsdom のテストで、操作がモデルの関数を正しく呼び、結果が表・ツールバー・属性欄・
+プレビューに出て、Apply で何が拡張へ渡るかを見る（改訂履歴は `src/revisionWebview/*.test.tsx`、
+表エディタは `src/tableEditor/webview/TableEditor.test.tsx`）。ボタンや欄を足したら、ここにも操作を足す。
+IME の変換と実際の描画位置は jsdom では見られないので、実 Webview で確かめる。
+
 表の記法まわりの検証は `src/tableEditor/formats/pandoc.test.ts` が**本物の pandoc**に対して行う。
 pandoc が無い環境では自動スキップし、CI では `REQUIRE_PANDOC=1` でスキップを禁止する
 （検査が黙って素通りしないように）。新しい記法を足したらここにケースを追加すること。
