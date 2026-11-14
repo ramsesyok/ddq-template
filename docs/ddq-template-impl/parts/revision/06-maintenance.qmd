@@ -56,4 +56,4 @@
 
 確認済み（静的）：実拡張ホストの検証は内部コマンド（`internal.applyRows` / `internal.writeNote` / `internal.openDiff`）を叩く。Webview の中身は外から触れないため、**画面が呼ぶのと同じ関数**を別の入口から呼んでいる。`package.json` に出していないのでコマンドパレットには現れない。[E-0002](appendix-evidence.qmd#ev-rev-e-0002)
 
-確認済み（静的）：CI（`extension.yml`）の `host` ジョブは **差し替えの `ddq`**（実物の出力を採取した golden を返す）で走るため、**改訂履歴の部分は飛ばされる**（`DDQ_IS_REAL` が 0）。改訂履歴まで通したいときは、実物の `ddq.exe` がある手元で `npm run test:host` を実行する。[E-0009](appendix-evidence.qmd#ev-rev-e-0009)
+確認済み（静的）：CI（`extension.yml`）の `host` ジョブは、3.0.0 から同じコミットの `ddq` をビルドして**実物で**走らせ、改訂履歴の部分まで通す（`DDQ_HOST_REAL=1` で、実物が無ければ差し替えに落ちずに失敗する）。それまでは差し替えの `ddq`（実物の出力を採取した golden を返す）で走り、改訂履歴の部分は飛ばされていた（`DDQ_IS_REAL` が 0）。手元で `ddq` をビルドしていなければ、今も差し替えで走る。[E-0009](appendix-evidence.qmd#ev-rev-e-0009)

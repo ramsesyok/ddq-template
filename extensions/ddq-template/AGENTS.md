@@ -148,7 +148,8 @@ npm run test:host   # 実拡張ホストで一覧・書き戻し・Undo・改訂
 init → html を通して確かめる（CI では ci.yml の vsix-smoke。main への push と手動実行のみ）。
 
 `test:host` の VSCode は「インストール済み → 無ければ `@vscode/test-electron` で取得」、
-ddq は「ビルド済み → 無ければ golden を返す差し替え」の順に決まる。どちらも開発時だけの
+ddq は「ビルド済み → 無ければ golden を返す差し替え」の順に決まる（CI は ddq をビルドし、
+`DDQ_HOST_REAL=1` で差し替えを禁じる）。どちらも開発時だけの
 話で、配布物（VSIX）には入らない。golden を採り直すときは DEVELOPMENT.md を参照。
 
 UI 以外のロジックにユニットテストを書く。純粋な TypeScript 関数を Webview の外で

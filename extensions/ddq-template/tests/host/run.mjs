@@ -13,8 +13,9 @@
  * ddq の用意:
  *   1. 引数 / 環境変数 `DDQ_BIN`
  *   2. `../../cli/target/release/ddq(.exe)`（手元でビルドしてあるもの）
- *   3. `tests/host/fake-ddq.mjs`（CI 用。実物の出力を採取した golden を返す。
- *      Windows では rustc で node を呼ぶだけの exe を作って包む）
+ *   3. `tests/host/fake-ddq.mjs`（ddq をビルドしていない手元用。実物の出力を採取した golden を返す。
+ *      Windows では rustc で node を呼ぶだけの exe を作って包む）。差し替えでは改訂履歴・発行・
+ *      作成・追加を飛ばす。`DDQ_HOST_REAL=1`（CI）なら差し替えに落ちずに失敗する
  *
  * 専用の `--user-data-dir` で起動するので、実際に使っているプロファイルは汚さない。
  * `--disable-workspace-trust` が要る: 新しいプロファイルだと信頼されていない扱いになり、
@@ -111,6 +112,12 @@ function resolveDdq(root) {
         process.platform === 'win32' ? 'ddq.exe' : 'ddq'
     );
     if (fs.existsSync(built)) return built;
+
+    // CI は実物の ddq をビルドして渡す。見つからないまま差し替えに落ちると、改訂履歴・発行・
+    // 作成・追加の検証が黙って飛ぶので、DDQ_HOST_REAL=1 のときは止める（cli の DDQ_E2E と同じ作法）
+    if (process.env.DDQ_HOST_REAL === '1') {
+        throw new Error(`DDQ_HOST_REAL=1 なのに実物の ddq がありません（DDQ_BIN か ${built}）`);
+    }
 
     // execFile から直接呼べる形にする（.mjs はそのままでは起動できない）
     const fake = path.join(here, 'fake-ddq.mjs');
