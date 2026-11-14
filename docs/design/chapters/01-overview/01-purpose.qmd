@@ -20,5 +20,6 @@ HTML の章番号・図表番号・相互参照は PDF と一致する。
 | 記法の拡張 | `template/design-doc.lua`（Pandoc Lua フィルタ） |
 | HTML の採番 | `template/postprocess-html.js`（後処理。Quarto 同梱の Deno で走る） |
 | 図 | mermaid（文字で書いた図をベクター SVG に）、PlantUML（描画サーバで SVG に） |
-| 執筆者に要るもの | Quarto ＋ VSCode の Quarto 拡張だけ |
+| 配置・ビルドの道具 | `ddq.exe`（`template/` を内蔵した CLI。VSCode 拡張 DDQ Template に同梱） |
+| 利用者に要るもの | Quarto ＋ VSCode ＋ DDQ Template 拡張（Quarto 公式拡張は任意）。HTML のプレビューだけなら Quarto だけで出る |
 :::
