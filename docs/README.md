@@ -12,11 +12,13 @@
 
 このほかに、実装前の検討書を単一の Markdown で置く（執筆フォルダではないので `ddq` は使わない）。
 内容が固まったら上の実装仕様書へ昇格させる。`cli/plantuml-study.md` も同じ位置づけである。
+点検の記録も同じ形で置く（ある時点の状態を書き留めたもので、昇格はさせない）。
 
 | ファイル | 内容 |
 |---|---|
 | `revision-study.md` | ddq-revision（見出し・表・図のタグ付けと、ラベル単位の改訂履歴）の実現性検討と設計 |
 | `ddq-template-study.md` | ddq-template（ddq-revision と ddq-table-editor の統合、`ddq.exe` 同梱の VSCode 拡張）の検討と設計 |
+| `test-coverage-review.md` | テストの網羅の点検（機能カバレッジ・コードカバレッジ・変異検査。`bf1e70e` 時点） |
 
 ビルドはリポジトリのルートから（`ddq` は `cli/` で `cargo build --release` したもの）。
 
