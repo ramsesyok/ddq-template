@@ -220,8 +220,15 @@ mod tests {
         let mut job = attach_or_kill(&mut child).unwrap();
         let t0 = Instant::now();
         assert!(job.end_all(Duration::from_millis(300), Duration::from_secs(5)));
-        // 自分では終わらない子なので、猶予（300ms）を待ってから止めている
-        assert!(t0.elapsed() >= Duration::from_millis(300), "{:?}", t0.elapsed());
+        // 自分では終わらない子なので、猶予（300ms）を待ってから止めている。
+        // WaitForSingleObject の時間切れは割り込みの刻み（既定 15.6ms）で判定されるので、
+        // Instant で測ると刻みより短い分だけ早く戻ることがある（CI で 299.9ms を観測）。
+        // 「猶予を待たずにすぐ止めた」と見分けられればよいので、刻み 1 つ分は許す
+        assert!(
+            t0.elapsed() >= Duration::from_millis(300 - 16),
+            "{:?}",
+            t0.elapsed()
+        );
         // 戻った時点で子は終わりきっている（待ち直さない）
         assert!(child.try_wait().unwrap().is_some(), "戻った時点で子が生きている");
     }
