@@ -8,10 +8,12 @@
 | 資産 | 中身 | 誰が使うか |
 |---|---|---|
 | `ddq-template-win32-x64-<版>.vsix` | VSCode 拡張 DDQ Template（`ddq.exe` 同梱）。設計書リポジトリの作成・PDF / HTML の出力・ラベル付け・改訂履歴・表の視覚編集 | **全員**（執筆者・発行者） |
-| `quarto-template-<版>.zip` | `ddq.exe` 単体・`plantuml.jar`・本書（PDF / HTML）・はじめかた.pdf・AGENT-GUIDE.md | 本書を読む人、コマンド・バッチ・CI で使う人（@sec-cli）、PlantUML をローカルで描く人 |
+| `quarto-template-<版>.zip` | `ddq.exe` 単体・本書（PDF / HTML）・はじめかた.pdf・AGENT-GUIDE.md | 本書を読む人、コマンド・バッチ・CI で使う人（@sec-cli） |
 :::
 
 **ふだんの作業は VSIX だけで足りる。** 配布 zip は本書の配布と、コマンドで使う場合のためのものである。
+PlantUML 図をローカルで描く人は、これとは別に `plantuml.jar` を PlantUML の公式リリースから
+取得する（どちらの資産にも入っていない。@sec-plantuml-setup）。
 
 ### 2つの管理対象
 
@@ -83,5 +85,6 @@ VSIX で入れた拡張は**自動更新されない**。新しい版が配ら�
 ### 配布・持ち出しの単位
 
 閉域環境などへ持ち出すときは、**VSIX と Quarto のインストーラ**を持ち出す（@sec-offline）。
-コマンドで使うなら配布 zip も持ち出す。執筆者の端末に持ち出すのは、VSIX と設計書リポジトリ
+コマンドで使うなら配布 zip も、PlantUML 図をローカルで描くなら `plantuml.jar` と Java の
+インストーラも持ち出す。執筆者の端末に持ち出すのは、VSIX と設計書リポジトリ
 だけでよい。

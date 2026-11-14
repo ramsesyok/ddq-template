@@ -82,7 +82,6 @@
 
 " + folder + "/  … この配布 zip
 ├── ddq.exe          … コマンドで使うとき
-├── plantuml.jar     … PlantUML 図の描画
 ├── はじめかた.pdf   … 本書
 ├── README.md        … 概要と作業の流れ
 └── manual/
@@ -196,7 +195,7 @@
   - mermaid 図は Windows 標準の Edge（または Chrome）を裏で使ってベクター化。*準備は不要*。
     どちらも無ければ内蔵レンダラで描く
   - PlantUML 図は LAN の PlantUML サーバ（`_quarto.yml` の `plantuml-server:`）か、
-    無ければ配布 zip の `plantuml.jar` を端末の *Java* で裏で起動して描く（11 章）
+    無ければ各自が用意した `plantuml.jar` を端末の *Java* で裏で起動して描く（jar は zip に入っていない。11 章）
 ]
 
 // ---- 6 ----

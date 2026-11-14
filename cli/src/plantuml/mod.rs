@@ -128,7 +128,8 @@ fn find_java_windows(exe: &str) -> Option<PathBuf> {
     None
 }
 
-/// plantuml.jar を探す。`DDQ_PLANTUML_JAR` → exe と同じフォルダの `plantuml.jar`（リリース同梱）→ `PLANTUML_JAR`。
+/// plantuml.jar を探す。`DDQ_PLANTUML_JAR` → exe と同じフォルダの `plantuml.jar`（利用者が置いたもの）→ `PLANTUML_JAR`。
+/// jar はリリースに同梱しない（3.0.0 から）。利用者が PlantUML のリリースから取って置く。
 pub fn find_jar() -> Option<PathBuf> {
     if let Some(p) = env::var_os("DDQ_PLANTUML_JAR").filter(|v| !v.is_empty()) {
         return Some(PathBuf::from(p));
@@ -788,8 +789,10 @@ pub fn start_local(port: u16) -> Result<LocalServer> {
             .to_string()
     })?;
     let jar = find_jar().with_context(|| {
-        "plantuml.jar が見つかりません。リリース一式の ddq.exe と同じフォルダに plantuml.jar を置くか、\n  \
-         DDQ_PLANTUML_JAR / PLANTUML_JAR にパスを指定してください。"
+        "plantuml.jar が見つかりません（リリースには同梱していません）。\n  \
+         https://github.com/plantuml/plantuml/releases から jar（MIT 版 plantuml-mit-<版>.jar を推奨）を取得し、\n  \
+         環境変数 DDQ_PLANTUML_JAR にそのパスを指定するか、ddq.exe と同じフォルダに plantuml.jar の名前で置いてください。\n  \
+         LAN に PlantUML サーバがあるなら、_quarto.yml の plantuml-server: に URL を書けば jar も Java も不要です。"
             .to_string()
     })?;
     LocalServer::start(&java, &jar, port, LOCAL_BIND)

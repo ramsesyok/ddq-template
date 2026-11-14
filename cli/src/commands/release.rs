@@ -2,7 +2,7 @@
 //! テンプレートのリポジトリのルートで実行する（template/VERSION と docs/manual/ があること）。
 //!
 //! 作るもの（cli/DESIGN.md §3.2）:
-//!   <out-dir>/quarto-template-<版>/      ddq.exe / plantuml.jar / はじめかた.pdf / README.md / AGENT-GUIDE.md /
+//!   <out-dir>/quarto-template-<版>/      ddq.exe / はじめかた.pdf / README.md / AGENT-GUIDE.md /
 //!                                        LICENSE / THIRD-PARTY-NOTICES.md / manual/
 //!   <out-dir>/quarto-template-<版>.zip
 //!   <out-dir>/ddq-template-win32-x64-<版>.vsix（VSCode 拡張。zip には入れず、リリースページの別資産にする）
@@ -14,7 +14,8 @@
 //! にコピーしてターゲット指定の VSIX を作る（docs/ddq-template-study.md §7）。VSIX は zip に入れず、
 //! zip の隣に置く（zip は CLI 利用者向け、VSIX は VSCode 利用者向けの別資産）。
 //! 版は各 package.json の version で、template/VERSION と一致していなければ止める。
-//! plantuml.jar は cli/vendor/plantuml.jar（git 管理外。保守者が MIT 版を置く）を同梱する（2.2.0 から）。
+//! plantuml.jar は同梱しない（3.0.0 から。版・ライセンス・脆弱性の管理を利用者の環境に任せる）。
+//! PlantUML 図をローカルで描く利用者は、自分で jar を用意して DDQ_PLANTUML_JAR か ddq.exe の隣に置く。
 
 use std::{
     env, fs,
@@ -47,11 +48,6 @@ const SAMPLE_EXCLUDE_FILES: [&str; 6] = [
 ];
 /// 同上。mermaid / PlantUML のキャッシュ（diagrams/mmd-* puml-*）。配布 HTML の _book/ 内にある分は必要なので除かない。
 const SAMPLE_EXCLUDE_PREFIXES: [&str; 2] = ["mmd-", "puml-"];
-
-/// 同梱する plantuml.jar の置き場（リポジトリ内。17MB あるので git 管理外。cli/vendor/README.md）
-const PLANTUML_JAR_SRC: &str = "cli/vendor/plantuml.jar";
-/// リリース直下での名前（ddq が exe の隣から探す名前。plantuml::find_jar）
-const PLANTUML_JAR_DEST: &str = "plantuml.jar";
 
 /// AI エージェント向け執筆ガイド（リポジトリ直下。リリース直下に同名で置く）
 const AGENT_GUIDE: &str = "AGENT-GUIDE.md";
@@ -92,7 +88,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     };
     let stage = out_root.join(&name);
     println!("リリースを作成: {name}");
-    // ライセンス表示が入力（Cargo.lock・mermaid.min.js・plantuml.jar・拡張の lock）と合っていること。
+    // ライセンス表示が入力（Cargo.lock・mermaid.min.js・拡張の lock）と合っていること。
     // 重いビルドの前に確かめる
     check_third_party(&repo)?;
 
@@ -118,7 +114,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     let vsixes = build_extensions(&repo.join(EXTENSIONS_DIR), no_build)?;
 
     // 2) 集める（毎回作り直す）。いったん隣の作業フォルダに集め、全部そろってから前回の配布フォルダと
-    //    入れ替える。途中で失敗しても（jar が無い・はじめかた.pdf を作れない など）前回の配布フォルダは
+    //    入れ替える。途中で失敗しても（はじめかた.pdf を作れない など）前回の配布フォルダは
     //    そのまま残り、中途半端な配布フォルダはできない（docs/cli-impl U-0004 の試験で見つけた）。
     let building = out_root.join(format!("{name}.building"));
     if building.exists() {
@@ -157,7 +153,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     println!("  フォルダ: {}", stage.display());
     println!("  zip     : {}（{count} ファイル）", zip_path.display());
     println!(
-        "  内容: {} / plantuml.jar / はじめかた.pdf / README / AGENT-GUIDE / LICENSE / THIRD-PARTY-NOTICES / manual（PDF + HTML）{}",
+        "  内容: {} / はじめかた.pdf / README / AGENT-GUIDE / LICENSE / THIRD-PARTY-NOTICES / manual（PDF + HTML）{}",
         exe_name.display(),
         if with_sample {
             " / docs（サンプル）"
@@ -208,7 +204,6 @@ fn assemble(
         .with_context(|| format!("{LICENSE} をコピーできません"))?;
     fs::copy(repo.join(THIRD_PARTY), stage.join(THIRD_PARTY))
         .with_context(|| format!("{THIRD_PARTY} をコピーできません"))?;
-    copy_plantuml_jar(repo, stage)?;
     build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
     fs::copy(manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
     copy_tree(manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
@@ -222,41 +217,6 @@ fn assemble(
         )?;
     }
     Ok(exe_name)
-}
-
-/// plantuml.jar をリリース直下に同梱する。無ければ止める（PlantUML 図の無い組織でも、
-/// 執筆者に配る一式としては揃っている方が説明が簡単なため、省略可能にしない）。
-fn copy_plantuml_jar(repo: &Path, stage: &Path) -> Result<()> {
-    let src = repo.join(PLANTUML_JAR_SRC);
-    if !src.is_file() {
-        bail!(
-            concat!(
-                "{} がありません。PlantUML の MIT 版 jar（plantuml-mit-<版>.jar）を
-",
-                "  https://github.com/plantuml/plantuml/releases から取得し、その名前で置いてください（cli/vendor/README.md）。"
-            ),
-            src.display()
-        );
-    }
-    let jar_version = jar_version(&src).unwrap_or_else(|| "不明".to_string());
-    fs::copy(&src, stage.join(PLANTUML_JAR_DEST)).context("plantuml.jar をコピーできません")?;
-    println!("  plantuml.jar を同梱しました（PlantUML {jar_version}）");
-    Ok(())
-}
-
-/// jar の MANIFEST から版を読む（表示用。読めなければ None）
-fn jar_version(jar: &Path) -> Option<String> {
-    let file = fs::File::open(jar).ok()?;
-    let mut archive = zip::ZipArchive::new(file).ok()?;
-    let mut manifest = archive.by_name("META-INF/MANIFEST.MF").ok()?;
-    let mut text = String::new();
-    std::io::Read::read_to_string(&mut manifest, &mut text).ok()?;
-    text.lines()
-        .find_map(|l| {
-            l.strip_prefix("Implementation-Version:")
-                .or_else(|| l.strip_prefix("Bundle-Version:"))
-        })
-        .map(|v| v.trim().to_string())
 }
 
 /// `extensions/` の各拡張をパッケージし、できた VSIX のパスを（フォルダ名順に）返す。
@@ -493,7 +453,7 @@ fn stale_third_party_inputs(repo: &Path, text: &str) -> Result<Vec<String>> {
             .split_once('=')
             .with_context(|| format!("{THIRD_PARTY} の入力の記録を読めません: {pair}"))?;
         let now = fs::read(repo.join(rel))
-            .map(|b| input_sha1(rel, &b))
+            .map(|b| input_sha1(&b))
             .unwrap_or_default();
         if now != want {
             stale.push(rel.to_string());
@@ -503,21 +463,16 @@ fn stale_third_party_inputs(repo: &Path, text: &str) -> Result<Vec<String>> {
 }
 
 /// 入力のハッシュ（cli/tools/third_party.py の sha1 と同じ規則。tests/third_party.rs も同じ）。
-/// テキストは改行を LF に揃えてから取る（Cargo.lock は checkout の設定で CRLF にも LF にもなる）。
-/// jar はそのまま。
-fn input_sha1(rel: &str, bytes: &[u8]) -> String {
+/// 改行を LF に揃えてから取る（Cargo.lock は checkout の設定で CRLF にも LF にもなる）。
+fn input_sha1(bytes: &[u8]) -> String {
     use sha1::{Digest, Sha1};
-    let digest = if rel.ends_with(".jar") {
-        Sha1::digest(bytes)
-    } else {
-        let mut lf = Vec::with_capacity(bytes.len());
-        for (i, &b) in bytes.iter().enumerate() {
-            if !(b == b'\r' && bytes.get(i + 1) == Some(&b'\n')) {
-                lf.push(b);
-            }
+    let mut lf = Vec::with_capacity(bytes.len());
+    for (i, &b) in bytes.iter().enumerate() {
+        if !(b == b'\r' && bytes.get(i + 1) == Some(&b'\n')) {
+            lf.push(b);
         }
-        Sha1::digest(&lf)
-    };
+    }
+    let digest = Sha1::digest(&lf);
     digest.iter().map(|x| format!("{x:02x}")).collect()
 }
 
@@ -576,11 +531,8 @@ mod tests {
 
     #[test]
     fn text_inputs_are_hashed_with_lf() {
-        // checkout の改行設定（CRLF / LF）でハッシュが変わらない。jar はそのまま
-        assert_eq!(
-            input_sha1("cli/Cargo.lock", b"a\r\nb\n"),
-            input_sha1("cli/Cargo.lock", b"a\nb\n")
-        );
-        assert_ne!(input_sha1("x.jar", b"a\r\nb\n"), input_sha1("x.jar", b"a\nb\n"));
+        // checkout の改行設定（CRLF / LF）でハッシュが変わらない
+        assert_eq!(input_sha1(b"a\r\nb\n"), input_sha1(b"a\nb\n"));
+        assert_ne!(input_sha1(b"a\nb\n"), input_sha1(b"a\nc\n"));
     }
 }

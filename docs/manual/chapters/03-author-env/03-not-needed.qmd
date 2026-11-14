@@ -26,7 +26,7 @@ Quarto 同梱の機能がブラウザ内で描画する**。Edge / Chrome の設
 
 PlantUML（@sec-plantuml）はブラウザの中では描けず、プレビューでも **PlantUML サーバ**に
 描かせる。**LAN 内にサーバがあり `_quarto.yml` に設定されていれば、執筆者は何も用意しなくてよい。**
-無い場合だけ、執筆者も配布 zip（`ddq.exe` と `plantuml.jar`）と Java を用意し、
+無い場合だけ、執筆者も配布 zip の `ddq.exe`、PlantUML の公式リリースの `plantuml.jar`、Java を用意し、
 執筆中は `ddq plantuml serve` を起動しておく（@sec-plantuml-setup）。
 サーバに届かないときもプレビューは止まらず、図の代わりにソースが枠付きで表示される。
 PlantUML を使わない文書では、この節は関係ない。
