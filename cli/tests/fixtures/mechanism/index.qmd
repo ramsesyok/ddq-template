@@ -1,0 +1,10 @@
+# 本書について {.unnumbered}
+
+```{=typst}
+// テスト用（tests/mechanism.rs）: 描画された文字を、ページ番号と一緒に採取する。
+#show text: t => [#metadata(t.text)<rendered-text>#t]
+#context [#metadata(query(<rendered-text>).map(m =>
+  (page: m.location().page(), text: m.value)))<rendered-pages>]
+```
+
+PDF・HTML の機構（表の採番・結合・分割・列幅、IPO 図、相互参照）を確かめる文書。
