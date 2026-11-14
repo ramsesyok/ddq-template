@@ -29,9 +29,9 @@
 | IF-02 | Lua `prerender_mermaid`／`render_mermaid`、Rust `mermaid::prerender` → `ddq mermaid` | 入力・出力パス（一括は複数組）、JSON設定、背景色。一括のキーは Lua と Rust で同じ規則 | 一括の失敗は無視し、図ごとの呼び出しでプロセス成功とSVG存在の両方を要求 |
 | IF-03 | `browser::Cdp` → Edge/Chrome | ローカルWebSocket上のJSON、図ソース→JSON中のSVG | 通信／ページ例外はバッチ全体のエラー、図構文エラーは図単位 |
 | IF-04 | Rust `plantuml`／Lua → PlantUML | HTTP GET `/serverinfo`、POST `/render`。UTF-8 JSON→SVG | HTTP状態・エラーヘッダ・本文を確認 |
-| IF-05 | `release` → npm／Quarto Typst／ZIP | 拡張ごとのVSIXビルド、案内PDFコンパイル、ファイル群の圧縮 | 各段階で停止。全体の巻戻しなし |
+| IF-05 | `release` → npm／Quarto Typst／ZIP | 拡張ごとのVSIXビルド（`package:win32-x64` を持つ拡張には自身を `bin/win32-x64/ddq.exe` として渡す）、案内PDFコンパイル、ファイル群の圧縮 | 各段階で停止。同梱 exe が自身とバイト一致しなければ停止。組み立て中の `.building` は失敗時に消す |
 | IF-06 | `doc::gitsrc` → git | `rev-parse`、`tag --list rev-*`、`ls-tree -r --name-only`、`show <commit>:<path>`。常に `-c core.quotepath=off` | 非成功はstderr付きのエラー。旧版に無いファイルは `ls-tree` の一覧で先に除外 |
-| IF-07 | VSCode拡張 ddq-template（旧 ddq-revision） → `ddq tag`／`ddq rev` | `tag list --json`、`rev next/diff --json`、`rev diff --write`、`rev build` の標準出力とファイル | 拡張側の扱いは `docs/ddq-template-impl` |
+| IF-07 | VSCode拡張 ddq-template → `ddq` | `init`・`add`・`update`・`pdf`・`html`・`diagrams` の終了コードと標準出力（`OK: …index.html`、`警告: …`）、`tag list --json`（編集指示の `original` を拡張が書き戻し前の照合に使う）、`rev next/diff --json`、`rev diff --write`、`rev build` | 終了コード 3（版不一致）を拡張が update の案内に使う。拡張側の扱いは `docs/ddq-template-impl` |
 | IF-08 | `rev build` の生成qmd → `lib.typ` | 「頁」列の `` `#_xref-page("ラベル")`{=typst} `` | 参照先が無ければTypst側が赤い「?」を出す |
 
 根拠：[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)～[E-0023](appendix-evidence.qmd#ev-e-0023)。

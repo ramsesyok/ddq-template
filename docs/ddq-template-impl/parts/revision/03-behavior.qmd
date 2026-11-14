@@ -55,6 +55,10 @@ sequenceDiagram
 確かめられない一覧では書き戻さないことにし、一覧を表示した時点で「ラベルを書き戻せません」と知らせる。
 `ddq tag apply --from` も `original` の無い指示を受け付けない。
 
+再検証で追加した点（N-02）：2 段目ですべての行を飛ばしたときは `WorkspaceEdit` を当てない。空の編集を
+`applyEdit` に渡すとインストール版の VSCode は `false` を返し、飛ばした理由ではなく「書き戻しに失敗しました」と
+出ていた。いまは「書き戻せるものがありません。N 件を飛ばしました: …」と理由を並べて警告し、`applied: 0` で返す。
+
 確認済み（静的）：当て方は `WorkspaceEdit` 1 つにまとめ、**同じファイルでは行番号の大きい順**に挿入する（`sortForApply`）。挿入位置は `ddq` が返す「行頭からの文字数」を UTF-16 の位置に直して使う（`characterOffset`）。保存はしない。[E-0004](appendix-evidence.qmd#ev-rev-e-0004)、[E-0009](appendix-evidence.qmd#ev-rev-e-0009)
 
 ### 改訂履歴の編集 {#sec-rev-behavior-editor}

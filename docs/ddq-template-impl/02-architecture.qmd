@@ -7,9 +7,11 @@
 ::: {.tbl caption="共通の基盤のソース" label="tbl-common-src" widths="30,70"}
 | ファイル | 責務 |
 |---|---|
-| `src/extension.ts` | 入口。`initLocate` → `activateBuild` → `activateInit` → `activateRevision` → `activateTableEditor` → `warnLegacyExtensions` の順に呼ぶだけ。`deactivate` は逆に各機能の後始末を呼ぶ |
+| `src/extension.ts` | 入口。`initLocate` → `activateBuild` → `activateInit` → `activateAdd` → `activateRevision` → `activateTableEditor` → `warnLegacyExtensions` の順に呼ぶだけ。`deactivate` は逆に各機能の後始末を呼ぶ |
 | `src/build.ts` | 発行コマンド（`ddqTemplate.pdf` / `html` / `diagrams`）、版不一致時の update、ステータスバー、「DDQ」出力チャネル、実行中の子プロセスの管理 |
 | `src/init.ts` | 作成コマンド（`ddqTemplate.init`）、開き直したあとの案内、Git 初期化ボタン |
+| `src/add.ts` | 執筆フォルダの追加コマンド（`ddqTemplate.add`）。足す先の検査と名前の初期値 |
+| `src/openFile.ts` | 出力した PDF・HTML を既定アプリで開く（Windows は `explorer.exe` に素のパスを渡す） |
 | `src/folders.ts` | 執筆フォルダの決定、ワークスペースの執筆フォルダの列挙と `setContext` |
 | `src/quarto.ts` | Quarto の有無の検査、`ddqTemplate.quartoPath` を `PATH` に足した環境変数 |
 | `src/legacy.ts` | 旧拡張（`ramsesyok.ddq-revision` / `ramsesyok.ddq-table-editor`）の検出とアンインストールの案内 |
@@ -20,7 +22,8 @@
 :::
 
 確認済み（静的）。純粋な関数（`chooseDdq`・`bundledPath`・`classifyMismatch`・`compareVersions`・`lockKey`・
-`envWithQuarto`・`nearestWritingFolder`・`htmlIndexOf`・`isNearlyEmpty`・`validateFolderName`・`installedLegacy`）は
+`envWithQuarto`・`nearestWritingFolder`・`htmlIndexOf`・`warningOf`・`isNearlyEmpty`・`validateFolderName`・
+`checkAddTarget`・`suggestFolderName`・`defaultAppCommand`・`installedLegacy`）は
 `vscode` に依存しない形に切り出し、vitest で検査している（`src/**/*.test.ts`）。
 
 ### 起動と登録
@@ -32,21 +35,23 @@
 ::: {.tbl caption="共通の基盤が登録するもの" label="tbl-common-activate" widths="40,60"}
 | 登録 | 内容 |
 |---|---|
-| `ddqTemplate.init` / `pdf` / `html` / `diagrams` | `package.json` に出すコマンド（コマンドパレット・右クリック） |
+| `ddqTemplate.init` / `add` / `pdf` / `html` / `diagrams` | `package.json` に出すコマンド（コマンドパレット・右クリック。`add` はリポジトリのルートフォルダの右クリック） |
 | `ddqTemplate.internal.build(kind, folder)` | 発行を通知のボタンなしで実行し、結果（`ok` / `mismatch` / `busy` …）を返す。実拡張ホストの検証用 |
 | `ddqTemplate.internal.init(repo, name)` | 作成をダイアログなしで実行する。同上 |
+| `ddqTemplate.internal.add(target)` | 執筆フォルダの追加をダイアログなしで実行する。同上 |
 | `ddqTemplate.internal.locate()` | いま決まる ddq（`{command, source}`）を返す。同梱版のスモーク用 |
 | `ddqTemplate.internal.showOutput()` | 「DDQ」出力チャネルを表示する（実行中のステータスバーから） |
 | ステータスバー項目 `ddqTemplate.pdf` | 開いているファイルの執筆フォルダと [PDF] |
-| `FileSystemWatcher`（`.template-version` / `_quarto.yml`） | 執筆フォルダの増減で `setContext('ddqTemplate.writingFolders', …)` を作り直す |
+| `FileSystemWatcher`（`.template-version` / `_quarto.yml`） | 執筆フォルダの増減で `setContext('ddqTemplate.writingFolders', …)` と `ddqTemplate.hasWritingFolders`（執筆フォルダが 1 つでもあるか。「執筆フォルダを追加」を出す条件）を作り直す |
 | `viewsWelcome`（エクスプローラ、`workbenchState == empty`） | フォルダ未オープン時の「設計書リポジトリを作成」 |
 :::
 
 ### 依存の向き
 
 ```text
-extension.ts ─┬─► build.ts ──► ddq/{locate,run,lock,version} ・ folders ・ quarto
+extension.ts ─┬─► build.ts ──► ddq/{locate,run,lock,version} ・ folders ・ quarto ・ openFile
               ├─► init.ts  ──► build.ts（runWithProgress・channel・settings・showError）・ ddq/lock ・ folders ・ quarto
+              ├─► add.ts   ──► build.ts（同上）・ ddq/lock ・ folders ・ init（validateFolderName・writingFoldersIn）・ quarto
               ├─► activateRevision.ts ──► ddq/run（ddqCommand は locate を通る）・ folders ・ tagging ・ revision
               ├─► tableEditor/activateTableEditor.ts（ddq を使わない）
               └─► legacy.ts

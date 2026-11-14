@@ -11,6 +11,9 @@
 | 同梱 ddq の置き場（`bin/win32-x64/ddq.exe`） | `src/ddq/locate.ts` の `bundledPath`、`cli/src/commands/release.rs` の `BUNDLED_EXE`、`tests/host/smoke.mjs` |
 | ターゲット（`win32-x64`） | `package.json` の `package:win32-x64`、`release.rs` の `BUNDLE_SCRIPT` / `BUNDLE_TARGET`（VSIX 名に入る） |
 | `ddq html` の完了行（`OK: …index.html`） | `src/build.ts` の `htmlIndexOf`（読めなければ「HTML を開く」が出ないだけ） |
+| ddq の警告行（`警告: …`） | `cli/src/commands/diagrams.rs` の出力と `src/build.ts` の `warningOf`（読めなければ、図が無くても「終わりました」と出る） |
+| `ddq tag list` の編集指示の `original` | `cli/src/doc/units.rs` の `Edit`・`cli/src/commands/tag.rs` の `from_file` と `src/tagging/labels.ts` の `staleReason` / `lacksOriginal`（無くすと書き戻しがすべて止まる） |
+| 出力を開く方法 | `src/openFile.ts`。Windows で `openExternal(Uri.file(…))` に戻すと日本語パスで開けなくなる |
 | 執筆フォルダの目印 | `src/folders.ts` の `QUARTO_YML` / `TEMPLATE_VERSION_FILE`、`tests/host/run.mjs`（検証用フォルダに版ファイルを置いている） |
 | コマンド・設定の ID | `package.json`、`tests/host/index.js`、利用マニュアル（2・12・13 章・付録 A） |
 :::
@@ -30,8 +33,8 @@
 
 | 層 | 内容 |
 |---|---|
-| ユニット（vitest） | 解決順・版の分類・実行中フラグ・`PATH` の付け足し・執筆フォルダの探索・`index.html` の読み取り・作成の名前検査 |
-| 実拡張ホスト（`test:host`） | 実物の ddq があれば、発行（mismatch → update → html、同時実行の拒否）と作成まで。差し替えの ddq では発行と作成を飛ばす |
+| ユニット（vitest） | 解決順・版の分類・実行中フラグ・`PATH` の付け足し・執筆フォルダの探索・`index.html` と警告行の読み取り・作成と追加の名前検査・既定アプリで開くコマンド |
+| 実拡張ホスト（`test:host`） | 実物の ddq があれば、発行（mismatch → update → html、同時実行の拒否）と作成・執筆フォルダの追加まで。差し替えの ddq では発行と作成を飛ばす |
 | 同梱版のスモーク（`test:smoke`） | 配る VSIX そのもので、同梱 ddq の解決と init → html |
 
 実物の ddq で `test:host` を回すときは、拡張と同じ版の ddq（`cli/target/release/ddq.exe`）を使う。
