@@ -25,9 +25,10 @@ Node は CVE-2024-27980 の対応以降バッチを `execFile` で直接起動�
 |---|---|
 | `ddq pdf <執筆フォルダ>` | 終了コード。出力はチャネルへ流すだけ。成功後は `<執筆フォルダ>/design-doc.pdf` を開く |
 | `ddq html <執筆フォルダ>` | 終了コードと、標準出力の `OK: <パス>index.html（…）` の行（`htmlIndexOf`） |
-| `ddq diagrams <執筆フォルダ>` | 終了コード |
+| `ddq diagrams <執筆フォルダ>` | 終了コードと、標準出力の最初の `警告: <本文>` の行（`warningOf`。変換する図が無いときなど、終了コード 0 でも出る） |
 | `ddq update <執筆フォルダ>` | 終了コード（版不一致の案内から） |
 | `ddq init <リポジトリ> <名前> [--no-render]` | 終了コード |
+| `ddq add <執筆フォルダ> [--no-render]` | 終了コード |
 | `ddq --version` | `ddq 3.0.0-pre4` の最後の語（`versionOf`）。版不一致の分類と、同梱 ddq の版の確認に使う |
 :::
 
@@ -51,6 +52,7 @@ ddq の標準エラーの書式（`Error: {:?}`）は anyhow の既定と同じ�
 | 設定 `ddqTemplate.quartoPath` | `quarto.exe` またはそのフォルダ。子プロセスの `PATH` の先頭に足す（大文字小文字の違う `Path` キーも見つける） |
 | `globalState` `ddqTemplate.pendingInit` | 作成後に開き直す先 `{repo, writingFolder}`。開き直したウィンドウが読んで消す |
 | コンテキスト `ddqTemplate.writingFolders` | 執筆フォルダとその配下のフォルダの `fsPath` をキーに持つオブジェクト（右クリックメニューの `when`） |
+| コンテキスト `ddqTemplate.hasWritingFolders` | ワークスペースに執筆フォルダが 1 つでもあるか（「執筆フォルダを追加」の右クリックメニューの `when`） |
 | `hasQuarto` のキャッシュ | 見つかったことだけを覚える（入れた直後に開き直さずに再試行できるように） |
 :::
 

@@ -12,6 +12,16 @@
   `npm run test:host`（実物の ddq 2.4.5 で 21 項目、差し替えの ddq でも合格）、`npm run test:smoke`
   （10.7 MB の VSIX で 3 項目）、`cargo test`（`commands`・`release`・`third_party` を含む全件）
 
+追補（`main` の `2a9373e`、2026-11-14。3.0.0-pre4）。統合後の変更（@tbl-post-merge-changes）は、次のソースの静的確認と
+実行結果に基づく。
+
+- ソース: `src/{add,openFile,build,init,folders,extension,activateRevision}.ts`、`src/tagging/labels.ts`、
+  `src/tableEditor/formats/gridTable/{parseGridTable,serializeGridTable}.ts`、`package.json`（`ddqTemplate.add` と
+  メニューの `when`）、`cli/src/commands/{diagrams,tag}.rs`、`cli/src/doc/{units,labels}.rs`
+- 実行（確認済み）: `npm run verify`（ユニットテスト 280 件・型検査・ビルド・オフライン検査・脆弱性 0 件）、
+  `cargo test --release`（全件）。グリッド表の縦結合は `pandoc.test.ts` が本物の pandoc で読み書きを確かめる
+- 今回は実行していない: `npm run test:host`・`npm run test:smoke`（上の記録は段階 1a〜1d の時点のもの）
+
 ## ラベル付け・改訂履歴（旧 DDQ Revision 2.3.0）
 
 {{< include parts/revision/appendix-evidence.qmd >}}

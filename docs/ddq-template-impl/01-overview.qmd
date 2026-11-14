@@ -6,14 +6,16 @@
 
 対象は `extensions/ddq-template/`（版 3.0.0-pre4。`template/VERSION` と同じ）と、拡張との契約に関わる
 `ddq` 側（`cli/src/commands/setup.rs` の終了コード、`cli/src/commands/release.rs` の同梱）である。
-確認済み（静的・実行）の範囲は段階 1a〜1d（`docs/ddq-template-study.md` §9）の実装で、
-段階 2 以降（`update` のコマンドパレット対応・`add`・`plantuml`）は含まない。
+確認済み（静的・実行）の範囲は段階 1a〜1d（`docs/ddq-template-study.md` §9）の実装と、
+その後 3.0.0-pre4 までに入った変更（@tbl-post-merge-changes）である。`update` のコマンドパレット対応・
+`plantuml` は実装していない。
 
 ::: {.tbl caption="拡張の構成" label="tbl-components" widths="30,70"}
 | 部分 | 内容 |
 |---|---|
 | 作成 | 設計書リポジトリの作成（`ddq init`）。`src/init.ts` |
-| 発行 | PDF / HTML / 図（`ddq pdf` / `html` / `diagrams`）、版不一致時の update。`src/build.ts` |
+| 追加 | 既存の設計書リポジトリへの執筆フォルダの追加（`ddq add`）。`src/add.ts` |
+| 発行 | PDF / HTML / 図（`ddq pdf` / `html` / `diagrams`）、版不一致時の update、出力を既定アプリで開く。`src/build.ts`・`src/openFile.ts` |
 | 共通 | ddq の解決・起動・実行中フラグ・版比較（`src/ddq/`）、執筆フォルダ（`src/folders.ts`）、Quarto（`src/quarto.ts`）、旧拡張の検出（`src/legacy.ts`） |
 | ラベル付け・改訂履歴 | 旧 DDQ Revision。`src/activateRevision.ts`・`src/tagging/`・`src/revision/`・`src/revisionWebview/` |
 | 表エディタ | 旧 DDQ Table Editor。`src/tableEditor/` |
@@ -42,6 +44,21 @@
 | Webview の出力 `out/webview/assets/` | `out/webview/revision/assets/`・`out/webview/tableEditor/assets/` |
 | 執筆フォルダ = `_quarto.yml` があるフォルダ | `_quarto.yml` と `.template-version` があるフォルダ（@sec-behavior-folder） |
 | ddq = 設定、空なら `PATH` | 設定 → 同梱 → `PATH`（@sec-data-locate） |
+:::
+
+### 統合後に変えた処理 {#sec-overview-post-merge}
+
+統合前の解析（後の 2 節）を書いたあとで、次の処理を変えた。該当する節に「統合後に変えた点」として追記してある。
+
+::: {.tbl caption="統合後に変えた処理" label="tbl-post-merge-changes" widths="18,52,30"}
+| 版 | 変えたこと | 書いた場所 |
+|---|---|---|
+| 3.0.0-pre1 | ラベルの書き戻しで、一覧時の行（`original`）と今の行を比べ、違えば当てない。`original` の無い古い ddq の一覧では書き戻さない（PR #122 のレビュー R-02・R-06） | @sec-behavior-rev |
+| 3.0.0-pre1 | すべての行を飛ばしたときは空の編集を当てず、飛ばした理由を警告する（再検証 N-02） | @sec-behavior-rev |
+| 3.0.0-pre3 | 「執筆フォルダを追加」（`ddq add`）を追加 | @sec-behavior-add |
+| 3.0.0-pre3 | 出力した PDF・HTML を Windows では `explorer.exe` で開く（日本語パスで開けなかった） | @sec-behavior-build |
+| 3.0.0-pre3 | 図の変換で ddq が `警告:` を出したら（変換する図が無いなど）、完了ではなく警告を出す | @sec-behavior-build |
+| 3.0.0-pre4 | 表エディタのグリッド表で、縦結合の途中の区切り行を pandoc と同じ形で読み書きする | @sec-data-te |
 :::
 
 ### 読み始める場所

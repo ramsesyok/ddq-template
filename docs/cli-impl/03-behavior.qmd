@@ -24,13 +24,13 @@
 
 ## 作成・更新・版の検査 {#sec-dda2e3}
 
-**確認済み（静的）**：`init::run` はフォルダ名が空、または `/`・`\` を含む場合、または `.`／`..` の場合に拒否し、パス文字を検査する。repo直下の雛形は既存ファイルを保持し、README内の `{{CONTENT_DIR}}` を置換する。2.3.0 以降の content 雛形は `revisions/history.qmd`（コメント1行）を含み、`index.qmd` がそれを include する。その後 `add::populate` を直接呼ぶ。`git init` は実行せず、次の操作として表示する。[E-0005](appendix-evidence.qmd#ev-e-0005)
+**確認済み（静的）**：`init::run` はフォルダ名が空、または `/`・`\` を含む場合、または `.`／`..` の場合に拒否し、パス文字を検査する。repo直下の雛形（`.gitignore`・`.gitattributes`・`.vscode/settings.json`・`.vscode/extensions.json`・`README.md`。`extensions.json` は 3.0.0 で追加し、Quarto 公式拡張をおすすめに出す）は既存ファイルを保持し、README内の `{{CONTENT_DIR}}` を置換する。2.3.0 以降の content 雛形は `revisions/history.qmd`（コメント1行）を含み、`index.qmd` がそれを include する。その後 `add::populate` を直接呼ぶ。`git init` は実行せず、次の操作として表示する。[E-0005](appendix-evidence.qmd#ev-e-0005)
 
 **確認済み（静的）**：`add::run` は親から上に `.gitignore`、`.git`、`.svn`、`.hg` のいずれかを探し、追加先に `_quarto.yml` があれば拒否する。`populate` は content雛形の不足ファイルを作り、`update::run` で機構を上書きし、通常は `quarto render --to html` による疎通確認を行う。`--no-render` は最後の描画だけを省略する。init の再実行は原稿を保持するが、機構まで保持する操作ではない。[E-0005](appendix-evidence.qmd#ev-e-0005)
 
 **確認済み（静的）**：`update::run` は機構5本を書いた後、`.template-version` を書く。書く前の `.template-version` と埋込み版が違う（版を上げる）場合は、`diagrams/` 直下の `mmd-*`／`puml-*`（フィルタのキャッシュ）を消す。同じ版での再実行では消さない。`--all` は指定先配下の `_quarto.yml` を探し、パス順に更新する。`_book`、`.quarto`、`node_modules`、`.git`、`target` は探索しないが、ddq専用の設定かどうかは判別しない。[E-0004](appendix-evidence.qmd#ev-e-0004)、[E-0006](appendix-evidence.qmd#ev-e-0006)
 
-**確認済み（静的・限定実行）**：`setup::ensure_current` は `.template-version` を trim して埋込み版と比較し、機構5本を UTF-8文字列として完全比較する。版だけ合っていても、改行やローカル編集が違えば停止する。`setup::run` は検査成功後に PDF側4本を上書きする。機構を自動修復するのは update であり、setup/html/pdf は不一致を報告する。配置・不一致拒否は commands統合テストで確認した。[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0017](appendix-evidence.qmd#ev-e-0017)
+**確認済み（静的・限定実行）**：`setup::ensure_current` は `.template-version` を trim して埋込み版と比較し、機構5本を UTF-8文字列として完全比較する。版だけ合っていても、改行やローカル編集が違えば停止する。`setup::run` は検査成功後に PDF側4本を上書きする。機構を自動修復するのは update であり、setup/html/pdf は不一致を報告する。不一致（版の違い・内容の違い・版ファイルや機構ファイルが無い）は専用のエラー型 `setup::TemplateMismatch` で返し、`main` が終了コード 3（`TEMPLATE_MISMATCH_EXIT_CODE`）に変える（3.0.0。VSCode 拡張が「ddq update を実行」を案内する合図。@sec-08b018）。配置・不一致拒否と終了コードは commands統合テストで確認した。[E-0006](appendix-evidence.qmd#ev-e-0006)、[E-0017](appendix-evidence.qmd#ev-e-0017)
 
 ## PDF／HTML発行 {#sec-142c6f}
 
@@ -58,7 +58,7 @@ flowchart TD
 
 ## 図の変換 {#sec-f938ca}
 
-**確認済み（静的）**：`diagrams::run` は `diagrams/` 直下だけを調べ、小文字拡張子 `.mmd`／`.puml` を同名 `.svg` に変換する。Luaキャッシュに使う `mmd-`／`puml-` で始まる名前は除外する。フォルダ欠落はエラー、対象ゼロは警告を出して成功する。変換に失敗した図は、出力先に前回の SVG があれば消す（Mermaid・PlantUML とも）。このコマンドには setup の版・機構照合はない。[E-0008](appendix-evidence.qmd#ev-e-0008)
+**確認済み（静的）**：`diagrams::run` は `diagrams/` 直下だけを調べ、小文字拡張子 `.mmd`／`.puml` を同名 `.svg` に変換する。Luaキャッシュに使う `mmd-`／`puml-` で始まる名前は除外する。フォルダ欠落はエラー、対象ゼロは `警告:` で始まる行を出して成功する。このとき `mmd-*.mmd`／`puml-*.puml`（本文のフェンスのキャッシュ）があれば、それは PDF・HTML の作成時に変換されるもので、このコマンドの対象は自分で置いた `.mmd`／`.puml` だけだと説明する（3.0.0-pre3。VSCode 拡張はこの行を警告として出す）。変換に失敗した図は、出力先に前回の SVG があれば消す（Mermaid・PlantUML とも）。このコマンドには setup の版・機構照合はない。[E-0008](appendix-evidence.qmd#ev-e-0008)
 
 **確認済み（静的）**：Mermaidは `DDQ_MERMAID_ENGINE=browser|merman` を優先する。未設定なら browser が見つかったときに選び、見つからなければ merman を選ぶ。`auto` という文字列は有効値ではない。ブラウザを選択した後の起動・描画失敗から merman へ再試行する実装もない。入力ファイルは全件読んでから描画し、図単位の失敗は成功分を書き、失敗した図の出力先にある前回の SVG を消してから、まとめてエラーにする。CDP接続等のバッチ全体のエラーでは、書出し段階へ到達しない。[E-0009](appendix-evidence.qmd#ev-e-0009)
 
@@ -66,9 +66,9 @@ flowchart TD
 
 ## 配布物の生成 {#sec-46f547}
 
-**確認済み（静的）**：`release::run` は CWD に `template/VERSION` と `docs/manual/_quarto.yml` があることを要求する。通常はマニュアルを update→PDF→HTMLの順に作る。VSIX は `extensions/` 直下で `package.json` を持つフォルダをすべて対象とし、フォルダ名順に処理する（解析時は `ddq-revision`、`ddq-table-editor`。統合後は `ddq-template` の 1 つで、`package:win32-x64` を持つので ddq.exe を同梱する。`cli/DESIGN.md` §3.2）。各拡張の `name` がフォルダ名と一致し、`version` が埋込み版と一致することを検査してから、`node_modules` がなければ `npm ci`、その後 `npm run package` を実行する。対象フォルダが一つもなければエラーになる。[E-0013](appendix-evidence.qmd#ev-e-0013)
+**確認済み（静的）**：`release::run` は CWD に `template/VERSION` と `docs/manual/_quarto.yml` があることを要求する。通常はマニュアルを update→PDF→HTMLの順に作る。VSIX は `extensions/` 直下で `package.json` を持つフォルダをすべて対象とし、フォルダ名順に処理する（3.0.0 では `ddq-template` の 1 つ。2.4 までは `ddq-revision`、`ddq-table-editor`）。各拡張の `name` がフォルダ名と一致し、`version` が埋込み版と一致することを検査してから、`node_modules` がなければ `npm ci` を実行する。`scripts` に `package:win32-x64`（`BUNDLE_SCRIPT`）を持つ拡張は ddq.exe を同梱する：Windows 以外のビルドならエラー、Windows なら実行中の自分自身を `<拡張>/bin/win32-x64/ddq.exe`（`BUNDLED_EXE`）にコピーして `npm run package:win32-x64` を実行し、`<name>-win32-x64-<版>.vsix` を作る。作った（`--no-build` では既存の）VSIX の `extension/bin/win32-x64/ddq.exe` を読み出し、release している exe と**バイト一致**しなければ止める（`check_bundled_exe`）。同梱しない拡張は `npm run package` で `<name>-<版>.vsix` を作る。対象フォルダが一つもなければエラーになる。[E-0013](appendix-evidence.qmd#ev-e-0013)
 
-**確認済み（静的）**：出力は `<out-dir>/quarto-template-<埋込み版>/` と同名ZIP。既存の同名配布フォルダは削除して再作成し、実行中のddq自身、README、AGENT-GUIDE、`LICENSE`、`THIRD-PARTY-NOTICES.md`、jar、はじめかたPDF、マニュアルPDF／HTML、拡張ごとのVSIXを集める。一式は隣の作業フォルダ（`<名前>.building`）に集め、全部そろってから前回の配布フォルダと入れ替える（途中で失敗しても前回は壊れない）。重いビルドの前に `THIRD-PARTY-NOTICES.md` の存在と、先頭に記録した入力（`Cargo.lock`・`mermaid.min.js`・`plantuml.jar`・拡張の `package-lock.json`）のSHA-1（テキストは改行をLFに揃えて計算）が今のファイルと一致することを確かめ、違えば止める。`--with-sample` では `examples/docs` を `docs/` としてコピーし、生成物・PDF側補助・図キャッシュを除く。除外条件はコピー中のファイル名／接頭辞に適用される。[E-0013](appendix-evidence.qmd#ev-e-0013)
+**確認済み（静的）**：出力は `<out-dir>/quarto-template-<埋込み版>/` と同名ZIP。既存の同名配布フォルダは削除して再作成し、実行中のddq自身、README、AGENT-GUIDE、`LICENSE`、`THIRD-PARTY-NOTICES.md`、jar、はじめかたPDF、マニュアルPDF／HTMLを集める。VSIX は配布フォルダと ZIP には入れず、ZIP を作ったあとで `<out-dir>` 直下（ZIP の隣）にコピーする（3.0.0。リリースページの別資産）。一式は隣の作業フォルダ（`<名前>.building`）に集め、全部そろってから前回の配布フォルダと入れ替える（集める途中で失敗したら作業フォルダを消し、前回は壊れない）。入れ替えの改名は、ウイルス対策ソフトなどが作業フォルダ内のファイルを一時的に開いている場合に備え、最大10秒、200ミリ秒ごとにやり直す（`rename_patiently`。2.4.4）。重いビルドの前に `THIRD-PARTY-NOTICES.md` の存在と、先頭に記録した入力（`Cargo.lock`・`mermaid.min.js`・`plantuml.jar`・拡張の `package-lock.json`）のSHA-1（テキストは改行をLFに揃えて計算）が今のファイルと一致することを確かめ、違えば止める。`--with-sample` では `examples/docs` を `docs/` としてコピーし、生成物・PDF側補助・図キャッシュを除く。除外条件はコピー中のファイル名／接頭辞に適用される。[E-0013](appendix-evidence.qmd#ev-e-0013)
 
 **確認済み（静的）**：`--no-build` はマニュアルとVSIXの作成を省略するが、存在・name・版の検査は残り、はじめかたPDFは引き続き `quarto typst compile` で作る。jarの版はMANIFESTから表示用に読むだけで、MIT版であることの自動検証はしない。ZIPは書いた後に読み直し、全エントリの名前とバイト数を書いた内容と照合する。書込み途中の失敗や不一致では zip を削除する。バイト列そのものの比較や、同梱物が最新であることの確認ではない。[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)
 
@@ -78,7 +78,7 @@ flowchart TD
 
 **確認済み（静的）**：`doc::units::scan` は行頭パターンだけで、見出し（`sec-`）、`.tbl`／`.ipo` div（`tbl-`）、表の前後に接するパイプ表キャプション行（`tbl-`）、`::: {#fig-…}` と行頭の画像 `![…](…){#fig-…}`（`fig-`）を拾う。キャプションはあるが ID の無い画像は `bare-figure` の警告とし、候補を出さない（ID を足すと番号付きの図になり、以降の図番号がずれるため）。キャプションも ID も無い画像は拾わない。front matter、コードフェンス内、`.tbl`／`.ipo`／`#fig-` div 内の見出しは除外する。キャプションもラベルも無い `.tbl` は `no-caption` 警告で対象外とする。見出しとパイプ表キャプションは、ID がちょうど一つで種別の接頭辞で始まる場合だけラベルとみなす。接頭辞の違う ID が一つある場合は `foreign-id`、ID が二つ以上ある場合は `multiple-ids` の警告とし、候補を出さず書き戻しもしない（Pandoc は ID を一つしか使わず、二つ目を足すとリンク先にならないため）。[E-0020](appendix-evidence.qmd#ev-e-0020)
 
-**確認済み（静的・限定実行）**：`tag list` は、ラベルの無いものに候補と編集指示（ファイル・行・行頭からの**文字数**・挿入文字列）を付ける。候補は「ファイル相対パス・種別・正規化した文言」の SHA-1 先頭6桁で、既存ラベルと衝突すれば 8→10→40 桁に伸ばす。同じ入力なら同じ候補になる。`tag apply --all` は候補をすべて書き戻し、ファイルごとに行の後ろから挿入して、行末の CR を保持する。`--from` は `tag list --json` 全体または編集指示の配列を受け、行の不一致・既存ラベル・挿入位置超過・形式違反（接頭辞＋英数字・`-`・`_`）・重複のいずれかで、書込み前に全体を停止する。`--dry-run` は書き込まない。これらは `tests/tag.rs` で確認した。[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0017](appendix-evidence.qmd#ev-e-0017)
+**確認済み（静的・限定実行）**：`tag list` は、ラベルの無いものに候補と編集指示（ファイル・行・行頭からの**文字数**・挿入文字列）を付ける。候補は「ファイル相対パス・種別・正規化した文言」の SHA-1 先頭6桁で、既存ラベルと衝突すれば 8→10→40 桁に伸ばす。同じ入力なら同じ候補になる。`tag apply --all` は候補をすべて書き戻し、ファイルごとに行の後ろから挿入して、行末の CR を保持する。編集指示には一覧を取った時点の行（`original`。改行を除く）が入る（3.0.0）。`--from` は `tag list --json` 全体または編集指示の配列を受け、`original` が無い指示（古い ddq の一覧）・`original` と今の行の不一致・既存ラベル・挿入位置超過・形式違反（接頭辞＋英数字・`-`・`_`）・重複のいずれかで、書込み前に全体を停止する。`--dry-run` は書き込まない。これらは `tests/tag.rs` で確認した。[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0017](appendix-evidence.qmd#ev-e-0017)
 
 ```mermaid
 flowchart TD
@@ -107,6 +107,6 @@ flowchart TD
 
 ## 失敗・中断後の状態 {#sec-08b018}
 
-**確認済み（静的）**：コマンドは `anyhow::Result<()>` を main に返す。外部コマンドの非成功をエラーに変換し、子の終了コードは診断に含めるが、その値をddqの終了コードとして転送する専用処理はない。引数の誤りはclap、業務処理の失敗はanyhowに委譲する。利用側はまず成功／非成功で判断する。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0007](appendix-evidence.qmd#ev-e-0007)
+**確認済み（静的）**：コマンドは `anyhow::Result<()>` を main に返す。外部コマンドの非成功をエラーに変換し、子の終了コードは診断に含めるが、その値をddqの終了コードとして転送する専用処理はない。引数の誤りはclap、業務処理の失敗はanyhowに委譲する。`main` は `run()` の結果を受け、成功なら0、エラーなら anyhow の既定と同じ `Error: {:?}` を標準エラーに出し、エラーの連鎖に `setup::TemplateMismatch` があれば3、それ以外は1で終わる（3.0.0。3 は VSCode 拡張との契約で、`extensions/ddq-template/src/ddq/version.ts` と対）。利用側はまず成功／非成功で判断し、3 だけを「`ddq update` で直る」と扱う。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0007](appendix-evidence.qmd#ev-e-0007)
 
-**確認済み（静的）**：一連のファイル更新にトランザクションや巻戻しはない。update途中の失敗では機構の新旧混在、init/addの描画失敗では配置済みファイル、図変換失敗では成功分（失敗した図の前回SVGは消える。バッチ全体の失敗では前回の出力が残る）、PDF発行失敗では以前の `design-doc.pdf` が残り得る。release途中の失敗では不完全な配布フォルダが残る（ZIP は書込み途中の失敗でも削除する）。`tag apply` はファイル単位で書き込むため、途中の書込み失敗では書き込み済みのファイルだけが変わった状態になる（`--from` の検証は書込み前に全体で行う）。`rev diff --write`／`rev build` は一ファイルの上書きであり、一時ファイル経由の置換はしない。再実行前に終了状態と生成物を併せて確認する。[E-0005](appendix-evidence.qmd#ev-e-0005)～[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0021](appendix-evidence.qmd#ev-e-0021)
+**確認済み（静的）**：一連のファイル更新にトランザクションや巻戻しはない。update途中の失敗では機構の新旧混在、init/addの描画失敗では配置済みファイル、図変換失敗では成功分（失敗した図の前回SVGは消える。バッチ全体の失敗では前回の出力が残る）、PDF発行失敗では以前の `design-doc.pdf` が残り得る。release は、集める途中の失敗なら作業フォルダを消して前回の配布フォルダを残す。入れ替え・ZIP 作成・VSIX のコピーの段で失敗すると、新しい配布フォルダはあるが ZIP や VSIX が欠けた状態が残る（ZIP は書込み途中の失敗でも削除する）。`tag apply` はファイル単位で書き込むため、途中の書込み失敗では書き込み済みのファイルだけが変わった状態になる（`--from` の検証は書込み前に全体で行う）。`rev diff --write`／`rev build` は一ファイルの上書きであり、一時ファイル経由の置換はしない。再実行前に終了状態と生成物を併せて確認する。[E-0005](appendix-evidence.qmd#ev-e-0005)～[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0021](appendix-evidence.qmd#ev-e-0021)

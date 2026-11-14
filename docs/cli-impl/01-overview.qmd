@@ -6,11 +6,11 @@
 
 | 識別項目 | 確認した値・条件 |
 |---|---|
-| リポジトリの版 | `281d62f1338d1de7f6660c1a47e1e84e72edda1b`、`main` |
+| リポジトリの版 | `2a9373e`、`main`（本文の解析基準は `281d62f1338d1de7f6660c1a47e1e84e72edda1b`） |
 | 調査開始時 | 追跡ファイルの差分なし。未追跡 `.claude/` は解析対象外 |
-| 表示版／機構版 | `template/VERSION` の `2.4.4`（解析基準は2.4.0） |
+| 表示版／機構版 | `template/VERSION` の `3.0.0-pre4`（解析基準は2.4.0） |
 | Cargo パッケージ | `ddq`、package version `0.0.0`、edition `2024`、rust-version `1.95` |
-| 調査基準日 | 2026-09-23（初版 2026-09-21） |
+| 調査基準日 | 2026-11-14（2.4.0 の解析 2026-09-23、初版 2026-09-21） |
 
 上表は静的確認済み。表示版と Cargo の版は同一ではない。`build.rs` が `DDQ_VERSION` をコンパイル時に設定し、`assets::VERSION`、`--version`、配置先の `.template-version`、リリース名に使う。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0003](appendix-evidence.qmd#ev-e-0003)
 
@@ -47,6 +47,11 @@
 | 2.4.1 | `design-doc.lua`（機構）の図キャッシュのキーを16桁にし、版・設定・エンジンを含める。`ddq update` が版上げ時にキャッシュを消す。静的図の失敗時に前回のSVGを消す | 第3・4・7章 |
 | 2.4.2 | 図キャッシュの先頭コメントにブラウザの実体と端末のフォントの指紋を記録し、発行時に環境（ブラウザ・フォント・PlantUMLサーバの版）が違えば描き直す。隠しコマンド `ddq identity`、`DDQ_DIAGRAM_CACHE=keep` を追加 | 第3・4・7章 |
 | 2.4.3 | フィルタの curl に `--noproxy`（機構）。あわせて release の途中失敗、浅いクローン、閉じない HTTP 接続、output-dir、長いパスを CLI で修正（U-0004〜U-0008 の試験で発見） | 第3・6・7章 |
-| 2.4.4 | mermaid の一括変換（`mermaid::prerender` と、フィルタが2段のフィルタを返して章ファイルごとに束ねる。機構） | 第3・4・7章 |
+| 2.4.4 | mermaid の一括変換（`mermaid::prerender` と、フィルタが2段のフィルタを返して章ファイルごとに束ねる。機構）。release の組み立て後の改名を最大10秒待ち直す（`rename_patiently`） | 第3・4・7章 |
+| 3.0.0-pre1 | 版不一致を終了コード 3 で返す（`setup::TemplateMismatch`）。init が `.vscode/extensions.json` を置く。release が自身を同梱した VSIX（`win32-x64`）を作り、zip の隣に置く。`tag list` の編集指示に `original` を持たせ、`tag apply --from` が照合する。ブラウザの後始末を待ち、一時フォルダを作業フォルダ内にする（PR #122 の再検証 N-01） | 第2～4・6章 |
+| 3.0.0-pre3 | `ddq diagrams` が入力ゼロでキャッシュだけ残るとき `警告:` を出す | 第3・4章 |
+| 3.0.0 | `template/vendor/mermaid.min.js` を 11.16.1 に、`pulldown-cmark` を 0.13.6 に更新（脆弱性対応） | 第5・7章 |
 
-Mermaid・PlantUML・Quarto起動・パス検査・機構照合の Rust 実装に変更はない。これらを記述した節は、版表記と参照先の更新にとどめた。
+3.0.0 までの変更の根拠は [E-0036](appendix-evidence.qmd#ev-e-0036)。VSCode 拡張側の受け手は `docs/ddq-template-impl` が扱う。
+
+2.4.0 までの範囲では、Mermaid・PlantUML・Quarto起動・パス検査・機構照合の Rust 実装に変更はない（Mermaid は 2.4.4 と 3.0.0-pre1 で上表のとおり変わった）。これらを記述した節は、版表記と参照先の更新にとどめた。

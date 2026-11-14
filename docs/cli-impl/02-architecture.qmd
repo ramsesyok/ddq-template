@@ -34,13 +34,13 @@ flowchart TB
 
 | コンポーネント | 責務と読むシンボル | 主な利用先 |
 |---|---|---|
-| コマンド入口 | `main.rs::Cli / Command / main` | `commands::*::run`、`plantuml::serve` |
+| コマンド入口 | `main.rs::Cli / Command / main / run`（`main` が終了コードを決める。版不一致 `setup::TemplateMismatch` は 3、他の失敗は 1） | `commands::*::run`、`plantuml::serve` |
 | 配置・版管理 | `assets::MECHANISM / PDF_SIDE / SCAFFOLD`、`setup::ensure_current` | init/add/update/setup/html/pdf |
 | パス・探索 | `writing_folder::resolve / find_all / ensure_encodable` | main、作成・発行コマンド |
 | Quarto起動 | `quarto::render / run / self_exe` | CWD、DDQ_BIN、終了状態の統一 |
 | Mermaid変換 | `mermaid::choose_engine / render_jobs`、`browser::Cdp`、`merman_engine::render` | hidden CLI と diagrams |
 | PlantUML連携 | `plantuml::ensure / Session / LocalServer / render` | html/pdf/diagrams/serve |
-| 配布 | `release::run / build_extensions / build_extension / copy_tree`、`zip_archive::create` | manual、VSIX（拡張ごと）、jar、ZIP |
+| 配布 | `release::run / build_extensions / build_extension / check_bundled_exe / rename_patiently / copy_tree`、`zip_archive::create` | manual、VSIX（拡張ごと。自身を同梱した `win32-x64` 版）、jar、ZIP |
 | 論理文書 | `doc::project::order / logical / Source`、`doc::units::scan`、`doc::scan_folder` | tag、rev |
 | ラベル付与 | `commands::tag::list / apply / from_file`、`doc::labels::suggest / candidate / valid` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |
 | 改訂履歴 | `commands::rev::next / diff_cmd / build`、`doc::diff::units_of / compare`、`doc::revfile`、`doc::gitsrc::Repo / GitFolder` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |
