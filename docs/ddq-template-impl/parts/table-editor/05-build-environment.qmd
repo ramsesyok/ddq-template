@@ -35,7 +35,7 @@ npm run check:audit
 | `REQUIRE_PANDOC` | 同テスト起動時、非空なら有効 | Pandoc 不在を失敗にする。未指定なら当該 suite をスキップ |
 | `NODE_ENV` | `vite.config.mts` 読込時 | 値が `production` のとき minify、その他では source map。バンドル中の React 向け定義は常に production |
 | tsconfig 2種 | 型チェック | ホストは CommonJS/ES2020、Webview は ESNext・DOM・react-jsx |
-| `vitest.config.mts` | テスト起動時 | Node 環境、`src/**/*.test.ts`、Webview は除外 |
+| `vitest.config.mts` | テスト起動時 | 既定は Node 環境。`src/**/*.test.ts(x)`。Webview の画面のテスト（`webview/TableEditor.test.tsx`）はファイル先頭の指定で jsdom に切り替える |
 
 CI は Ubuntu / Windows × Node 20 / 22 の4構成で型チェック・テスト・ビルド・オフライン検査を行う定義である。Linux は Pandoc を導入し `REQUIRE_PANDOC=1` とする。別ジョブで監査し、成功後にテンプレート版と拡張版を照合して VSIX を生成する。これは定義の確認であり、現在の GitHub Actions の成功状況を取得したものではない。[E-0017](appendix-evidence.qmd#ev-te-e-0017)
 

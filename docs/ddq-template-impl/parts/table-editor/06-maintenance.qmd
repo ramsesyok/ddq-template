@@ -14,7 +14,8 @@
 |---|---|---|
 | fence / パート検出 | `findEditTarget` → `buildReplacement` → 文書の置換範囲 | `findEditTarget.test.ts`、`applyTable.test.ts`、`integration.test.ts`、`lineEndings.test.ts`、コード内記法例 |
 | TableModel / 正規化 | 全パーサ、UI、結合、履歴、Apply | `rowColOps.test.ts`・`unmergeCell.test.ts`（3.0.0 で追加。結合をまたぐ挿入・削除、結合元の引継ぎ、解除）、両 tsconfig、選択・結合の往復 |
-| セル編集・フォーカス | GridView → モデル確定 → Undo / Apply / clipboard | `cellTextEditing.test.ts`、実 IME、blur 直後の Apply |
+| セル編集・フォーカス | GridView → モデル確定 → Undo / Apply / clipboard | `cellTextEditing.test.ts`、`webview/TableEditor.test.tsx`（3.0.0 で追加。jsdom で選択・編集・ツールバー・属性欄・列幅・メニュー・Undo・コピー／貼り付けと Apply の中身）、実 IME、blur 直後の Apply |
+| 画面（Webview） | TableEditor → Toolbar / AttributesPanel / GridView / ContextMenu → Apply | `webview/TableEditor.test.tsx`（画面をわざと 18 通りに壊してすべて検出）。IME と実際の描画の位置は jsdom では見られないので、実 Webview で確かめる |
 | 本文変換・表示幅 | pipe/grid → Pandoc AST → HTML/PDF | `gridTable.test.ts`、`pandoc.test.ts`、日本語・コード span・リスト・末尾 `\` |
 | `merge-cols` | 再現判定・出力・再読込 → Lua 全パート処理 | `mergeCols.test.ts`、`outputFormat.test.ts`、同じ入力で Lua 結果を比較 |
 | 列幅・属性 | プレビュー → Apply 検証 → div → Lua | `columnWidths.test.ts`、`tblAttributes.test.ts`、分割表の属性保持 |
