@@ -422,6 +422,21 @@ target\release\ddq.exe release            # 既定で ..\release\ に出力
 runner のロケールは変えられない（`Set-WinSystemLocale` は再起動が要る）ため、日本語パスそのものの
 検査は CP932 の手元で `cargo test` を走らせて行う。
 
+`tests/mechanism.rs` は、機構（`design-doc.lua`・`postprocess-html.js`・`lib.typ`）の**出力の中身**を
+正解と比べる（e2e は「通る」ことと図の数しか見ない）。小さな文書（`tests/fixtures/mechanism/`。
+列幅・自動結合・手で結合したグリッド表・手で分割した表・採番しない表・IPO 図とその分割・図・付録、
+章と付録をまたぐ相互参照）を `ddq init` の雛形に入れて `ddq html` / `ddq pdf` を通す。
+
+- HTML: 見出し、キャプション（番号・（i／n）・採番しない表）、相互参照の行き先と番号、列幅、
+  rowspan / colspan、セルの文字、IPO 図の欄を 1 行ずつ起こし、`tests/golden/mechanism-html.txt` と比べる
+- PDF: `#show text` で描画された文字を採り（`quarto typst query`）、文書の順に並べて
+  `tests/golden/mechanism-pdf.txt` と比べる。runner には日本語フォントが無く改ページの位置が変わるので、
+  ページの区切りとページヘッダは比べない。表がページ境界にかかって自動分割されないよう、節ごとに改ページする
+- フィルタの警告（`[design-doc] 警告`）と Typst の `did not converge` も失敗にする
+
+機構を意図して変えたときは `DDQ_BLESS=1 cargo test --release --test mechanism` で正解を書き直し、
+差分を確かめてからコミットする。
+
 ---
 
 ## 8. コード構成（案）

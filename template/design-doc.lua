@@ -378,7 +378,7 @@ local function curl(args, input)
     local code = tonumber(out.error_code) or -1
     local why = ({ [6] = 'ホスト名を解決できません', [7] = '接続できません', [28] = 'タイムアウト' })[code]
       or ('curl 終了コード ' .. code)
-    local detail = tostring(out.output or ''):gsub('%s+$', '')
+    local detail = tostring(out.output or ''):gsub('[ \t\r\n]+$', '')  -- 日本語の末尾を削らない
     if detail ~= '' then why = why .. '（' .. detail .. '）' end
     return nil, why
   end
@@ -721,6 +721,15 @@ local COLKEY = {
   ['出力'] = 'output', ['output'] = 'output',
 }
 
+-- 日本語を含む文字列に string.lower や %s・%w を使わない。pandoc は LC_CTYPE を
+-- 利用者のロケールにするので、Lua の大小変換と文字クラスはバイト単位でロケールに従う。
+-- 英語版 Windows（CP1252）では UTF-8 の途中のバイトが書き換わる・空白とみなされる
+-- （「入力」の 0x8A が Š として小文字化される、0xA0 が %s に当たる）。
+-- ASCII だけを小文字にする。
+local function ascii_lower(s)
+  return (s:gsub('[A-Z]', function(c) return string.char(c:byte() + 32) end))
+end
+
 -- HTML 出力では typst の生ブロックは捨てられてしまうため、
 -- .landscape / .ipo は div 構造として組み立てる（執筆者の記法は変えない）。
 local IS_HTML = FORMAT == 'html'
@@ -1024,7 +1033,7 @@ function Div(el)
     for _, b in ipairs(el.content) do
       if b.t == 'Header' then
         local txt = pandoc.utils.stringify(b.content):gsub('／', '/')
-        local key = COLKEY[txt:lower()]
+        local key = COLKEY[ascii_lower(txt)]
         if key then
           if key == 'input' and part.filled then
             parts[#parts + 1] = part                    -- 前パートを確定し次パートへ
@@ -1035,8 +1044,8 @@ function Div(el)
           if hasModule then
             proc = txt                                  -- 新記法: 見出し = 処理名
           else
-            func = txt:match('^(.-)%s*/') or txt        -- 旧記法: 見出しを分割
-            proc = txt:match('/%s*(.*)$') or ''
+            func = txt:match('^(.-)[ \t]*/') or txt     -- 旧記法: 見出しを分割
+            proc = txt:match('/[ \t]*(.*)$') or ''      -- （%s は使わない。ascii_lower の注記）
           end
           titleSeen = true
         end

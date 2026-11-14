@@ -1,0 +1,95 @@
+== chapters/01-tables/index.html
+H1: 1 表の機能
+H2: 1.1 普通の表と列幅
+XREF #tbl-basic: 表 1.1-1
+XREF #tbl-merge: 表 1.2-1
+XREF #tbl-grid: 表 1.2-3
+XREF #tbl-split: 表 1.3-1
+XREF ../02-ipo/index.html#tbl-ipo: 表 2.1-1
+XREF ../02-ipo/index.html#fig-box: 図 2.2-1
+XREF ../../appendix-a.html#tbl-appendix: 表 A-1
+CAPTION #tbl-basic part=1/1: 表 1.1-1　列幅を指定した表
+TABLE widths: 15% 15% 70%
+  ROW th: 項目 | th: 型 | th: 説明
+  ROW td: 氏名 | td: 文字列 | td: 利用者の名
+  ROW td: 年齢 | td: 数値 | td: 満年齢
+H2: 1.2 結合した表
+CAPTION #tbl-merge part=1/1: 表 1.2-1　自動で結合する表
+TABLE widths: 25% 25% 50%
+  ROW th: 大分類 | th: 中分類 | th: 小分類
+  ROW td[rowspan=3]: 受注 | td[rowspan=2]: 登録 | td: 入力チェック
+  ROW td: 重複チェック
+  ROW td: 引当 | td: 在庫確認
+  ROW td: 出荷 | td: 指示 | td: 引当確認
+CAPTION #tbl-merge-cols part=1/1: 表 1.2-2　列を選んで結合する表
+TABLE widths: 33% 33% 33%
+  ROW th[text-align: center]: No | th: 分類 | th: 項目
+  ROW td[text-align: center]: 1 | td[rowspan=2]: 受注 | td: 登録
+  ROW td[text-align: center]: 2 | td: 引当
+  ROW td[text-align: center]: 3 | td: 出荷 | td: 指示
+CAPTION #tbl-grid part=1/1: 表 1.2-3　手で結合したグリッド表
+TABLE widths: 33% 33% 33%
+  ROW th[rowspan=2]: 項目 | th[colspan=2]: 実績
+  ROW th: 前期 | th: 当期
+  ROW td: 売上 | td: 100 | td: 120
+  ROW td: 利益 | td: 10 | td: 12
+H2: 1.3 分割した表と採番しない表
+CAPTION #tbl-split part=1/2: 表 1.3-1　手で分割した表（1／2）
+TABLE widths: 50% 50%
+  ROW th: 属性 | th: 値
+  ROW td: 前半 | td: 1
+CAPTION part=2/2: 表 1.3-1　手で分割した表（2／2）
+TABLE widths: 50% 50%
+  ROW th: 属性 | th: 値
+  ROW td: 後半 | td: 2
+CAPTION unnumbered: 採番しない表
+TABLE widths: 50% 50%
+  ROW th: 属性 | th: 値
+  ROW td: 参考 | td: 0
+CAPTION part=1/1: 表 1.3-2　ラベルの無い表
+TABLE widths: 50% 50%
+  ROW th: 属性 | th: 値
+  ROW td: 無印 | td: 9
+H2: 1.4 列幅だけを指定した素の表と横向きの表
+TABLE widths: 10% 90%
+  ROW th: 記号 | th: 説明
+  ROW td: 素 | td: .tbl を使わない表
+CAPTION #tbl-landscape part=1/1: 表 1.4-1　横向きの表
+TABLE widths: 25% 25% 25% 25%
+  ROW th: 列1 | th: 列2 | th: 列3 | th: 列4
+  ROW td: 横 | td: 向 | td: き | td: 表
+== chapters/02-ipo/index.html
+H1: 2 IPO 図と図
+H2: 2.1 IPO 図
+XREF ../01-tables/index.html#tbl-basic: 表 1.1-1
+XREF ../01-tables/index.html#tbl-split: 表 1.3-1
+CAPTION #tbl-ipo part=1/1: 表 2.1-1　受注処理の流れ
+IPO-TITLE: 受注管理
+IPO-TITLE: 受注処理
+IPO-COL: 受注入力画面 顧客マスタ
+IPO-COL: 入力値を検証する 受注テーブルへ登録する
+IPO-COL: 受注番号
+CAPTION #tbl-ipo-split part=1/2: 表 2.1-2　出荷指示処理（1／2）
+IPO-TITLE: 出荷指示
+IPO-TITLE: 出荷指示
+IPO-COL: 引当結果
+IPO-COL: 出荷指示データを作る
+IPO-COL: 出荷指示書
+CAPTION part=2/2: 表 2.1-2　出荷指示処理（2／2）
+IPO-TITLE: 出荷指示
+IPO-TITLE: 出荷指示
+IPO-COL: 出荷指示書
+IPO-COL: 出荷実績を登録する
+IPO-COL: 出荷実績
+H2: 2.2 図
+IMG ../../diagrams/box.svg width:30.0%
+FIGCAPTION: 図 2.2-1　箱の図
+XREF #fig-box: 図 2.2-1
+XREF #tbl-ipo-split: 表 2.1-2
+== appendix-a.html
+H1: 付録 A — 付録の表
+XREF chapters/01-tables/index.html#tbl-merge: 表 1.2-1
+CAPTION #tbl-appendix part=1/1: 表 A-1　付録の表
+TABLE widths: 50% 50%
+  ROW th: 記号 | th: 意味
+  ROW td: ○ | td: 必須

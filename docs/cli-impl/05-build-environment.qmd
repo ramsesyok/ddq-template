@@ -60,6 +60,7 @@ cli\target\release\ddq.exe release
 | `tests/faults.rs` | 故障注入（Windows）：無出力のJVM・すぐ落ちるJVM・起動中のddqの強制終了、すぐ落ちるブラウザ・無応答のブラウザ・起動中のddqの強制終了、本物のブラウザでの一時フォルダ（単独と 8 並列） | **確認済み**：8件成功 |
 | `tests/plantuml.rs` | 静的puml、構文エラー、serve起動・親終了後の停止 | **確認済み**：2件成功（Java 17、ローカルjar） |
 | `tests/e2e.rs` | ASCII／非ASCIIパス、PDF、SVG件数、HTML内参照と検索索引。サンプルの `revisions/` も複写 | **確認済み**：`DDQ_E2E=1` で3件成功（2.4.2） |
+| `tests/mechanism.rs` | 機構の出力の正解比較（3.0.0 で追加）：小さな文書の HTML（見出し・キャプション・相互参照・列幅・結合・IPO 図の欄）と PDF の描画文字（文書順。ページ区切りとヘッダは除く）。フィルタの警告と `did not converge` も失敗 | **確認済み**：2件成功。機構を 7 通りに壊してすべて検出 |
 | `tools/regress.py` | 機構hash、Typst、ページ画像、PDF文字、HTML、SVGの比較 | **未確認**：今回未実行。旧bat比較には過去版資産も必要 |
 
 期待値は静的確認、実行結果は2026-09-23、Windows／Cargo **1.98.1**、Python **3.12.0**、Quarto **1.9.38** の調査環境での観測である。unit・commands・tag・rev・plantuml は同一のcargo testコマンドで実行し、mermanを別コマンドで確認した。全件成功は全E2E成功やブラウザとの幾何一致を意味しない。[E-0016](appendix-evidence.qmd#ev-e-0016)、[E-0017](appendix-evidence.qmd#ev-e-0017)
