@@ -368,6 +368,123 @@ mod tests {
         );
     }
 
+    /// ファイル名と本文の組で作る、作業ツリーの代わり。
+    struct Files(&'static [(&'static str, &'static str)]);
+    impl Source for Files {
+        fn read(&self, rel: &str) -> Option<String> {
+            self.0.iter().find(|(p, _)| *p == rel).map(|(_, t)| t.to_string())
+        }
+        fn list(&self) -> Vec<String> {
+            let mut v: Vec<String> = self
+                .0
+                .iter()
+                .map(|(p, _)| p.to_string())
+                .filter(|p| p.ends_with(".qmd") || p.ends_with(".md"))
+                .collect();
+            v.sort();
+            v
+        }
+    }
+
+    fn texts(lines: &[Line]) -> Vec<(&str, usize, &str)> {
+        lines
+            .iter()
+            .filter(|l| !l.text.is_empty())
+            .map(|l| (l.file.as_str(), l.no, l.text.as_str()))
+            .collect()
+    }
+
+    #[test]
+    fn logical_without_quarto_yml_concatenates_files_in_path_order() {
+        // 旧版（git show）にも _quarto.yml が無いことがある。その場合も行の出どころは保つ
+        let src = Files(&[("b.qmd", "# B\r\n本文B\n"), ("a.md", "# A\n")]);
+        let (lines, warnings) = logical(&src);
+        assert!(warnings.is_empty(), "{warnings:?}");
+        assert_eq!(
+            texts(&lines),
+            [("a.md", 1, "# A"), ("b.qmd", 1, "# B"), ("b.qmd", 2, "本文B")]
+        );
+    }
+
+    #[test]
+    fn folder_without_quarto_yml_lists_documents_in_path_order() {
+        // 執筆フォルダの外（_quarto.yml の無いフォルダ）の保険。.qmd / .md（大文字も）を
+        // パス順に拾い、出力・キャッシュ・依存・Git のフォルダは読まない
+        let tmp = tempfile::tempdir().unwrap();
+        let put = |rel: &str| {
+            let p = tmp.path().join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, "# x\n").unwrap();
+        };
+        for rel in ["b.qmd", "a/z.md", "a/y.QMD", "notes.txt"] {
+            put(rel);
+        }
+        for skip in SKIP_DIRS {
+            put(&format!("{skip}/x.qmd"));
+            put(&format!("a/{skip}/x.qmd"));
+        }
+        let order = order(tmp.path()).unwrap();
+        assert_eq!(order.files, ["a/y.QMD", "a/z.md", "b.qmd"]);
+        assert!(order.warnings.is_empty(), "{:?}", order.warnings);
+    }
+
+    #[test]
+    fn logical_without_chapters_warns_and_uses_path_order() {
+        let src = Files(&[
+            ("_quarto.yml", "book:\n  title: x\n"),
+            ("index.qmd", "# 前書き\n"),
+            ("ch/a.qmd", "# 章\n{{< include x.qmd >}}\n"),
+        ]);
+        let (lines, warnings) = logical(&src);
+        assert_eq!(warnings.len(), 1);
+        assert!(
+            warnings[0].contains("chapters を読めませんでした"),
+            "{warnings:?}"
+        );
+        // 代わりの並べ方では include を展開しない（行はそのまま）
+        assert_eq!(
+            texts(&lines),
+            [
+                ("ch/a.qmd", 1, "# 章"),
+                ("ch/a.qmd", 2, "{{< include x.qmd >}}"),
+                ("index.qmd", 1, "# 前書き")
+            ]
+        );
+    }
+
+    #[test]
+    fn logical_reports_cycles_and_missing_files_but_keeps_going() {
+        let src = Files(&[
+            (
+                "_quarto.yml",
+                "book:\n  chapters:\n    - ch/index.qmd\n    - ch/after.qmd\n",
+            ),
+            (
+                "ch/index.qmd",
+                "# 章\n{{< include a.qmd >}}\n{{< include none.qmd >}}\n章末\n",
+            ),
+            ("ch/a.qmd", "## A\n{{< include index.qmd >}}\n"),
+            ("ch/after.qmd", "# 次の章\n"),
+        ]);
+        let (lines, warnings) = logical(&src);
+        assert_eq!(
+            warnings,
+            [
+                "include が循環しています: ch/index.qmd",
+                "ファイルがありません: ch/none.qmd"
+            ]
+        );
+        assert_eq!(
+            texts(&lines),
+            [
+                ("ch/index.qmd", 1, "# 章"),
+                ("ch/a.qmd", 1, "## A"),
+                ("ch/index.qmd", 4, "章末"),
+                ("ch/after.qmd", 1, "# 次の章")
+            ]
+        );
+    }
+
     #[test]
     fn nested_include_resolves_against_the_chapter_dir() {
         // 章ファイル chapters/04/index.qmd が 01-hw/index.qmd を include し、
