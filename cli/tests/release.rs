@@ -92,6 +92,7 @@ fn fake_repo(root: &Path) {
         format!("{{\"name\":\"ddq-b\",\"version\":\"{v}\"}}").as_bytes(),
     );
     write(root, &format!("extensions/ddq-b/ddq-b-{v}.vsix"), b"PK vsix");
+    // 開発・試験用に置いた jar があっても同梱しない（3.0.0 から）
     write(root, "cli/vendor/plantuml.jar", b"not really a jar");
     write(root, "README.md", "# テンプレート\n".as_bytes());
     write(root, "AGENT-GUIDE.md", b"# guide\n");
@@ -178,7 +179,6 @@ fn zip_matches_the_stage_byte_for_byte() {
     let v = version();
     for want in [
         "ddq.exe".to_string(),
-        "plantuml.jar".into(),
         "はじめかた.pdf".into(),
         "README.md".into(),
         "AGENT-GUIDE.md".into(),
@@ -190,6 +190,11 @@ fn zip_matches_the_stage_byte_for_byte() {
     ] {
         assert!(names.contains(&want.as_str()), "{want} が無い: {names:?}");
     }
+    // plantuml.jar は同梱しない（版・ライセンス・脆弱性の管理を利用者の環境に任せる）
+    assert!(
+        !names.iter().any(|n| n.ends_with(".jar")),
+        "jar を同梱した: {names:?}"
+    );
     // VSCode 拡張は zip に入れず、zip の隣に置く（リリースページの別資産）
     assert!(
         !names.iter().any(|n| n.ends_with(".vsix")),
@@ -282,15 +287,6 @@ fn assert_fails_untouched(repo: &Path, out: &Path, extra: &[&str], message: &str
         stage_of(out).join("previous.txt").exists(),
         "失敗したのに前回の配布フォルダを消した（中途半端な配布フォルダが残る）"
     );
-}
-
-#[test]
-fn missing_jar_stops_before_touching_the_stage() {
-    let tmp = tempfile::tempdir().unwrap();
-    let repo = tmp.path().join("repo");
-    fake_repo(&repo);
-    fs::remove_file(repo.join("cli/vendor/plantuml.jar")).unwrap();
-    assert_fails_untouched(&repo, &tmp.path().join("out"), &[], "plantuml-mit");
 }
 
 #[test]

@@ -7,7 +7,7 @@ PlantUML 図（@sec-plantuml）はブラウザの中では描けないため、�
 | サーバ | 用意する人・もの | 向いている場合 |
 |---|---|---|
 | **LAN 内の常設サーバ** | 組織で 1 台立てる（公式の `plantuml-server`、または `java -jar plantuml.jar -picoweb`）。URL を `_quarto.yml` の `plantuml-server:` に書く | 執筆者が多い。**執筆者の端末に Java も `ddq` も入れずに済む** |
-| **ローカル起動** | 配布 zip の `plantuml.jar` と、端末の Java（8 以上） | 常設サーバが無い。発行者の `ddq pdf` / `ddq html` は自動で上げ下げするので操作は要らない |
+| **ローカル起動** | 各自が PlantUML の公式リリースから取得した `plantuml.jar` と、端末の Java（8 以上） | 常設サーバが無い。発行者の `ddq pdf` / `ddq html` は自動で上げ下げするので操作は要らない |
 :::
 
 `ddq` はビルドのたびに次の順でサーバを決める。
@@ -48,10 +48,29 @@ LAN のサーバがプロキシの内側にあるなら、そのホスト名を�
 <!-- ddq 3.0.0-pre4 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 fonts=a9d68470 -->
 ```
 
-### ローカルで描く（Java の用意）
+### ローカルで描く（plantuml.jar と Java の用意）
 
-配布 zip には `plantuml.jar`（MIT ライセンス版）が同梱されている。要るのは **Java** だけで、
-Graphviz は要らない（レイアウトは jar 内蔵の smetana を使う）。
+ローカルで描くには **`plantuml.jar` と Java** が要る。Graphviz は要らない（レイアウトは
+jar 内蔵の smetana を使う）。
+
+`plantuml.jar` は配布 zip にも DDQ Template にも入っていない。PlantUML の版・ライセンス・
+脆弱性への対応を組織の判断で行えるよう、利用者が PlantUML の公式リリース
+（<https://github.com/plantuml/plantuml/releases>）から取得して置く。
+
+- **MIT 版**（`plantuml-mit-<版>.jar`）を推奨する。GPL 版（`plantuml-<版>.jar`）でも描けるが、
+  組織内で jar を配り直すなら GPL の義務が付く。
+- 取得した jar を決まった場所に置き（例: `C:\tools\plantuml\plantuml.jar`）、Windows のユーザー
+  環境変数 `DDQ_PLANTUML_JAR` にそのパスを設定する。VSCode と端末は設定後に開き直す。
+  この設定で、コマンドの `ddq` と DDQ Template に同梱の `ddq.exe` の両方が jar を見つける。
+- 環境変数を使わずに、`ddq.exe` と同じフォルダに `plantuml.jar` の名前で置いてもよい
+  （配布 zip を展開したフォルダで `ddq` を使う場合）。
+
+```bat
+setx DDQ_PLANTUML_JAR "C:\tools\plantuml\plantuml.jar"
+```
+
+組織の PlantUML の版をそろえたいなら、jar を配る場所と版を発行者が決めて執筆者に伝える。
+版が違っても、発行時に図の版を確かめて描き直すので、発行版の図はそろう（前節）。
 
 `ddq` は Java を `JAVA_HOME` → PATH → レジストリ → 既定のインストール先の順で探す。
 見つからないときは、環境変数 `DDQ_JAVA` に `java.exe` のパスを指定する。
@@ -61,17 +80,13 @@ set "DDQ_JAVA=C:\Program Files\Eclipse Adoptium\jdk-17\bin\java.exe"
 .\ddq pdf C:\work\order-design\docs
 ```
 
-`plantuml.jar` は `ddq.exe` と同じフォルダから探す。別の場所に置くなら `DDQ_PLANTUML_JAR`。
+`plantuml.jar` は、環境変数 `DDQ_PLANTUML_JAR` → `ddq.exe` と同じフォルダ → 環境変数 `PLANTUML_JAR`
+の順に探す。LAN 内の常設サーバを使うなら、jar も Java も要らない。
 
 ::: {.callout-important}
-DDQ Template に同梱の `ddq.exe` の隣には `plantuml.jar` が無い（VSIX には入れていない）。
-**DDQ Template から PDF・HTML を出す端末でローカル起動を使う**なら、次のどちらかにする。
-
-- VSCode の設定 `ddqTemplate.ddqPath` に、配布 zip を展開したフォルダの `ddq.exe` を指定する
-  （隣に `plantuml.jar` がある）
-- Windows のユーザー環境変数 `DDQ_PLANTUML_JAR` に `plantuml.jar` のパスを設定し、VSCode を開き直す
-
-LAN 内の常設サーバを使うなら、どちらも要らない。
+3.0.0 から配布 zip に `plantuml.jar` を同梱しない。以前の版の zip を展開したフォルダの jar を
+使っていた端末は、新しい版に入れ替えると `plantuml.jar が見つかりません` で止まる。
+上の手順で jar を置き、`DDQ_PLANTUML_JAR` を設定する（以前のフォルダの jar を指してもよい）。
 :::
 
 ### 執筆者がプレビューで見るとき

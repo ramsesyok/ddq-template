@@ -7,7 +7,7 @@
 mermaid 図の SVG 化には Windows に標準搭載の Edge（または Chrome）を使い、
 どちらも無ければ `ddq` に内蔵されたレンダラで描く。**Node.js も npm も要らない。**
 PlantUML 図（@sec-plantuml）を含む文書だけは、LAN 内の PlantUML サーバか、
-ローカルの Java（配布 zip の `plantuml.jar` を動かす）のどちらかが要る（@sec-plantuml-setup）。
+ローカルの Java と `plantuml.jar`（各自が PlantUML の公式リリースから取得する）のどちらかが要る（@sec-plantuml-setup）。
 
 ::: {.callout-note}
 DDQ Template を入れていれば、執筆者も同じ手順で PDF・配布 HTML を出力できる。

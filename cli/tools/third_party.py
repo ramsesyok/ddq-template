@@ -9,8 +9,9 @@
 - ddq.exe に埋め込んだ template/vendor/mermaid.min.js（mermaid と、そのバンドルに入る
   依存の npm パッケージ）。本文は `npm install --ignore-scripts --omit=dev mermaid@<版>` で
   一時フォルダに取った package から取る（--mermaid-modules で既存のものを使える）
-- 同梱する plantuml.jar（MIT 版）。`java -jar plantuml.jar -license` の表示をそのまま載せる
 - VSCode 拡張（VSIX）の Webview にバンドルされる React（extensions/*/node_modules から）
+
+plantuml.jar は同梱しない（3.0.0 から。利用者が自分で用意する）ので対象外。
 
 出力の先頭に入力のハッシュを書く。`ddq release` はこれを照合し、入力が変わったのに作り直して
 いなければ止める（古い表示のまま配らない）。docs/cli-impl U-0003。
@@ -20,7 +21,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -35,7 +35,6 @@ TARGET = "x86_64-pc-windows-msvc"
 INPUTS = [
     "cli/Cargo.lock",
     "template/vendor/mermaid.min.js",
-    "cli/vendor/plantuml.jar",
     "extensions/ddq-template/package-lock.json",
 ]
 # VSIX の Webview にバンドルされる実行時のパッケージ（src/webview が import するもの）。
@@ -70,12 +69,9 @@ SOFTWARE."""
 
 
 def sha1(path: Path) -> str:
-    """入力のハッシュ。テキストは改行を LF に揃えてから取る（Cargo.lock は checkout の設定で
-    CRLF にも LF にもなるため）。jar はそのまま。ddq release（release.rs の input_sha1）と同じ規則。"""
-    data = path.read_bytes()
-    if path.suffix != ".jar":
-        data = data.replace(b"\r\n", b"\n")
-    return hashlib.sha1(data).hexdigest()
+    """入力のハッシュ。改行を LF に揃えてから取る（Cargo.lock は checkout の設定で
+    CRLF にも LF にもなるため）。ddq release（release.rs の input_sha1）と同じ規則。"""
+    return hashlib.sha1(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def license_texts(pkg_dir: Path, depth: int = 1) -> list[tuple[str, str]]:
@@ -234,18 +230,6 @@ def mermaid_modules(given: str | None, version: str) -> tuple[Path, tempfile.Tem
     return Path(tmp.name) / "node_modules", tmp
 
 
-# ------------------------------------------------------------ PlantUML
-
-def plantuml_license() -> str:
-    jar = ROOT / "cli/vendor/plantuml.jar"
-    java = os.environ.get("DDQ_JAVA") or shutil.which("java")
-    if not java or not jar.is_file():
-        sys.exit("java と cli/vendor/plantuml.jar が要ります（PlantUML のライセンス表示を取るため）")
-    out = subprocess.run([java, "-jar", str(jar), "-license"], capture_output=True, check=True)
-    text = out.stdout.decode("utf-8", errors="replace") or out.stderr.decode("utf-8", errors="replace")
-    return "\n".join(l.rstrip() for l in text.replace("\r\n", "\n").strip().splitlines())
-
-
 # ------------------------------------------------------------ 出力
 
 def table(rows: list[dict]) -> str:
@@ -273,7 +257,6 @@ def main() -> None:
     react = npm_packages(ROOT / "extensions/ddq-template/node_modules", EXTENSION_BUNDLED)
     if sorted({p["name"] for p in react}) != sorted(EXTENSION_BUNDLED):
         sys.exit("extensions/ddq-template/node_modules に React 一式がありません（npm ci してください）")
-    puml = plantuml_license()
 
     everything = crates + mermaid + react
     filled = fill_missing(everything)
@@ -315,10 +298,6 @@ def main() -> None:
         "",
         table(mermaid),
         "",
-        "### plantuml.jar",
-        "",
-        "PlantUML の MIT 版（`plantuml-mit-<版>.jar`）。ライセンス表示は末尾の「PlantUML のライセンス表示」を参照。",
-        "",
         f"### VSCode 拡張（ddq-template）の Webview にバンドルしたもの（{len(react)} 件）",
         "",
         table(react),
@@ -345,8 +324,6 @@ def main() -> None:
     parts += ["", "## ライセンス本文", ""]
     for i, g in enumerate(sorted(groups.values(), key=lambda g: g["who"][0].lower()), 1):
         parts += [f"### 本文 {i}", "", "対象: " + "、".join(g["who"]), "", "```text", g["text"], "```", ""]
-    parts += ["## PlantUML のライセンス表示", "", "`java -jar plantuml.jar -license` の出力。", "",
-              "```text", puml, "```", ""]
 
     OUT.write_text("\n".join(parts), encoding="utf-8", newline="\n")
     if tmp:

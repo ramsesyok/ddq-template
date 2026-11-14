@@ -18,7 +18,7 @@ Markdown（Quarto）で書いた原稿から、社内様式の PDF とレビュ�
 | Visual Studio Code | 1.85 以上 |
 | Quarto | PDF / HTML の作成に使う。見つからないときは案内が出ます |
 | ddq | 拡張に同梱しています（Windows x64）。別に入れる必要はありません |
-| PlantUML（使うときだけ） | LAN 内の PlantUML サーバ、または配布 zip の `plantuml.jar` と Java 8 以上。`plantuml.jar` は拡張に入っていません（利用マニュアル 11 章） |
+| PlantUML（使うときだけ） | LAN 内の PlantUML サーバ、または `plantuml.jar` と Java 8 以上。`plantuml.jar` は拡張にも配布 zip にも入っていません。PlantUML の公式リリースから取得し、環境変数 `DDQ_PLANTUML_JAR` にパスを設定してください（利用マニュアル 11 章） |
 
 ## 導入
 
