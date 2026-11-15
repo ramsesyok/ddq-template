@@ -39,7 +39,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 | 4 | mermaid エンジン | 自動: **Edge → Chrome → merman**。`DDQ_MERMAID_ENGINE` / `EXECUTABLE_BROWSER` で上書き可 | ブラウザ経路は mermaid-cli と幾何一致。merman は保険 |
 | 5 | `quarto preview` | **常にクライアント描画**（現状維持）。SVG を焼くのは `ddq html` / `ddq pdf` だけ | プレビューは Quarto だけで動く速いクイックレビュー。発行物と図が微妙に違い得ることはマニュアルに明記 |
 | 6 | フィルタ⇔exe | フィルタが**図ごとに** `ddq mermaid` を呼ぶ（現行 `quarto run mmdc` の置換のみ）。CLI は複数入力対応にしておく | 正しさ優先。一括事前変換はフェンス抽出と hash の二重実装になるので保留 |
-| 7 | mermaid.min.js | `template/vendor/mermaid.min.js`（11.16.1）をコミットして埋め込む。npm / node_modules 廃止 | 版の固定と再現性。Quarto 同梱 11.12 は見た目が違う（§9） |
+| 7 | mermaid.min.js | `template/vendor/mermaid.min.js`（11.16.1。`cli/tools/mermaid-bundle` が lock の依存で束ね直す）をコミットして埋め込む。実行時の npm / node_modules は廃止 | 版の固定と再現性。Quarto 同梱 11.12 は見た目が違う（§9） |
 | 8 | リポジトリ構成 | `template/` はソース置き場として残し、`cli/` に Cargo プロジェクトを追加。`build.rs` で `../template` を埋め込む | Lua/CSS/typ の編集体験と利用マニュアルの導線を壊さない |
 | 9 | 対象 OS | **Windows x64 のみ**（msvc, `+crt-static`）。CI も Windows 1 本 | まず簡易に。OS 依存部は `cfg(windows)` で分離し、後から他 OS を足せる形にする |
 | 10 | 名前 | `ddq`（design-doc-quarto）。環境変数は `DDQ_*` | 短く衝突しにくい |
@@ -72,7 +72,7 @@ quarto-template/
 │   ├── lib.typ / typst-template.typ / typst-show.typ / quarto-publish.yml
 │   ├── release-guide.typ        … 「はじめかた」スライド（Typst。ddq release が PDF にする）
 │   ├── scaffold/{repo,content}/
-│   └── vendor/mermaid.min.js    … 新規（11.16.1）
+│   └── vendor/mermaid.min.js    … 新規（11.16.1。cli/tools/mermaid-bundle で作る）
 ├── docs/                        … 設計リポジトリ（執筆フォルダ manual/ = 利用マニュアル、design/ = テンプレート設計書）
 ├── examples/                    … サンプルの設計書リポジトリ（docs/ = 受注管理システム基本設計書。--with-sample の同梱元）
 ├── extensions/                  … VSCode 拡張（1 フォルダ = 1 拡張。2.4.0 で extension/ から移した）
@@ -119,7 +119,7 @@ ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm �
 `tests/third_party.rs` が照合する。依存を変えたら作り直してコミットする（しないとリリースと CI が止まる）。
 テキストの入力は改行を LF に揃えてからハッシュする（`Cargo.lock` は checkout の設定で CRLF にもなる）。
 
-VSIX は `ddq release` が `extensions/<拡張>/` で `npm ci`（`node_modules/` が無いときだけ）→
+VSIX は `ddq release` が `extensions/<拡張>/` で `npm ci`（`node_modules/` があっても入れ直す）→
 `npm run package` を実行して作る（`--no-build` なら既存の VSIX を使う）。
 `package:win32-x64` スクリプトを持つ拡張（ddq-template）は ddq.exe を同梱する: release している exe を
 `<拡張>/bin/win32-x64/ddq.exe`（git 管理外）にコピーしてから `npm run package:win32-x64`

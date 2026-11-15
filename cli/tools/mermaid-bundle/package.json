@@ -1,0 +1,20 @@
+{
+  "name": "ddq-mermaid-bundle",
+  "private": true,
+  "description": "ddq.exe に埋め込む template/vendor/mermaid.min.js を、修正済みの依存で組み直す",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "check:audit": "npm audit --omit=dev --audit-level=low"
+  },
+  "dependencies": {
+    "mermaid": "11.16.1"
+  },
+  "overrides": {
+    "dompurify": "3.4.18",
+    "katex": "0.18.10"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

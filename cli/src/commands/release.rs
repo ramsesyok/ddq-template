@@ -240,7 +240,7 @@ fn build_extensions(root: &Path, no_build: bool) -> Result<Vec<PathBuf>> {
 /// - `package.json` の name がフォルダ名と違えば止める（VSIX 名の先頭になるため）
 /// - `package.json` の version が template/VERSION と違えば止める
 ///   （拡張の版はテンプレートの版に揃える。利用マニュアル 18 章）
-/// - `no_build` でなければ `npm ci`（node_modules が無いときだけ）→ `npm run package`
+/// - `no_build` でなければ `npm ci`（node_modules があっても入れ直す）→ `npm run package`
 /// - `package:win32-x64` を持つ拡張（ddq.exe の同梱）は、この exe を `bin/win32-x64/ddq.exe` に
 ///   コピーしてから `npm run package:win32-x64`。VSIX の中の ddq.exe がこの exe と同じことを確かめる
 ///   （`--no-build` で古い VSIX を配らないため）
@@ -301,9 +301,9 @@ fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {
             fs::copy(quarto::self_exe()?, &dest)
                 .with_context(|| format!("ddq.exe を {} にコピーできません", dest.display()))?;
         }
-        if !ext.join("node_modules").is_dir() {
-            quarto::run(npm(ext).arg("ci"), &format!("npm ci（{rel}）"))?;
-        }
+        // node_modules があっても必ず入れ直す。古い node_modules のまま梱包すると、
+        // package-lock.json と違う版の依存が VSIX に入り得る（npm ci は node_modules を消して入れる）
+        quarto::run(npm(ext).arg("ci"), &format!("npm ci（{rel}）"))?;
         quarto::run(
             npm(ext).args(["run", script]),
             &format!("npm run {script}（{rel}）"),

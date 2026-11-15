@@ -55,7 +55,7 @@ ddq-template-win32-x64-<版>.vsix               … VSCode 拡張 DDQ Template�
 
 リリースには、ddq.exe が内蔵する Rust のクレートと mermaid、VSCode 拡張がバンドルする React が入る。
 そのライセンス表示 `THIRD-PARTY-NOTICES.md`（リポジトリ直下）を、**依存を変えたとき**
-（`cli/Cargo.lock`・`template/vendor/mermaid.min.js`・拡張の `package-lock.json`）に作り直してコミットする。
+（`cli/Cargo.lock`・`template/vendor/mermaid.min.js`・`cli/tools/mermaid-bundle/package-lock.json`・拡張の `package-lock.json`）に作り直してコミットする。
 
 ```bat
 :: このリポジトリのルートで実行する（Python・Cargo・npm が要る）

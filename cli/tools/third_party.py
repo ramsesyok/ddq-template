@@ -1,14 +1,16 @@
 """配布物に含まれる第三者のソフトウェアのライセンス表示（THIRD-PARTY-NOTICES.md）を作る。
 
-    python cli/tools/third_party.py [--mermaid-modules <node_modules のあるフォルダ>]
+    python cli/tools/third_party.py
 
 リポジトリのルートで実行する（標準ライブラリだけで動く）。対象はリリース ZIP に入るもの:
 
 - ddq.exe に静的にリンクされる Rust のクレート（Windows 向けの通常の依存。proc-macro 等の
   ビルド時だけのものは含めない）。本文はローカルの Cargo レジストリから取る
 - ddq.exe に埋め込んだ template/vendor/mermaid.min.js（mermaid と、そのバンドルに入る
-  依存の npm パッケージ）。本文は `npm install --ignore-scripts --omit=dev mermaid@<版>` で
-  一時フォルダに取った package から取る（--mermaid-modules で既存のものを使える）
+  依存の npm パッケージ）。cli/tools/mermaid-bundle が package-lock.json の依存で束ねたもの。
+  載せるのは、束ねたときに esbuild の metafile で出力に入ったパッケージと、それらが中に固めて
+  いる依存（同じフォルダの bundled.json。作り方は build.mjs）だけ。本文はその lock を一時フォルダで `npm ci --ignore-scripts --omit=dev`
+  した package から取る
 - VSCode 拡張（VSIX）の Webview にバンドルされる React（extensions/*/node_modules から）
 
 plantuml.jar は同梱しない（3.0.0 から。利用者が自分で用意する）ので対象外。
@@ -35,6 +37,8 @@ TARGET = "x86_64-pc-windows-msvc"
 INPUTS = [
     "cli/Cargo.lock",
     "template/vendor/mermaid.min.js",
+    "cli/tools/mermaid-bundle/package-lock.json",
+    "cli/tools/mermaid-bundle/bundled.json",
     "extensions/ddq-template/package-lock.json",
 ]
 # VSIX の Webview にバンドルされる実行時のパッケージ（src/webview が import するもの）。
@@ -206,27 +210,31 @@ def npm_packages(node_modules: Path, only: list[str] | None = None) -> list[dict
     return sorted(found.values(), key=lambda p: (p["name"], p["version"]))
 
 
+MERMAID_BUNDLE = ROOT / "cli/tools/mermaid-bundle"
+
+
 def mermaid_version() -> str:
+    """埋め込み mermaid.min.js の版（cli/tools/mermaid-bundle が先頭に書く表示）"""
     js = (ROOT / "template/vendor/mermaid.min.js").read_text(encoding="utf-8", errors="replace")
-    m = re.search(r'version:"(\d+\.\d+\.\d+)"', js)
+    m = re.match(r"/\*! mermaid (\d+\.\d+\.\d+) ", js)
     if not m:
-        sys.exit("mermaid.min.js から版を読めません")
+        sys.exit("mermaid.min.js の先頭に版の表示がありません（cli/tools/mermaid-bundle で npm run build してください）")
     return m.group(1)
 
 
-def mermaid_modules(given: str | None, version: str) -> tuple[Path, tempfile.TemporaryDirectory | None]:
-    if given:
-        return Path(given) / "node_modules", None
+def mermaid_modules() -> tuple[Path, tempfile.TemporaryDirectory]:
+    """cli/tools/mermaid-bundle の lock どおりの本番依存を一時フォルダに入れる"""
     tmp = tempfile.TemporaryDirectory(prefix="ddq-third-party-")
-    Path(tmp.name, "package.json").write_text('{"name":"inv","private":true}', encoding="utf-8")
+    for name in ("package.json", "package-lock.json"):
+        shutil.copy(MERMAID_BUNDLE / name, Path(tmp.name, name))
     # Windows では npm.cmd を先に探す。Python 3.12 の which("npm") は Node の隣にある
     # 拡張子なしの npm（シェル用スクリプト）を返し、起動できない（WinError 193）
     npm = shutil.which("npm.cmd") or shutil.which("npm")
     if not npm:
-        sys.exit("npm が見つかりません（--mermaid-modules で取得済みのフォルダを渡すこともできます）")
+        sys.exit("npm が見つかりません")
     # --ignore-scripts: 取ってくるだけで、パッケージのスクリプトは実行しない
-    subprocess.run([npm, "install", "--ignore-scripts", "--omit=dev", "--no-audit", "--no-fund",
-                    f"mermaid@{version}"], cwd=tmp.name, check=True, capture_output=True)
+    subprocess.run([npm, "ci", "--ignore-scripts", "--omit=dev", "--no-audit", "--no-fund"],
+                   cwd=tmp.name, check=True, capture_output=True)
     return Path(tmp.name) / "node_modules", tmp
 
 
@@ -240,9 +248,7 @@ def table(rows: list[dict]) -> str:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--mermaid-modules", help="mermaid を npm install 済みのフォルダ（node_modules の親）")
-    args = ap.parse_args()
+    argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args()
 
     for rel in INPUTS:
         if not (ROOT / rel).is_file():
@@ -250,10 +256,17 @@ def main() -> None:
 
     crates = rust_crates()
     mver = mermaid_version()
-    nm, tmp = mermaid_modules(args.mermaid_modules, mver)
-    mermaid = npm_packages(nm)
-    if not any(p["name"] == "mermaid" and p["version"] == mver for p in mermaid):
-        sys.exit(f"mermaid {mver} が {nm} にありません")
+    nm, tmp = mermaid_modules()
+    # 出力に入ったものだけ（lock にあっても木の刈り込みで入らないものは載せない）
+    bundled = {(b["name"], b["version"]) for b in
+               json.loads((MERMAID_BUNDLE / "bundled.json").read_text(encoding="utf-8"))}
+    mermaid = [p for p in npm_packages(nm) if (p["name"], p["version"]) in bundled]
+    lost = sorted(bundled - {(p["name"], p["version"]) for p in mermaid})
+    if lost:
+        sys.exit("bundled.json のパッケージが lock にありません（npm run build し直してください）: "
+                 + "、".join(f"{n} {v}" for n, v in lost))
+    if ("mermaid", mver) not in bundled:
+        sys.exit(f"mermaid {mver} が bundled.json にありません")
     react = npm_packages(ROOT / "extensions/ddq-template/node_modules", EXTENSION_BUNDLED)
     if sorted({p["name"] for p in react}) != sorted(EXTENSION_BUNDLED):
         sys.exit("extensions/ddq-template/node_modules に React 一式がありません（npm ci してください）")
@@ -292,9 +305,11 @@ def main() -> None:
         "",
         f"### ddq.exe に埋め込んだ mermaid.min.js（mermaid {mver} とバンドルされる依存 {len(mermaid) - 1} 件）",
         "",
-        "`template/vendor/mermaid.min.js` は npm の `mermaid@" + mver + "` の `dist/mermaid.min.js` と同一である。",
-        "依存の版は、この一覧を作ったときに npm が解決した版で、バンドル作成時の版と細部が違い得る",
-        "（例: バンドル内の表示は DOMPurify 3.4.0）。ライセンスは同じである。",
+        "`template/vendor/mermaid.min.js` は npm の `mermaid@" + mver + "` を、`cli/tools/mermaid-bundle` の",
+        "package-lock.json の依存で束ね直したものである（依存の修正版を mermaid の次の版を待たずに入れるため）。",
+        "下の一覧は、束ねたときに出力に入ったパッケージ（esbuild の metafile。同じフォルダの bundled.json）と、",
+        "それらが配布物の時点で中に固めている依存（例: roughjs の points-on-curve）である。",
+        "lock に入っていても出力に入らないもの（例: KaTeX のコマンドライン用の commander）は載せない。",
         "",
         table(mermaid),
         "",

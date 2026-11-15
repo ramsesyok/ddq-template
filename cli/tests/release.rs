@@ -216,13 +216,14 @@ fn zip_matches_the_stage_byte_for_byte() {
         let mut f = zip.by_index(i).unwrap();
         let name = f
             .name()
+            .unwrap()
             .strip_prefix(&format!("quarto-template-{v}/"))
             .expect("トップフォルダ付き")
             .to_string();
         if !name.is_ascii() {
             // 日本語名は UTF-8 名フラグ（general purpose bit 11）付き
             assert!(
-                f.name_raw() == f.name().as_bytes(),
+                f.name_raw() == f.name().unwrap().as_bytes(),
                 "{name}: UTF-8 で書かれていない"
             );
         }
@@ -418,7 +419,16 @@ fn real_build_repo(root: &Path, package_b: &str) {
         )
         .as_bytes(),
     );
-    fs::create_dir_all(root.join("extensions/ddq-a/node_modules")).unwrap();
+    // 古い node_modules が残っている拡張（npm ci で入れ直されること）
+    write(root, "extensions/ddq-a/node_modules/stale/package.json", b"{}");
+    write(
+        root,
+        "extensions/ddq-a/package-lock.json",
+        format!(
+            r#"{{"name":"ddq-a","version":"{v}","lockfileVersion":3,"requires":true,"packages":{{"":{{"name":"ddq-a","version":"{v}","hasInstallScript":true}}}}}}"#
+        )
+        .as_bytes(),
+    );
     write(
         root,
         "extensions/ddq-b/package.json",
@@ -467,15 +477,19 @@ fn real_build_makes_the_manual_and_packages_the_extensions() {
     let html = fs::read_to_string(stage.join("manual/html/index.html")).unwrap();
     assert!(html.contains("<html"), "マニュアルの HTML ではない");
 
-    // node_modules の無い拡張だけ npm ci した
+    // node_modules の有無にかかわらず npm ci した（古い node_modules は lock どおりに入れ直される）
     let ext = repo.join("extensions");
     assert!(
         ext.join("ddq-b/npm-ci-ran").is_file(),
         "ddq-b で npm ci していない"
     );
     assert!(
-        !ext.join("ddq-a/npm-ci-ran").exists(),
-        "node_modules があるのに ddq-a で npm ci した"
+        ext.join("ddq-a/npm-ci-ran").is_file(),
+        "node_modules があるので ddq-a で npm ci しなかった"
+    );
+    assert!(
+        !ext.join("ddq-a/node_modules/stale").exists(),
+        "ddq-a の古い node_modules が残っている"
     );
 
     // 同梱の拡張には、release している ddq をコピーしてからパッケージした
