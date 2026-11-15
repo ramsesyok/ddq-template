@@ -53,6 +53,11 @@ jobs:
       - if: steps.plantuml-cache.outputs.cache-hit != 'true'
         run: curl.exe -sSL -o vendor/plantuml.jar "https://github.com/plantuml/plantuml/releases/download/v${{ env.PLANTUML_VERSION }}/plantuml-mit-${{ env.PLANTUML_VERSION }}.jar"
       - run: java -jar vendor/plantuml.jar -version
+      # 依存クレートの既知の脆弱性（RustSec）。unmaintained などの警告では落とさない
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - run: cargo audit
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
@@ -61,6 +66,28 @@ jobs:
         with:
           name: ddq-windows-x64
           path: cli/target/release/ddq.exe
+
+  # ddq.exe に埋め込む template/vendor/mermaid.min.js（cli/tools/mermaid-bundle が束ねたもの）。
+  # 中に固めた依存（DOMPurify・KaTeX など）も npm audit の対象にし、コミット済みの
+  # mermaid.min.js が package-lock.json から作り直したものと同じであることを確かめる。
+  mermaid-bundle:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli/tools/mermaid-bundle
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: cli/tools/mermaid-bundle/package-lock.json
+      - run: npm ci
+      - name: 同梱 JS の脆弱性（0 件必須）
+        run: npm run check:audit
+      - run: npm run build
+      - name: コミット済みの mermaid.min.js と同じか
+        run: git diff --exit-code --stat -- ../../../template/vendor/mermaid.min.js
 
   # 同梱版のスモーク（docs/ddq-template-study.md Q15）。上でビルドした ddq.exe を同梱した
   # ターゲット指定の VSIX を作り、展開した中身で VSCode を起動して init → html を通す。

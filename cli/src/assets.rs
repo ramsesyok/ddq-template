@@ -79,12 +79,23 @@ pub const RELEASE_GUIDE_TYP: &str = include_str!("../../template/release-guide.t
 /// 上を PDF にしたときのファイル名（リリース直下）
 pub const RELEASE_GUIDE_PDF: &str = "はじめかた.pdf";
 
-/// 埋め込み mermaid.min.js の版（`version:"11.16.1"` を拾う。SVG 先頭コメントに使う）
+/// 埋め込み mermaid.min.js の版（SVG 先頭コメントに使う）。
+/// cli/tools/mermaid-bundle で束ね直したものは先頭に `/*! mermaid 11.17.2 (…) */` があるのでそれを読む。
+/// 無ければ（npm の dist/mermaid.min.js そのまま）最初の `version:"…"` を拾う。
 pub fn mermaid_js_version() -> &'static str {
-    MERMAID_JS
-        .find("version:\"")
+    mermaid_version_of(MERMAID_JS)
+}
+
+fn mermaid_version_of(js: &str) -> &str {
+    if let Some(v) = js
+        .strip_prefix("/*! mermaid ")
+        .and_then(|rest| rest.split_whitespace().next())
+    {
+        return v;
+    }
+    js.find("version:\"")
         .and_then(|i| {
-            let rest = &MERMAID_JS[i + "version:\"".len()..];
+            let rest = &js[i + "version:\"".len()..];
             rest.find('"').map(|j| &rest[..j])
         })
         .unwrap_or("unknown")
@@ -151,5 +162,29 @@ impl Placed {
             Placed::Created(p) => println!("  作成: {p}"),
             Placed::Skipped(p) => println!("  既存のため skip: {p}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mermaid_version_reads_banner_then_falls_back() {
+        // 束ね直したもの: 先頭の表示を読む（後ろの version:"0.0.0" は依存のもの）
+        let rebuilt = r#"/*! mermaid 11.17.2 (DOMPurify 3.4.18, KaTeX 0.18.11) rebuilt */ x={version:"0.0.0"};y={version:"11.17.2"}"#;
+        assert_eq!(mermaid_version_of(rebuilt), "11.17.2");
+        // npm の dist/mermaid.min.js そのまま: 最初の version:"…"
+        assert_eq!(
+            mermaid_version_of(r#""use strict";a={version:"11.16.1"}"#),
+            "11.16.1"
+        );
+        assert_eq!(mermaid_version_of("no version"), "unknown");
+        // 埋め込んだ実物は数字の版を返す
+        assert!(
+            mermaid_js_version().starts_with(char::is_numeric),
+            "{}",
+            mermaid_js_version()
+        );
     }
 }

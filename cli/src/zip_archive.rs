@@ -63,7 +63,7 @@ fn verify(zip_path: &Path, expected: &[(String, u64)]) -> Result<()> {
         let mut out = Vec::with_capacity(archive.len());
         for i in 0..archive.len() {
             let f = archive.by_index(i)?;
-            out.push((f.name().to_string(), f.size()));
+            out.push((f.name()?.to_string(), f.size()));
         }
         Ok(out)
     })();
