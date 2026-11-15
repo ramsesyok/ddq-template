@@ -494,6 +494,8 @@
   page-start: 1,                       // 開始ページ番号。表紙・前書きを別文書で作り、その
                                        // 続きとして綴じるときに使う。既定 1（＝1から振る）
   toc: false, toc-title: "目 次", toc-depth: 3,
+  toc-placed: false,                   // 目次を本文中に置いた（design-doc.lua が前付けの後ろに
+                                       // #design-toc() を差し込んだ）か。true なら先頭に出さない
   pagebreak-level: 1,                  // 見出しの先頭で自動改ページする最深レベル。
                                        // 0=しない、1=章(h1)、2=章と節(h2。ただし各章で
                                        // 2つ目以降の節のみ)。既定 1
@@ -760,7 +762,12 @@
   // タイトルを block で描画し outline(title: none) を使う。
   // outline(title: content) は内部で heading を生成し採番ルールを消費するため、
   // そのままだと目次タイトルが「1. 目 次」になり以降の章番号が1つずれる。
-  if toc {
+  //
+  // Quarto から使うときは、ふつう design-doc.lua が前付け（index.qmd）の後ろに
+  // #design-toc() を差し込み toc-placed: true を渡すので、ここでは出さない
+  // （並びは「表紙 → 前付け → 目次 → 本文」）。ここで出すのは、素の Typst から
+  // 使うときと、前付けの後ろに章が無いときだけ。
+  if toc and not toc-placed {
     show outline.entry.where(level: 1): set block(above: 1.2em)
     block(above: 1.4em, below: 0.8em,
       text(font: JP-SANS, size: TOC-TITLE-SIZE, weight: "bold")[#toc-title])
@@ -772,14 +779,18 @@
 }
 
 // ============================================================
-//  【3.5】手動目次（toc: false のとき、任意の位置に目次を置く）
+//  【3.5】本文中の目次（任意の位置に目次を置く）
 //
-//  改訂履歴など「目次より前のページ」を作りたいときに使う。
-//  _quarto.yml で toc: false にし、目次を出したい位置に
+//  toc: true のとき、design-doc.lua が前付け（index.qmd）の後ろに自動で
+//    #pagebreak(weak: true)
+//    #design-toc(title: <toc-title>, depth: <toc-depth>)
+//  を差し込む（並びは「表紙 → 前付け → 目次 → 本文」）。
+//  前付けの途中など別の位置に置きたいときは、執筆者がその位置に
 //    ```{=typst}
 //    #design-toc()
 //    ```
-//  を書く。この位置より前にある見出しは目次に載らない（後述の after(here())）。
+//  を書く（このとき design-doc.lua は自動では差し込まない）。
+//  この位置より前にある見出しは目次に載らない（後述の after(here())）。
 //  前のページの見出しには {.unnumbered} を付ける（前付けと同じ。付けないと
 //  章番号を消費して「1. 本書について」になり、以降の章番号がずれる）。
 //

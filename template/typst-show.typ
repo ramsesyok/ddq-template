@@ -1,6 +1,6 @@
 // Quarto 用テンプレートパーシャル。
 // qmd のフロントマター（title / subtitle / author / doc-number / doc-revision /
-// spec / company-ja / company-en / cover / page-start / toc / toc-title / toc-depth /
+// spec / company-ja / company-en / cover / page-start / toc / toc-title / toc-depth / toc-placed /
 // pagebreak-level）を
 // lib.typ の design-doc() に引き渡す。
 #show: design-doc.with(
@@ -42,6 +42,9 @@ $if(toc-title)$
 $endif$
 $if(toc-depth)$
   toc-depth: $toc-depth$,
+$endif$
+$if(toc-placed)$
+  toc-placed: true,
 $endif$
 $if(pagebreak-level)$
   pagebreak-level: $pagebreak-level$,
