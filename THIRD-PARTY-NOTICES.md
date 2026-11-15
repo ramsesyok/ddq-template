@@ -1,6 +1,6 @@
 # 第三者のソフトウェアとライセンス（THIRD-PARTY-NOTICES）
 
-<!-- ddq-third-party inputs: cli/Cargo.lock=2db0461305e22e1ad4561ad998edca45f964b1d8 template/vendor/mermaid.min.js=7a3075f9fd946bc6306b43e3b432483de74653c5 extensions/ddq-template/package-lock.json=d5052535f8c6c1e26205daed53943421ffe0f2ae -->
+<!-- ddq-third-party inputs: cli/Cargo.lock=2db0461305e22e1ad4561ad998edca45f964b1d8 template/vendor/mermaid.min.js=7a3075f9fd946bc6306b43e3b432483de74653c5 extensions/ddq-template/package-lock.json=352a4afe9fbbc8597f239ac793b425428fcbfbca -->
 <!-- 生成物。手で直さない（python cli/tools/third_party.py で作り直す） -->
 
 この配布物（quarto-template）の ddq 本体とテンプレートは MIT ライセンスである（同梱の LICENSE）。
@@ -262,7 +262,7 @@
 | dagre-d3-es | 7.0.14 | MIT | <https://www.npmjs.com/package/dagre-d3-es/v/7.0.14> |
 | dayjs | 1.11.23 | MIT | <https://www.npmjs.com/package/dayjs/v/1.11.23> |
 | delaunator | 5.1.0 | ISC | <https://www.npmjs.com/package/delaunator/v/5.1.0> |
-| dompurify | 3.4.17 | (MPL-2.0 OR Apache-2.0) | <https://www.npmjs.com/package/dompurify/v/3.4.17> |
+| dompurify | 3.4.18 | (MPL-2.0 OR Apache-2.0) | <https://www.npmjs.com/package/dompurify/v/3.4.18> |
 | es-toolkit | 1.53.2 | MIT | <https://www.npmjs.com/package/es-toolkit/v/1.53.2> |
 | hachure-fill | 0.5.2 | MIT | <https://www.npmjs.com/package/hachure-fill/v/0.5.2> |
 | iconv-lite | 0.6.3 | MIT | <https://www.npmjs.com/package/iconv-lite/v/0.6.3> |
@@ -2483,7 +2483,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 34
 
-対象: cssparser 0.36.0（LICENSE）、dtoa-short 0.3.5（LICENSE）、selectors 0.37.0（（MPL-2.0 の本文。パッケージに本文ファイルが無いため補った））、dompurify 3.4.17（LICENSE-MPL）
+対象: cssparser 0.36.0（LICENSE）、dtoa-short 0.3.5（LICENSE）、selectors 0.37.0（（MPL-2.0 の本文。パッケージに本文ファイルが無いため補った））、dompurify 3.4.18（LICENSE-MPL）
 
 ```text
 Mozilla Public License Version 2.0
@@ -3472,7 +3472,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### 本文 56
 
-対象: dugong 0.8.0-alpha.6（LICENSE-APACHE）、dugong-graphlib 0.8.0-alpha.6（LICENSE-APACHE）、encoding_rs 0.8.41（LICENSE-APACHE）、htmlize 1.1.0（LICENSE-APACHE）、kurbo 0.13.1（LICENSE-APACHE）、manatee 0.8.0-alpha.6（LICENSE-APACHE）、merman 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/dompurify/LICENSE）、merman-render 0.8.0-alpha.6（LICENSE-APACHE）、multiversion 0.9.0（LICENSE-APACHE）、polycool 0.4.0（LICENSE-APACHE）、sys-locale 0.3.2（LICENSE-APACHE）、system-fonts 0.1.2（LICENSE-APACHE）、tinyvec 1.13.3（LICENSE-APACHE.md）、unicode-linebreak 0.1.5（LICENSE）、utf8_iter 1.0.4（LICENSE-APACHE）、@chevrotain/types 11.1.2（LICENSE.txt）、dompurify 3.4.17（LICENSE）
+対象: dugong 0.8.0-alpha.6（LICENSE-APACHE）、dugong-graphlib 0.8.0-alpha.6（LICENSE-APACHE）、encoding_rs 0.8.41（LICENSE-APACHE）、htmlize 1.1.0（LICENSE-APACHE）、kurbo 0.13.1（LICENSE-APACHE）、manatee 0.8.0-alpha.6（LICENSE-APACHE）、merman 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（LICENSE-APACHE）、merman-core 0.8.0-alpha.6（THIRD_PARTY_LICENSES/dompurify/LICENSE）、merman-render 0.8.0-alpha.6（LICENSE-APACHE）、multiversion 0.9.0（LICENSE-APACHE）、polycool 0.4.0（LICENSE-APACHE）、sys-locale 0.3.2（LICENSE-APACHE）、system-fonts 0.1.2（LICENSE-APACHE）、tinyvec 1.13.3（LICENSE-APACHE.md）、unicode-linebreak 0.1.5（LICENSE）、utf8_iter 1.0.4（LICENSE-APACHE）、@chevrotain/types 11.1.2（LICENSE.txt）、dompurify 3.4.18（LICENSE）
 
 ```text
 Apache License
