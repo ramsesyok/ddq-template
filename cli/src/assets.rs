@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn mermaid_version_reads_banner_then_falls_back() {
         // 束ね直したもの: 先頭の表示を読む（後ろの version:"0.0.0" は依存のもの）
-        let rebuilt = r#"/*! mermaid 11.17.2 (DOMPurify 3.4.18, KaTeX 0.18.11) rebuilt */ x={version:"0.0.0"};y={version:"11.17.2"}"#;
+        let rebuilt = r#"/*! mermaid 11.17.2 (DOMPurify 3.4.18, KaTeX 0.18.10) rebuilt */ x={version:"0.0.0"};y={version:"11.17.2"}"#;
         assert_eq!(mermaid_version_of(rebuilt), "11.17.2");
         // npm の dist/mermaid.min.js そのまま: 最初の version:"…"
         assert_eq!(

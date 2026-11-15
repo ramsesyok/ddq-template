@@ -13,8 +13,9 @@
 - 同梱の `ddq.exe` が内蔵する mermaid を 11.16.0 → 11.16.1 に上げ、中に固めてある依存を修正版に入れ替えた。
   mermaid の既知の脆弱性 5 件（XY チャート・レーダー図の無限ループ、図の外へ効く CSS の注入、プロトタイプ汚染 2 件）と、
   npm の mermaid の配布物に入っていた DOMPurify 3.4.0・KaTeX 0.16 の既知の脆弱性を解消した（DOMPurify 3.4.18・
-  KaTeX 0.18.11）。npm の `mermaid.min.js` をそのまま使うのをやめ、`cli/tools/mermaid-bundle` で lock の依存から
-  束ね直す（図の形は 11.16.1 の公式の配布物と同じ）。この mermaid は PDF・配布 HTML 用の図を描くときに端末のブラウザで動く（HTML には入らない）
+  KaTeX 0.18.10）。npm の `mermaid.min.js` をそのまま使うのをやめ、`cli/tools/mermaid-bundle` で lock の依存から
+  束ね直す（図の形は 11.16.1 の公式の配布物と同じ）。`THIRD-PARTY-NOTICES.md` の mermaid の一覧は、束ねた JS に実際に入った
+  パッケージ（esbuild の metafile による）だけにした。この mermaid は PDF・配布 HTML 用の図を描くときに端末のブラウザで動く（HTML には入らない）
 - 依存の更新: `zip` 9.5.1（展開時のシンボリックリンク・権限の扱いの脆弱性 4 件。ddq は展開に使わないが、
   `cargo audit` で 0 件にする）、`pulldown-cmark` 0.13.6（mermaid の内蔵レンダラ経由）、`rustix` 1.1.6、
   拡張の開発用ツール（vite・vitest、`@vscode/vsce` が使う glob 14・minimatch 11。VSIX には入らない）

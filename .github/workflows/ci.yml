@@ -69,7 +69,7 @@ jobs:
 
   # ddq.exe に埋め込む template/vendor/mermaid.min.js（cli/tools/mermaid-bundle が束ねたもの）。
   # 中に固めた依存（DOMPurify・KaTeX など）も npm audit の対象にし、コミット済みの
-  # mermaid.min.js が package-lock.json から作り直したものと同じであることを確かめる。
+  # mermaid.min.js と同梱一覧（bundled.json）が package-lock.json から作り直したものと同じであることを確かめる。
   mermaid-bundle:
     runs-on: ubuntu-latest
     defaults:
@@ -87,7 +87,7 @@ jobs:
         run: npm run check:audit
       - run: npm run build
       - name: コミット済みの mermaid.min.js と同じか
-        run: git diff --exit-code --stat -- ../../../template/vendor/mermaid.min.js
+        run: git diff --exit-code --stat -- ../../../template/vendor/mermaid.min.js bundled.json
 
   # 同梱版のスモーク（docs/ddq-template-study.md Q15）。上でビルドした ddq.exe を同梱した
   # ターゲット指定の VSIX を作り、展開した中身で VSCode を起動して init → html を通す。

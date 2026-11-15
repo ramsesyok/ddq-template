@@ -7,9 +7,10 @@
 - ddq.exe に静的にリンクされる Rust のクレート（Windows 向けの通常の依存。proc-macro 等の
   ビルド時だけのものは含めない）。本文はローカルの Cargo レジストリから取る
 - ddq.exe に埋め込んだ template/vendor/mermaid.min.js（mermaid と、そのバンドルに入る
-  依存の npm パッケージ）。cli/tools/mermaid-bundle が package-lock.json の依存で束ねたもので、
-  本文はその lock を一時フォルダで `npm ci --ignore-scripts --omit=dev` した package から取る
-  （一覧の版は成果物に入った版と一致する）
+  依存の npm パッケージ）。cli/tools/mermaid-bundle が package-lock.json の依存で束ねたもの。
+  載せるのは、束ねたときに esbuild の metafile で出力に入ったパッケージと、それらが中に固めて
+  いる依存（同じフォルダの bundled.json。作り方は build.mjs）だけ。本文はその lock を一時フォルダで `npm ci --ignore-scripts --omit=dev`
+  した package から取る
 - VSCode 拡張（VSIX）の Webview にバンドルされる React（extensions/*/node_modules から）
 
 plantuml.jar は同梱しない（3.0.0 から。利用者が自分で用意する）ので対象外。
@@ -37,6 +38,7 @@ INPUTS = [
     "cli/Cargo.lock",
     "template/vendor/mermaid.min.js",
     "cli/tools/mermaid-bundle/package-lock.json",
+    "cli/tools/mermaid-bundle/bundled.json",
     "extensions/ddq-template/package-lock.json",
 ]
 # VSIX の Webview にバンドルされる実行時のパッケージ（src/webview が import するもの）。
@@ -255,9 +257,16 @@ def main() -> None:
     crates = rust_crates()
     mver = mermaid_version()
     nm, tmp = mermaid_modules()
-    mermaid = npm_packages(nm)
-    if not any(p["name"] == "mermaid" and p["version"] == mver for p in mermaid):
-        sys.exit(f"mermaid {mver} が {nm} にありません")
+    # 出力に入ったものだけ（lock にあっても木の刈り込みで入らないものは載せない）
+    bundled = {(b["name"], b["version"]) for b in
+               json.loads((MERMAID_BUNDLE / "bundled.json").read_text(encoding="utf-8"))}
+    mermaid = [p for p in npm_packages(nm) if (p["name"], p["version"]) in bundled]
+    lost = sorted(bundled - {(p["name"], p["version"]) for p in mermaid})
+    if lost:
+        sys.exit("bundled.json のパッケージが lock にありません（npm run build し直してください）: "
+                 + "、".join(f"{n} {v}" for n, v in lost))
+    if ("mermaid", mver) not in bundled:
+        sys.exit(f"mermaid {mver} が bundled.json にありません")
     react = npm_packages(ROOT / "extensions/ddq-template/node_modules", EXTENSION_BUNDLED)
     if sorted({p["name"] for p in react}) != sorted(EXTENSION_BUNDLED):
         sys.exit("extensions/ddq-template/node_modules に React 一式がありません（npm ci してください）")
@@ -298,7 +307,9 @@ def main() -> None:
         "",
         "`template/vendor/mermaid.min.js` は npm の `mermaid@" + mver + "` を、`cli/tools/mermaid-bundle` の",
         "package-lock.json の依存で束ね直したものである（依存の修正版を mermaid の次の版を待たずに入れるため）。",
-        "下の版はその lock の版で、バンドルに入った版と一致する。",
+        "下の一覧は、束ねたときに出力に入ったパッケージ（esbuild の metafile。同じフォルダの bundled.json）と、",
+        "それらが配布物の時点で中に固めている依存（例: roughjs の points-on-curve）である。",
+        "lock に入っていても出力に入らないもの（例: KaTeX のコマンドライン用の commander）は載せない。",
         "",
         table(mermaid),
         "",
