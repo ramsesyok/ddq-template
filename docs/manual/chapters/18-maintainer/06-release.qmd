@@ -93,9 +93,9 @@ python cli/tools/third_party.py
 （タグの指すコミットと配布物を一致させるため）。
 
 ```bash
-gh release create v3.0.1-pre1 "release/quarto-template-3.0.1-pre1.zip" "release/ddq-template-win32-x64-3.0.1-pre1.vsix" \
+gh release create v3.1.0-pre1 "release/quarto-template-3.1.0-pre1.zip" "release/ddq-template-win32-x64-3.1.0-pre1.vsix" \
   --target main \
-  --title "v3.0.1-pre1 — （変更の要約）" \
+  --title "v3.1.0-pre1 — （変更の要約）" \
   --notes-file <リリースノートのファイル>
 ```
 
