@@ -1291,6 +1291,71 @@ function Header(el)
 end
 
 -- ============================================================
+--  目次（toc: true）を前付け（index.qmd）の後ろに置く（PDF のみ）
+--
+--  並びを「（表紙）→ index.qmd → 目次 → 本文」にする。Typst の design-doc() は
+--  本文の前に目次を出すので、そのままだと「目次 → index.qmd → 本文」になる。
+--
+--  境目の見つけ方: Quarto の book は1冊に繋いだ原稿の各章ファイルの先頭に
+--  `<!-- quarto-file-metadata: <base64 JSON> -->` を挟む（JSON に bookItemFile が
+--  入る）。index.qmd の次に来るこの印の直前が「前付けの終わり」である。
+--  章の h1 を数える方式は採らない。index.qmd に見出しが無いとき Quarto が補う空の
+--  h1 は上の Header() が消すので、h1 の数え方では境目が1章ずれる。
+--
+--  ここで置いたときは メタデータ toc-placed を立て、typst-show.typ 経由で
+--  design-doc() に先頭の目次を出させない（2つ出さない）。
+--  原稿に ```{=typst} #design-toc() ``` が既にあれば、そちらの位置を尊重して
+--  自動では置かない（このときも先頭の目次は止める）。
+--  index.qmd の後ろに章が無い（前付けだけの文書）とき、および _quarto.yml で
+--  toc-position: top としたときは何もせず、従来どおり先頭（表紙の次）に出す。
+-- ============================================================
+local function file_metadata(el)
+  if el.t ~= 'RawBlock' or el.format ~= 'html' then return nil end
+  local b64 = el.text:match('^<!%-%- quarto%-file%-metadata: ([A-Za-z0-9+/=]+) %-%->')
+  if not b64 then return nil end
+  local ok, meta = pcall(function() return pandoc.json.decode(quarto.base64.decode(b64)) end)
+  if ok and type(meta) == 'table' then return meta end
+  return nil
+end
+
+function Pandoc(doc)
+  if FORMAT ~= 'typst' then return nil end
+  if not (PANDOC_WRITER_OPTIONS and PANDOC_WRITER_OPTIONS.table_of_contents) then return nil end
+  -- toc-position: top なら従来どおり先頭（表紙の次・前付けの前）に出す。
+  local pos = doc.meta['toc-position'] and pandoc.utils.stringify(doc.meta['toc-position'])
+  if pos == 'top' then return nil end
+
+  local manual = false
+  doc.blocks:walk({
+    RawBlock = function(el)
+      if el.format == 'typst' and el.text:find('#design%-toc%(') then manual = true end
+    end,
+  })
+  if manual then
+    doc.meta['toc-placed'] = true
+    return doc
+  end
+
+  local index_at, next_at = nil, nil
+  for i, b in ipairs(doc.blocks) do
+    local m = file_metadata(b)
+    if m then
+      if index_at then next_at = i; break end
+      if m.bookItemFile == 'index.qmd' then index_at = i end
+    end
+  end
+  if not next_at then return nil end
+
+  local title = doc.meta['toc-title'] and pandoc.utils.stringify(doc.meta['toc-title']) or '目 次'
+  local depth = PANDOC_WRITER_OPTIONS.toc_depth or 3
+  local esc = title:gsub('\\', '\\\\'):gsub('"', '\\"')
+  doc.blocks:insert(next_at, pandoc.RawBlock('typst', string.format(
+    '#pagebreak(weak: true)\n#design-toc(title: "%s", depth: %d)', esc, depth)))
+  doc.meta['toc-placed'] = true
+  return doc
+end
+
+-- ============================================================
 --  フィルタの順序: mermaid の一括変換 → 各要素の変換
 --
 --  上の要素ごとの関数（CodeBlock・Div など）はグローバルに定義しているが、グローバルの

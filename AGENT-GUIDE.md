@@ -396,8 +396,10 @@ flowchart TD
 
 - 前付けは執筆フォルダ直下の `index.qmd`。HTML のトップページになり、PDF では表紙の次に置かれる。
 - 前付けの表は素の表（キャプションなし）か `::: {.tbl .unnumbered caption="…"}`。番号付き図表は置かない。
-- 目次より前にページ（改正履歴など）を置きたいときだけ、`_quarto.yml` を `toc: false` にし、
-  目次を出す位置に ```` ```{=typst} ```` ブロックで `#design-toc()` と書く（PDF のみ有効）。
+- PDF の並びは既定で（表紙）→ 前付け → 目次 → 本文（`toc: true` のまま）。前付けの見出しは目次に載らない。
+  目次を表紙の次（前付けの前）に出すなら `_quarto.yml` に `toc-position: top`。
+- 前付けの途中に目次を置きたいときだけ、その位置に ```` ```{=typst} ```` ブロックで
+  `#design-toc()` と書く（`toc: true` のままでよい。自動の目次は出なくなる。PDF のみ有効）。
 → 7章
 
 ## 10. PDF と HTML の違い・制限
@@ -437,7 +439,7 @@ quarto preview     # ブラウザでライブプレビュー（VSCode では Ctr
 ### 発行者側（リリース展開フォルダ `quarto-template-<版>/` から、絶対パスで実行）
 
 ```bat
-cd C:\tools\quarto-template-3.0.0
+cd C:\tools\quarto-template-3.0.1-pre1
 :: 設計書リポジトリを新規作成（執筆フォルダ docs）
 .\ddq init C:\work\order-design
 :: 同じリポジトリに 2 つ目の執筆フォルダを追加

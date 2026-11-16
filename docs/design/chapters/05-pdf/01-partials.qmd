@@ -24,6 +24,9 @@ lib.typ の design-doc()  … ページ設定・様式の背景・見出しと�
 
 ::: {.callout-note}
 Quarto 既定の目次生成は `typst-template.typ` 側にあり、差し替えた結果として機能しない。
-目次は `lib.typ` の `#outline()` が出している（`toc: false` のときは `design-toc()` で
-任意の位置に置ける）。
+目次は `lib.typ` の `#outline()` が出している。`toc: true` のとき、`design-doc.lua` が
+前付け（`index.qmd`）と次の章ファイルの境目（Quarto が挟む `quarto-file-metadata`
+コメント）に `#design-toc()` を差し込み、`toc-placed: true` を渡して `design-doc()` の
+先頭の目次を止める。`toc-position: top`、前付けの後ろに章が無い、原稿に
+`#design-toc()` がある、のいずれかなら差し込まない（前2つは先頭に出す）。
 :::

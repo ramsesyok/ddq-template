@@ -12,6 +12,7 @@
 | 途中のページから始める | `page-start: 5`                          | 4章  |
 | 節ごとに改ページする   | `pagebreak-level: 2`                     | 4章  |
 | 章で改ページしない     | `pagebreak-level: 0`                     | 4章  |
-| 目次の前にページを置く | `toc: false` ＋ `#design-toc()`          | 7章  |
+| 目次を表紙の次に出す   | `toc-position: top`（既定は前付けの後）  | 7章  |
+| 前付けの途中に目次     | 目次位置に `#design-toc()`               | 7章  |
 | 章を増減・並べ替える   | `book: chapters:` の一覧                 | 4章  |
 :::
