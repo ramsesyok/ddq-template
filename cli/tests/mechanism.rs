@@ -355,16 +355,24 @@ fn query_records(stdout: &[u8], stderr: &str) -> Vec<serde_json::Value> {
 /// 描画された文字を文書の順に 1 塊 1 行で並べる。ページの区切りと、各ページ先頭の
 /// ページヘッダ（資料番号・ページ番号・「/」・総ページ数）は比べない
 fn pdf_digest(docs: &Path) -> Vec<String> {
-    let out = Command::new("quarto")
-        .args([
-            "typst",
-            "query",
-            "index.typ",
-            "<rendered-pages>",
-            "--field",
-            "value",
-            "--one",
-        ])
+    let mut cmd = Command::new("quarto");
+    cmd.args([
+        "typst",
+        "query",
+        "index.typ",
+        "<rendered-pages>",
+        "--field",
+        "value",
+        "--one",
+    ]);
+    // callout は Quarto 同梱の @preview/fontawesome を import する。render は同梱分を
+    // .quarto/typst/packages に置いて使うが、素の `quarto typst query` はそこを見ずに
+    // packages.typst.org から取りに行く（ネットに出られない環境で失敗する）。同じ場所を指す。
+    let packages = docs.join(".quarto/typst/packages");
+    if packages.is_dir() {
+        cmd.arg("--package-path").arg(&packages);
+    }
+    let out = cmd
         .current_dir(docs)
         .output()
         .expect("quarto typst query を起動できません");

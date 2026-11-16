@@ -99,3 +99,10 @@ XREF #num-app-2: 2
 XREF #num-app-2-2: 2
 XREF #num-app-4: 4
 XREF #num-app-4-1: 1
+TABLE widths: 90% 9%
+  ROW th: 手順 | th: 備考
+  ROW td: 表の中の手順。 表の中の二。 表の中の細目。 | td: なし
+XREF #num-app-5: 1
+XREF #num-app-bullet: 2
+XREF #num-app-callout: 2
+XREF #num-app-cell: 2
