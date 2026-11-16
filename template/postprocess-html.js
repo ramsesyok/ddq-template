@@ -93,8 +93,10 @@ const HEAD = String.raw`<h[2-6][^>]*\bdata-number="([0-9A-Z][0-9A-Z.]*)"`;
 // どちらにも一致させる（冪等性のため。ヘッダのコメント参照）。
 // 付録の番号は英字で始まる（表 A-1 / 表 A.1-1）ので、数字だけに限定しない。
 const NUM = String.raw`[0-9A-Z][\d.A-Z]*(?:-\d+)?(?::${SP}|　)`;
-const CAP = String.raw`<figcaption[^>]*\bid="((?:fig|tbl)-[^"]*?)-caption-[^"]*"[^>]*>${SP}(図|表)${SP}${NUM}`;
-const CAP_TAIL = new RegExp(String.raw`(図|表)${SP}${NUM}$`);
+// コード（lst-。キャプション付きのコードブロック）も図表と同じ「章.節-連番」にする
+// （PDF は lib.typ の figure 採番に乗るので「コード 3.2-1」。連番の列は図・表と別）。
+const CAP = String.raw`<figcaption[^>]*\bid="((?:fig|tbl|lst)-[^"]*?)-caption-[^"]*"[^>]*>${SP}(図|表|コード)${SP}${NUM}`;
+const CAP_TAIL = new RegExp(String.raw`(図|表|コード)${SP}${NUM}$`);
 // 自前採番の表(.tbl/.ipo)のキャプション div（design-doc.lua が各パートの上に置く）。
 // 先頭パート(data-split-first)で1つの表番号を確定し、続くパートも同じ番号を共有する。
 // 番号は本文の表と同じ連番列に載せる（走査順に採番）。
@@ -204,7 +206,7 @@ for (const [file, { html, repl }] of staged) {
   // 足す（Quarto 標準の相互参照は最初から "../x.html#fig-x" の形なので触らない）。
   const relFile = path.relative(root, file).split(path.sep).join('/');
   out = out.replace(
-    /(<a href=")(#(?:fig|tbl|num)-[^"]+)("[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)/g,
+    /(<a href=")(#(?:fig|tbl|lst|num)-[^"]+)("[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)/g,
     (whole, open, frag, close) => {
       const target = fileOf.get(frag.slice(1));
       if (!target || target === relFile) return whole;
@@ -212,12 +214,21 @@ for (const [file, { html, repl }] of staged) {
       return `${open}${href}${frag}${close}`;
     });
   out = out.replace(
-    /(<a href="[^"]*#((?:fig|tbl|num)-[^"]+)"[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)([\s\S]*?)(<\/a>)/g,
+    /(<a href="[^"]*#((?:fig|tbl|lst|num)-[^"]+)"[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)([\s\S]*?)(<\/a>)/g,
     (whole, open, id, _text, close) => {
       const label = numberOf.get(id);
       if (!label) { missing += 1; return whole; }
       refCount += 1;
       return `${open}${label}${close}`;
+    });
+  // 数式の参照(@eq-x): Quarto 既定の「式 1.1」を、式の右に出る番号と同じ「式 (1.1)」にする
+  // （PDF は typst の既定で「式 (1.1)」）。番号は Quarto の採番（章.連番）のまま変えない。
+  // 冪等性: 変換後は <span>(1.1)</span> となり数字で始まらないので、二度目は一致しない。
+  out = out.replace(
+    /(<a href="[^"]*#eq-[^"]+"[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>[^<]*)<span>([0-9A-Z][\d.A-Z]*)<\/span>(<\/a>)/g,
+    (whole, open, num, close) => {
+      refCount += 1;
+      return `${open}<span>(${num})</span>${close}`;
     });
   // 見出し参照(@sec-x): Quarto 既定の「チャプター 5 / セクション 5.3」を、番号＋章/節の
   // 後置表記へ。番号にドットが無い（＝章）→「5章」、ドットあり（＝節以下）→「5.3節」。

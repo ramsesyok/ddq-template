@@ -1,6 +1,6 @@
 ### 受注レコード
 
-受注レコードのデータ項目を @tbl-rec-order に示す。
+受注レコードのデータ項目を @tbl-rec-order に、テーブル定義を @lst-ddl-order に示す。
 
 | データ項目 | 属性       | レベル | 繰返し | 備考               |
 |------------|------------|:------:|:------:|--------------------|
@@ -10,3 +10,14 @@
 | 状態       | コード(2)  | 1      | 1      | 00:受付 10:引当済 20:出荷済 |
 
 : 受注レコード仕様 {#tbl-rec-order}
+
+```{#lst-ddl-order .sql lst-cap="受注テーブルの定義（DDL）"}
+CREATE TABLE orders (
+    order_id     NUMERIC(10)  NOT NULL,              -- 受注ID（採番）
+    customer_id  VARCHAR(8)   NOT NULL,              -- 顧客ID
+    order_date   DATE         NOT NULL,              -- 受注日
+    status       CHAR(2)      NOT NULL DEFAULT '00', -- 状態 00:受付 10:引当済 20:出荷済
+    CONSTRAINT pk_orders PRIMARY KEY (order_id),
+    CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id)
+);
+```

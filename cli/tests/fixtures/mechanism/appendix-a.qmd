@@ -43,3 +43,5 @@
 +---------------------------------+------+
 
 2行の項目 @num-app-5 、箇条書きの中 @num-app-bullet 、注記の中 @num-app-callout 、表の中 @num-app-cell 。
+
+別の章のコード @lst-fig-sql と数式 @eq-fixture を参照する。
