@@ -4,6 +4,10 @@
 
 前の章の表 @tbl-basic と @tbl-split を参照する。
 
+```{#lst-ipo-sql .sql lst-cap="節 2.1 のコード"}
+SELECT 1;
+```
+
 ::: {.ipo module="受注管理" caption="受注処理の流れ" label="tbl-ipo"}
 ## 受注処理
 
@@ -55,3 +59,13 @@
 ![箱の図](/diagrams/box.svg){#fig-box width="30%"}
 
 図は @fig-box、分割した IPO 図は @tbl-ipo-split である。付録の手順は @num-app-2 である。
+
+```{#lst-fig-sql .sql lst-cap="節 2.2 のコード"}
+SELECT 2;
+```
+
+$$
+S = k \times N
+$$ {#eq-fixture}
+
+コードは @lst-ipo-sql と @lst-fig-sql 、数式は @eq-fixture である。

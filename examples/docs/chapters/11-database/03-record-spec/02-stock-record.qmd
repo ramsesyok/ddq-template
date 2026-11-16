@@ -10,3 +10,17 @@
 | 最終更新日時 | 日時       | 1      | 1      | 排他制御に使用       |
 
 : 在庫レコード仕様 {#tbl-rec-stock}
+
+在庫の引当では、最終更新日時を使って同時引当を検出する（楽観的排他制御）。引当の更新文を
+@lst-stock-reserve に示す。更新件数が 0 件のときは、他の処理が先に更新したものとして
+引当をやり直す。
+
+```{#lst-stock-reserve .sql lst-cap="在庫を引き当てる更新文（楽観的排他制御）"}
+UPDATE stocks
+   SET available_qty = available_qty - :qty,
+       reserved_qty  = reserved_qty  + :qty,
+       updated_at    = CURRENT_TIMESTAMP
+ WHERE item_code     = :item_code
+   AND available_qty >= :qty
+   AND updated_at    = :read_updated_at;   -- 読み込み時の最終更新日時と一致するときだけ更新
+```

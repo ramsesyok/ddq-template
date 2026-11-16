@@ -63,6 +63,7 @@ H1: 2 IPO 図と図
 H2: 2.1 IPO 図
 XREF ../01-tables/index.html#tbl-basic: 表 1.1-1
 XREF ../01-tables/index.html#tbl-split: 表 1.3-1
+FIGCAPTION: コード 2.1-1　節 2.1 のコード
 CAPTION #tbl-ipo part=1/1: 表 2.1-1　受注処理の流れ
 IPO-TITLE: 受注管理
 IPO-TITLE: 受注処理
@@ -87,6 +88,10 @@ FIGCAPTION: 図 2.2-1　箱の図
 XREF #fig-box: 図 2.2-1
 XREF #tbl-ipo-split: 表 2.1-2
 XREF ../../appendix-a.html#num-app-2: 2
+FIGCAPTION: コード 2.2-1　節 2.2 のコード
+XREF #lst-ipo-sql: コード 2.1-1
+XREF #lst-fig-sql: コード 2.2-1
+XREF #eq-fixture: 式 (2.1)
 == appendix-a.html
 H1: 付録 A — 付録の表
 XREF chapters/01-tables/index.html#tbl-merge: 表 1.2-1
@@ -106,3 +111,5 @@ XREF #num-app-5: 1
 XREF #num-app-bullet: 2
 XREF #num-app-callout: 2
 XREF #num-app-cell: 2
+XREF chapters/02-ipo/index.html#lst-fig-sql: コード 2.2-1
+XREF chapters/02-ipo/index.html#eq-fixture: 式 (2.1)

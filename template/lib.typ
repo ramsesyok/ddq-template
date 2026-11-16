@@ -671,9 +671,10 @@
   // 各 show ルールでは `if it.numbering != none` で番号あり見出しのときだけリセットする
   // （HTML 側は接頭辞キーで連番を持つため元々継続する。これで PDF と挙動が揃う）。
   // 対象 kind: image/table は素の Typst（jp-figure/jp-table）、
-  // quarto-float-* は Quarto qmd フローの図表。両フローで動くよう全て 0 に戻す。
+  // quarto-float-* は Quarto qmd フローの図表とコード（lst-。キャプション付きのコード
+  // ブロック）。両フローで動くよう全て 0 に戻す（コードも図表と同じ「章.節-連番」）。
   let reset-floats() = {
-    for k in (image, table, "quarto-float-fig", "quarto-float-tbl") {
+    for k in (image, table, "quarto-float-fig", "quarto-float-tbl", "quarto-float-lst") {
       counter(figure.where(kind: k)).update(0)
     }
   }
