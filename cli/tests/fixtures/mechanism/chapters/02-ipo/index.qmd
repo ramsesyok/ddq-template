@@ -54,4 +54,4 @@
 
 ![箱の図](/diagrams/box.svg){#fig-box width="30%"}
 
-図は @fig-box、分割した IPO 図は @tbl-ipo-split である。
+図は @fig-box、分割した IPO 図は @tbl-ipo-split である。付録の手順は @num-app-2 である。

@@ -9,6 +9,9 @@
 | `::: {.tbl}` | `#_tbl-auto[…]` で包んだ表（キャプションをヘッダ行として表に入れ、改ページで割れたら「（i／n）」を自動付与。手動分割は空行区切り、`merge-cols=` で rowspan 結合、`widths=` で列幅、`label=` で相互参照） | `<div class="split-caption">` ＋表（採番は後処理、結合・列幅は同左） |
 | すべての表 | 列幅を本文幅いっぱいに正規化 | CSS の `width: 100%` |
 | `@tbl-xxx` | `#_xref("tbl-xxx")`（`lib.typ`。自前採番の番号があればそれ、なければ Quarto の参照へ委譲） | 自前アンカー。番号は後処理が確定する |
+| 番号付きリストの項目の行末の `{#num-xxx}` | 項目の先頭に `#metadata((depth: 段, n: 番号))<num-xxx>`。Pandoc は項目の `{#…}` を文字として渡すので、最初の段落の末尾から取り除く（1 段目のフィルタ `mark_num_items`。参照の置換より先に走らせる） | 項目の先頭に `<span id="num-xxx" data-num-label="番号">` |
+| `@num-xxx` | `#_num-ref("num-xxx")`（`lib.typ`。印の段と番号から `ENUM-NUMBERING` で記号を作る。無ければ赤い「?」） | 自前アンカー。同じ章ファイルの項目は番号を入れ、別ファイルの項目は後処理が番号と href を直す |
+| 途中の番号から始まるリスト（`4.` から） | Pandoc に start を渡さず `#set enum(start: 4)` で包む（Pandoc の `numbering: "1."` を避け、記号を `ENUM-NUMBERING` のままにする）。直下の入れ子は自分の start で包み直す | 変更なし（`<ol start="4">`） |
 | セル内の `<br>` | `LineBreak`（typst の `linebreak`） | `LineBreak`（`<br>`） |
 :::
 

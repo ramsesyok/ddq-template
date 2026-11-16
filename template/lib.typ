@@ -426,6 +426,20 @@
   }
 }
 
+// 番号付きリストの項目への参照（@num-x）。design-doc.lua が参照を #_num-ref("num-x") に、
+// 項目の先頭に #metadata((depth: 段, n: 番号))<num-x> を置く。記号は本文のリストと同じ
+// ENUM-NUMBERING で作る（段だけ渡せばよいので、親の番号は 1 で埋める）。自分の段の記号
+// だけを出す（「(3)」「②」）。見つからない（綴り違い等）ときは _xref と同じく赤い「?」。
+#let _num-ref(name) = context {
+  let hit = query(label(name))
+  if hit.len() > 0 and hit.first().func() == metadata {
+    let v = hit.first().value
+    link(hit.first().location(), ENUM-NUMBERING(..((1,) * (v.depth - 1)), v.n))
+  } else {
+    text(fill: red)[?#name]
+  }
+}
+
 // 参照先のページ番号。改訂履歴表の「頁」列など、`#_xref-page("sec-x")`{=typst} で使う。
 // _xref と同じ手順で参照先（見出し <sec-x> / 自前採番表 <sn-tbl-x> / フロート図表
 // <fig-x> <tbl-x>）の location を求め、そこでページカウンタを読む。_page-start は

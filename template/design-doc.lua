@@ -1241,6 +1241,126 @@ function Table(t)
 end
 
 -- ============================================================
+--  番号付きリストの項目への参照（@num-x）
+--
+--  書き方: 項目の（最初の段落の）末尾に {#num-x} を書き、本文で @num-x と参照する。
+--    3. 測定値を記録する。 {#num-proc-3}
+--    手順 @num-proc-3 で記録した値を報告する。   → PDF「手順 (3) で」/ HTML「手順 3 で」
+--  表示は参照先の項目の記号そのもの（自分の段だけ。親の番号は付けない）。PDF は深さで
+--  (1)→①→(ア)→a)→(a)（lib.typ の ENUM-NUMBERING）、HTML は 1, 2, 3…（ブラウザの番号）。
+--
+--  Pandoc は見出しと違ってリスト項目の {#…} を属性として読まず、ただの文字（Str）として
+--  渡す。そこで項目の最初の段落の末尾の文字をつなげて {#num-…} に合うかを見て取り除き、
+--  項目の先頭に参照先の印を置く:
+--    typst … #metadata((depth: 深さ, n: 番号))<num-x>。参照は lib.typ の #_num-ref が
+--            この印を query して記号を作る（綴り違いでも組版を止めず赤い「?」）。
+--    HTML … <span id="num-x" data-num-label="番号">。参照は <a class="quarto-xref"> で出し、
+--            別の章ファイルの項目は postprocess-html.js が全ページを見て番号と href を直す。
+--  Quarto の crossref は図表と見出ししか扱わないので、表（@tbl-）と同じく自前で解決する。
+--  深さは番号付きリストの入れ子だけを数える（箇条書き（-）を挟んでも段は進まない。
+--  typst の enum の数え方と同じ）。番号は「始まりの番号 + 何番目か」。
+--
+--  あわせて PDF の「途中の番号から始まるリスト」（3. から書いたリスト）を直す。Pandoc は
+--  start ≠ 1 のリストに #set enum(numbering: "1.", start: 3) を付けるため、記号が (3) でなく
+--  「3.」になっていた（参照の (3) と食い違う）。start を Pandoc に渡さず、自前の
+--  #set enum(start: 3) で包んで記号を ENUM-NUMBERING のままにする。set は入れ子のリストにも
+--  効いてしまうので、包んだリストの直下の入れ子は自分の start で包み直す。
+-- ============================================================
+local num_labels = {}          -- id -> 表示（HTML 用。typst は lib.typ が作る）
+local num_seen = {}            -- id -> true（重複の検出）
+local IS_TYPST = FORMAT == 'typst'
+
+-- 段落末尾の {#num-…} を取り除き、id を返す（無ければ nil）。inl は Inlines（その場で直す）。
+local function take_num_marker(inl)
+  local acc = ''
+  for k = #inl, 1, -1 do
+    local x = inl[k]
+    if x.t == 'Str' then acc = x.text .. acc
+    elseif x.t == 'Space' or x.t == 'SoftBreak' then acc = ' ' .. acc
+    else return nil end
+    local pre, id = acc:match('^(.-)%s*{#(num%-[%w_%-]+)%s*}%s*$')
+    if id then
+      for _ = #inl, k, -1 do inl:remove() end
+      if pre ~= '' then inl:insert(pandoc.Str(pre)) end
+      while #inl > 0 and (inl[#inl].t == 'Space' or inl[#inl].t == 'SoftBreak') do inl:remove() end
+      return id
+    end
+    if acc:find('{', 1, true) then return nil end
+  end
+  return nil
+end
+
+local mark_num_lists
+
+-- 1 つの番号付きリストを処理して返す。depth = このリストの段（1 始まり）。
+-- wrapped = 祖先のリストを #set enum(start: …) で包んだか（typst のみ意味を持つ）。
+local function mark_num_list(list, depth, wrapped)
+  local start = list.listAttributes.start or 1
+  local own_wrap = IS_TYPST and (start ~= 1 or wrapped)
+  local items = pandoc.List()
+  for i, item in ipairs(list.content) do
+    local blocks = pandoc.Blocks(item)
+    local first = blocks[1]
+    if first and (first.t == 'Plain' or first.t == 'Para') then
+      local inl = first.content
+      local id = take_num_marker(inl)
+      if id then
+        local n = start + i - 1
+        if num_seen[id] then
+          io.stderr:write('[design-doc] 警告: 番号付きリストの {#' .. id .. '} が2回以上あります。' ..
+            '参照は最初の項目を指します\n')
+        else
+          num_seen[id] = true
+          num_labels[id] = tostring(n)
+          if IS_TYPST then
+            inl:insert(1, pandoc.RawInline('typst', string.format(
+              '#metadata((depth: %d, n: %d))<%s>', depth, n, id)))
+          else
+            inl:insert(1, pandoc.Span({}, { id = id, ['data-num-label'] = tostring(n) }))
+          end
+        end
+        first.content = inl
+        blocks[1] = first
+      end
+    end
+    items:insert(mark_num_lists(blocks, depth, own_wrap))
+  end
+  list.content = items
+  if not own_wrap then return list end
+  -- typst: start を Pandoc に渡さず（渡すと記号が「3.」になる）、自前の set で包む。
+  list.listAttributes = pandoc.ListAttributes(1, list.listAttributes.style, list.listAttributes.delimiter)
+  return pandoc.Div({ pandoc.RawBlock('typst', '#set enum(start: ' .. start .. ')'), list })
+end
+
+-- blocks の中の（いちばん外側の）番号付きリストを処理する。表のセル・callout・div の中も
+-- たどる（topdown で降り、見つけたリストの中は mark_num_list が深さを進めてたどる）。
+mark_num_lists = function(blocks, depth, wrapped)
+  return blocks:walk({
+    traverse = 'topdown',
+    OrderedList = function(l) return mark_num_list(l, depth + 1, wrapped), false end,
+  })
+end
+
+local function mark_num_items(doc)
+  doc.blocks = mark_num_lists(doc.blocks, 0, false)
+  return doc
+end
+
+-- @num-x の参照。typst は lib.typ の _num-ref（無ければ赤い「?」）、HTML は自前アンカー
+-- （同じ章ファイルの項目なら番号を入れる。別ファイルの項目は postprocess-html.js が直す）。
+local function num_ref(id)
+  if IS_TYPST then
+    if not num_seen[id] then
+      io.stderr:write('[design-doc] 警告: @' .. id .. ' の参照先（番号付きリストの {#' .. id ..
+        '}）が見つかりません\n')
+    end
+    return pandoc.RawInline('typst', '#_num-ref("' .. id .. '")')
+  end
+  return pandoc.RawInline('html', '<a href="#' .. id .. '" class="quarto-xref">' ..
+    (num_labels[id] or '?') .. '</a>')
+end
+
+-- ============================================================
 --  @tbl- 相互参照の先回り解決。
 --
 --  Quarto の crossref は全 Lua フィルタより後段で走り、フロート（#tbl-x）しか
@@ -1256,6 +1376,7 @@ end
 function Cite(el)
   if #el.citations ~= 1 then return nil end
   local id = el.citations[1].id
+  if id:match('^num%-') then return num_ref(id) end
   if not id:match('^tbl%-') then return nil end
   if IS_HTML then
     return pandoc.RawInline('html', '<a href="#' .. id .. '" class="quarto-xref">?</a>')
@@ -1392,4 +1513,6 @@ for _, name in ipairs(ELEMENT_FILTERS) do
   if type(_ENV[name]) == 'function' then element_filter[name] = _ENV[name] end
 end
 
-return { { Pandoc = collect_mermaid }, element_filter }
+-- 番号付きリストの {#num-x} は、参照（Cite）を置き換える 2 段目より前に集めておく
+-- （2 段目の Cite が番号を引けるように。表のセル内のリストも .tbl の組み立て前に拾う）。
+return { { Pandoc = collect_mermaid }, { Pandoc = mark_num_items }, element_filter }

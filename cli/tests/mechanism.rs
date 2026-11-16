@@ -3,7 +3,8 @@
 //! e2e.rs は「サンプル文書が通る」ことと図の数しか見ないので、表の番号・結合・分割・列幅、
 //! IPO 図、章・付録をまたぐ相互参照が変わっても気づけない。ここでは小さな文書
 //! （tests/fixtures/mechanism/。列幅・自動結合・手で結合したグリッド表・手で分割した表・
-//! 採番しない表・幅だけを指定した素の表・横向きの表・IPO 図とその分割・図・付録）を
+//! 採番しない表・幅だけを指定した素の表・横向きの表・IPO 図とその分割・図・付録・
+//! 番号付きリストの項目への参照（途中の番号から始まるリストを含む））を
 //! ddq init の雛形に入れて ddq html / ddq pdf を通し、
 //! 出力の要所を文字に起こして tests/golden/mechanism-{html,pdf}.txt と比べる。
 //!
@@ -354,16 +355,24 @@ fn query_records(stdout: &[u8], stderr: &str) -> Vec<serde_json::Value> {
 /// 描画された文字を文書の順に 1 塊 1 行で並べる。ページの区切りと、各ページ先頭の
 /// ページヘッダ（資料番号・ページ番号・「/」・総ページ数）は比べない
 fn pdf_digest(docs: &Path) -> Vec<String> {
-    let out = Command::new("quarto")
-        .args([
-            "typst",
-            "query",
-            "index.typ",
-            "<rendered-pages>",
-            "--field",
-            "value",
-            "--one",
-        ])
+    let mut cmd = Command::new("quarto");
+    cmd.args([
+        "typst",
+        "query",
+        "index.typ",
+        "<rendered-pages>",
+        "--field",
+        "value",
+        "--one",
+    ]);
+    // callout は Quarto 同梱の @preview/fontawesome を import する。render は同梱分を
+    // .quarto/typst/packages に置いて使うが、素の `quarto typst query` はそこを見ずに
+    // packages.typst.org から取りに行く（ネットに出られない環境で失敗する）。同じ場所を指す。
+    let packages = docs.join(".quarto/typst/packages");
+    if packages.is_dir() {
+        cmd.arg("--package-path").arg(&packages);
+    }
+    let out = cmd
         .current_dir(docs)
         .output()
         .expect("quarto typst query を起動できません");

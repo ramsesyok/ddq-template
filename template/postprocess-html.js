@@ -178,6 +178,14 @@ for (const rel of order) {
     // マッチした「図&nbsp;1.1: 」の部分だけを差し替える（キャプション本文は残す）
     repl.push([m.index, m.index + m[0].length, m[0].replace(CAP_TAIL, `${label}　`)]);
   }
+  // 番号付きリストの項目（design-doc.lua が <span id="num-x" data-num-label="3"> を置く）。
+  // 番号は Lua がリストの並びから決め済みなので、ここでは所在を控えるだけ。別の章ファイル
+  // からの @num-x（Lua では番号が分からず「?」）を、パス2で図表と同じ経路で解決する。
+  for (const t of html.matchAll(/<span\b[^>]*>/g)) {
+    const id = t[0].match(/\bid="(num-[^"]+)"/);
+    const lab = t[0].match(/\bdata-num-label="([^"]*)"/);
+    if (id && lab && !numberOf.has(id[1])) { numberOf.set(id[1], lab[1]); fileOf.set(id[1], rel); }
+  }
   staged.set(file, { html, repl });
 }
 
@@ -191,12 +199,12 @@ for (const [file, { html, repl }] of staged) {
     const [s, e, text] = repl[i];
     out = out.slice(0, s) + text + out.slice(e);
   }
-  // 自前採番の表(.tbl/.ipo)への参照は design-doc.lua が href="#tbl-x"（同一ページ内）で
-  // 出す。表が別の章ファイルにあるとリンク切れになるので、パス1で控えた所在へ相対パスを
+  // 自前採番の表(.tbl/.ipo)と番号付きリストの項目への参照は design-doc.lua が
+  // href="#tbl-x" / "#num-x"（同一ページ内）で出す。表が別の章ファイルにあるとリンク切れになるので、パス1で控えた所在へ相対パスを
   // 足す（Quarto 標準の相互参照は最初から "../x.html#fig-x" の形なので触らない）。
   const relFile = path.relative(root, file).split(path.sep).join('/');
   out = out.replace(
-    /(<a href=")(#(?:fig|tbl)-[^"]+)("[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)/g,
+    /(<a href=")(#(?:fig|tbl|num)-[^"]+)("[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)/g,
     (whole, open, frag, close) => {
       const target = fileOf.get(frag.slice(1));
       if (!target || target === relFile) return whole;
@@ -204,7 +212,7 @@ for (const [file, { html, repl }] of staged) {
       return `${open}${href}${frag}${close}`;
     });
   out = out.replace(
-    /(<a href="[^"]*#((?:fig|tbl)-[^"]+)"[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)([\s\S]*?)(<\/a>)/g,
+    /(<a href="[^"]*#((?:fig|tbl|num)-[^"]+)"[^>]*class="[^"]*quarto-xref[^"]*"[^>]*>)([\s\S]*?)(<\/a>)/g,
     (whole, open, id, _text, close) => {
       const label = numberOf.get(id);
       if (!label) { missing += 1; return whole; }

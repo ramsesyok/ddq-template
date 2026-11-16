@@ -86,6 +86,7 @@ IMG ../../diagrams/box.svg width:30.0%
 FIGCAPTION: 図 2.2-1　箱の図
 XREF #fig-box: 図 2.2-1
 XREF #tbl-ipo-split: 表 2.1-2
+XREF ../../appendix-a.html#num-app-2: 2
 == appendix-a.html
 H1: 付録 A — 付録の表
 XREF chapters/01-tables/index.html#tbl-merge: 表 1.2-1
@@ -93,3 +94,15 @@ CAPTION #tbl-appendix part=1/1: 表 A-1　付録の表
 TABLE widths: 50% 50%
   ROW th: 記号 | th: 意味
   ROW td: ○ | td: 必須
+H2: A.1 番号付きリストの参照
+XREF #num-app-2: 2
+XREF #num-app-2-2: 2
+XREF #num-app-4: 4
+XREF #num-app-4-1: 1
+TABLE widths: 90% 9%
+  ROW th: 手順 | th: 備考
+  ROW td: 表の中の手順。 表の中の二。 表の中の細目。 | td: なし
+XREF #num-app-5: 1
+XREF #num-app-bullet: 2
+XREF #num-app-callout: 2
+XREF #num-app-cell: 2
