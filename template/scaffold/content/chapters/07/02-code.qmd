@@ -1,0 +1,27 @@
+## 番号付きのコード {#sec-code}
+
+SQL・設定ファイル・擬似コードなど、本文から参照したいコードは、コードブロックの
+開始行に ID（`#lst-…`）とキャプション（`lst-cap="…"`）を付ける。言語名（`.sql` など）は
+ID の後に書く。キャプションはコードの上に出る。
+
+`````markdown
+```{#lst-ddl-order .sql lst-cap="受注テーブルの定義（DDL）"}
+CREATE TABLE orders (
+    order_id     NUMERIC(10) NOT NULL,   -- 受注ID
+    customer_id  VARCHAR(8)  NOT NULL,   -- 顧客ID
+    order_date   DATE        NOT NULL,   -- 受注日
+    CONSTRAINT pk_orders PRIMARY KEY (order_id)
+);
+```
+`````
+
+```{#lst-ddl-order .sql lst-cap="受注テーブルの定義（DDL）"}
+CREATE TABLE orders (
+    order_id     NUMERIC(10) NOT NULL,   -- 受注ID
+    customer_id  VARCHAR(8)  NOT NULL,   -- 顧客ID
+    order_date   DATE        NOT NULL,   -- 受注日
+    CONSTRAINT pk_orders PRIMARY KEY (order_id)
+);
+```
+
+受注テーブルの定義を @lst-ddl-order に示す。

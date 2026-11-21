@@ -1,0 +1,29 @@
+## 画像 {#sec-fig-image}
+
+画像（SVG・PNG）は執筆フォルダの `diagrams/` に置き、次のように書く。
+
+```markdown
+![システムの全体構成](/diagrams/sample-system.svg){#fig-system width=80%}
+
+システムの全体構成を @fig-system に示す。
+```
+
+![システムの全体構成](/diagrams/sample-system.svg){#fig-system width=80%}
+
+システムの全体構成を @fig-system に示す。
+
+| 部分                | 意味                                            |
+|---------------------|-------------------------------------------------|
+| `![…]`              | キャプション（図の題名）                        |
+| `(/diagrams/…)`     | 画像のパス。**先頭の `/` は執筆フォルダの直下** |
+| `{#fig-system}`     | 参照用の ID（`fig-` で始める）                  |
+| `width=80%`         | 本文幅に対する表示幅（省略可）                  |
+
+::: {.callout-important}
+画像のパスは、章がどの深さにあっても**必ず `/diagrams/...` で書く**。`../diagrams/...` の
+ように `../` を使うと、Windows で PDF の作成に失敗する。
+:::
+
+- 形式は **SVG** がもっともよい（拡大しても劣化しない）。PNG は 300dpi 以上にする。
+- `diagrams/` の `*.mmd`（mermaid）・`*.puml`（PlantUML）は、「DDQ: 図を変換」
+  （`ddq diagrams`）で SVG に変換して、同じように貼れる。

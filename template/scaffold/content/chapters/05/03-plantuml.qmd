@@ -1,0 +1,29 @@
+## PlantUML 図 {#sec-fig-plantuml}
+
+シーケンス図・クラス図・アクティビティ図など UML の図は、` ```plantuml ` のフェンスに
+書く。`@startuml` / `@enduml` は省略してよい。番号の付け方は mermaid と同じである。
+
+````markdown
+::: {#fig-order-seq}
+
+```plantuml
+actor 営業担当
+participant "受注管理サーバ" as app
+database "受注DB" as db
+営業担当 -> app : 受注登録要求
+app -> db : 受注を登録
+app --> 営業担当 : 受注番号
+```
+
+受注登録のシーケンス
+:::
+````
+
+::: {.callout-important}
+PlantUML の図を描くには**描画サーバ**が要る。`_quarto.yml` の `plantuml-server:` に
+LAN 内のサーバを書くか、執筆中は `ddq plantuml serve` を起動しておく。サーバに届かないと
+プレビューでは図の代わりにソースが橙色の枠で出て、PDF・配布 HTML の作成はエラーになる。
+
+このため本雛形では、PlantUML は原稿の例だけを示している（上の例をそのまま本文に書けば
+図になる）。
+:::
