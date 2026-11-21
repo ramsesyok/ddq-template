@@ -43,8 +43,9 @@ CP932 に無い文字だけは使えず、作成の途中で検出して止ま�
 | `README.md` | 執筆者向けの入口（準備・書き方・確認方法） |
 | `<執筆フォルダ>/_quarto.yml` | book 設定の雛形（表題・資料番号・章の並び） |
 | `<執筆フォルダ>/index.qmd` | 前付けの雛形（改正履歴・用語） |
-| `<執筆フォルダ>/chapters/01-overview/index.qmd` | 章の雛形（1章分） |
-| `<執筆フォルダ>/diagrams/` | 図の置き場（空） |
+| `<執筆フォルダ>/chapters/01/` | 1章（概要）の雛形 |
+| `<執筆フォルダ>/chapters/02/` 〜 `07/` | 記法の見本（基本・文書の組み立て・表・図・IPO 図・相互参照）。読み終えたら消す |
+| `<執筆フォルダ>/diagrams/` | 図の置き場（記法見本が使う `sample-system.svg` だけが入っている） |
 | 機構ファイル 6 点 | `design-doc.lua` / `design-doc.css` / `postprocess-html.js` / `mermaid-config.json` / `plantuml-config.puml` / `.template-version` |
 :::
 

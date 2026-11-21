@@ -1,0 +1,27 @@
+## 数式 {#sec-equation}
+
+数式は LaTeX の記法で書く。文中の数式は `$S$` のように `$` 1つで囲む。番号を付ける
+数式は `$$ … $$` で囲み、閉じの直後に `{#eq-…}` を付ける。
+
+```markdown
+処理能力の目標値 $S$（件/分）は @eq-throughput で求める。
+
+$$
+S = k \times \frac{N_{\mathrm{peak}}}{T_{\mathrm{peak}}}
+$$ {#eq-throughput}
+
+ここで $N_{\mathrm{peak}}$ はピーク 1 時間の受注件数、$T_{\mathrm{peak}}$ はその時間
+（60 分）、$k$ は余裕率である。
+```
+
+処理能力の目標値 $S$（件/分）は @eq-throughput で求める。
+
+$$
+S = k \times \frac{N_{\mathrm{peak}}}{T_{\mathrm{peak}}}
+$$ {#eq-throughput}
+
+ここで $N_{\mathrm{peak}}$ はピーク 1 時間の受注件数、$T_{\mathrm{peak}}$ はその時間
+（60 分）、$k$ は余裕率である。
+
+- 数式にはキャプションを付けられない。式の意味は前後の本文で説明する。
+- 番号は章ごとの通し番号で、節では 1 に戻らない。

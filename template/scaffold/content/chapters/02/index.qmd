@@ -1,0 +1,9 @@
+# 基本的な書き方 {#sec-basic}
+
+本章は記法の見本である。Markdown の基本的な書き方を、設計書で使う範囲に絞って示す。
+
+{{< include 01-text.qmd >}}
+
+{{< include 02-list.qmd >}}
+
+{{< include 03-block.qmd >}}

@@ -1,0 +1,32 @@
+### フォルダとファイルの置き方
+
+本章（3章）の実際の置き方を次に示す。フォルダ名は章・節の番号だけでよい。
+
+```text
+chapters/
+  03/                   # 章 … 必ずフォルダ
+    index.qmd           #   # 文書の組み立て ＋ include
+    01-heading.qmd      #   節・子なし … ファイル（## 見出しと採番）
+    02/                 #   節・子あり … フォルダ
+      index.qmd         #     ## ファイル分割 ＋ include
+      01-layout.qmd     #     項 … ファイル（### フォルダとファイルの置き方）
+      02-rules.qmd      #     項 … ファイル（### 分割の決まり）
+    03-pagebreak.qmd    #   節・子なし … ファイル（## 改ページ）
+```
+
+章の並びは `_quarto.yml` の `chapters:` で決まる。章を増やすときは、章フォルダと
+`index.qmd` を作り、ここに1行足す。
+
+```yaml
+book:
+  chapters:
+    - index.qmd               # 前付け（採番なし）
+    - chapters/01/index.qmd   # 1章
+    - chapters/02/index.qmd   # 2章
+```
+
+::: {.callout-important}
+`chapters:` に並べるのは**章の `index.qmd` だけ**である。`include` で取り込む節・項の
+ファイルは書かない（書くと二重に出力される）。逆に、章を `chapters:` に書き忘れると
+出力に現れない。
+:::
