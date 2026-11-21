@@ -66,7 +66,7 @@ fn init_then_add_then_update_all() {
     for f in [
         "_quarto.yml",
         "index.qmd",
-        "chapters/01-overview/index.qmd",
+        "chapters/01/index.qmd",
         "diagrams/.gitkeep",
         ".template-version",
     ] {
@@ -176,7 +176,7 @@ fn update_prunes_diagram_cache_only_when_the_version_changes() {
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .collect();
     left.sort();
-    left.retain(|n| n != ".gitkeep"); // 雛形が置く
+    left.retain(|n| n != ".gitkeep" && n != "sample-system.svg"); // 雛形が置く
     assert_eq!(left, ["network.mmd", "network.svg"]);
 }
 

@@ -1,0 +1,32 @@
+### 分割の決まり
+
+章の `index.qmd` に章見出しを書き、節・項を取り込む。
+
+```markdown
+# 文書の組み立て {#sec-structure}
+
+{{{< include 01-heading.qmd >}}}
+
+{{{< include 02/index.qmd >}}}
+```
+
+節のフォルダの `index.qmd`（`chapters/03/02/index.qmd`）から項を取り込むときも、
+パスは**章フォルダ（`chapters/03/`）基準**で書く。
+
+```markdown
+## ファイル分割 {#sec-split}
+
+{{{< include 02/01-layout.qmd >}}}
+
+{{{< include 02/02-rules.qmd >}}}
+```
+
+::: {.callout-warning}
+**`include` のパスは、そのファイル自身からの相対ではなく、章フォルダ基準である。**
+上の例で `{{{< include 01-layout.qmd >}}}` と書くと、ファイルが見つからずに止まる。
+:::
+
+- 章見出し（`#`）は必ず章の `index.qmd` に置く。取り込まれる側は `##`（節）や
+  `###`（項）から書く。
+- 単体で開いても意味をなさない断片（IPO 図のパートなど）は、ファイル名を `_` で
+  始める（例: `_ipo-part1.qmd`）。

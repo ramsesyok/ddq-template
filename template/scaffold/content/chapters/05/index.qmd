@@ -1,0 +1,12 @@
+# 図 {#sec-figure}
+
+本章は記法の見本である。画像の貼り方と、文字で書く図（mermaid・PlantUML）を示す。
+
+図番号は「図 5.1-1」のように自動で振られる（@sec-xref-number）。執筆者が番号を
+書くことはない。
+
+{{< include 01-image.qmd >}}
+
+{{< include 02-mermaid.qmd >}}
+
+{{< include 03-plantuml.qmd >}}

@@ -1,0 +1,12 @@
+# 相互参照・コード・数式 {#sec-xref}
+
+本章は記法の見本である。本文から図・表・章節・コード・数式・リストの項目を番号で
+参照する書き方を示す。
+
+{{< include 01-xref.qmd >}}
+
+{{< include 02-code.qmd >}}
+
+{{< include 03-equation.qmd >}}
+
+{{< include 04-list-ref.qmd >}}

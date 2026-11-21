@@ -96,10 +96,22 @@ fn make_writing_folder(root: &Path) -> PathBuf {
         assert!(text.contains(from), "雛形の _quarto.yml に {from:?} がありません");
         text.replacen(from, to, 1)
     };
-    let text = replace(
-        text,
-        "    - chapters/01-overview/index.qmd\n",
+    // 雛形の章（chapters/01 〜 07。2章以降は記法見本）を、まとめてフィクスチャの章に差し替える
+    let first = "    - chapters/01/index.qmd\n";
+    let start = text
+        .find(first)
+        .unwrap_or_else(|| panic!("雛形の _quarto.yml に {first:?} がありません"));
+    let last = "    - chapters/07/index.qmd";
+    let end = start
+        + text[start..]
+            .find(last)
+            .unwrap_or_else(|| panic!("雛形の _quarto.yml に {last:?} がありません"));
+    let end = end + text[end..].find('\n').unwrap() + 1;
+    let text = format!(
+        "{}{}{}",
+        &text[..start],
         "    - chapters/01-tables/index.qmd\n    - chapters/02-ipo/index.qmd\n  appendices:\n    - appendix-a.qmd\n",
+        &text[end..]
     );
     let text = replace(text, "pagebreak-level: 1 ", "pagebreak-level: 2 ");
     let text = replace(text, "\nformat:\n", "\nformat:\n  typst:\n    keep-typ: true\n");
