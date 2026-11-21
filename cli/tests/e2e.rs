@@ -307,11 +307,14 @@ fn diagram_cache_from_another_environment_is_redrawn_unless_kept() {
             let n = p.file_name().unwrap().to_string_lossy().into_owned();
             n.starts_with("mmd-")
                 && n.ends_with(".svg")
-                && fs::read_to_string(p.with_extension("mmd"))
-                    .is_ok_and(|src| src.contains("受付 --> 出荷"))
+                && fs::read_to_string(p.with_extension("mmd")).is_ok_and(|src| src.contains("受付 --> 出荷"))
         })
         .collect();
-    assert_eq!(svgs.len(), 1, "足した mermaid の図が 1 つ描かれていない: {svgs:?}");
+    assert_eq!(
+        svgs.len(),
+        1,
+        "足した mermaid の図が 1 つ描かれていない: {svgs:?}"
+    );
     let svg = &svgs[0];
     let here = fs::read_to_string(svg).unwrap();
     let header = here.lines().next().unwrap().to_string();
