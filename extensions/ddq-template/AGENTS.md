@@ -20,6 +20,9 @@
 | `src/extension.ts` | 入口。機能ごとの `activate*` を呼ぶだけ |
 | `src/legacy.ts` | 旧拡張の検出・アンインストールの案内 |
 | `src/build.ts` `src/folders.ts` `src/quarto.ts` `src/ddq/{locate,lock,version}.ts` | 発行（pdf / html / diagrams）・版不一致の案内と update・執筆フォルダの決定・ステータスバー |
+| `src/ddq/launch.ts` `src/ddq/run.ts` | ddq の起動口（設定の読み取り・起動する ddq の決定・「DDQ」出力チャネル・進捗通知・終了時の後始末）と、子プロセスの起動。発行・作成・追加・改訂が共有する |
+| `src/ddq/contract.ts` | ddq が返す JSON（`tag list` / `rev next`）の形の検査。期待値は `../../cli/tests/fixtures/contract/` |
+| `src/webviewHtml.ts` | Webview の HTML（CSP・nonce・バンドルの URI）と、読ませてよい資産の範囲（`localResourceRoots`）。表エディタとラベル一覧・改訂履歴が共有する |
 | `src/activateRevision.ts` `src/ddq/` `src/tagging/` `src/revision/` `src/revisionWebview/` | ラベル一覧・改訂履歴 |
 | `src/tableEditor/` | 表エディタ（旧 ddq-table-editor の `src/` をそのまま移したもの） |
 
@@ -41,6 +44,10 @@ ID は `ddqTemplate.*` に統一する（コマンド・設定・viewType）。�
 - **ddq の終了コード 3 は「執筆フォルダの機構が ddq と一致しない」**（`cli/src/commands/setup.rs` の
   `TEMPLATE_MISMATCH_EXIT_CODE`）。拡張はこれで update の案内を出すので、どちらかを変えるときは両方を直す
 - ddq は `src/ddq/locate.ts` の解決順（設定 → 同梱 → PATH）でだけ決める。直接 `'ddq'` を起動しない
+- ddq の起動は `src/ddq/launch.ts`（`runWithProgress`・`currentDdq` など）を通す。機能モジュール（build / init / add / 改訂）は
+  互いの画面を import しない。ddq の子プロセスを起動するのは `src/ddq/run.ts` だけ
+- ddq の JSON は `src/ddq/contract.ts`（`parseTagList` / `parseRevNext`）で形を確かめてから使う。`JSON.parse` の結果を
+  そのまま型とみなさない。ddq の出力を変えたら `../../cli/tests/fixtures/contract/README.md` の手順で期待値を採り直す
 
 ## ラベル一覧・改訂履歴
 
@@ -133,6 +140,10 @@ div の fence 行・他パート・外側の `.landscape` には触れない。
 - リモートのスクリプト・スタイルを許可しない
 - nonce ベースでスクリプトを読み込む
 - ローカル資産は `webview.asWebviewUri` 経由
+- HTML と `localResourceRoots` は `src/webviewHtml.ts` で作る（資産はそのバンドルの `out/webview/<画面>/` だけ）。画面ごとの
+  メッセージの型・モデルはそれぞれの機能に置く
+- Webview から受け取った書き戻しは、送った相手と照合してから当てる。表エディタは編集セッションの番号、ラベル一覧は一覧の
+  取り直しの番号をメッセージに付け、いまのものと違えば書かない。非同期の結果も、始めたときの対象（パネル・文書・版）と照合する
 
 ## 検証
 

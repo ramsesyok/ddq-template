@@ -466,7 +466,7 @@ runner のロケールは変えられない（`Set-WinSystemLocale` は再起動
 （workflow 自身や `cli/tools/check_release.py` を変えた PR でも走る）。
 
 - `build`（Windows）: ddq.exe を `--locked` でビルドし、その exe の `ddq release` で一式を作る。`cli/tools/check_release.py` で
-  照合し、ZIP・VSIX の SHA-256 の一覧と、使った版（ランナー・Quarto・Node・Edge・書体）の一覧を作る
+  照合し、ZIP・VSIX の SHA-256 の一覧と、使った版（コミット・ランナー・ddq.exe の SHA-256・Quarto・Node・Edge・書体）の一覧を作る
 - `verify-zip`（Windows）: 別のランナーで、ZIP を照合し、取り出した exe で init → pdf → html を通す
 - `verify-vsix`（Windows）: 別のランナーで、配る VSIX そのものを `npm run test:smoke` で起動する（旧 ci.yml の vsix-smoke の役目）
 - `publishable`（Linux）: 上がすべて通ったら、`release-<版>` を残す（公開に使うのはこれだけ）

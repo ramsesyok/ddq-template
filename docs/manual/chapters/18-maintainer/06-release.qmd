@@ -112,7 +112,7 @@ python cli/tools/third_party.py
 `main` に入ると（配布物に入るファイルが変わったとき）、Windows のランナーが ddq.exe をビルドし、その exe の
 `ddq release` で一式を作る。別のランナーで ZIP（取り出した exe で init → pdf → html）と VSIX（配る VSIX
 そのもので VSCode を起動）を検査し、**すべて通った実行にだけ**成果物 `release-<版>`（ZIP・VSIX・SHA-256 の一覧・
-使った版の一覧）が残る。手動で起動するときは `gh workflow run release-candidate --ref main`
+使った版の一覧。コミットと ddq.exe の SHA-256 も載る）が残る。手動で起動するときは `gh workflow run release-candidate --ref main`
 （サンプルを同梱するなら `-f with_sample=true`）。
 
 ```bash

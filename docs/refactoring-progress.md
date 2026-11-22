@@ -560,7 +560,8 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   2. 拡張の版の不一致のメッセージが変わった（違うものをまとめて挙げる）。成功時の出力・配布物の名前と構成は同じ
 - **計画からの逸脱**
   1. 計画の「CI は同じ checkout のビルドを使い、配布検証の記録にコミットと exe の SHA-256 を残す」は CI の配布候補の作り方
-     そのもので、`ddq release` の今後（REL-02 の保留）に関わるので CI-01 に回した
+     そのもので、`ddq release` の今後（REL-02 の保留）に関わるので CI-01 に回した。→ 同じ checkout のビルドとコミットは `810249b`、
+     exe の SHA-256 は完了レビューで `versions.txt` に足した
   2. lock が無いときは止めない（承認された条件は「版が違えば止める」で、lock が無いことは含まないため。従来どおり `npm ci` で止まる）
 - **戻す方法**: `run` の `check_versions` の呼び出しを消す（3 関数と試験も消す）
 - **残存リスク**
@@ -603,7 +604,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   - 表示の本文は「この配布物（quarto-template）…（同梱の LICENSE）」と ZIP を前提に書かれている。VSIX では拡張自身の
     `LICENSE.txt` がそれに当たる（生成物の文面は計画どおり変えていない）
   - 開発者が `ddq release` を通さずに `npm run package:win32-x64` すると表示は入らない（exe と同じ。CI の vsix-smoke もこの形で、
-    CI の配布候補の作り方は CI-01）
+    CI の配布候補の作り方は CI-01）。→ `810249b` で、CI の VSIX は `ddq release` が作るもの（表示が入る）になった
   - ddq.exe を同梱しない拡張（通常の VSIX）には入れない（計画は対象指定 VSIX）
 
 ### CI-02　配布物に入る依存を監査の必須の対象にする
@@ -671,7 +672,8 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   今の `ddq release` を CI から呼ぶ形では作らず、**REL-02 の結論**（`ddq release` を GitHub Actions などに置き換えるか）を待つ。
   作るときは、通常 VSIX の artifact（extension.yml の package）の利用者の確認も要る（計画）
 - **残存リスク**: workflow の変更は PR #142 で初めて GitHub 上で走った（ci の `cli` は成功。結果は「統合の検証」）。vsix-smoke は PR では走らず、まだ一度も走っていない。vsix-smoke の VSIX は `ddq release` を通さないので
-  ライセンス表示が入らない（REL-01 の残存リスク）
+  ライセンス表示が入らない（REL-01 の残存リスク）。（訂正）vsix-smoke は main への push では走って成功していた（この PR の CI で
+  走らなかっただけ。検討書 §2 の 4 で訂正済み）。`810249b` で release-candidate.yml の verify-vsix に移して消した
 
 ### DOC-01　資料の索引と、実装と食い違う記述
 
@@ -805,7 +807,8 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
     workflow 自身）、手動実行（入力 `with_sample` で `--with-sample`）、workflow 自身・照合の処理・書体の手順を変えた PR。
     `permissions: contents: read`、同じブランチの実行は `concurrency` で 1 つずつ（打ち切らない）。ジョブは 4 つ
     - `build`（Windows）: `cargo build --release --locked` → その exe で `ddq release <RUNNER_TEMP>/out` → `check_release.py` で照合し
-      SHA-256 の一覧を作る。使った版の一覧 `versions.txt`（コミット・実行・ランナーのイメージ・ddq・Quarto・Node／npm・Edge・書体）も
+      SHA-256 の一覧を作る。使った版の一覧 `versions.txt`（コミット・実行・ランナーのイメージ・ddq・ddq.exe の SHA-256（完了レビューで
+      追加）・Quarto・Node／npm・Edge・書体）も
       作る。ZIP・VSIX・2 つの一覧を `candidate`（保存 1 日）として渡す
     - `verify-zip`（Windows。別のランナー）: SHA-256 を照合し、`check_release.py --smoke` で ZIP を照合して、取り出した exe で
       `init --no-render` → `pdf` → `html` を通す
@@ -979,11 +982,108 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 ### 統合の検証でしていないこと
 
 - 通常の `ddq release`（`--no-build` なし）をこのリポジトリで流すこと。`npm ci` で拡張の依存を入れ直すため、計画 §6 と同じく
-  検証用リポジトリで `--no-build` からの梱包を確かめた。通常の経路は `tests/release.rs` の実ビルドの試験（実 Quarto・実 npm、梱包は模擬）が通す
-- `--with-sample` の ZIP、途中失敗からの再実行の手での確認（`tests/release.rs` が見る）
+  検証用リポジトリで `--no-build` からの梱包を確かめた。通常の経路は `tests/release.rs` の実ビルドの試験（実 Quarto・実 npm、梱包は模擬）が通す。
+  → その後、作業ツリーの写し（手元の再現）と CI の新しい checkout で通常の `ddq release` を流した（上の「REL-02・CI-01」）
+- `--with-sample` の ZIP、途中失敗からの再実行の手での確認（`tests/release.rs` が見る）。→ `--with-sample` の ZIP は完了レビューで
+  手元で確かめた（下の「完了レビュー」）
 - OS で通信を遮断した閉域端末、実 LAN の PlantUML サーバ、公開後の資産の再取得、実画面の IME・旧二拡張が同居したときの手操作（計画 §6 の未実施範囲と同じ）
 - 配布候補の流れ（`release-candidate.yml`）の、わざと失敗させた実行と main・手動での実行（PR の実行は成功した。上の「REL-02・CI-01　
   配布候補の作成を GitHub Actions に移す」）。旧 ci.yml の vsix-smoke は PR では走らなかったので、この PR の CI では一度も走らせていない（消した）
+
+## 完了レビュー（Phase 5／6）
+
+2026-11-22、HEAD `f08dfa7`（基準 `17ed32e` からの 20 コミット）で行った。計画 §4 の各 ID の完了条件を、この記録の試験と差分に
+突き合わせた。§2 の「固定する外部契約」は基準とのソースの差分と試験で照合し、§3・§5 の Phase 5 の判定（変更したものと索引・配布用
+マニュアルの整合、利用者が変更を追跡できること）を確かめた。計画書の本文は §7 の 1 行のほかは変えていない（台帳はこの記録に置く）。
+
+### ID ごとの照合
+
+| ID | 完了条件（計画 §4 の要点） | 照合の結果 | 残り |
+|---|---|---|---|
+| QA-01 | 現行／旧版の JSON・stdout/stderr・exit・明示 update・Undo を固定し、fixture の更新理由と exe の版を記録 | 満たす（`cli/tests/fixtures/contract/`、旧版は `tag-list.2.4.4.json`、README に採取の手順と exe の版。exit 3 → update → setup の回復は実CLI、Undo は既存の実 Host の項目） | — |
+| CLI-01 | 読込回数・大文書の実行時間、警告・相対パス・ラベル・diff の順序が一致 | 満たす（新旧の release exe の出力が同じ） | — |
+| EXT-02 | 引数・cwd・PATH、UTF-8 のチャンク境界、exit 3、ENOENT、別フォルダの並行、取消時の子孫の終了、deactivate 後の出力 | 満たす（孫の停止は Windows だけ。計画の範囲） | — |
+| GEN-02 | 出力を変えず、3 組の重複を同じ入力で検証 | 満たす（既知の差 4 つは直さず期待値に印を付けた） | 4 つの差を直すか（キャッシュの移行判断が要る） |
+| EXT-03 | 応答順の逆転・close→reopen・未保存・設定変更・多ルート・deactivate 後を模擬と実 Host で | 満たす（多ルートと deactivate 後は模擬だけ。理由は節に記録） | ステータスバーの逆転（計画の対象外。表示だけ） |
+| EXT-04 | 2 バンドルの配信・起動・メッセージ・CSP・旧データを実 Host と `check:offline` で | 満たす（逸脱 3 件を記録） | — |
+| GEN-01 | 新規／既存／過去の Git 版、増分 HTML と再実行で章・付録が一致し、従来の fixture の出力が一致 | 満たす（過去の `_quarto.yml` 52 版、サンプルの版間比較 141 一致） | 版を上げていない（下の「次のリリースの前に」） |
+| EXT-01 | 正式版／pre1／pre4／pre10／旧 `2.4`、同版の内容差、欠落・不正値を両方向で | 満たす（出荷済みの 30 版。ダイアログは模擬） | 版の違う ddq での案内を実 Host では見ていない |
+| DATA-01 | Rust→TS、TS→Rust、二度目の保存で比較。自動一括移行は別承認 | 満たす（移行はしていない） | — |
+| IO-01 | 同時変更・読み取り専用・ロック・再試行・改行・末尾改行・`--dry-run`、BOM の保持は承認 | 満たす（付け替えを拒まれたときはその場で書く例外を記録） | Unix の経路は未実行（CI の Rust は Windows だけ） |
+| IO-02 | 二つの init/add の競合、開かれたファイルの update、同版の修復、版の変わる update | 満たす | — |
+| REL-03 | 重い処理の前に 4 つの版を照合。CI は同じ checkout のビルドを使い、配布検証の記録にコミットと exe の SHA-256 を残す | 満たす（手元）。照合と同じ checkout のビルドは `810249b`。exe の SHA-256 は `check_release.py` のログにだけ出て成果物に入っていなかったので、このレビューで `versions.txt` に足した（`ddq.exe sha256:` の行。ZIP・VSIX の exe がこれと同じことは次の手順の `check_release.py --exe` が確かめる） | GitHub 上は次の実行で確かめる |
+| CI-02 | 模擬の監査結果で、配布対象が失敗し開発用だけの指摘は参考になる | 満たす | — |
+| REL-01 | 両アーカイブの表示・ライセンス本文・同梱 exe・版・target を照合 | 満たす（手元と CI の両方） | 次のリリースノートに両資産のファイル一覧差 |
+| CI-01 | 配布候補の作成者を 1 つにし artifact で渡す。PR は高速試験、main・手動は実候補の検査。既存の検査を保つ | 満たす（PR の実行で 4 ジョブ成功。ci・extension の既存ジョブは vsix-smoke 以外そのまま） | main・手動・`concurrency` はマージの後 |
+| DOC-01 | リンク・旧 ID の注記・配布用マニュアルの PDF/HTML を確認。旧資料の削除は個別承認 | 満たす（削除はしていない）。拡張の開発文書の追随はこのレビューで直した（下の「資料の整合」） | — |
+| REL-02 | 保証する範囲を決め、失敗の種類ごとに旧資産のハッシュを検査 | **一部**。範囲は決めた（計画 §7 に追記）。旧資産のハッシュの検査はしていない | わざと失敗させた実行と、公開済みの資産のハッシュ |
+
+### 外部契約の照合（計画 §2）
+
+- **プロセス**: `cli/src/main.rs` の clap の定義は基準から変わっていない（差分は `mod replace;` の 1 行）。終了コードを決める
+  `main` も同じ（0・1・3、clap の 2）。人向けの目印の出現数は `"OK: "` 2・`"OK -> "` 2・`警告:` 9 で基準と同じ。JSON モードの stdout は
+  QA-01 の契約試験が固定する
+- **データ**: `tag list --json` などの形は QA-01 の fixture（旧版 2.4.4 を含む）と、CLI-01 の新旧 exe の比較で同じ。変わったのは承認した
+  BOM の保持（IO-01）と、引用付きの値の読み方（DATA-01）
+- **設定・環境**: 製品のソース（`cli/src`・拡張の `src`・機構の Lua と JS）が読む環境変数の名前は、基準と同じ 20 個
+  （`DDQ_BIN`・`MERMAID_SVG`・`EXECUTABLE_BROWSER`・`DDQ_MERMAID_ENGINE`・`DDQ_DIAGRAM_CACHE`・`DDQ_BROWSER_TIMEOUT`・
+  `DDQ_PLANTUML_SERVER`・`PLANTUML_SERVER`・`DDQ_PLANTUML_JAR`・`PLANTUML_JAR`・`DDQ_JAVA`・`JAVA_HOME`・
+  `DDQ_PLANTUML_STARTUP_TIMEOUT`・`DDQ_VERSION` ほか）
+- **VS Code**: `package.json` の差は `scripts.check:audit`（開発用）だけ。publisher/name・コマンド 8 件・設定 2 件・Custom Editor・
+  `when` は変わらない。足した内部コマンド `ddqTemplate.internal.webviewReadies` は既存の `internal.*` と同じく manifest に出さない
+- **出力と更新**: サンプルの版間比較 141 一致（統合の検証）。新規作成の雛形は GEN-01 で変わる（承認済み）。ZIP の UTF-8 名と
+  VSIX の対象 OS/CPU は手元と CI の `check_release.py` が確かめる
+
+### 資料の整合（Phase 5 の判定）
+
+- 整合している: `docs/README.md` の索引（計画・この記録・検討書）、`cli/DESIGN.md`（§3.2・§7.5・§7.6、§8 の `replace.rs`、
+  `cli/tools/check_release.py`）、利用マニュアル 11 章・18 章（配布用マニュアルの PDF・HTML は CI の `ddq release` の中でも作られた）
+- **ずれ（このレビューで直した）**: 拡張の開発文書のソースの表（`AGENTS.md` の冒頭・`DEVELOPMENT.md`）に、EXT-02 の `src/ddq/launch.ts`
+  （ddq の起動口。機能モジュールはここを通す）、QA-01 の `src/ddq/contract.ts`（ddq の JSON の検査）、EXT-04 の `src/webviewHtml.ts`
+  （Webview の器と資産の範囲）が載っていない。`AGENTS.md` の「共通で守ること」「Webview セキュリティ」にも、この 3 つを使う規則と、
+  Webview から受け取ったメッセージの対象を照合する規則が無い（計画 §3・DOC-01「AGENTS 追加は実装で必要なルールが生じた場合のみ」に当たる）。
+  → 3 つを両方の表に足し、`AGENTS.md` の「共通で守ること」に起動口と JSON の検査、「Webview セキュリティ」に器と書き戻しの照合の
+  規則を足した（どれも実装済みの規則を書いただけで、コードは変えていない）
+- **ずれ（直した）**: この記録の CI-01 の節の「vsix-smoke は…まだ一度も走っていない」（main では走って成功していた）と、REL-01 の節の
+  「CI の配布候補の作り方は CI-01」（`810249b` で解消）に注記を足した。「統合の検証でしていないこと」のうち、その後に済んだものに注記を足した
+- **利用者が変更を追跡できるか**: いまはこの記録と PR だけ。`extensions/ddq-template/CHANGELOG.md` はリリースのコミットで版ごとに
+  書く形で、この PR では書いていない（下の「次のリリースの前に」）
+
+### 完了レビューで足した確認（実CLI・実生成）
+
+- **`--with-sample` の ZIP**（Phase 4 の受入手順 3。未実施だったもの）: 作業ツリーの写しで `ddq release <出力先> --with-sample`
+  （52 秒）→ `check_release.py --with-sample --smoke`: すべて OK（ZIP 128 件の CRC、`docs/` がある、配布フォルダと ZIP が同じ、
+  2 つの PDF の書体、VSIX、取り出した exe で init → pdf → html）。ZIP から取り出した exe で同梱のサンプルを `update` → `pdf` → `html`:
+  すべて exit 0（PDF 52 ページ、HTML 15 ページ、図表 69 件・参照 96 件）。同じ exe でリポジトリの `examples/docs` の写しを発行しても
+  52 ページ（統合の検証の版間比較の 51 ページは、両側を内蔵 merman で描き直した条件。ここは同梱の SVG を使う）
+- 同梱のサンプルは生成物を入れないので、発行の前に `ddq update` が要る（無いと「`.template-version` がありません」で exit 3 と
+  案内が出る。従来どおり）。PlantUML を使う章があるので、jar（`DDQ_PLANTUML_JAR`）か LAN のサーバも要る（3.0.0 から同梱しない）
+
+### 残りと次に決めること
+
+1. **マージの後に確かめること**（CI-01・REL-02）: main への push での実行、手動実行（`with_sample` を含む）、続けて push したときの
+   `concurrency`、わざと失敗させた実行に `release-<版>` が残らないこと、その前後で公開済みの v3.1.0-pre1 の資産のハッシュが変わらないこと
+2. **人の手で行う検証**（Phase 4 の受入手順 3 の後半と 4）: 公開した ZIP・VSIX を利用環境に持ち出してのスモーク、外部通信を OS で
+   遮断した端末（ローカルの Java＋jar・LAN のサーバ・PlantUML なし）、実画面での IME・セル結合・未保存の編集・パネルの切り替え・
+   旧二拡張からの移行、版の違う ddq での案内（EXT-01 は模擬だけ）
+3. **次のリリースの前に**
+   - **版を上げる**: 機構ファイル（`postprocess-html.js`）と雛形（`_quarto.yml`）が変わったのに `template/VERSION` は 3.1.0-pre1 のまま
+     （GEN-01 で上げないことにした）。同じ版名で機構が違うので、3.1.0-pre1 で作った文書を新しい ddq で発行すると「同じ版で中身が違う」
+     （exit 3）になる。拡張の `package.json`・`package-lock.json` も揃える（REL-03 が照合する）。マージの後の main の release-candidate も
+     `release-3.1.0-pre1` を作るが、公開済みの v3.1.0-pre1 とは中身が違うので、版を上げるまで公開に使わない
+   - **変更履歴とリリースノート**に書く利用者に見える差: 章の並びの読み方（GEN-01。行末コメント・引用・空白入りのパス・part・同じ字下げの列）、
+     新規作成の雛形の章立て、版の比較と update の案内（EXT-01）、改訂ファイルの引用付きの値（DATA-01）、BOM の保持と書く前の照合（IO-01）、
+     init/add が既存のファイルを上書きしない・update の順（IO-02）、VSIX に `THIRD-PARTY-NOTICES.md` が入る（REL-01。両資産のファイル一覧差）、
+     機構ファイルが変わるので `ddq update` が要ること
+   - PR で release-candidate を毎回走らせるか（計画 §7「PR でのフル配布検査の所要時間を確認してジョブ配置を決める」）: 所要時間は 38 分
+     （うち書体を入れる時間が 25 分あまり）。検討書 §2 の 3 の形（main と手動。PR は workflow などを変えたときだけ）のままを勧める
+4. **計画の中の小さな直し**（2026-11-22 の指示で、このレビューで直した）
+   - REL-03: CI の成果物に exe の SHA-256 を残す（`versions.txt` に 1 行）。workflow から手順を取り出して手元で流し、書いた値が
+     exe と ZIP の中の exe の SHA-256 と一致することを確かめた。workflow は YAML として読め、手順の数は変わらない（build 12）
+   - 拡張の開発文書の追随（上の「資料の整合」のずれ）
+5. **計画の外・別の判断**: GEN-02 の既知の差 4 つ、ddq.exe から `release` を外すか（検討書 §5）、既存の不具合 2 件（下）、
+   実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文の更新、書体を入れる時間の短縮、`actions/*@v4` の Node.js 20 の警告、
+   `versions.txt` に書体の版を残すか、EXT-03 のステータスバー
 
 ## 計画外で見つけた既存の不具合（直していない）
 

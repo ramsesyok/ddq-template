@@ -41,6 +41,9 @@ npm run test:smoke          # その VSIX を展開した中身で VSCode を起
 | `src/folders.ts` | 執筆フォルダの決定と、右クリックメニュー用の一覧（`setContext`） |
 | `src/quarto.ts` | Quarto の有無の検査と `ddqTemplate.quartoPath` |
 | `src/ddq/locate.ts` `lock.ts` `version.ts` | ddq の解決順、執筆フォルダごとの実行中フラグ、版の比較 |
+| `src/ddq/launch.ts` `run.ts` | ddq の起動口（設定・起動する ddq・出力チャネル・進捗・終了時の後始末）と子プロセスの起動 |
+| `src/ddq/contract.ts` | ddq が返す JSON の形の検査（期待値は `cli/tests/fixtures/contract/`） |
+| `src/webviewHtml.ts` | Webview の HTML（CSP・nonce）と資産の範囲。表エディタとラベル一覧・改訂履歴が共有 |
 | `src/activateRevision.ts` | ラベル一覧・改訂履歴のコマンド登録（旧 ddq-revision の入口） |
 | `src/ddq/` `src/tagging/` `src/revision/` | ddq の起動、ラベル付け、改訂履歴の Custom Editor |
 | `src/revisionWebview/` | ラベル一覧・改訂履歴の画面（React） |

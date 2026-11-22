@@ -78,6 +78,8 @@ jobs:
       - name: ddq をビルド
         working-directory: cli
         run: cargo build --release --locked
+      # 配布検証の記録（計画 REL-03）: どのコミットから、どの exe で作ったか。ZIP・VSIX の exe がこれと同じことは
+      # 次の手順の check_release.py --exe が確かめる
       - name: 使った版を書く
         shell: pwsh
         run: |
@@ -90,6 +92,7 @@ jobs:
             "run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID (attempt $env:GITHUB_RUN_ATTEMPT)"
             "runner: $env:ImageOS $env:ImageVersion"
             "ddq: $(./cli/target/release/ddq.exe --version)"
+            "ddq.exe sha256: $((Get-FileHash ./cli/target/release/ddq.exe -Algorithm SHA256).Hash.ToLowerInvariant())"
             "quarto: $(quarto --version)"
             "node: $(node --version) / npm: $(npm --version)"
             "edge: $edge"
