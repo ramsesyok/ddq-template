@@ -120,7 +120,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     let vsixes = build_extensions(&repo.join(EXTENSIONS_DIR), &repo.join(THIRD_PARTY), no_build)?;
 
     // 2) 集める（毎回作り直す）。いったん隣の作業フォルダに集め、全部そろってから前回の配布フォルダと
-    //    入れ替える。途中で失敗しても（はじめかた.pdf を作れない など）前回の配布フォルダは
+    //    入れ替える。集める途中で失敗しても（はじめかた.pdf を作れない など）前回の一式は
     //    そのまま残り、中途半端な配布フォルダはできない（docs/cli-impl U-0004 の試験で見つけた）。
     let building = out_root.join(format!("{name}.building"));
     if building.exists() {
@@ -133,26 +133,36 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
             return Err(e);
         }
     };
-    if stage.exists() {
-        fs::remove_dir_all(&stage).with_context(|| format!("{} を消せません", stage.display()))?;
-    }
-    rename_patiently(&building, &stage, std::time::Duration::from_secs(10))
-        .with_context(|| format!("{} を {} にできません", building.display(), stage.display()))?;
-
-    // 3) zip
+    // 3) 前回の一式と入れ替え、zip を作り、VSIX を隣に置く（zip には入れない。リリースページの
+    //    別資産）。ここから先の失敗では前回の一式を守らない。フォルダ・zip・VSIX が前回と今回で
+    //    混ざるので、捨てるものを示して止まる（REL-02。退避・復元は `ddq release` の今後とともに判断する）
     let zip_path = out_root.join(format!("{name}.zip"));
-    if zip_path.exists() {
-        fs::remove_file(&zip_path)?;
-    }
-    let count = zip_archive::create(&stage, &zip_path)?;
-
-    // 4) VSCode 拡張。zip には入れず隣に置く（リリースページの別資産）
     let mut vsix_names: Vec<String> = Vec::new();
     for vsix in &vsixes {
         let vsix_name = vsix.file_name().context("VSIX のファイル名")?;
-        fs::copy(vsix, out_root.join(vsix_name)).context("VSIX をコピーできません")?;
         vsix_names.push(vsix_name.to_string_lossy().into_owned());
     }
+    let published = (|| -> Result<usize> {
+        if stage.exists() {
+            fs::remove_dir_all(&stage).with_context(|| format!("{} を消せません", stage.display()))?;
+        }
+        rename_patiently(&building, &stage, std::time::Duration::from_secs(10))
+            .with_context(|| format!("{} を {} にできません", building.display(), stage.display()))?;
+        if zip_path.exists() {
+            fs::remove_file(&zip_path).with_context(|| format!("{} を消せません", zip_path.display()))?;
+        }
+        let count = zip_archive::create(&stage, &zip_path)?;
+        for (vsix, vsix_name) in vsixes.iter().zip(&vsix_names) {
+            let to = out_root.join(vsix_name);
+            fs::copy(vsix, &to).with_context(|| format!("VSIX を {} にコピーできません", to.display()))?;
+        }
+        Ok(count)
+    })();
+    let count = published.map_err(|e| {
+        let mut outputs = vec![stage.clone(), building.clone(), zip_path.clone()];
+        outputs.extend(vsix_names.iter().map(|n| out_root.join(n)));
+        e.context(discard_notice(&outputs))
+    })?;
 
     println!();
     println!("完了（テンプレート {}）", assets::VERSION);
@@ -172,6 +182,26 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
         vsix_names.join(" / ")
     );
     Ok(())
+}
+
+/// 前回の一式と入れ替える途中で失敗したときの案内。`outputs` のうち残っているものを並べる。
+/// 失敗した回の出力は配らずに捨てて作り直す、が保証の範囲（REL-02 の保留中の扱い。cli/DESIGN.md §3.2）
+fn discard_notice(outputs: &[PathBuf]) -> String {
+    let mut s = String::from(
+        "前回の一式と入れ替える途中で失敗しました。前回の一式は守っていないので、この版の出力は前回と今回の分が混ざっています。\
+         次のものは配布せずに消してから、もう一度 ddq release を実行してください",
+    );
+    let left: Vec<&PathBuf> = outputs.iter().filter(|p| p.exists()).collect();
+    if left.is_empty() {
+        s.push('。');
+    } else {
+        s.push(':');
+        for p in left {
+            s.push_str("\n  ");
+            s.push_str(&p.display().to_string());
+        }
+    }
+    s
 }
 
 /// フォルダの名前を変える。中のファイルを誰かが開いている間（Windows では書いたばかりの exe を

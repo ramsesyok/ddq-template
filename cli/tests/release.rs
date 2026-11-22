@@ -318,6 +318,53 @@ fn rerun_replaces_the_previous_stage() {
     );
 }
 
+/// 前回の一式と入れ替えた後の失敗では前回の一式を守らない（REL-02 の保留中の扱い）。
+/// 代わりに、混ざった出力を配布せずに消して作り直すよう、消すものを並べて止まる。
+/// 前回の zip を他のプログラムが開いていて消せない、が計画の実測と同じ条件
+#[test]
+#[cfg(windows)]
+fn a_failure_after_the_swap_lists_what_to_discard() {
+    use std::os::windows::fs::OpenOptionsExt;
+    if !quarto_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    fake_repo(&repo);
+    let out = tmp.path().join("out");
+    let r = release(&repo, &out, &[]);
+    assert!(r.status.success(), "{}", text(&r));
+    let zip = out.join(format!("quarto-template-{}.zip", version()));
+    let vsix = out.join(format!("ddq-a-win32-x64-{}.vsix", version()));
+    assert!(zip.is_file() && vsix.is_file());
+
+    // 読むのは許し、消すのは許さない（FILE_SHARE_READ だけ）
+    let held = fs::OpenOptions::new()
+        .read(true)
+        .share_mode(0x1)
+        .open(&zip)
+        .unwrap();
+    let r = release(&repo, &out, &[]);
+    drop(held);
+    let t = text(&r);
+    assert!(!r.status.success(), "成功してしまった: {t}");
+    assert!(
+        t.contains(&format!("{} を消せません", zip.display())),
+        "どのファイルか出ない: {t}"
+    );
+    assert!(
+        t.contains("配布せずに消してから、もう一度 ddq release を実行してください"),
+        "{t}"
+    );
+    let listed = |p: &Path| t.lines().any(|l| l == format!("  {}", p.display()));
+    for p in [&stage_of(&out), &zip, &vsix] {
+        assert!(listed(p), "{} が消すものに無い: {t}", p.display());
+    }
+    // 入れ替えは済んでいるので作業フォルダは残らず、並べない
+    let building = out.join(format!("quarto-template-{}.building", version()));
+    assert!(!building.exists() && !listed(&building), "{t}");
+}
+
 /// 失敗する条件では、前回の配布フォルダ・ZIP に手を付けずに止まる。
 fn assert_fails_untouched(repo: &Path, out: &Path, extra: &[&str], message: &str) {
     write(&stage_of(out), "previous.txt", b"previous");
