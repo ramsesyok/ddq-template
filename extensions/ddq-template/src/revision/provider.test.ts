@@ -10,7 +10,8 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -70,9 +71,12 @@ vi.mock('../ddq/run', async (importOriginal) => {
 import { RevisionEditorProvider, TAG_REFRESH_DELAY_MS } from './provider';
 
 const golden = readFileSync(join(__dirname, 'rev-B.golden.yml'), 'utf8');
+// 文書のパスはその OS の形にする（provider は path.basename で改訂記号を取るので、Windows の形の
+// `C:\docs\…` のままでは Linux で分かれず、確定済みの判定が常に偽になる）
+const docPath = resolve('docs', 'revisions', 'rev-B.yml');
 const doc = {
     text: golden,
-    uri: { fsPath: 'C:\\docs\\revisions\\rev-B.yml', toString: () => 'file:///C:/docs/revisions/rev-B.yml' },
+    uri: { fsPath: docPath, toString: () => pathToFileURL(docPath).href },
     eol: 1,
     isDirty: false,
     isClosed: false,

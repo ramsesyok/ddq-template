@@ -145,6 +145,22 @@ describe('終了コードと起動の失敗', () => {
 });
 
 describe('並行・取消・拡張の終了', () => {
+    // 孫まで止めるのは Windows だけ（killTree が `taskkill /T` を使う。計画 EXT-02 の「取消時の Windows
+    // 子孫終了」）。ほかの OS は変更前と同じく ddq（子）だけを止めるので、孫は確かめずに試験の後で片づける
+    const stopsGrandchildren = process.platform === 'win32';
+    const settle = async (pids: number[]) => {
+        if (stopsGrandchildren) {
+            await until(() => pids.every((pid) => !alive(pid)));
+            return;
+        }
+        for (const pid of pids) {
+            try {
+                process.kill(pid);
+            } catch {
+                // もう終わっている
+            }
+        }
+    };
     const sleeper = script(
         'sleeper.js',
         `const { spawn } = require('node:child_process');
@@ -171,7 +187,7 @@ setTimeout(() => {}, 60000);`
         expect(liveCount()).toBe(0);
     });
 
-    it('取消（kill）で子と孫が止まる', { timeout: 20000 }, async () => {
+    it('取消（kill）で子が止まる（Windows では孫も）', { timeout: 20000 }, async () => {
         const pidFile = path.join(dir, 'grandchild-cancel.pid');
         let kill: (() => void) | undefined;
         let seen = '';
@@ -185,11 +201,11 @@ setTimeout(() => {}, 60000);`
         kill?.();
         const result = await pending;
         expect(result.code).not.toBe(0);
-        await until(() => !alive(grandchild));
+        await settle([grandchild]);
         expect(liveCount()).toBe(0);
     });
 
-    it('stopAll（拡張の終了）は JSON の実行も長い実行も孫ごと止める', { timeout: 20000 }, async () => {
+    it('stopAll（拡張の終了）は JSON の実行も長い実行も止める（Windows では孫ごと）', { timeout: 20000 }, async () => {
         const pidA = path.join(dir, 'grandchild-a.pid');
         const pidB = path.join(dir, 'grandchild-b.pid');
         const json = run(node, [sleeper, pidA]).catch((e: unknown) => e);
@@ -201,6 +217,6 @@ setTimeout(() => {}, 60000);`
         expect(liveCount()).toBe(0);
         expect(await json).toBeInstanceOf(DdqError);
         expect((await stream).code).not.toBe(0);
-        await until(() => grandchildren.every((pid) => !alive(pid)));
+        await settle(grandchildren);
     });
 });
