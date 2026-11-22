@@ -210,8 +210,23 @@ async function offerUpdate(kind: BuildKind, folder: string): Promise<BuildOutcom
     const folderVersion = readFolderVersion(folder);
     const ddqVersion = await ddqVersionOf(folder);
     const name = path.basename(folder);
-    const mismatch = ddqVersion ? classifyMismatch(folderVersion, ddqVersion) : 'folder-older';
+    const mismatch = classifyMismatch(folderVersion, ddqVersion);
     const show = '出力を表示';
+
+    if (mismatch === 'unknown') {
+        // 比べられないので update を勧めない（文書の方が新しければ機構を古い版に戻してしまう）
+        channel().appendLine(
+            `版の確認: 執筆フォルダ ${folderVersion ?? `（${TEMPLATE_VERSION_FILE} が無い・空）`}、` +
+                `ddq ${ddqVersion ?? '（--version を読めない）'}（${currentDdq().command}）`
+        );
+        const choice = await vscode.window.showWarningMessage(
+            `${name} のテンプレートの版（${folderVersion ?? '版ファイルなし'}）と ddq の版（${ddqVersion ?? '不明'}）を` +
+                `比べられません。執筆フォルダの ${TEMPLATE_VERSION_FILE} と ddq の版を確かめてください。`,
+            show
+        );
+        if (choice === show) channel().show(true);
+        return 'mismatch';
+    }
 
     if (mismatch === 'folder-newer') {
         const choice = await vscode.window.showWarningMessage(
@@ -228,7 +243,7 @@ async function offerUpdate(kind: BuildKind, folder: string): Promise<BuildOutcom
         mismatch === 'modified'
             ? `${name} の機構ファイルがテンプレート ${ddqVersion} と一致しません（手で直された可能性があります）。` +
               'ddq update で元に戻せます（差分は Git で確認してください）。'
-            : `${name} のテンプレートは ${folderVersion ?? '（版ファイルなし）'}、ddq は ${ddqVersion ?? '不明'} です。` +
+            : `${name} のテンプレートは ${folderVersion}、ddq は ${ddqVersion} です。` +
               'ddq update で機構ファイルを新しい版にしてから続けます（変わったファイルはコミットしてください）。';
     const choice = await vscode.window.showWarningMessage(message, update, show);
     if (choice === show) channel().show(true);
