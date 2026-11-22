@@ -41,8 +41,9 @@ fn write(root: &Path, rel: &str, bytes: &[u8]) {
     fs::write(p, bytes).unwrap();
 }
 
-/// ddq.exe を同梱した VSIX（中身は zip）。`exe` を `extension/bin/win32-x64/ddq.exe` に入れる。
-fn write_bundled_vsix(root: &Path, rel: &str, exe: &[u8]) {
+/// ddq.exe を同梱した VSIX（中身は zip）。`exe` を `extension/bin/win32-x64/ddq.exe` に、
+/// `notices` を `extension/THIRD-PARTY-NOTICES.md` に入れる（None なら入れない = REL-01 より前の VSIX）。
+fn write_bundled_vsix(root: &Path, rel: &str, exe: &[u8], notices: Option<&[u8]>) {
     let p = root.join(rel);
     fs::create_dir_all(p.parent().unwrap()).unwrap();
     let mut zip = zip::ZipWriter::new(fs::File::create(p).unwrap());
@@ -52,7 +53,29 @@ fn write_bundled_vsix(root: &Path, rel: &str, exe: &[u8]) {
     zip.start_file("extension/bin/win32-x64/ddq.exe", options)
         .unwrap();
     std::io::Write::write_all(&mut zip, exe).unwrap();
+    if let Some(n) = notices {
+        zip.start_file("extension/THIRD-PARTY-NOTICES.md", options)
+            .unwrap();
+        std::io::Write::write_all(&mut zip, n).unwrap();
+    }
     zip.finish().unwrap();
+}
+
+/// リポジトリ直下の THIRD-PARTY-NOTICES.md（fake_repo が置くもの。入力 cli/Cargo.lock のハッシュつき）
+fn notices() -> String {
+    let lf_sha1: String = Sha1::digest(b"lock\n")
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    format!("# notices\n\n<!-- ddq-third-party inputs: cli/Cargo.lock={lf_sha1} -->\n")
+}
+
+/// VSIX（zip）の 1 つのファイルの中身
+fn entry_of(vsix: &Path, name: &str) -> Vec<u8> {
+    let mut zip = zip::ZipArchive::new(fs::File::open(vsix).unwrap()).unwrap();
+    let mut bytes = Vec::new();
+    zip.by_name(name).unwrap().read_to_end(&mut bytes).unwrap();
+    bytes
 }
 
 /// release を走らせる exe（= VSIX に同梱されるべき exe）の中身
@@ -85,6 +108,7 @@ fn fake_repo(root: &Path) {
         root,
         &format!("extensions/ddq-a/ddq-a-win32-x64-{v}.vsix"),
         &ddq_bytes(),
+        Some(notices().as_bytes()),
     );
     write(
         root,
@@ -92,6 +116,13 @@ fn fake_repo(root: &Path) {
         format!("{{\"name\":\"ddq-b\",\"version\":\"{v}\"}}").as_bytes(),
     );
     write(root, &format!("extensions/ddq-b/ddq-b-{v}.vsix"), b"PK vsix");
+    // ddq-a には lock がある（ルートの version と packages[""].version を照合する）。ddq-b には無い
+    // （--no-build では lock を使わないので、無くても止めない）
+    write(
+        root,
+        "extensions/ddq-a/package-lock.json",
+        lock("ddq-a", &v, &v).as_bytes(),
+    );
     // 開発・試験用に置いた jar があっても同梱しない（3.0.0 から）
     write(root, "cli/vendor/plantuml.jar", b"not really a jar");
     write(root, "README.md", "# テンプレート\n".as_bytes());
@@ -99,15 +130,7 @@ fn fake_repo(root: &Path) {
     write(root, "LICENSE", b"MIT License\n");
     // ライセンス表示と、その入力（ハッシュが合っていること）
     write(root, "cli/Cargo.lock", b"lock\r\n");
-    let lf_sha1: String = Sha1::digest(b"lock\n")
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect();
-    write(
-        root,
-        "THIRD-PARTY-NOTICES.md",
-        format!("# notices\n\n<!-- ddq-third-party inputs: cli/Cargo.lock={lf_sha1} -->\n").as_bytes(),
-    );
+    write(root, "THIRD-PARTY-NOTICES.md", notices().as_bytes());
     // --with-sample で写すサンプル（生成物・PDF 側の補助・図のキャッシュは除かれる）
     write(root, "examples/docs/_quarto.yml", b"book:\n");
     write(root, "examples/docs/chapters/01.qmd", "# 概要\n".as_bytes());
@@ -116,6 +139,13 @@ fn fake_repo(root: &Path) {
     write(root, "examples/docs/design-doc.pdf", b"%PDF");
     write(root, "examples/docs/lib.typ", b"//");
     write(root, "examples/docs/_book/index.html", b"<html/>");
+}
+
+/// package-lock.json（lockfileVersion 3）。`root` はルートの version、`package` は packages[""].version
+fn lock(name: &str, root: &str, package: &str) -> String {
+    format!(
+        r#"{{"name":"{name}","version":"{root}","lockfileVersion":3,"requires":true,"packages":{{"":{{"name":"{name}","version":"{package}"}}}}}}"#
+    )
 }
 
 fn release(repo: &Path, out: &Path, extra: &[&str]) -> Output {
@@ -237,6 +267,16 @@ fn zip_matches_the_stage_byte_for_byte() {
         assert_eq!(zn, sn);
         assert!(zb == sb, "{zn} の中身が違う");
     }
+
+    // ZIP の隣の（同梱の）VSIX にも、ZIP と同じライセンス表示が入っている（REL-01）
+    let in_zip = &zipped
+        .iter()
+        .find(|(n, _)| n == "THIRD-PARTY-NOTICES.md")
+        .unwrap()
+        .1;
+    let vsix = out.join(format!("ddq-a-win32-x64-{v}.vsix"));
+    assert!(entry_of(&vsix, "extension/THIRD-PARTY-NOTICES.md") == *in_zip);
+    assert!(entry_of(&vsix, "extension/bin/win32-x64/ddq.exe") == ddq_bytes());
 }
 
 #[test]
@@ -316,6 +356,117 @@ fn extension_version_must_match_the_template() {
     assert_fails_untouched(&repo, &tmp.path().join("out"), &[], "npm version");
 }
 
+/// 版の照合（REL-03）で止まったときの共通の確かめ。前回の配布物に手を付けず、重い処理
+/// （マニュアルの機構更新・ビルド、拡張の梱包）を始めていない。`--no-build` の有無の両方で見る
+fn assert_versions_stop(repo: &Path, out: &Path, expected: &[&str]) {
+    for build in [false, true] {
+        write(&stage_of(out), "previous.txt", b"previous");
+        let r = if build {
+            release_with_build(repo, out)
+        } else {
+            release(repo, out, &[])
+        };
+        assert_eq!(r.status.code(), Some(1), "{}", text(&r));
+        let t = text(&r);
+        assert!(t.contains("版が揃っていません（template/VERSION = "), "{t}");
+        for e in expected {
+            assert!(t.contains(e), "「{e}」が無い: {t}");
+        }
+        assert!(!t.contains("リリースを作成"), "照合の前に始めた: {t}");
+        assert!(stage_of(out).join("previous.txt").exists());
+        // release は（--no-build でなければ）まずマニュアルの機構ファイルを更新する。それも始めていない
+        assert!(!repo.join("docs/manual/.template-version").exists(), "{t}");
+        assert!(!repo.join("extensions/ddq-a/bin").exists(), "{t}");
+    }
+}
+
+/// 作業ツリーの template/VERSION が、release する ddq の版と違う（古い exe で release した）
+#[test]
+fn an_old_ddq_stops_before_anything_is_built() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    fake_repo(&repo);
+    write(&repo, "template/VERSION", b"99.0.0\n");
+    assert_versions_stop(
+        &repo,
+        &tmp.path().join("out"),
+        &[
+            "template/VERSION = 99.0.0",
+            &format!(
+                "この ddq の版 = {}（cli で cargo build --release し直し",
+                version()
+            ),
+            // 拡張はこの ddq の版に揃っているが、作業ツリーの版とは違う
+            &format!("extensions/ddq-a/package.json の version = {}", version()),
+            "extensions/ddq-a で `npm version 99.0.0 --no-git-tag-version`",
+        ],
+    );
+}
+
+/// 拡張の版が新しすぎても古すぎても止まる。外れたものは 1 回でまとめて並ぶ
+#[test]
+fn every_version_that_differs_is_listed_at_once() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    fake_repo(&repo);
+    write(
+        &repo,
+        "extensions/ddq-a/package.json",
+        b"{\"name\":\"ddq-a\",\"version\":\"99.0.0\",\"scripts\":{\"package:win32-x64\":\"vsce\"}}",
+    );
+    write(
+        &repo,
+        "extensions/ddq-b/package.json",
+        b"{\"name\":\"ddq-b\",\"version\":\"0.0.1\"}",
+    );
+    assert_versions_stop(
+        &repo,
+        &tmp.path().join("out"),
+        &[
+            "extensions/ddq-a/package.json の version = 99.0.0",
+            "extensions/ddq-b/package.json の version = 0.0.1",
+            &format!(
+                "extensions/ddq-a で `npm version {} --no-git-tag-version`",
+                version()
+            ),
+            &format!(
+                "extensions/ddq-b で `npm version {} --no-git-tag-version`",
+                version()
+            ),
+        ],
+    );
+}
+
+/// package.json だけ揃えて lock を揃え忘れた（ルートの version・packages[""].version のどちらでも）
+#[test]
+fn the_lock_must_carry_the_same_version() {
+    let v = version();
+    for (root, package, expected) in [
+        (
+            "0.0.1",
+            v.as_str(),
+            "extensions/ddq-a/package-lock.json の version = 0.0.1",
+        ),
+        (
+            v.as_str(),
+            "0.0.1",
+            "extensions/ddq-a/package-lock.json の packages[\"\"].version = 0.0.1",
+        ),
+    ] {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("repo");
+        fake_repo(&repo);
+        write(
+            &repo,
+            "extensions/ddq-a/package-lock.json",
+            lock("ddq-a", root, package).as_bytes(),
+        );
+        assert_versions_stop(&repo, &tmp.path().join("out"), &[expected, "npm version"]);
+        let r = release(&repo, &tmp.path().join("out"), &[]);
+        assert!(!text(&r).contains("package.json の version"), "{}", text(&r));
+    }
+}
+
 #[test]
 fn no_build_without_a_vsix_stops() {
     let tmp = tempfile::tempdir().unwrap();
@@ -335,6 +486,7 @@ fn bundled_exe_must_be_the_released_ddq() {
         &repo,
         &format!("extensions/ddq-a/ddq-a-win32-x64-{}.vsix", version()),
         b"MZ old ddq",
+        Some(notices().as_bytes()),
     );
     assert_fails_untouched(
         &repo,
@@ -342,6 +494,50 @@ fn bundled_exe_must_be_the_released_ddq() {
         &[],
         "いま release している ddq と違います",
     );
+}
+
+/// REL-01 より前に作った VSIX（ライセンス表示が無い）は --no-build で配らない
+#[test]
+fn a_vsix_without_the_notices_stops() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    fake_repo(&repo);
+    write_bundled_vsix(
+        &repo,
+        &format!("extensions/ddq-a/ddq-a-win32-x64-{}.vsix", version()),
+        &ddq_bytes(),
+        None,
+    );
+    assert_fails_untouched(
+        &repo,
+        &tmp.path().join("out"),
+        &[],
+        "extension/THIRD-PARTY-NOTICES.md がありません（--no-build を外して作り直してください）",
+    );
+}
+
+/// VSIX のライセンス表示が ZIP に入れるものと違う（依存を変えて表示を作り直した後に、古い VSIX のまま）
+#[test]
+fn the_notices_in_the_vsix_must_be_the_ones_in_the_zip() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    fake_repo(&repo);
+    // 改行だけ違っても別のもの（バイト列で比べる）
+    let crlf = notices().replace('\n', "\r\n");
+    for old in [b"# old notices\n".as_slice(), crlf.as_bytes()] {
+        write_bundled_vsix(
+            &repo,
+            &format!("extensions/ddq-a/ddq-a-win32-x64-{}.vsix", version()),
+            &ddq_bytes(),
+            Some(old),
+        );
+        assert_fails_untouched(
+            &repo,
+            &tmp.path().join("out"),
+            &[],
+            "extension/THIRD-PARTY-NOTICES.md が、リポジトリ直下の THIRD-PARTY-NOTICES.md（ZIP に入れるもの）と違います",
+        );
+    }
 }
 
 #[test]
@@ -415,7 +611,7 @@ fn real_build_repo(root: &Path, package_b: &str) {
         root,
         "extensions/ddq-a/package.json",
         format!(
-            r#"{{"name":"ddq-a","version":"{v}","scripts":{{"postinstall":"node mark.js","package:win32-x64":"node pack.js ddq-a-win32-x64-{v}.vsix extension/bin/win32-x64/ddq.exe=bin/win32-x64/ddq.exe"}}}}"#
+            r#"{{"name":"ddq-a","version":"{v}","scripts":{{"postinstall":"node mark.js","package:win32-x64":"node pack.js ddq-a-win32-x64-{v}.vsix extension/bin/win32-x64/ddq.exe=bin/win32-x64/ddq.exe extension/THIRD-PARTY-NOTICES.md=THIRD-PARTY-NOTICES.md"}}}}"#
         )
         .as_bytes(),
     );
@@ -505,6 +701,11 @@ fn real_build_makes_the_manual_and_packages_the_extensions() {
         bundled == ddq_bytes(),
         "VSIX の ddq.exe が release した ddq と違う"
     );
+    // ライセンス表示もコピーしてからパッケージした（ZIP に入れたものと同じ）
+    let in_zip = fs::read(stage.join("THIRD-PARTY-NOTICES.md")).unwrap();
+    assert!(ext.join("ddq-a/THIRD-PARTY-NOTICES.md").is_file());
+    assert!(entry_of(&vsix, "extension/THIRD-PARTY-NOTICES.md") == in_zip);
+    assert!(in_zip == notices().as_bytes());
     assert!(
         out.join(format!("ddq-b-{v}.vsix")).is_file(),
         "ddq-b の VSIX が無い"

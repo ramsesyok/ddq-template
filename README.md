@@ -18,7 +18,7 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | PDF 組版 | Quarto → Typst（Quarto 同梱。LaTeX 不要） |
 | 様式の実体 | `template/lib.typ`（Typst テンプレート） |
 | 記法の拡張 | `template/design-doc.lua`（Pandoc Lua フィルタ） |
-| 図 | mermaid（文字で書いた図をベクター SVG に）、PlantUML（LAN のサーバか、同梱 jar をローカルの Java で） |
+| 図 | mermaid（文字で書いた図をベクター SVG に）、PlantUML（LAN のサーバか、各自で取得した jar をローカルの Java で） |
 | ビルド・配置の道具 | `ddq.exe`（Rust 製の単一実行ファイル。様式一式を内蔵） |
 | VSCode 拡張 | **DDQ Template**（`ddq.exe` 同梱。設計書リポジトリの作成・PDF / HTML の出力・ラベル付け・改訂履歴・表の視覚編集） |
 | 執筆者・発行者に要るもの | Quarto ＋ VSCode ＋ DDQ Template（VSIX）。PlantUML 図を使う文書で LAN にサーバが無いときだけ、`plantuml.jar`（PlantUML の公式リリースから各自で取得）と Java も |

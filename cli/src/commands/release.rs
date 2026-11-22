@@ -11,7 +11,8 @@
 //! 2.3.0 で extension/ → extensions/<拡張>/ に移して複数の拡張を扱えるようにした。その後
 //! ddq-revision と ddq-table-editor を extensions/ddq-template/ に統合した）。
 //! `package:win32-x64` スクリプトを持つ拡張は ddq.exe を同梱する: この exe を `<拡張>/bin/win32-x64/ddq.exe`
-//! にコピーしてターゲット指定の VSIX を作る（docs/ddq-template-study.md §7）。VSIX は zip に入れず、
+//! に、THIRD-PARTY-NOTICES.md を `<拡張>/` にコピーしてターゲット指定の VSIX を作る（docs/ddq-template-study.md §7。
+//! ライセンス表示は REL-01 から）。VSIX は zip に入れず、
 //! zip の隣に置く（zip は CLI 利用者向け、VSIX は VSCode 利用者向けの別資産）。
 //! 版は各 package.json の version で、template/VERSION と一致していなければ止める。
 //! plantuml.jar は同梱しない（3.0.0 から。版・ライセンス・脆弱性の管理を利用者の環境に任せる）。
@@ -70,6 +71,9 @@ const BUNDLE_SCRIPT: &str = "package:win32-x64";
 const BUNDLE_TARGET: &str = "win32-x64";
 /// 拡張の中での同梱 ddq の置き場（拡張側 src/ddq/locate.ts の bundledPath と揃える）
 const BUNDLED_EXE: &str = "bin/win32-x64/ddq.exe";
+// ddq.exe を同梱する拡張には、ZIP と同じ第三者のライセンス表示（THIRD_PARTY）も入れる（REL-01。
+// VSIX だけを受け取る利用者にも、同梱の ddq.exe と Webview の React の表示が届くように）。
+// 拡張のフォルダ直下にコピーしてから梱包するので、VSIX では `extension/THIRD-PARTY-NOTICES.md` になる
 
 pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<()> {
     let repo = env::current_dir().context("カレントディレクトリを取得できません")?;
@@ -81,6 +85,8 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
             repo.display()
         );
     }
+    // 版が揃っていること（REL-03）。名前・同梱物の版はこの exe の版で決まるので、まず確かめる
+    check_versions(&repo)?;
     let name = format!("quarto-template-{}", assets::VERSION);
     let out_root = match out_dir {
         Some(p) => std::path::absolute(p)?,
@@ -111,7 +117,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     }
 
     // 1b) VSCode 拡張（VSIX）。マニュアルと同じく --no-build なら既にあるものを使う
-    let vsixes = build_extensions(&repo.join(EXTENSIONS_DIR), no_build)?;
+    let vsixes = build_extensions(&repo.join(EXTENSIONS_DIR), &repo.join(THIRD_PARTY), no_build)?;
 
     // 2) 集める（毎回作り直す）。いったん隣の作業フォルダに集め、全部そろってから前回の配布フォルダと
     //    入れ替える。途中で失敗しても（はじめかた.pdf を作れない など）前回の配布フォルダは
@@ -222,17 +228,14 @@ fn assemble(
 /// `extensions/` の各拡張をパッケージし、できた VSIX のパスを（フォルダ名順に）返す。
 ///
 /// 1 フォルダ = 1 拡張。フォルダ名は `package.json` の name と一致させる（VSIX 名の先頭になる）。
-fn build_extensions(root: &Path, no_build: bool) -> Result<Vec<PathBuf>> {
-    let mut dirs: Vec<PathBuf> = fs::read_dir(root)
-        .with_context(|| format!("{} を読めません", root.display()))?
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.join("package.json").is_file())
-        .collect();
-    dirs.sort();
+fn build_extensions(root: &Path, notices: &Path, no_build: bool) -> Result<Vec<PathBuf>> {
+    let dirs = extension_dirs(root)?;
     if dirs.is_empty() {
         bail!("{} に VSCode 拡張がありません", root.display());
     }
-    dirs.iter().map(|d| build_extension(d, no_build)).collect()
+    dirs.iter()
+        .map(|d| build_extension(d, notices, no_build))
+        .collect()
 }
 
 /// VSCode 拡張 1 つをパッケージし、できた VSIX のパスを返す。
@@ -241,11 +244,12 @@ fn build_extensions(root: &Path, no_build: bool) -> Result<Vec<PathBuf>> {
 /// - `package.json` の version が template/VERSION と違えば止める
 ///   （拡張の版はテンプレートの版に揃える。利用マニュアル 18 章）
 /// - `no_build` でなければ `npm ci`（node_modules があっても入れ直す）→ `npm run package`
-/// - `package:win32-x64` を持つ拡張（ddq.exe の同梱）は、この exe を `bin/win32-x64/ddq.exe` に
-///   コピーしてから `npm run package:win32-x64`。VSIX の中の ddq.exe がこの exe と同じことを確かめる
-///   （`--no-build` で古い VSIX を配らないため）
+/// - `package:win32-x64` を持つ拡張（ddq.exe の同梱）は、この exe を `bin/win32-x64/ddq.exe` に、
+///   リポジトリ直下の `THIRD-PARTY-NOTICES.md`（`notices`）を拡張のフォルダ直下にコピーしてから
+///   `npm run package:win32-x64`。VSIX の中の ddq.exe がこの exe と、ライセンス表示が `notices` と
+///   同じことを確かめる（`--no-build` で古い VSIX を配らないため）
 /// - どちらの場合も `<拡張>/<name>[-win32-x64]-<版>.vsix` が無ければエラー
-fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {
+fn build_extension(ext: &Path, notices: &Path, no_build: bool) -> Result<PathBuf> {
     let dir_name = ext
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -300,6 +304,9 @@ fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {
             fs::create_dir_all(dest.parent().expect("bin/win32-x64"))?;
             fs::copy(quarto::self_exe()?, &dest)
                 .with_context(|| format!("ddq.exe を {} にコピーできません", dest.display()))?;
+            let dest = ext.join(THIRD_PARTY);
+            fs::copy(notices, &dest)
+                .with_context(|| format!("{THIRD_PARTY} を {} にコピーできません", dest.display()))?;
         }
         // node_modules があっても必ず入れ直す。古い node_modules のまま梱包すると、
         // package-lock.json と違う版の依存が VSIX に入り得る（npm ci は node_modules を消して入れる）
@@ -316,29 +323,44 @@ fn build_extension(ext: &Path, no_build: bool) -> Result<PathBuf> {
         );
     }
     if bundle {
-        check_bundled_exe(&vsix)?;
+        check_bundled(&vsix, notices)?;
     }
     Ok(vsix)
 }
 
-/// VSIX に同梱した ddq.exe が、いま release している exe と同じであること。
-/// 違えば、拡張と CLI で版の違う ddq を配ってしまう（拡張は同梱 ddq の版でテンプレートを照合する）。
-fn check_bundled_exe(vsix: &Path) -> Result<()> {
-    let entry = format!("extension/{BUNDLED_EXE}");
+/// 同梱の VSIX の中身を、梱包した VSIX から読んで確かめる。
+/// - ddq.exe が、いま release している exe と同じ。違えば、拡張と CLI で版の違う ddq を配ってしまう
+///   （拡張は同梱 ddq の版でテンプレートを照合する）
+/// - 第三者のライセンス表示が、ZIP に入れるもの（リポジトリ直下の `notices`）と同じ（REL-01）。
+///   無い・違うなら、表示の無い・古い VSIX を配ってしまう
+fn check_bundled(vsix: &Path, notices: &Path) -> Result<()> {
     let file = fs::File::open(vsix).with_context(|| format!("{} を開けません", vsix.display()))?;
     let mut archive =
         zip::ZipArchive::new(file).with_context(|| format!("{} を zip として読めません", vsix.display()))?;
-    let mut bundled = Vec::new();
-    {
-        let mut f = archive
-            .by_name(&entry)
-            .with_context(|| format!("{} に {entry} がありません", vsix.display()))?;
-        std::io::Read::read_to_end(&mut f, &mut bundled)?;
-    }
+    let mut read = |entry: &str| -> Result<Vec<u8>> {
+        let mut f = archive.by_name(entry).with_context(|| {
+            format!(
+                "{} に {entry} がありません（--no-build を外して作り直してください）",
+                vsix.display()
+            )
+        })?;
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut f, &mut bytes)?;
+        Ok(bytes)
+    };
+    let entry = format!("extension/{BUNDLED_EXE}");
     let me = fs::read(quarto::self_exe()?).context("この exe を読めません")?;
-    if bundled != me {
+    if read(&entry)? != me {
         bail!(
             "{} の {entry} が、いま release している ddq と違います（--no-build を外して作り直してください）",
+            vsix.display()
+        );
+    }
+    let entry = format!("extension/{THIRD_PARTY}");
+    let want = fs::read(notices).with_context(|| format!("{} を読めません", notices.display()))?;
+    if read(&entry)? != want {
+        bail!(
+            "{} の {entry} が、リポジトリ直下の {THIRD_PARTY}（ZIP に入れるもの）と違います（--no-build を外して作り直してください）",
             vsix.display()
         );
     }
@@ -420,6 +442,94 @@ fn copy_tree(
     Ok(())
 }
 
+/// 版の照合（REL-03）。template/VERSION、この exe の版（ビルドしたときの template/VERSION）、
+/// 各拡張の package.json の version、package-lock.json の version と packages[""].version が
+/// すべて同じでなければ、重いビルドの前に止める（`--no-build` でも同じ）。外れたものはまとめて
+/// 並べる。古い exe で release すると、作業ツリーと違う版の名前・同梱物の配布ができてしまう。
+///
+/// 拡張のフォルダが無い、package-lock.json が無い、といった場合はここでは止めない
+/// （これまでどおり、拡張の梱包・npm ci のところで止まる）。lock に packages が無い
+/// （lockfileVersion 1）ときは packages[""].version を見ない。
+fn check_versions(repo: &Path) -> Result<()> {
+    let want = fs::read_to_string(repo.join("template").join("VERSION"))
+        .context("template/VERSION を読めません")?
+        .trim()
+        .to_string();
+    let mut wrong: Vec<String> = Vec::new();
+    if assets::VERSION != want {
+        wrong.push(format!(
+            "この ddq の版 = {}（cli で cargo build --release し直し、その ddq で release してください）",
+            assets::VERSION
+        ));
+    }
+    let mut stale_extensions: Vec<String> = Vec::new();
+    let root = repo.join(EXTENSIONS_DIR);
+    if root.is_dir() {
+        for ext in extension_dirs(&root)? {
+            let rel = format!(
+                "{EXTENSIONS_DIR}/{}",
+                ext.file_name().unwrap_or_default().to_string_lossy()
+            );
+            let before = wrong.len();
+            let meta = read_json(&ext.join("package.json"))?;
+            let version = meta["version"].as_str().unwrap_or("（無い）");
+            if version != want {
+                wrong.push(format!("{rel}/package.json の version = {version}"));
+            }
+            let lock_path = ext.join("package-lock.json");
+            if lock_path.is_file() {
+                let lock = read_json(&lock_path)?;
+                let version = lock["version"].as_str().unwrap_or("（無い）");
+                if version != want {
+                    wrong.push(format!("{rel}/package-lock.json の version = {version}"));
+                }
+                if lock.get("packages").is_some() {
+                    let version = lock["packages"][""]["version"].as_str().unwrap_or("（無い）");
+                    if version != want {
+                        wrong.push(format!(
+                            "{rel}/package-lock.json の packages[\"\"].version = {version}"
+                        ));
+                    }
+                }
+            }
+            if wrong.len() > before {
+                stale_extensions.push(rel);
+            }
+        }
+    }
+    if wrong.is_empty() {
+        return Ok(());
+    }
+    let mut msg = format!(
+        "版が揃っていません（template/VERSION = {want}）。ビルドの前に止めました（何も作っていません）:"
+    );
+    for w in &wrong {
+        msg.push_str(&format!("\n  {w}"));
+    }
+    for rel in &stale_extensions {
+        msg.push_str(&format!(
+            "\n{rel} で `npm version {want} --no-git-tag-version` を実行して揃えてください（package-lock.json も揃います）"
+        ));
+    }
+    bail!(msg)
+}
+
+/// `extensions/` の下の、package.json のあるフォルダ（フォルダ名順）。
+fn extension_dirs(root: &Path) -> Result<Vec<PathBuf>> {
+    let mut dirs: Vec<PathBuf> = fs::read_dir(root)
+        .with_context(|| format!("{} を読めません", root.display()))?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.join("package.json").is_file())
+        .collect();
+    dirs.sort();
+    Ok(dirs)
+}
+
+fn read_json(path: &Path) -> Result<serde_json::Value> {
+    let text = fs::read_to_string(path).with_context(|| format!("{} を読めません", path.display()))?;
+    serde_json::from_str(&text).with_context(|| format!("{} を JSON として読めません", path.display()))
+}
+
 /// `THIRD-PARTY-NOTICES.md` があり、先頭に記録した入力のハッシュが今のファイルと一致するか。
 fn check_third_party(repo: &Path) -> Result<()> {
     let path = repo.join(THIRD_PARTY);
@@ -499,6 +609,51 @@ mod tests {
             ["Cargo.lock"]
         );
         assert!(stale_third_party_inputs(tmp.path(), "# 記録なし\n").is_err());
+    }
+
+    /// 揃っていれば通る。lock が無い・packages の無い古い lock は、あるものだけ見る。
+    /// 読めない JSON は版を確かめられないので止める
+    #[test]
+    fn versions_are_checked_where_they_exist() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+        let v = assets::VERSION;
+        let put = |rel: &str, body: &str| {
+            let p = repo.join(rel);
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+            fs::write(p, body).unwrap();
+        };
+        put("template/VERSION", &format!("{v}\r\n"));
+        // 拡張のフォルダが無ければ、ここでは止めない（梱包のところで止まる）
+        check_versions(repo).unwrap();
+        put("extensions/a/package.json", &format!(r#"{{"version":"{v}"}}"#));
+        put("extensions/b/package.json", &format!(r#"{{"version":"{v}"}}"#));
+        put(
+            "extensions/b/package-lock.json",
+            &format!(r#"{{"version":"{v}","lockfileVersion":1,"dependencies":{{}}}}"#),
+        );
+        // package.json の無いフォルダは拡張ではない
+        put("extensions/notes/README.md", "x");
+        check_versions(repo).unwrap();
+
+        put(
+            "extensions/b/package-lock.json",
+            r#"{"lockfileVersion":3,"packages":{"":{}}}"#,
+        );
+        let e = format!("{:#}", check_versions(repo).unwrap_err());
+        assert!(
+            e.contains("extensions/b/package-lock.json の version = （無い）"),
+            "{e}"
+        );
+        assert!(
+            e.contains("extensions/b/package-lock.json の packages[\"\"].version = （無い）"),
+            "{e}"
+        );
+        assert!(!e.contains("extensions/a"), "{e}");
+
+        put("extensions/b/package-lock.json", "{");
+        let e = format!("{:#}", check_versions(repo).unwrap_err());
+        assert!(e.contains("package-lock.json を JSON として読めません"), "{e}");
     }
 
     #[test]

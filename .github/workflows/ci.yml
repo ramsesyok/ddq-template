@@ -18,9 +18,11 @@ on:
   push:
     branches: [main]
     # extensions/ddq-template/** は同梱版のスモーク（vsix-smoke）のため
-    paths: [cli/**, template/**, examples/docs/**, extensions/ddq-template/**, .github/workflows/ci.yml]
+    paths: [cli/**, template/**, examples/docs/**, extensions/ddq-template/**, THIRD-PARTY-NOTICES.md, .github/workflows/ci.yml]
   pull_request:
-    paths: [cli/**, template/**, examples/docs/**, .github/workflows/ci.yml]
+    # cargo test が読むリポジトリ直下・拡張のファイルも含める（tests/third_party.rs が THIRD-PARTY-NOTICES.md と
+    # 拡張の package-lock.json を、src/doc/revfile.rs の試験が拡張の改訂ファイルの golden を読む）
+    paths: [cli/**, template/**, examples/docs/**, THIRD-PARTY-NOTICES.md, extensions/ddq-template/package-lock.json, extensions/ddq-template/src/revision/*.golden.yml, .github/workflows/ci.yml]
   workflow_dispatch:
 jobs:
   cli:
@@ -52,6 +54,14 @@ jobs:
           key: plantuml-mit-${{ env.PLANTUML_VERSION }}
       - if: steps.plantuml-cache.outputs.cache-hit != 'true'
         run: curl.exe -sSL -o vendor/plantuml.jar "https://github.com/plantuml/plantuml/releases/download/v${{ env.PLANTUML_VERSION }}/plantuml-mit-${{ env.PLANTUML_VERSION }}.jar"
+      # 置いた jar（キャッシュから戻したものも）が、cli/vendor/README.md に記録した版の公式の MIT 版と同じこと
+      - name: plantuml.jar の SHA-256 を照合
+        shell: bash
+        run: |
+          want=$(grep -oE "${PLANTUML_VERSION} は \`sha256:[0-9a-f]{64}\`" vendor/README.md | grep -oE '[0-9a-f]{64}' || true)
+          got=$(sha256sum vendor/plantuml.jar | cut -d' ' -f1)
+          echo "cli/vendor/README.md の ${PLANTUML_VERSION}: ${want:-（記録なし）} / jar: $got"
+          test -n "$want" && test "$want" = "$got"
       - run: java -jar vendor/plantuml.jar -version
       # 依存クレートの既知の脆弱性（RustSec）。unmaintained などの警告では落とさない
       - uses: taiki-e/install-action@v2
@@ -59,9 +69,10 @@ jobs:
           tool: cargo-audit
       - run: cargo audit
       - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
-      - run: cargo build --release
+      # --locked: Cargo.lock と違う依存で試験・ビルドしない（lock が古ければ落ちる）
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --release --locked
       - uses: actions/upload-artifact@v4
         with:
           name: ddq-windows-x64

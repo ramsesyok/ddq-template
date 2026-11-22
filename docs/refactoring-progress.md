@@ -64,9 +64,15 @@ ID の差分は `git diff <前の ID の木> <その ID の木>`、基準から�
 | GEN-01 | `122c2e192abc180bc7e79d8b0cfc94785e5d5b1a` |
 | EXT-01 | `25f40fe5879c466f5b63d41e6d276cec402a35dd` |
 | DATA-01 | `78e972cb3d4539675ce8b17e506d2df5eba43041` |
+| IO-01 | `2c456eafd13e1e925360baeb4c557d1f783da223` |
+| IO-02 | `59bd62ee6a9930a885853932b66a10af391447b9` |
 
 GEN-01・EXT-01・DATA-01 は続けて実装したので、木は後から ID ごとのファイルで組み立てた（3 つで変更ファイルは重ならない。
 共有の README は GEN-01 の木では DATA-01 で足した行と節を除いた）。本書の更新は DATA-01 の木にまとめて入れた。
+IO-01・IO-02 も同じく後から組み立てた。重なるのは `cli/src/replace.rs` だけで、IO-01 の木のものは IO-02 で足した `create_new` と
+その試験 2 つを除いた。IO-01 の木だけを展開して clippy（`--all-targets -D warnings`）・`cargo fmt --check`・単体（replace・tag・rev・
+revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通ることを確かめた。本書の IO-01・IO-02 の記録は IO-02 の木に入れた
+（表のこの 2 行は木を作った後に足した）。
 
 木は `git gc` で消えうる（どの参照からもたどれない）。消えたら作業ツリーの差分と下の「変更ファイル」が正。
 
@@ -484,6 +490,205 @@ GEN-01・EXT-01・DATA-01 は続けて実装したので、木は後から ID �
 - vitest 全件（模擬）: 46 ファイル・480 件成功。拡張のコードは変えていないが、拡張の `src/ddq/contract.test.ts` も契約の期待値
   `tag-applied.json`（IO-01 で BOM を足した）を読むので実施した。拡張側は BOM を除いて比べるので結果は変わらない
 - 実Host（`DDQ_HOST_REAL=1`、`DDQ_BIN` は上の全件でビルドした debug の exe）: 30/30 合格
+
+### REL-03　release の前に版を照合する
+
+- **状況**: 完了（ローカルの release。計画の「CI は同じ checkout のビルドを使い、配布検証の記録にコミットと exe の SHA-256 を
+  残す」は CI-01 で扱う。下の「計画からの逸脱」）
+- **変更ファイル**: `cli/src/commands/release.rs`（`check_versions`・`extension_dirs`・`read_json` を追加し、`run` の最初で照合。
+  `build_extensions` はフォルダの列挙を `extension_dirs` に寄せた。試験 1）、`cli/tests/release.rs`（+3。`fake_repo` の ddq-a に
+  package-lock.json を置いた）、`docs/manual/chapters/18-maintainer/03-procedure.qmd`・`06-release.qmd`・`cli/DESIGN.md`（説明）
+- **規則**（2026-11-22 の利用者判断「推奨のとおり」）
+  - 重いビルド（マニュアルの機構更新・PDF・HTML、拡張の npm）と第三者表示の照合の前に、`template/VERSION`（前後の空白を除く）・
+    この exe の版（ビルドしたときの `template/VERSION`）・各拡張の `package.json` の `version`・`package-lock.json` の `version` と
+    `packages[""].version` を比べる。1 つでも `template/VERSION` と違えば終了コード 1、何も作らない。`--no-build` でも同じ
+  - 違うものはまとめて挙げる。exe の版が違えば `cargo build --release` し直すよう、拡張が違えば `npm version <版> --no-git-tag-version`
+    を案内する（従来の拡張の版の案内と同じ文言を含む）
+  - 拡張のフォルダが無い・`package-lock.json` が無いときはここでは止めない（従来どおり梱包・`npm ci` で止まる）。lock に
+    `packages` が無い（lockfileVersion 1）ときは `packages[""].version` を見ない。読めない JSON は止める
+  - 既存の照合（`build_extension` の拡張の版、VSIX の中の exe のバイト照合）は残した
+- **試験と結果**
+  - 単体: 揃っていれば通る、拡張のフォルダが無い・lock が無い・古い形式の lock・package.json の無いフォルダは止めない、
+    lock の版が無いと「（無い）」として挙げる、読めない lock は止める
+  - 実 exe（`tests/release.rs` 14 件すべて成功。追加 3）: 古い exe（作業ツリーの VERSION が 99.0.0）、拡張の版が新しすぎる・古すぎる
+    （2 つの拡張を 1 回で挙げる）、lock のルートの version だけ・`packages[""].version` だけが古い。それぞれ `--no-build` の有無の
+    両方で、終了コード 1・前回の配布フォルダが残る・「リリースを作成」より前に止まる・マニュアルの機構更新も拡張の梱包も始めて
+    いないことを見た。同じ版で中身の違う exe の VSIX（既存の `bundled_exe_must_be_the_released_ddq`）も成功
+  - 旧 exe（HEAD）との比較（試験と同じ形の小さなリリース用リポジトリを一時フォルダに組み、各 exe を同梱した VSIX を置いて実行）
+
+    | 状況 | 旧 | 新 |
+    |---|---|---|
+    | 揃っている（`--no-build`） | 0。zip 8 ファイル | 0。同じ（出力の表示も同じ） |
+    | 作業ツリーの VERSION が 99.0.0（= 古い exe）、`--no-build` | **0。3.1.0-pre1 の配布一式を作った** | 1。何も作らない。exe・package.json・lock の 3 か所を挙げる |
+    | lock のルートの version だけ古い（`--no-build`） | 0 | 1。そのファイルと値を挙げる |
+    | lock の `packages[""].version` だけ古い（`--no-build`） | 0 | 1。同上 |
+    | package.json の version が古い（ビルドあり） | 1。ただし先にマニュアルの機構ファイルを書き換え、PDF のビルドまで進んだ | 1。何も始めない |
+
+    最初の比較では変異試験が最後に作った（変異した）exe を使ってしまったので、作り直してから取り直した（上の表は取り直したもの）
+  - 変異: 9 か所（照合を呼ばない・exe の版を見ない・exe の版を基準にする・lock のルート／`packages[""]` を見ない・古い形式の lock も
+    外れにする・lock が無ければ止める・最初の拡張しか見ない・外れを 1 つしか並べない）を 1 つずつ壊し、すべて落ちることを確認
+    （戻した後のファイルは sha256 で一致）
+  - clippy・`cargo fmt --check` 成功
+- **利用者（保守者）に見える差**
+  1. 古い exe・揃っていない lock での release が、重いビルドの前に止まる（従来は通るか、マニュアルのビルドの後に止まった）
+  2. 拡張の版の不一致のメッセージが変わった（違うものをまとめて挙げる）。成功時の出力・配布物の名前と構成は同じ
+- **計画からの逸脱**
+  1. 計画の「CI は同じ checkout のビルドを使い、配布検証の記録にコミットと exe の SHA-256 を残す」は CI の配布候補の作り方
+     そのもので、`ddq release` の今後（REL-02 の保留）に関わるので CI-01 に回した
+  2. lock が無いときは止めない（承認された条件は「版が違えば止める」で、lock が無いことは含まないため。従来どおり `npm ci` で止まる）
+- **戻す方法**: `run` の `check_versions` の呼び出しを消す（3 関数と試験も消す）
+- **残存リスク**
+  - exe の版は `template/VERSION` から作るので、`template/` の中身（機構ファイル）を直して版を上げずにビルドし忘れた exe は検出
+    できない（同じ版名で雛形が変わった実例は計画にある。中身の照合はしていない）
+  - 拡張を複数にしたときの照合は試験の小さなリポジトリ（2 拡張）でだけ見ている
+
+### REL-01　同梱の VSIX に第三者のライセンス表示を入れる
+
+- **状況**: 完了
+- **変更ファイル**: `cli/src/commands/release.rs`（同梱の拡張を梱包する前に `THIRD-PARTY-NOTICES.md` を拡張のフォルダ直下へコピー。
+  `check_bundled_exe` を `check_bundled` にし、VSIX の中の表示も照合）、`.gitignore`（コピーした表示を git 管理外に）、
+  `cli/tests/release.rs`（+2。模擬の VSIX に表示を入れ、ZIP の隣の VSIX から表示を読み直す照合を足した。実ビルドの梱包スクリプトにも
+  表示を入れさせた）、`docs/manual/chapters/18-maintainer/06-release.qmd`・`cli/DESIGN.md`（説明）
+- **規則**
+  - 対象は ddq.exe を同梱する拡張（`package:win32-x64` を持つもの。今は ddq-template だけ）。ビルドするときは exe と同じく
+    リポジトリ直下の表示を `<拡張>/THIRD-PARTY-NOTICES.md` にコピーしてから `npm run package:win32-x64`。vsce がそのまま
+    `extension/THIRD-PARTY-NOTICES.md` として入れる（`.vscodeignore` に当たらない）
+  - ビルドの有無にかかわらず、梱包した VSIX を開いて `extension/THIRD-PARTY-NOTICES.md` がリポジトリ直下のもの（ZIP に入れるもの）と
+    バイト一致することを確かめる。無い・違えば終了コード 1、前回の配布物に触れない（`--no-build` で表示の無い・古い VSIX を配らない）
+  - 表示の中身は既存の生成物のまま（`cli/tools/third_party.py` の 5 入力のハッシュつき。入力との照合は従来どおり重い処理の前）
+  - jar は同梱一覧に加えない（3.0.0 から同梱しない）
+- **試験と結果**
+  - 実 exe（`tests/release.rs` 16 件すべて成功。追加 2）: 表示の無い VSIX（REL-01 より前の形）で `--no-build` が止まる、表示が違う
+    （中身が違う・改行だけ CRLF）VSIX で止まる。ZIP を全部展開した照合の後に、ZIP の隣の VSIX から表示と exe を読み直し、ZIP の
+    表示・release している exe と一致。実ビルドの経路（実 Quarto・実 npm、梱包は模擬）で、拡張のフォルダに表示がコピーされ、
+    VSIX の表示が ZIP のものと一致
+  - 実 vsce（ddq-template で `npm run package:win32-x64`。debug の exe と表示をコピーして）: **14 件**（従来の 13 件＋
+    `extension/THIRD-PARTY-NOTICES.md`）。表示はリポジトリ直下とバイト一致（449,346 バイト）、exe も一致、manifest の版
+    3.1.0-pre1・TargetPlatform win32-x64。作ったファイルは消した（もともと無かった）。配布候補一式での確認は下の「統合の検証」
+  - 変異: 5 か所を 1 つずつ壊し、5 つとも落ちることを確認（表示を拡張にコピーしない［旧］→ 実ビルドの試験、VSIX の表示を
+    確かめない［旧］→ 表示の無い VSIX・表示が違う VSIX の試験、有るかだけ見て中身を比べない・改行を揃えて比べる → 表示が違う
+    VSIX の試験、ビルドしたときだけ確かめる → `--no-build` の 3 試験）。終了後に `release.rs` の SHA-256 が変異前と一致
+  - clippy・`cargo fmt --check` 成功
+- **利用者に見える差**: ddq-template の VSIX に `THIRD-PARTY-NOTICES.md` が入る（VSCode の拡張のフォルダに置かれる）。
+  拡張の動作は変わらない。保守者は、REL-01 より前に作った VSIX を `--no-build` で使えない（作り直す）
+- **計画からの逸脱**: なし（両資産のファイル一覧差をリリースノートに書くのは保守者の公開時の作業。差は 1 ファイルの追加）
+- **戻す方法**: `build_extension` のコピーと `check_bundled` の表示の照合を消し、`.gitignore` の行を消す
+- **残存リスク**
+  - 表示の本文は「この配布物（quarto-template）…（同梱の LICENSE）」と ZIP を前提に書かれている。VSIX では拡張自身の
+    `LICENSE.txt` がそれに当たる（生成物の文面は計画どおり変えていない）
+  - 開発者が `ddq release` を通さずに `npm run package:win32-x64` すると表示は入らない（exe と同じ。CI の vsix-smoke もこの形で、
+    CI の配布候補の作り方は CI-01）
+  - ddq.exe を同梱しない拡張（通常の VSIX）には入れない（計画は対象指定 VSIX）
+
+### CI-02　配布物に入る依存を監査の必須の対象にする
+
+- **状況**: 完了
+- **変更ファイル**: 追加 `extensions/ddq-template/scripts/check-audit.mjs`（VSIX に入らない。`.vscodeignore` の `scripts/**`）・
+  `extensions/ddq-template/src/checkAudit.test.ts`（11）。変更 `extensions/ddq-template/package.json`（`check:audit` をこのスクリプトに）、
+  `.github/workflows/extension.yml`（必須の監査の名前と説明）、`extensions/ddq-template/AGENTS.md`（「検査を形骸化させないこと」）
+- **調べたこと**: 拡張の依存はすべて devDependencies で、lock に dev でないパッケージは 0。従来の `npm audit --omit=dev` は
+  **何も見ていなかった**。拡張本体のバンドル（`out/extension.js`）のソースマップに node_modules は無く、Webview を一時フォルダに
+  ソースマップつきでビルドすると、入るのは react・react-dom・scheduler の 3 つ（両画面とも）。`cli/tools/third_party.py` の
+  `EXTENSION_BUNDLED` と一致
+- **規則**
+  - 必須の対象 = Webview のバンドルに実際に入るパッケージ（検査のたびに Webview を一時フォルダにビルドしてソースマップから数える）
+    ∪ lock で dev でないパッケージ。この中の low 以上の指摘が 1 件でもあれば exit 1（従来の `--audit-level=low` と同じ重さ）
+  - 数えたバンドルの中身が `EXTENSION_BUNDLED`（配布物のライセンス表示の一覧）と違えば exit 1（表示が古い）
+  - 開発用だけの依存の指摘は「参考」として表示し、exit 0（開発用の依存の扱いは保守者が別に決める。CI の参考の監査
+    `npm audit || true` は残した）
+  - `npm audit` はオフライン設定（`npm_config_offline`）でも通信させる（オフラインだと何も調べずに 0 件を返すため）。失敗したら exit 1
+- **試験と結果**
+  - 模擬（`src/checkAudit.test.ts`。`npm audit` は呼ばない）: 指摘なしは通る、react（high）・react-dom（critical）・scheduler（low）は
+    失敗、開発用だけの vitest（critical）・@vscode/vsce（high）は参考で通る、配布物でも info は参考、本番依存ができればその指摘も
+    失敗、`npm audit` の失敗（通信できない）は通さない、一覧と違うバンドルは失敗
+  - 実ビルド（同じファイル。監査結果だけ模擬）: Webview を本当にビルドして 3 つを数える。一覧から 1 つ落とした third_party.py を
+    与えると、実際のバンドルとの違いで失敗する
+  - 実際の `npm audit`（registry.npmjs.org へ問い合わせ。advisories/bulk が 200）: 指摘 0 件で exit 0
+  - vitest 全件 47 ファイル・491 件成功、`npm run typecheck` 成功
+  - 変異: 7 か所（一覧と照合しない・バンドルを対象に入れない（旧）・npm audit の失敗を通す・開発用の指摘も失敗にする・info も
+    失敗にする・dev の依存を本番依存に数える・バンドルを数えずに一覧を使う）を 1 つずつ壊し、すべて落ちることを確認。最初は
+    「バンドルを数えずに一覧を使う」が素通りしたので、一覧を変えて実ビルドと照合する試験を足した
+- **利用者（保守者）に見える差**: `npm run check:audit`（`verify` にも入る）が Webview をビルドするようになった（0.5 秒ほど）。
+  React 一式に指摘が出たら CI の audit が落ちる（従来は落ちなかった）
+- **計画からの逸脱**: なし
+- **戻す方法**: `package.json` の `check:audit` を `npm audit --omit=dev --audit-level=low` に戻し、スクリプトと試験を消す
+- **残存リスク**
+  - 必須の監査は npm の勧告データベースに依る（今回は新しい指摘の有無を判定していない。計画どおり）
+  - `EXTENSION_BUNDLED` は third_party.py の行を正規表現で読む。書き方を変えると読めずに失敗する（黙って通りはしない）
+  - `docs/ddq-template-impl/` の解析記録（「本番依存の脆弱性検査」）は版付きの記録なので直していない（DOC-01 で索引に注記する）
+
+### CI-01　配布検証の CI（一部。配布候補の流れは保留）
+
+- **状況**: **一部実施**。`ddq release` に依らない部分（Cargo の `--locked`、jar の照合、起動対象のパス）だけを入れた。
+  Windows 配布候補の作成者を 1 つにし、main・手動で実リリース候補（ZIP＋対象指定 VSIX）を作って検査する部分は、`ddq release` を
+  GitHub Actions などで置き換えるか（REL-02）が決まっていないため作っていない（判断待ち。下の「判断を求めること」）
+- **変更ファイル**: `.github/workflows/ci.yml`、`.github/workflows/extension.yml`
+- **規則**
+  - `cargo clippy`・`cargo test`・`cargo build --release`（ci.yml）と、実Host 用の `cargo build --release`（extension.yml）に `--locked`
+  - ci.yml: キャッシュから戻したものも含め、`cli/vendor/plantuml.jar` の SHA-256 が `cli/vendor/README.md` に記録した
+    `PLANTUML_VERSION` の値と一致しなければ失敗（版の記録が無くても失敗）
+  - ci.yml の起動対象に、`cargo test` が読むリポジトリ直下・拡張のファイルを足した（push・PR とも `THIRD-PARTY-NOTICES.md`、
+    PR に拡張の `package-lock.json` と改訂ファイルの golden。push は従来から `extensions/ddq-template/**` を含む）
+  - Quarto はすでに全ジョブで 1.9.38 に固定されていた（変更なし）。Node 20/22・Linux の必須 Pandoc・Windows golden の許容差・
+    audit・Mermaid の lock からの再生成照合はそのまま
+- **試験と結果**（CI はここでは走らせられないので、手元で同じ手順を通した）
+  - jar の照合の `run` を ci.yml から取り出し、Actions と同じ `bash --noprofile --norc -eo pipefail` で実行: 検証済みの jar は exit 0、
+    記録の無い版（1.2026.9）は「（記録なし）」と出して exit 1、1 バイト足した jar は exit 1
+  - 2 つの workflow を YAML として読めること、ジョブと手順の数が変わっていないこと（ci.yml: cli 17（＋1）・mermaid-bundle 6・
+    vsix-smoke 10、extension.yml: test 9・host 10・audit 5・package 6）を js-yaml で確認
+  - `cargo … --locked` は手元の全件・ビルドで従来から使っている形（計画 §6）
+- **計画からの逸脱**: 上の「配布候補の流れ」を作っていない（保留）。起動対象のパスに docs/manual・examples/plantuml は足していない
+  （今の CI はどちらも読まない。配布候補の流れを作るときに足す）
+- **判断を求めること**: 配布候補の流れ（Windows 1 か所で exe→VSIX→ZIP を作り、同じ artifact を検査に渡す）を、今の
+  `ddq release` を CI から呼ぶ形で作るか、REL-02 の結論（GitHub Actions に置き換えるか）を待つか。前者なら、通常 VSIX の
+  artifact（extension.yml の package）の利用者の確認も要る（計画）
+- **残存リスク**: workflow の変更は GitHub 上で一度も走らせていない。vsix-smoke の VSIX は `ddq release` を通さないので
+  ライセンス表示が入らない（REL-01 の残存リスク）
+
+### DOC-01　資料の索引と、実装と食い違う記述
+
+- **状況**: 実施（配布用 manual の PDF・HTML の確認は下の「統合の検証」）。旧資料の移動・削除はしていない
+- **変更ファイル**
+  - `docs/README.md`: 索引に用途・読む人・対象版と基準の時点・後継先と旧パスを足した。単一ファイルの文書（検討書・記録・計画）に
+    種別と後継先、検討書で決めていまも有効な判断（理由・採用版・参照先）、docs の外の文書（`cli/DESIGN.md`・拡張の開発文書・
+    `examples/README.md`・`migration/README.md`）の表を足した。消した旧パスには消したコミットを付け、`git show <コミット>^:<パス>` で読めるようにした
+  - `README.md`: PlantUML の「同梱 jar」を「各自で取得した jar」に（3.0.0 で同梱をやめたことと矛盾していた）
+  - `cli/DESIGN.md`: §2 決定 6 と §11 の「一括事前変換は保留」を、§5.5 の現行（2.4.4 から一括）に合わせ、当初の判断は経緯として残した。
+    §8 を「案」から現在のソースの構成に（`rev.rs`・`plantuml.rs`・`prerender.rs`・`merman_engine.rs`・`gitsrc.rs`・`diff.rs`・
+    `revfile.rs`・`replace.rs`・`zip_archive.rs`）。§13.1 の「リリース一式（ddq + jar）」を、jar は各自で取得する形に。
+    §3.2・§7.5・§7.6・§14.5 の更新は REL-03・REL-01・CI-01・IO-01 の記録に含めたもの
+  - `docs/design/chapters/03-pipeline/01-overview.qmd`: 「分岐は `FORMAT` 判定 1 か所」を、分岐は `design-doc.lua` の中に閉じているが
+    `FORMAT` を見るのは処理ごと（図の幅・mermaid・表・IPO 図・相互参照・目次。5 か所の判定と、それを使う 10 か所あまり）に
+  - `docs/manual/chapters/11-publisher-env/05-offline.qmd`: 閉域へ持ち込むものに Java と `plantuml.jar`（LAN のサーバなしで PlantUML を
+    発行する人だけ。どちらも配布物に入っていない）
+  - `docs/manual/chapters/18-maintainer/06-release.qmd`: 失敗の保証を「集める途中の失敗だけ」に絞り、入れ替え後の zip 作成・VSIX の
+    コピーでの失敗を明記。3.0.0 で同梱をやめた jar の失敗例を「はじめかた.pdf を作れない」に（REL-01・REL-03 の追記と同じ節）
+  - `extensions/ddq-template/tableEditor-requirements.md`: 現ツリーに無い `AUTHORING.md` の参照 3 か所を利用マニュアル 9 章に
+  - `extensions/ddq-template/DEVELOPMENT.md`: `check:audit` の説明を CI-02 の後の対象（配布物に入る依存）に
+- **計画 §3 の各行への対応**
+  - manual・README・AGENT-GUIDE: 上の 3 つ。`AGENT-GUIDE.md` と拡張の `README.md` は jar・失敗の保証について現行と矛盾が無く、変えていない
+  - design・`cli/DESIGN.md`: 上のとおり。§12.5 は見出しに対象（2026-09-19、ddq 2.0.0 vs 旧 bat 1.3.0）が付いているので変えていない
+  - `cli-impl/`・`ddq-template-impl/`: 変えていない（本作業で節を書き換えていないので、基準の付け直しも要らない）。索引に、記載の
+    件数・ハッシュは基準の時点の値で、基準より後の変更はソースと `cli/DESIGN.md` が正と書いた。
+    `ddq-template-impl/05-build-environment.qmd` の「本番依存の脆弱性検査」は 3.0.0-pre4 の時点の説明で、現行は CI-02 の
+    `scripts/check-audit.mjs` と `DEVELOPMENT.md`
+  - 検討書: 索引の後継先に、`revision-study.md` §5.8 の js-yaml 案は採らず `revision/revfile.ts` の限定した読み書きであること、Q9・Q18 の
+    別拡張は統合で変わったこと、`ddq-template-study.md` Q6 の段階計画・旧ディレクトリ図は検討時のものであること、
+    `cli/plantuml-study.md` の jar 同梱は 3.0.0 でやめたことを書いた。本文は変えていない
+  - 拡張の開発文書: 上の 2 つ
+  - 記録（`test-coverage-review.md`・PR #122 の対応・分割表の検証）: 本文は変えず、索引に対象と時点、当時の CI の説明は現行と違うことを書いた
+  - presentation・examples・migration: 索引に用途と読む人を載せた（改稿はしていない。計画の対象外）
+- **試験と結果**
+  - `docs/README.md` に書いたパス 35 個（コマンド例 1 つを除く）を照合。26 個は存在。無い 9 個は、消した旧パス 5 つ（`AUTHORING.md`・
+    `ADVANCED.md`・`template/PIPELINE.md`・`docs/revision-impl/`・`docs/table-editor-impl/`）と、親を付けずに書いた下位のもの 4 つ
+    （`*-impl/`・`parts/`・`examples/` の `plantuml/`、拡張の `AGENTS.md`。どれも親の下に存在）。旧パスは `git show 7151377^:AUTHORING.md`・`4fc52aa^:ADVANCED.md`・
+    `e447a47^:docs/revision-impl/01-overview.qmd` で読めることを確かめた
+  - 書き換えた記述は、それぞれソースと突き合わせた（§8 は `cli/src` の全ファイルと各ファイル冒頭の `//!`、`FORMAT` は `design-doc.lua` の
+    該当行、採用版は `extensions/ddq-template/CHANGELOG.md`・タグ・各検討書）
+  - <!-- DOC01-BUILD -->
+- **計画からの逸脱**: なし。旧資料は消していない（削除には個別の承認が要る。今回、削除の候補は挙げていない）
+- **残存リスク**: 実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文は 3.0.0-pre4 の時点のままで、本作業の変更（IO-01 の置き換え、
+  REL-01 のライセンス表示、REL-03 の版の照合、CI-02 の監査など）は入っていない。次に基準版を更新するときに反映する
 
 ### 計画外で見つけた既存の不具合（直していない）
 

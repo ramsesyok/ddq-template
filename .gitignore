@@ -81,6 +81,8 @@ extensions/*/out/
 extensions/*/.vscode-test/
 # ddq release が同梱用にコピーする ddq.exe（ddq-template の bin/win32-x64/ddq.exe）
 extensions/*/bin/
+# 同じく同梱用にコピーする第三者のライセンス表示（実体はリポジトリ直下の THIRD-PARTY-NOTICES.md）
+extensions/*/THIRD-PARTY-NOTICES.md
 *.vsix
 
 # ==== リリースに同梱する外部バイナリ（cli/vendor/README.md。17MB あるので git 管理外） ====

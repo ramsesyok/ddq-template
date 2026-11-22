@@ -4,14 +4,14 @@
 VSCode 拡張。`mkdocs-table-editor` をベースにするが、**出力ルールを全面的に変更**する。
 
 - ベース: `mkdocs-table-editor`（React Webview + TableModel + フォーマット層の分離）
-- 対象記法: `design-doc-quarto-template/AUTHORING.md` §6「表」の `.tbl`
+- 対象記法: 利用マニュアル 9 章（`docs/manual/chapters/09-table/`）の `.tbl`（当初の `AUTHORING.md` §6 は廃止。今のツリーには無い）
 - 動作環境: 完全オフライン（CDN・外部 API・サーバ不要）
 
 ---
 
 ## 1. 対象記法（`.tbl`）
 
-`AUTHORING.md` §6 および `template/design-doc.lua` で定義される統一テーブル。
+利用マニュアル 9 章（旧 `AUTHORING.md` §6）および `template/design-doc.lua` で定義される統一テーブル。
 
 ```markdown
 ::: {.tbl caption="ユーザ属性一覧" label="tbl-user" widths="20,20,60" merge-cols="1"}
@@ -109,7 +109,7 @@ VSCode 拡張。`mkdocs-table-editor` をベースにするが、**出力ルー�
 > 正しく列・ヘッダに分解された。したがって **シリアライザは表示幅で罫線を揃え、
 > パーサも文字インデックスではなく表示桁で走査する**こと。
 >
-> AUTHORING.md §6 のマルチヘッダ例が `RowSpan 2` / `ColSpan 2` / ヘッダ 2 行として
+> 旧 AUTHORING.md §6 のマルチヘッダ例（今は利用マニュアル 9 章の「横結合・マルチヘッダ」）が `RowSpan 2` / `ColSpan 2` / ヘッダ 2 行として
 > 解析されることも確認済み。
 
 ### 3.3 ヘッダ行

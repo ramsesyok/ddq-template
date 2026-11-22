@@ -159,7 +159,7 @@
     "test:smoke": "node tests/host/smoke.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json",
     "check:offline": "node scripts/check-offline.mjs",
-    "check:audit": "npm audit --omit=dev --audit-level=low",
+    "check:audit": "node scripts/check-audit.mjs",
     "verify": "npm run typecheck && npm test && npm run build && npm run check:offline && npm run check:audit",
     "package": "npm run build && vsce package",
     "package:win32-x64": "npm run build && vsce package --target win32-x64"

@@ -20,9 +20,10 @@
 
    「新しい版を受け取ったとき」の説明で使う版番号（現行＋1）も併せてずらす。
 
-   **VSCode 拡張の版も同じ値にする。** `extensions/ddq-template/package.json` の `version` は
-   `template/VERSION` と一致していなければ `ddq release` が止まる（VSIX に同梱する `ddq.exe` の版と
-   拡張の版を 1 つに揃えるため）。
+   **VSCode 拡張の版も同じ値にする。** `extensions/ddq-template/package.json` の `version` と
+   `package-lock.json` の版（`version` と `packages[""].version`）が `template/VERSION` と一致して
+   いなければ、`ddq release` が重いビルドの前に止まる（VSIX に同梱する `ddq.exe` の版と拡張の版を
+   1 つに揃えるため）。下の `npm version` は両方のファイルを揃える。
 
    ```bat
    cd extensions\ddq-template

@@ -27,7 +27,7 @@ npm run test:smoke          # その VSIX を展開した中身で VSCode を起
 | `npm run typecheck` | 拡張ホストと Webview の型チェック |
 | `npm run build` | 拡張ホスト（esbuild）と Webview 2 画面（vite。`--mode revision` / `--mode tableEditor`）のビルド |
 | `npm run check:offline` | 配布物に通信 API・外部 URL が無いことを検査 |
-| `npm run check:audit` | 本番依存の脆弱性（0 件必須） |
+| `npm run check:audit` | 配布物に入る依存（Webview にバンドルする React 一式と本番依存）の脆弱性（0 件必須）。開発用だけの指摘は参考として表示する。バンドルの中身が `cli/tools/third_party.py` の一覧と違っても落ちる。npm のレジストリに問い合わせる |
 
 ## ソースの配置
 

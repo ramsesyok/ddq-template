@@ -181,6 +181,8 @@ pandoc が無い環境では自動スキップし、CI では `REQUIRE_PANDOC=1`
 自動検査は「失敗する条件」を必ず確認してから入れる。実績:
 
 - `scripts/check-offline.mjs` … `fetch` / `WebSocket` を含むファイルを渡して exit 1 を確認済み
+- `scripts/check-audit.mjs` … 模擬の監査結果（React 一式・本番依存の指摘、npm audit の失敗、バンドルと
+  ライセンス表示の一覧の不一致）で exit 1、開発用だけの指摘で exit 0 を `src/checkAudit.test.ts` が見る
 - `pandoc.test.ts` … `REQUIRE_PANDOC=1` かつ pandoc 不在で exit 1 を確認済み
 
 ## 品質方針
