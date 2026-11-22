@@ -823,9 +823,27 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | 1 回目 | extension: テスト（ubuntu・Node 20／22） | **失敗 3 件**（上の「PR の CI で見つけた試験の OS 依存」）。実拡張ホストはテストの後なので走らなかった |
 | 1 回目 | extension: テスト（windows・Node 20／22）・脆弱性チェック（CI-02） | 成功 |
 | 2 回目（`ed013ed`。試験の直しだけ） | extension: テスト 4 本（ubuntu・windows × Node 20／22）・脆弱性チェック・実拡張ホスト（CI で ddq をビルドし、`DDQ_HOST_REAL=1`）・VSIX の生成、ci: mermaid-bundle | 成功 |
-| 2 回目 | ci: `cli` | 記録の時点で実行中（1 回目と同じ Rust のコードで、1 回目は成功） |
+| 2 回目 | ci: `cli` | 成功（記録の後に確認） |
+| 3・4 回目（`115409d`・`6f37060`。記録だけ） | ci・extension の全ジョブ（vsix-smoke は PR では走らない） | 成功（extension の `115409d` の分は次の push で取り消され、`6f37060` で成功） |
+| 5 回目（`5d76c67`。REL-02 の暫定） | extension 全ジョブ（実拡張ホストを含む）、ci: mermaid-bundle | 成功 |
+| 5 回目 | ci: `cli` | **失敗**。`cargo audit` が `url` 2.5.8 の RUSTSEC-2026-0592 で止まった（下の「PR の CI で見つけた依存の脆弱性」） |
 
 vsix-smoke は PR では走らない（main への push と手動実行だけ）。
+
+### PR の CI で見つけた依存の脆弱性（直した。計画外）
+
+- **現象**: 5 回目の push（`5d76c67`）で、ci の `cli` が `cargo audit` で落ちた。`url` 2.5.8 の RUSTSEC-2026-0592
+  （`Url::origin()` が入れ子の `blob:` URL でスタックをあふれさせる。2026-11-20 公表、2.5.9 で修正）。`url` は内蔵の mermaid 描画
+  （merman-core 0.8.0-alpha.6）の依存で、ddq が直接は使っていない。本作業は `Cargo.lock` を変えておらず、4 回目までの `cli` は
+  成功していたので、公表が脆弱性のデータベースに載ったのがその間だった。main も同じ `Cargo.lock`
+- **直したこと**（2026-11-22 の指示で、この PR で直した）: `cargo update -p url`（`url` 2.5.8 → 2.5.9、`form_urlencoded` 1.2.2 → 1.2.3。
+  ほかは変わらない）。`python cli/tools/third_party.py` で `THIRD-PARTY-NOTICES.md` を作り直した（版の表記 6 か所と入力のハッシュだけが
+  変わり、本文は同じ。Rust 190・mermaid 66・拡張 3、本文 182 種類）
+- **試験と結果**: 手元の `cargo audit`（advisory-db `248aea097`。RUSTSEC-2026-0592 を含む）で脆弱性 0 件、許可済みの警告 1 件
+  （`ttf-parser` の unmaintained。従来から）。`cargo fmt --check`・clippy 成功。Rust 全件（計画 §6 の条件）: **224 件成功・失敗 0・ignored 0**（8 分 37 秒。1 回目はビルド中に一時フォルダを Windows がつかんでいて消せず（os error 32）コンパイルで止まったので、流し直した）
+- **計画からの逸脱**: 計画の項目ではない依存の更新（版の更新だけで、コードは変えていない）
+- **残存リスク**: 上の「全件と配布候補」の release の exe のハッシュと配布候補は、この更新の前のもの（exe は変わる）。配布候補は
+  作り直していない。merman を通る図の描画は、全件のうち e2e・golden・release などの試験が通す
 
 ### 統合の検証でしていないこと
 
