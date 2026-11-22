@@ -86,31 +86,7 @@ pub fn order(dir: &Path) -> Result<Order> {
 
 /// `Source` から文書順のファイル列を作る。
 pub fn order_of(src: &dyn Source) -> Order {
-    let Some(conf) = src.read("_quarto.yml") else {
-        return Order {
-            files: src.list(),
-            warnings: Vec::new(),
-        };
-    };
-    let chapters = chapters_of(&conf);
-    if chapters.is_empty() {
-        return Order {
-            files: src.list(),
-            warnings: vec![
-                "_quarto.yml の chapters を読めませんでした。フォルダ内の qmd/md をパス順に並べます".into(),
-            ],
-        };
-    }
-
-    let mut out = Order {
-        files: Vec::new(),
-        warnings: Vec::new(),
-    };
-    for ch in chapters {
-        let base = parent_of(&ch);
-        walk(src, &ch, &base, &mut out, &mut Vec::new(), &mut None);
-    }
-    out
+    assemble(src, &mut Sink::default())
 }
 
 /// `Source` から論理文書（include を展開した行の列）を作る。
@@ -119,31 +95,76 @@ pub fn order_of(src: &dyn Source) -> Order {
 /// 順序が狂わない）。行の出どころは物理ファイルのままなので、差分の帰属も編集も
 /// 実ファイルに対して行える。
 pub fn logical(src: &dyn Source) -> (Vec<Line>, Vec<String>) {
-    let order = order_of(src);
     let mut lines = Vec::new();
-    let mut out = Order {
-        files: Vec::new(),
-        warnings: Vec::new(),
-    };
-    // chapters の 1 件ずつを、include を差し込みながら展開し直す。
-    let Some(conf) = src.read("_quarto.yml") else {
-        for rel in &order.files {
-            push_lines(&mut lines, rel, &src.read(rel).unwrap_or_default());
+    let order = assemble(
+        src,
+        &mut Sink {
+            lines: Some(&mut lines),
+            texts: None,
+        },
+    );
+    (lines, order.warnings)
+}
+
+/// 文書順のファイル列と、読めたファイルの本文（`(相対パス, 本文)` を文書順に）を
+/// 同じ走査で得る（`ddq tag` 用。ファイルを読み直さない）。読めないファイルは
+/// 文書順には残り（警告付き）、本文の列には入らない。
+pub fn order_with_texts(src: &dyn Source) -> (Order, Vec<(String, String)>) {
+    let mut texts = Vec::new();
+    let order = assemble(
+        src,
+        &mut Sink {
+            lines: None,
+            texts: Some(&mut texts),
+        },
+    );
+    (order, texts)
+}
+
+/// 走査しながら集めるもの（CLI-01: 文書順・行・本文を 1 回の走査で得る）。
+#[derive(Default)]
+struct Sink<'a> {
+    /// include を差し込んだ論理文書の行
+    lines: Option<&'a mut Vec<Line>>,
+    /// 物理ファイルごとの本文（文書順）
+    texts: Option<&'a mut Vec<(String, String)>>,
+}
+
+/// 文書順の組み立て。`_quarto.yml` の chapters を起点に include を展開する。
+/// chapters が無ければフォルダ内の qmd/md をパス順に並べる（include は展開しない）。
+fn assemble(src: &dyn Source, sink: &mut Sink) -> Order {
+    let chapters = src.read("_quarto.yml").map(|conf| chapters_of(&conf));
+    let warnings = match &chapters {
+        Some(c) if !c.is_empty() => {
+            let mut out = Order {
+                files: Vec::new(),
+                warnings: Vec::new(),
+            };
+            for ch in c {
+                let base = parent_of(ch);
+                walk(src, ch, &base, &mut out, &mut Vec::new(), sink);
+            }
+            return out;
         }
-        return (lines, order.warnings);
-    };
-    let chapters = chapters_of(&conf);
-    if chapters.is_empty() {
-        for rel in &order.files {
-            push_lines(&mut lines, rel, &src.read(rel).unwrap_or_default());
+        Some(_) => {
+            vec!["_quarto.yml の chapters を読めませんでした。フォルダ内の qmd/md をパス順に並べます".into()]
         }
-        return (lines, order.warnings);
+        None => Vec::new(),
+    };
+    let files = src.list();
+    // 文書順だけが要るとき（order_of）は本文を読まない
+    if sink.lines.is_some() || sink.texts.is_some() {
+        for rel in &files {
+            let text = src.read(rel);
+            if let Some(ls) = sink.lines.as_deref_mut() {
+                push_lines(ls, rel, text.as_deref().unwrap_or_default());
+            }
+            if let (Some(ts), Some(text)) = (sink.texts.as_deref_mut(), text) {
+                ts.push((rel.clone(), text));
+            }
+        }
     }
-    for ch in chapters {
-        let base = parent_of(&ch);
-        walk(src, &ch, &base, &mut out, &mut Vec::new(), &mut Some(&mut lines));
-    }
-    (lines, out.warnings)
+    Order { files, warnings }
 }
 
 fn push_lines(lines: &mut Vec<Line>, rel: &str, text: &str) {
@@ -157,15 +178,9 @@ fn push_lines(lines: &mut Vec<Line>, rel: &str, text: &str) {
 }
 
 /// `chapters:` の 1 件を展開する。`stack` は循環 include の検出用。
-/// `lines` を渡すと、include をその場に差し込んだ行の列も作る。
-fn walk(
-    src: &dyn Source,
-    rel: &str,
-    base: &str,
-    out: &mut Order,
-    stack: &mut Vec<String>,
-    lines: &mut Option<&mut Vec<Line>>,
-) {
+/// `sink` の `lines` があれば include をその場に差し込んだ行の列を、`texts` があれば
+/// 読んだ本文を文書順に集める。
+fn walk(src: &dyn Source, rel: &str, base: &str, out: &mut Order, stack: &mut Vec<String>, sink: &mut Sink) {
     if stack.iter().any(|s| s == rel) {
         out.warnings.push(format!("include が循環しています: {rel}"));
         return;
@@ -182,14 +197,19 @@ fn walk(
         out.warnings.push(format!("ファイルがありません: {rel}"));
         return;
     };
+    // 本文の列は文書順（include 先より先に include 元）。中身は展開し終えてから入れる
+    let slot = sink.texts.as_deref_mut().map(|ts| {
+        ts.push((rel.to_string(), String::new()));
+        ts.len() - 1
+    });
     stack.push(rel.to_string());
     for (i, t) in text.split('\n').enumerate() {
         let t = t.trim_end_matches('\r');
         match include_path(t) {
             // include の行は、その場に相手の中身を差し込む（行そのものは残さない）
-            Some(inc) => walk(src, &join_rel(base, &inc), base, out, stack, lines),
+            Some(inc) => walk(src, &join_rel(base, &inc), base, out, stack, sink),
             None => {
-                if let Some(ls) = lines.as_mut() {
+                if let Some(ls) = sink.lines.as_deref_mut() {
                     ls.push(Line {
                         file: rel.to_string(),
                         no: i + 1,
@@ -200,6 +220,9 @@ fn walk(
         }
     }
     stack.pop();
+    if let (Some(i), Some(ts)) = (slot, sink.texts.as_deref_mut()) {
+        ts[i].1 = text;
+    }
 }
 
 /// その行だけで完結する `{{< include パス >}}` ならパスを返す。
@@ -483,6 +506,99 @@ mod tests {
                 ("ch/after.qmd", 1, "# 次の章")
             ]
         );
+    }
+
+    /// 読んだ回数を数える `Source`（CLI-01: 1 回の走査で済んでいるかを見る）。
+    struct Counting<'a> {
+        inner: &'a dyn Source,
+        reads: std::cell::RefCell<std::collections::BTreeMap<String, usize>>,
+    }
+    impl<'a> Counting<'a> {
+        fn new(inner: &'a dyn Source) -> Self {
+            Self {
+                inner,
+                reads: Default::default(),
+            }
+        }
+        fn reads(&self) -> Vec<(String, usize)> {
+            self.reads.borrow().iter().map(|(k, v)| (k.clone(), *v)).collect()
+        }
+    }
+    impl Source for Counting<'_> {
+        fn read(&self, rel: &str) -> Option<String> {
+            *self.reads.borrow_mut().entry(rel.to_string()).or_default() += 1;
+            self.inner.read(rel)
+        }
+        fn list(&self) -> Vec<String> {
+            self.inner.list()
+        }
+    }
+
+    const BOOK: &[(&str, &str)] = &[
+        (
+            "_quarto.yml",
+            "book:\n  chapters:\n    - index.qmd\n    - ch/index.qmd\n",
+        ),
+        ("index.qmd", "# 前書き\n"),
+        ("ch/index.qmd", "# 章\n{{< include a.qmd >}}\n章末\n"),
+        ("ch/a.qmd", "## A\n"),
+    ];
+
+    fn once_each() -> Vec<(String, usize)> {
+        ["_quarto.yml", "ch/a.qmd", "ch/index.qmd", "index.qmd"]
+            .iter()
+            .map(|f| (f.to_string(), 1))
+            .collect()
+    }
+
+    #[test]
+    fn logical_reads_each_file_once() {
+        let files = Files(BOOK);
+        let src = Counting::new(&files);
+        let (lines, warnings) = logical(&src);
+        assert!(warnings.is_empty(), "{warnings:?}");
+        assert_eq!(lines.iter().filter(|l| !l.text.is_empty()).count(), 4);
+        assert_eq!(src.reads(), once_each());
+    }
+
+    #[test]
+    fn order_with_texts_reads_each_file_once_and_keeps_document_order() {
+        let files = Files(BOOK);
+        let src = Counting::new(&files);
+        let (order, texts) = order_with_texts(&src);
+        assert_eq!(order.files, ["index.qmd", "ch/index.qmd", "ch/a.qmd"]);
+        // 本文は order.files と同じ順（include 先は include 元の後ろ）、BOM などは Source のまま
+        let got: Vec<(&str, &str)> = texts.iter().map(|(f, t)| (f.as_str(), t.as_str())).collect();
+        assert_eq!(
+            got,
+            [
+                ("index.qmd", "# 前書き\n"),
+                ("ch/index.qmd", "# 章\n{{< include a.qmd >}}\n章末\n"),
+                ("ch/a.qmd", "## A\n"),
+            ]
+        );
+        assert_eq!(src.reads(), once_each());
+    }
+
+    #[test]
+    fn order_with_texts_skips_unreadable_files_but_keeps_them_in_the_order() {
+        // 欠落ファイルは文書順には残り（警告付き）、本文の列には入らない（ddq tag の従来どおり）
+        let src = Files(&[
+            ("_quarto.yml", "book:\n  chapters:\n    - a.qmd\n    - none.qmd\n"),
+            ("a.qmd", "# A\n"),
+        ]);
+        let (order, texts) = order_with_texts(&src);
+        assert_eq!(order.files, ["a.qmd", "none.qmd"]);
+        assert_eq!(order.warnings, ["ファイルがありません: none.qmd"]);
+        assert_eq!(texts.len(), 1);
+        // _quarto.yml が無いときはパス順。order_of は本文を読まない
+        let flat = Files(&[("b.qmd", "# B\n"), ("a.md", "# A\n")]);
+        let counted = Counting::new(&flat);
+        assert_eq!(order_of(&counted).files, ["a.md", "b.qmd"]);
+        assert_eq!(counted.reads(), [("_quarto.yml".to_string(), 1)]);
+        let (order, texts) = order_with_texts(&flat);
+        assert_eq!(order.files, ["a.md", "b.qmd"]);
+        assert_eq!(texts[0], ("a.md".to_string(), "# A\n".to_string()));
     }
 
     #[test]
