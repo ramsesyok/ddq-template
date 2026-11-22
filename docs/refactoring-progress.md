@@ -98,9 +98,9 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | REL-03 | 検証済 | `1051dbc` | 単体、実 exe の release 試験、新旧の比較、変異 9 か所 | 成功 |
 | CI-02 | 検証済 | `1051dbc` | 模擬の監査結果・実ビルド、実 `npm audit`、変異 7 か所、PR の CI | 成功 |
 | REL-01 | 検証済 | `1051dbc` | 実 exe の release 試験、実 vsce、変異 5 か所、配布候補一式 | 成功 |
-| CI-01 | 実装済（GitHub 上の試走待ち） | `1051dbc`・この記録と同じコミット | jar の照合の手元実行、PR の CI、配布候補の流れの手元での再現、照合の食い違い 5 つ | `--locked`・jar の照合・起動対象は PR の CI で成功。配布候補の流れ（`release-candidate.yml`）は手元の再現で成功し、GitHub 上ではまだ走っていない（下の「REL-02・CI-01　配布候補の作成を GitHub Actions に移す」） |
+| CI-01 | 実装済（GitHub 上で 1 回成功。失敗させた実行の確認は未実施） | `1051dbc`・`810249b` | jar の照合の手元実行、PR の CI、配布候補の流れの手元での再現と GitHub 上の実行、照合の食い違い 5 つ、CI と手元の成果物の比較 | `--locked`・jar の照合・起動対象は PR の CI で成功。配布候補の流れ（`release-candidate.yml`）は PR の CI で全ジョブ成功（38 分）。CI の成果物は手元の出力と見た目が同じ（下の「REL-02・CI-01　配布候補の作成を GitHub Actions に移す」） |
 | DOC-01 | 検証済 | `1051dbc` | パスの照合、manual・設計書のビルド | 成功。旧資料は消していない |
-| REL-02 | 実装済（GitHub 上の試走待ち） | `5d76c67`・この記録と同じコミット | 実CLI（`release.rs` の追加 1）、変異 3 か所、Rust 全件、実生成（マニュアル 18 章）、配布候補の流れの手元での再現 | 手元の `ddq release` は、入れ替えの途中で失敗した回の出力を捨てて作り直す（暫定の扱いのまま）。正式に配る一式は CI の配布候補だけ（2026-11-22 承認。計画 §7）。失敗した実行に成果物が残らないことと旧資産のハッシュは試走で確かめる |
+| REL-02 | 実装済（GitHub 上で 1 回成功。失敗させた実行の確認は未実施） | `5d76c67`・`810249b` | 実CLI（`release.rs` の追加 1）、変異 3 か所、Rust 全件、実生成（マニュアル 18 章）、配布候補の流れの手元での再現と GitHub 上の実行 | 手元の `ddq release` は、入れ替えの途中で失敗した回の出力を捨てて作り直す（暫定の扱いのまま）。正式に配る一式は CI の配布候補だけ（2026-11-22 承認。計画 §7）。失敗した実行に成果物が残らないことと旧資産のハッシュは、まだ確かめていない |
 
 ### QA-01　ddq と拡張の契約試験
 
@@ -787,9 +787,9 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 
 ### REL-02・CI-01　配布候補の作成を GitHub Actions に移す
 
-- **状況**: **実装済（GitHub 上の試走待ち）**。手元で workflow の手順を再現して全ジョブが通った。GitHub のランナーではまだ走って
-  いない（この記録のコミットを PR に push すると、workflow 自身を変えた PR として初めて走る。PR の起動対象は PR 全体の差分で
-  判定されるので、この PR が開いている間は push のたびに走る）
+- **状況**: **実装済（GitHub 上で 1 回成功。失敗させた実行の確認は未実施）**。実装は `810249b`。手元で workflow の手順を再現して
+  全ジョブが通り、その push で PR の CI として GitHub 上でも全ジョブが通った（下の「GitHub 上の最初の実行」）。PR の起動対象は
+  PR 全体の差分で判定されるので、この PR が開いている間は push のたびに走る
 - **判断**（2026-11-22 の指示「推奨どおり」）: 検討書 `docs/release-ci-proposal.md` §2 をすべて推奨どおりに決めた。計画 §7 の表に
   1 行足した（本文のほかの箇所は変えていない）
   1. 公開は保守者の手作業のまま（CI はリリースにもタグにも書き込まない。計画 §7「自動公開は含めない」のとおり）
@@ -826,7 +826,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
     書き換え、`check_release.py` を足した）、`extensions/ddq-template/AGENTS.md`（vsix-smoke の記述）、`docs/README.md`（索引に検討書）、
     `docs/refactoring-plan.md` §7、`docs/release-ci-proposal.md`（新規。検討書）
   - `cli/src/commands/release.rs`・`cli/tests/release.rs`: コメントだけ（REL-02 の「保留中」を、正式に配る一式は CI が作る、に）
-- **試験と結果**（どれも手元。GitHub 上ではまだ走っていない）
+- **試験と結果**（手元。GitHub 上の実行は下の「GitHub 上の最初の実行」）
   - `check_release.py` を、統合の検証の検証用リポジトリの出力（`ddq release --no-build`）に流してすべて OK。作った一覧で
     `sha256sum -c` も OK。わざと食い違わせた 5 つ（`lib.typ` の本文の最初の候補を PDF に無い書体に、リポジトリ直下のライセンス表示を
     ZIP と違うもの（`url` の更新の後の版）に、サンプルの無い出力を `--with-sample` で照合、debug の exe を `--exe` に、配布フォルダの
@@ -851,24 +851,56 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
     直し、pwsh の手順はどちらも出力を UTF-8 で読むようにした
   - `cargo fmt --check` 成功（Rust はコメントだけの変更なので、全件は流し直していない）。release の exe を作り直した:
     SHA-256 `da5b016e40518628147fbcdd40581a372a258595a4a817e159ed7edd50686ebc`
-- **手元の再現で確かめていないこと**（最初の試走で確かめる）
-  - ランナーに書体が無いときの dism（能力名が通るか、所要時間）と、ランナーで作った PDF に求める書体が埋め込まれること
-  - ランナーの Edge で描く manual の mermaid の図（手元の Edge 158 の SVG と比べる。違えば `DDQ_MERMAID_ENGINE` か、差を受け入れるか）
-  - actions（checkout・キャッシュ・artifact の受け渡し）、`concurrency`、ジョブごとの所要時間
+- **GitHub 上の最初の実行**（PR #142 への `810249b` の push。実行 45029242034、pull_request）: **全ジョブ成功**。同じ push の
+  ci・extension の全ジョブも成功（13 チェックすべて）
+  - 所要時間: 全体 38 分。`build` 26 分 18 秒（書体 15 分 21 秒、`cargo build --release` 8 分、`ddq release` 1 分 18 秒）、
+    `verify-zip` 11 分 30 秒（書体 10 分 23 秒）、`verify-vsix` 2 分 35 秒（スモーク 1 分 1 秒）、`publishable` 11 秒。同じ push の
+    ci の `cli` は 10 分 44 秒、実拡張ホストは 6 分 19 秒。時間の大半は書体を入れる手順
+  - 書体: ランナー（win25-vs2026 20261116.315.1）には Meiryo UI・BIZ UDGothic が無く、`build`・`verify-zip` とも dism で
+    `Language.Fonts.Jpan~~~und-JPAN~0.0.1.0` を入れる経路を通った（能力名は通り、exit 0）。入れた後は Typst から見えた
+  - 照合: `build` と `verify-zip` の `check_release.py` がすべて OK。はじめかた.pdf・利用マニュアル・init した文書の PDF に
+    MeiryoUI と BIZ-UDGothic（太字を含む）が埋め込まれている。別のランナーで SHA-256 が一致し、ZIP から取り出した exe で
+    init → pdf → html（HTML 8 ページ）、配る VSIX そのもので `test:smoke` が通った
+  - 使った版（`versions.txt`）: Quarto 1.9.38、Node v22.23.5／npm 10.9.9、Edge 157.0.4341.60。ddq.exe は SHA-256
+    `3cefa937d9c4de19ee75b859bb715f5558b1772351dcab844b5207a0df8e29bc`（30,563,328 バイト）
+  - 成果物: `release-3.1.0-pre1`（25,525,741 バイト、2027-02-20 まで）と `candidate`（1 日）。`publishable` は 3 つの検査の後に動いた
+  - **`versions.txt` の `commit:` は PR のマージコミット**: pull_request の実行では、`GITHUB_SHA` と checkout が head の `810249b` では
+    なく、GitHub が作る `refs/pull/142/merge`（`578c1ea`。main の `17ed32e` に `810249b` を合わせたもの）になる。main がまだ進んで
+    いないので中身は `810249b` と同じ。main への push と手動実行では push したコミットなので、タグの手順（マニュアル 18 章）はそのまま
+    使える。PR の実行にも同じ名前の `release-<版>` が残るので、公開には main の実行のものを使う（マニュアルの手順は `--branch main` で選ぶ）
+  - 注記: `actions/*@v4`（checkout・cache・upload/download-artifact）に Node.js 20 の非推奨の警告が出た（失敗ではない。既存の ci.yml・
+    extension.yml にも同じ警告がある）
+- **CI の成果物と手元の出力の比較**（`release-3.1.0-pre1` を落として SHA-256 を照合し、上の手元の再現の出力と 1 件ずつ比べた）:
+  見た目は同じ
+  - ZIP 50 件のうち 42 件はバイト一致（manual の HTML 全ページ、README・LICENSE・AGENT-GUIDE など）。VSIX 14 件のうち 12 件が一致
+  - mermaid の SVG 4 枚: 描画の本体（2 行目以降）はバイト一致。違うのは先頭のコメントの Edge の版（157.0.4341.60／158.0.4370.33）と
+    フォントの指紋だけ。ランナーの Edge でも同じ図になったので、`DDQ_MERMAID_ENGINE` には切り替えない
+  - PDF 2 つ: ページの中身（描画命令）は同じで、配置は変わらない。違うのは作成日時（ランナーは UTC）と、埋め込んだ書体の版。
+    ランナーが入れた日本語の追加フォントは Meiryo UI 6.51・BIZ UDGothic 2.01、手元（Windows 11 26300）は 6.52・2.02。
+    字幅の表（hmtx）は同じで、字形が違うのは BIZ UDGothic の `_` の 1 字だけ（3 バイト。外形の枠は同じ）
+  - ddq.exe: ビルドした環境の違い（想定どおり）
+  - `THIRD-PARTY-NOTICES.md`（ZIP・VSIX とも）: 改行だけが違い、LF にそろえると中身は同じ。CI の版は CRLF（Windows の checkout。
+    ZIP に入る README・LICENSE・AGENT-GUIDE と同じ形）。手元の作業コピーが LF なのは、`2dc31e2` で `third_party.py` が作り直した
+    ため（git の中身は同じ）
+- **まだ確かめていないこと**
   - わざと失敗させた実行に `release-<版>` が残らないこと、その前後で公開済みの v3.1.0-pre1 の資産のハッシュが変わらないこと
     （計画の完了条件「失敗の種類ごとの旧資産のハッシュ」）
-  - 手動実行（`with_sample` を含む）。`workflow_dispatch` は workflow が main に入るまで起動できない
+  - 同じブランチへ続けて push したときに実行が重ならないこと（`concurrency`）
+  - main への push と手動実行（`with_sample` を含む）。`workflow_dispatch` は workflow が main に入るまで起動できない
 - **計画からの逸脱**
   - 計画の REL-02 の提案（実行ごとの作業場所・`.building` を共有しない・同時実行の制御・退避と復元）は手元の `ddq release` には
     作らず、CI のランナー（毎回新しい）と `concurrency`、検査の後にだけ残す `release-<版>` で満たす形にした（計画 §7 の追記で承認）
-  - 完了条件の旧資産のハッシュの検査は、まだしていない（上の「確かめていないこと」）
+  - 完了条件の旧資産のハッシュの検査は、まだしていない（上の「まだ確かめていないこと」）
   - workflow 自身・照合の処理・書体の手順を変えた PR でも走らせる（最初の試走のため。計画 CI-01 の「PR は高速試験」の例外。
     検討書 §6）
 - **戻す方法**: `release-candidate.yml`・`.github/actions/jp-fonts/`・`check_release.py` を消し、ci.yml の vsix-smoke と push の
   起動対象を `098aa3a` に戻す。利用マニュアル 18 章の「リリースを配る」を、マージ後の main から手元で作り直してタグを打つ手順に戻す
 - **残存リスク**
-  - GitHub 上ではまだ走っていない（上の「確かめていないこと」）。書体が入らない、図の配置が違う、所要時間が長い、のどれかで
-    手順を足すことになりうる
+  - GitHub 上では PR の実行が 1 回成功しただけ（上の「まだ確かめていないこと」）
+  - 1 回 38 分のうち 25 分あまりが、2 つのジョブで日本語の追加フォントを入れる時間。PR で毎回走らせるのには向かない
+    （検討書 §2 の 3 のとおり main と手動だけにし、PR は workflow などを変えたときだけ）
+  - CI の PDF には、ランナーが入れたフォントの版が埋め込まれる（今回は手元より 1 つ古い版で、字形の差は 1 字）。ランナーの
+    イメージや Windows の更新で版が変わりうる（`versions.txt` には書体の名前だけで、版は残らない）
   - ci.yml の `cli` ジョブは今も release の exe を `ddq-windows-x64` として残す（読むジョブは無くなった）。公開に使うのは
     `release-<版>` だけだが、取り違えうる。vsix-smoke が残していた `ddq-template-vsix-win32-x64`（ライセンス表示の無い VSIX）は
     無くなった。使っていた人がいれば `release-<版>` の VSIX に移ってもらう
@@ -924,8 +956,10 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | 5 回目（`5d76c67`。REL-02 の暫定） | extension 全ジョブ（実拡張ホストを含む）、ci: mermaid-bundle | 成功 |
 | 5 回目 | ci: `cli` | **失敗**。`cargo audit` が `url` 2.5.8 の RUSTSEC-2026-0592 で止まった（下の「PR の CI で見つけた依存の脆弱性」） |
 | 6 回目（`2dc31e2`。`url` の更新） | ci・extension の全ジョブ（vsix-smoke は PR では走らない） | 成功（ci の `cli` 19 分 23 秒、実拡張ホスト 11 分 28 秒）。`cargo audit` も通った |
+| 7 回目（`098aa3a`。記録だけ） | ci・extension の全ジョブ | 成功 |
+| 8 回目（`810249b`。配布候補の流れ） | ci・extension の全ジョブ、release-candidate の 4 ジョブ（workflow 自身を変えた PR として初めて走った） | 成功（13 チェック）。release-candidate は 38 分（上の「REL-02・CI-01」の「GitHub 上の最初の実行」） |
 
-vsix-smoke は PR では走らない（main への push と手動実行だけ）。
+vsix-smoke は PR では走らなかった（main への push と手動実行だけ。`810249b` で release-candidate.yml の verify-vsix に移して消した）。
 
 ### PR の CI で見つけた依存の脆弱性（直した。計画外）
 
@@ -948,8 +982,8 @@ vsix-smoke は PR では走らない（main への push と手動実行だけ）
   検証用リポジトリで `--no-build` からの梱包を確かめた。通常の経路は `tests/release.rs` の実ビルドの試験（実 Quarto・実 npm、梱包は模擬）が通す
 - `--with-sample` の ZIP、途中失敗からの再実行の手での確認（`tests/release.rs` が見る）
 - OS で通信を遮断した閉域端末、実 LAN の PlantUML サーバ、公開後の資産の再取得、実画面の IME・旧二拡張が同居したときの手操作（計画 §6 の未実施範囲と同じ）
-- 配布候補の流れ（`release-candidate.yml`）の GitHub 上での実行（手元で再現しただけ。上の「REL-02・CI-01　配布候補の作成を
-  GitHub Actions に移す」）。旧 ci.yml の vsix-smoke は PR では走らなかったので、この PR の CI では一度も走らせていない（消した）
+- 配布候補の流れ（`release-candidate.yml`）の、わざと失敗させた実行と main・手動での実行（PR の実行は成功した。上の「REL-02・CI-01　
+  配布候補の作成を GitHub Actions に移す」）。旧 ci.yml の vsix-smoke は PR では走らなかったので、この PR の CI では一度も走らせていない（消した）
 
 ## 計画外で見つけた既存の不具合（直していない）
 
