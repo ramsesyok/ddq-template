@@ -1054,6 +1054,53 @@ mod tests {
         );
     }
 
+    /// フィルタ（design-doc.lua）と共有する期待値（GEN-02。cli/tests/fixtures/contract/README.md）。
+    /// フィルタ側は cli/tests/filter_contract.rs が同じファイルで確かめる。
+    fn shared() -> serde_json::Value {
+        serde_json::from_str(include_str!("../../tests/fixtures/contract/diagrams.json")).unwrap()
+    }
+
+    #[test]
+    fn shared_cases_assemble_the_filter_s_source() {
+        for case in shared()["plantuml"].as_array().unwrap() {
+            let name = case["name"].as_str().unwrap();
+            let filter = case["source"].as_str().unwrap();
+            // 既知の差（rustDiffers）があればそちらになる。直したら期待値も直すこと
+            let want = match case.get("rustDiffers") {
+                Some(d) => {
+                    let ours = d["source"].as_str().unwrap();
+                    assert_ne!(ours, filter, "{name}: 差が無くなったら rustDiffers を外す");
+                    ours
+                }
+                None => filter,
+            };
+            let got = assemble_source(case["code"].as_str().unwrap(), case["config"].as_str().unwrap());
+            assert_eq!(got, want, "{name}");
+        }
+    }
+
+    #[test]
+    fn shared_header_has_the_filter_s_shape() {
+        let env = &shared()["pumlEnv"];
+        let pv = env["serverVersion"].as_str().unwrap();
+        for (kind, url, local) in [
+            ("local", "http://127.0.0.1:18080", true),
+            ("lan", "http://plantuml.lan:8080", false),
+            // 試験で LAN のサーバとして立てる宛先（filter_contract.rs）。Rust も Lua もローカルとみなさない
+            ("lan", "http://[::1]:18080", false),
+        ] {
+            assert_eq!(is_local_url(url), local, "{url}");
+            let want = env["written"][kind]
+                .as_str()
+                .unwrap()
+                .replace("{{VERSION}}", crate::assets::VERSION)
+                .replace("{{PV}}", pv)
+                .replace("{{URL}}", url)
+                .replace("{{FONTS}}", crate::fonts::fingerprint());
+            assert_eq!(svg_header(url, Some(pv)), format!("{want}\n"), "{url}");
+        }
+    }
+
     #[test]
     fn fence_detection() {
         use super::has_plantuml_fence;

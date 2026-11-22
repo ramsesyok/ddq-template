@@ -89,7 +89,7 @@ function render(withList = true) {
     if (withList) {
         act(() => {
             window.dispatchEvent(
-                new MessageEvent('message', { data: { type: 'list', list, version: '2.3.0' } })
+                new MessageEvent('message', { data: { type: 'list', list, version: '2.3.0', generation: 7 } })
             );
         });
     }
@@ -148,6 +148,8 @@ describe('TagTable', () => {
         expect(message.rows).toHaveLength(1);
         expect(message.rows[0].label).toBe('sec-purpose');
         expect(message.rows[0].checked).toBe(true);
+        // 受け取った一覧の番号を付けて返す（取り直した後の一覧に当てないため。EXT-04）
+        expect(message.generation).toBe(7);
     });
 
     it('ファイル名を押すとその行を開くよう伝える', () => {

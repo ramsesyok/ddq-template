@@ -37,7 +37,10 @@ const panel = {
 
 vi.mock('vscode', () => ({
     ViewColumn: { Active: -1, Beside: -2 },
-    Uri: { file: (fsPath: string) => ({ fsPath }) },
+    Uri: {
+        file: (fsPath: string) => ({ fsPath }),
+        joinPath: (base: { fsPath: string }, ...parts: string[]) => ({ fsPath: [base.fsPath, ...parts].join('/') })
+    },
     Position: class {
         constructor(
             public line: number,
@@ -199,6 +202,26 @@ describe('ラベル一覧の取り直しが重なったとき（R-06）', () => 
         expect(lists()).toEqual(['A']);
         expect(warnings).toHaveLength(1);
         expect(warnings[0]).toMatch(/ラベルを書き戻せません/);
+    });
+
+    it('取り直す前の一覧で選んだ書き戻しは、取り直した一覧に当てない（EXT-04）', async () => {
+        const a = openTags('A');
+        (await waitFor('A')).resolve(listOf('A'));
+        await a;
+        const shown = posted.filter((m) => m.type === 'list').at(-1) as unknown as { generation: number; list: unknown };
+        const receive = panel.webview.onDidReceiveMessage.mock.calls.at(-1)![0] as (m: unknown) => Promise<void>;
+        // 画面が「もう一度」で取り直しを頼んだ直後に、前の一覧で選んだ書き戻しが届く
+        const reload = receive({ type: 'reload' });
+        const fromA = await waitFor('A');
+        const item = (shown.list as { items: unknown[] }).items[0];
+        await receive({ type: 'apply', rows: [{ item, label: 'sec-a', checked: true }], generation: shown.generation });
+        expect(applyEdit).not.toHaveBeenCalled();
+        expect(posted.at(-1)).toMatchObject({ type: 'error', message: expect.stringContaining('取り直したため') });
+        fromA.resolve(listOf('A'));
+        await reload;
+        expect((posted.filter((m) => m.type === 'list').at(-1) as unknown as { generation: number }).generation).toBeGreaterThan(
+            shown.generation
+        );
     });
 });
 

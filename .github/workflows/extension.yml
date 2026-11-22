@@ -104,7 +104,7 @@ jobs:
           workspaces: cli
       - name: ddq をビルド
         working-directory: cli
-        run: cargo build --release
+        run: cargo build --release --locked
       - uses: quarto-dev/quarto-actions/setup@v2
         with:
           version: 1.9.38
@@ -139,11 +139,13 @@ jobs:
           cache-dependency-path: extensions/${{ matrix.ext }}/package-lock.json
       - run: npm ci
 
-      # 利用者へ配布されるのは本番依存だけなので、ここは必ず 0 件であること
-      - name: 本番依存の脆弱性（0 件必須）
+      # 利用者へ配布されるもの（Webview にバンドルする React 一式と本番依存）は必ず 0 件であること。
+      # React 一式は devDependencies なので --omit=dev では検査されない（scripts/check-audit.mjs が
+      # Webview をビルドしてバンドルに入るパッケージを数え、ライセンス表示の一覧とも照合する）
+      - name: 配布物に入る依存の脆弱性（0 件必須）
         run: npm run check:audit
 
-      # 開発用の依存は情報として出すだけで、CI は落とさない
+      # 開発用だけの依存は情報として出すだけで、CI は落とさない
       - name: 開発依存の脆弱性（参考）
         run: npm audit || true
 

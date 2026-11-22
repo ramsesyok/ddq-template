@@ -22,24 +22,34 @@ const ddq = vi.hoisted(() => ({
     /** 呼ばれたときの副作用（ddq がファイルを作るところ） */
     onRun: undefined as ((args: string[]) => void) | undefined,
     quarto: true,
-    version: 'ddq 2.4.6',
+    /** `ddq --version` の出力。undefined なら起動に失敗する */
+    version: 'ddq 2.4.6' as string | undefined,
     kill: vi.fn()
 }));
 
 vi.mock('./ddq/run', async (importOriginal) => ({
     ...(await importOriginal<typeof import('./ddq/run')>()),
-    run: async () => ddq.version,
+    run: async () => {
+        if (ddq.version === undefined) throw new Error('ddq を起動できません');
+        return ddq.version;
+    },
     runStreaming: async (
         _command: string,
         args: string[],
-        options: { onOutput: (t: string) => void; onSpawn?: (c: { kill: () => void }) => void }
+        options: {
+            onOutput: (t: string) => void;
+            onSpawn?: (c: { kill: () => void }) => void;
+            keepLine?: (line: string) => boolean;
+        }
     ) => {
         ddq.calls.push(args);
         options.onSpawn?.({ kill: ddq.kill });
         ddq.onRun?.(args);
-        const result = ddq.results.shift() ?? { code: 0 };
-        options.onOutput(result.output ?? '');
-        return { output: '', ...result };
+        const { output = '', ...result } = ddq.results.shift() ?? { code: 0 };
+        options.onOutput(output);
+        // 本物の runStreaming と同じく、keepLine に合う行だけを結果に残す
+        const lines = output.split('\n').filter((line) => options.keepLine?.(line) ?? false);
+        return { ...result, lines };
     }
 }));
 vi.mock('./ddq/locate', () => ({ locateDdq: () => ({ command: 'ddq', source: 'path' }) }));
@@ -444,6 +454,60 @@ describe('発行（PDF / HTML / 図）', () => {
         const warning = fake.calls.find((c) => c.method === 'showWarningMessage');
         expect(warning?.args).toEqual([expect.stringContaining('新しい版のテンプレート（9.0.0）'), '出力を表示']);
         expect(ddq.calls).toEqual([['pdf', docs]]);
+    });
+
+    it('pre の文書を正式版の ddq で発行すれば update を勧める（pre4 → 3.0.0。EXT-01）', async () => {
+        fs.writeFileSync(path.join(docs, '.template-version'), '3.0.0-pre4\n');
+        ddq.version = 'ddq 3.0.0';
+        ddq.results.push({ code: 3 });
+
+        expect(await fake.run('ddqTemplate.pdf', Uri.file(docs))).toBe('mismatch');
+
+        expect(fake.calls.find((c) => c.method === 'showWarningMessage')?.args).toEqual([
+            expect.stringContaining('テンプレートは 3.0.0-pre4、ddq は 3.0.0'),
+            'ddq update を実行',
+            '出力を表示'
+        ]);
+    });
+
+    it('正式版の文書を pre の ddq で発行しても update を出さない（3.0.0 → pre4 は降格）', async () => {
+        fs.writeFileSync(path.join(docs, '.template-version'), '3.0.0\n');
+        ddq.version = 'ddq 3.0.0-pre4';
+        ddq.results.push({ code: 3 });
+
+        expect(await fake.run('ddqTemplate.pdf', Uri.file(docs))).toBe('mismatch');
+
+        expect(fake.calls.find((c) => c.method === 'showWarningMessage')?.args).toEqual([
+            expect.stringContaining('新しい版のテンプレート（3.0.0）'),
+            '出力を表示'
+        ]);
+        expect(ddq.calls).toEqual([['pdf', docs]]);
+    });
+
+    it('版が分からなければ update を出さず、版を確かめるよう案内する（EXT-01）', async () => {
+        const cases: [string | undefined, string | undefined, string][] = [
+            [undefined, 'ddq 2.4.6', '版ファイルなし'],
+            ['abc', 'ddq 2.4.6', '（abc）'],
+            ['2.4.6', 'ddq', 'ddq の版（ddq）'],
+            ['2.4.6', undefined, 'ddq の版（不明）']
+        ];
+        for (const [folderVersion, version, shown] of cases) {
+            fake.calls.length = 0;
+            ddq.calls.length = 0;
+            const file = path.join(docs, '.template-version');
+            if (folderVersion === undefined) fs.rmSync(file, { force: true });
+            else fs.writeFileSync(file, `${folderVersion}\n`);
+            ddq.version = version;
+            ddq.results.push({ code: 3 });
+
+            expect(await fake.run('ddqTemplate.html', Uri.file(docs))).toBe('mismatch');
+
+            expect(fake.calls.find((c) => c.method === 'showWarningMessage')?.args).toEqual([
+                expect.stringMatching(new RegExp(`${shown.replace(/[()（）]/g, '.')}[\\s\\S]*比べられません`)),
+                '出力を表示'
+            ]);
+            expect(ddq.calls).toEqual([['html', docs]]);
+        }
     });
 
     it('update が失敗したら元のコマンドをやり直さない', async () => {

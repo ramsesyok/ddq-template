@@ -31,6 +31,20 @@ function say(what) {
     log.push(`OK   ${what}`);
 }
 
+/**
+ * その画面の Webview から ready が n 回届くまで待つ（EXT-04）。届けば、バンドルが資産の範囲
+ * （localResourceRoots）と CSP の中で読み込めてスクリプトが動き、メッセージが拡張まで届いている。
+ */
+async function readied(view, n) {
+    let seen;
+    for (let i = 0; i < 100; i++) {
+        seen = await vscode.commands.executeCommand('ddqTemplate.internal.webviewReadies');
+        if (seen[view] >= n) return;
+        await new Promise((r) => setTimeout(r, 200));
+    }
+    assert.fail(`${view} の画面が起動しない（ready が ${n} 回届かない: ${JSON.stringify(seen)}）`);
+}
+
 /** 1 行の見出しに候補ラベルを当てる行を作る。 */
 function rowsFor(list, file) {
     return list.items
@@ -51,6 +65,8 @@ async function run() {
     assert.ok(tab.input instanceof vscode.TabInputWebview, `Webview ではない: ${tab.input}`);
     assert.match(tab.label, /ラベル一覧/, `タブ名が違う: ${tab.label}`);
     say(`一覧のパネルが開く（${tab.label}）`);
+    await readied('tags', 1);
+    say('一覧の画面が起動し、拡張へ ready が届く（バンドル・CSP・資産の範囲）');
 
     // 2) ddq の一覧から書き戻す
     const list = JSON.parse(execFileSync(ddq, ['tag', 'list', docs, '--json'], { encoding: 'utf8' }));
@@ -79,7 +95,25 @@ async function run() {
         .find((t) => t.input instanceof vscode.TabInputWebview && /DDQ 表エディタ/.test(t.label));
     assert.ok(tableTab, '表エディタのパネルが開いていない');
     say(`表エディタのパネルが開く（${tableTab.label}）`);
-    await vscode.window.tabGroups.close(tableTab);
+    await readied('tableEditor', 1);
+    say('表エディタの画面が起動し、拡張へ ready が届く（バンドル・CSP・資産の範囲）');
+    // もう一度開いてもパネルは増えない（1 枚を使い回す）。閉じてから開き直せる（EXT-03）
+    const tableTabs = () =>
+        vscode.window.tabGroups.all
+            .flatMap((g) => g.tabs)
+            .filter((t) => t.input instanceof vscode.TabInputWebview && /DDQ 表エディタ/.test(t.label));
+    await vscode.commands.executeCommand('ddqTemplate.openTableEditor');
+    await new Promise((r) => setTimeout(r, 1000));
+    assert.strictEqual(tableTabs().length, 1, '表エディタのパネルが増えた');
+    say('表エディタをもう一度開いてもパネルは 1 枚のまま');
+    await vscode.window.tabGroups.close(tableTabs());
+    await new Promise((r) => setTimeout(r, 500));
+    await vscode.commands.executeCommand('ddqTemplate.openTableEditor');
+    await new Promise((r) => setTimeout(r, 2000));
+    assert.strictEqual(tableTabs().length, 1, '閉じた表エディタを開き直せない');
+    await readied('tableEditor', 2);
+    say('表エディタを閉じてから開き直せる（開き直した画面も起動する）');
+    await vscode.window.tabGroups.close(tableTabs());
 
     // 旧拡張の ID は残っていない
     const commands = await vscode.commands.getCommands(true);
@@ -256,6 +290,8 @@ async function revisionEditor(docs, ddq) {
     );
     assert.strictEqual(tab.input.viewType, 'ddqTemplate.revisionEditor');
     say(`改訂ファイルが編集画面で開く（${tab.label}）`);
+    await readied('revision', 1);
+    say('改訂履歴の画面が起動し、拡張へ ready が届く（バンドル・CSP・資産の範囲）');
 
     // 画面から書いたのと同じことを内部コマンドで行い、文書 → 保存 → ddq が読める形を見る
     const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(yml));

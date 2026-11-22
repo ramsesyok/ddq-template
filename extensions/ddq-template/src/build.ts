@@ -10,9 +10,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
+import { channel, currentDdq, runWithProgress, settings, showError } from './ddq/launch';
 import { tryLock } from './ddq/lock';
-import { locateDdq } from './ddq/locate';
-import { run, runStreaming, versionOf, type StreamResult } from './ddq/run';
+import { run, versionOf } from './ddq/run';
 import { TEMPLATE_MISMATCH_EXIT_CODE, classifyMismatch, compareVersions } from './ddq/version';
 import { TEMPLATE_VERSION_FILE, activeWritingFolder, resolveWritingFolder, watchWritingFolders } from './folders';
 import { openWithDefaultApp } from './openFile';
@@ -33,23 +33,7 @@ const NEEDS_QUARTO: ReadonlySet<BuildKind> = new Set(['pdf', 'html']);
 /** 実行の結果（実拡張ホストの検証が見る） */
 export type BuildOutcome = 'ok' | 'failed' | 'busy' | 'cancelled' | 'no-quarto' | 'mismatch' | 'no-folder';
 
-let output: vscode.OutputChannel | undefined;
-/** 実行中の子プロセス（拡張の終了時に止める。§3.4） */
-const running = new Set<{ kill: () => void }>();
 let statusItem: vscode.StatusBarItem | undefined;
-
-export function channel(): vscode.OutputChannel {
-    output ??= vscode.window.createOutputChannel('DDQ');
-    return output;
-}
-
-export function settings() {
-    const config = vscode.workspace.getConfiguration('ddqTemplate');
-    return {
-        ddqPath: config.get<string>('ddqPath'),
-        quartoPath: config.get<string>('quartoPath')
-    };
-}
 
 export function activateBuild(context: vscode.ExtensionContext) {
     for (const kind of ['pdf', 'html', 'diagrams'] as const) {
@@ -72,7 +56,7 @@ export function activateBuild(context: vscode.ExtensionContext) {
     );
     // 同梱版のスモーク（tests/host/smoke.mjs）が、どの ddq に決まったかを見る
     context.subscriptions.push(
-        vscode.commands.registerCommand('ddqTemplate.internal.locate', () => locateDdq(settings().ddqPath))
+        vscode.commands.registerCommand('ddqTemplate.internal.locate', () => currentDdq())
     );
 
     statusItem = vscode.window.createStatusBarItem('ddqTemplate.pdf', vscode.StatusBarAlignment.Left, 50);
@@ -83,11 +67,6 @@ export function activateBuild(context: vscode.ExtensionContext) {
     watchWritingFolders(context, refreshStatus);
 
     void checkBundled(context);
-}
-
-export function deactivateBuild() {
-    for (const child of running) child.kill();
-    running.clear();
 }
 
 async function buildCommand(kind: BuildKind, resource?: vscode.Uri): Promise<BuildOutcome> {
@@ -134,10 +113,16 @@ async function execute(
             return 'no-quarto';
         }
         if (kind === 'pdf') void updateStatus(folder);
-        const result = await runWithProgress(`${TITLES[kind]}: ${path.basename(folder)}`, [kind, folder], folder, env);
+        const result = await runWithProgress(
+            `${TITLES[kind]}: ${path.basename(folder)}`,
+            [kind, folder],
+            folder,
+            env,
+            isResultLine
+        );
         if (result === 'cancelled') return 'cancelled';
         if (result.code === 0) {
-            if (options.interactive) void notifyDone(kind, folder, result.output);
+            if (options.interactive) void notifyDone(kind, folder, result.lines.join('\n'));
             return 'ok';
         }
         if (result.code === TEMPLATE_MISMATCH_EXIT_CODE && kind !== 'update') {
@@ -152,50 +137,6 @@ async function execute(
         release();
         void updateStatus();
     }
-}
-
-/** ddq を 1 本、キャンセルできる進捗通知つきで走らせ、出力を「DDQ」に流す（init も使う）。 */
-export async function runWithProgress(
-    title: string,
-    args: string[],
-    cwd: string | undefined,
-    env: NodeJS.ProcessEnv
-): Promise<StreamResult | 'cancelled'> {
-    const out = channel();
-    const command = locateDdq(settings().ddqPath).command;
-    out.appendLine(`\n> ${command} ${args.join(' ')}`);
-    return vscode.window.withProgress(
-        {
-            location: vscode.ProgressLocation.Notification,
-            title,
-            cancellable: true
-        },
-        async (_progress, token) => {
-            let child: { kill: () => void } | undefined;
-            let cancelled = false;
-            const subscription = token.onCancellationRequested(() => {
-                cancelled = true;
-                child?.kill();
-            });
-            try {
-                const result = await runStreaming(command, args, {
-                    cwd,
-                    env,
-                    onOutput: (text) => out.append(text),
-                    onSpawn: (c) => {
-                        child = c;
-                        running.add(c);
-                    }
-                });
-                if (result.error) out.appendLine(result.error);
-                out.appendLine(`（終了コード ${result.code ?? '-'}）`);
-                return cancelled ? 'cancelled' : result;
-            } finally {
-                if (child) running.delete(child);
-                subscription.dispose();
-            }
-        }
-    );
 }
 
 async function notifyDone(kind: BuildKind | 'update', folder: string, stdout: string) {
@@ -227,6 +168,14 @@ async function notifyDone(kind: BuildKind | 'update', folder: string, stdout: st
     void vscode.window.showInformationMessage(`${name}: ${TITLES[kind]}が終わりました。`);
 }
 
+/**
+ * 通知に使う結果行か（`OK -> …` / `OK: …` / `警告: …`。cli/tests/fixtures/contract/cli.json）。
+ * 出力チャネルには全部を流すが、手元にはこの行だけを残す。
+ */
+export function isResultLine(line: string): boolean {
+    return line.startsWith('OK') || line.startsWith('警告: ');
+}
+
 /** ddq の出力から最初の警告（`警告: …`）の本文を取る。 */
 export function warningOf(stdout: string): string | undefined {
     const m = /^警告: (.+)$/m.exec(stdout);
@@ -237,11 +186,6 @@ export function warningOf(stdout: string): string | undefined {
 export function htmlIndexOf(stdout: string): string | undefined {
     const m = /^OK: (.+?index\.html)/m.exec(stdout);
     return m?.[1];
-}
-
-export async function showError(reason: string) {
-    const show = '出力を表示';
-    if ((await vscode.window.showErrorMessage(reason, show)) === show) channel().show(true);
 }
 
 /**
@@ -266,8 +210,23 @@ async function offerUpdate(kind: BuildKind, folder: string): Promise<BuildOutcom
     const folderVersion = readFolderVersion(folder);
     const ddqVersion = await ddqVersionOf(folder);
     const name = path.basename(folder);
-    const mismatch = ddqVersion ? classifyMismatch(folderVersion, ddqVersion) : 'folder-older';
+    const mismatch = classifyMismatch(folderVersion, ddqVersion);
     const show = '出力を表示';
+
+    if (mismatch === 'unknown') {
+        // 比べられないので update を勧めない（文書の方が新しければ機構を古い版に戻してしまう）
+        channel().appendLine(
+            `版の確認: 執筆フォルダ ${folderVersion ?? `（${TEMPLATE_VERSION_FILE} が無い・空）`}、` +
+                `ddq ${ddqVersion ?? '（--version を読めない）'}（${currentDdq().command}）`
+        );
+        const choice = await vscode.window.showWarningMessage(
+            `${name} のテンプレートの版（${folderVersion ?? '版ファイルなし'}）と ddq の版（${ddqVersion ?? '不明'}）を` +
+                `比べられません。執筆フォルダの ${TEMPLATE_VERSION_FILE} と ddq の版を確かめてください。`,
+            show
+        );
+        if (choice === show) channel().show(true);
+        return 'mismatch';
+    }
 
     if (mismatch === 'folder-newer') {
         const choice = await vscode.window.showWarningMessage(
@@ -284,7 +243,7 @@ async function offerUpdate(kind: BuildKind, folder: string): Promise<BuildOutcom
         mismatch === 'modified'
             ? `${name} の機構ファイルがテンプレート ${ddqVersion} と一致しません（手で直された可能性があります）。` +
               'ddq update で元に戻せます（差分は Git で確認してください）。'
-            : `${name} のテンプレートは ${folderVersion ?? '（版ファイルなし）'}、ddq は ${ddqVersion ?? '不明'} です。` +
+            : `${name} のテンプレートは ${folderVersion}、ddq は ${ddqVersion} です。` +
               'ddq update で機構ファイルを新しい版にしてから続けます（変わったファイルはコミットしてください）。';
     const choice = await vscode.window.showWarningMessage(message, update, show);
     if (choice === show) channel().show(true);
@@ -308,7 +267,7 @@ function readFolderVersion(folder: string): string | undefined {
 
 async function ddqVersionOf(cwd?: string): Promise<string | undefined> {
     try {
-        return versionOf(await run(locateDdq(settings().ddqPath).command, ['--version'], cwd));
+        return versionOf(await run(currentDdq().command, ['--version'], cwd));
     } catch {
         return undefined;
     }
@@ -319,7 +278,7 @@ async function ddqVersionOf(cwd?: string): Promise<string | undefined> {
  * 合っていなくても使えるので、出力チャネルに書くだけにする。
  */
 async function checkBundled(context: vscode.ExtensionContext) {
-    const located = locateDdq(settings().ddqPath);
+    const located = currentDdq();
     if (located.source !== 'bundled') return;
     const version = await ddqVersionOf();
     const expected = String(context.extension.packageJSON.version ?? '');

@@ -1,0 +1,19 @@
+{
+  "_comment": "ddq と VSCode 拡張の間の取り決め（QA-01）。Rust の試験は実 exe の出力がこの形であることを、拡張の試験は拡張がこの形を読めることを確かめる。{{FOLDER}} は執筆フォルダの絶対パス、{{SEP}} はパスの区切り（Windows は \\）。",
+  "exit": {
+    "ok": 0,
+    "failure": 1,
+    "usage": 2,
+    "templateMismatch": 3
+  },
+  "stdout": {
+    "pdf": "OK -> {{FOLDER}}{{SEP}}design-doc.pdf",
+    "html": "OK: {{FOLDER}}{{SEP}}_book{{SEP}}index.html（直接開くと全文検索は使えません）",
+    "diagramsEmpty": "警告: {{FOLDER}}{{SEP}}diagrams に .mmd / .puml がありません",
+    "tagApplyAll": "8 件のラベルを書き戻しました"
+  },
+  "stderr": {
+    "errorPrefix": "Error: ",
+    "tagApplyNoMode": "Error: --all か --from <FILE> のどちらかを指定してください"
+  }
+}

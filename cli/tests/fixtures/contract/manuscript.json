@@ -1,0 +1,10 @@
+{
+  "_comment": "QA-01 契約試験の最小原稿。Rust（cli/tests/contract.rs）と拡張（src/ddq/contract.test.ts）が同じ中身を一時フォルダに書き出して使う。BOM・CRLF・サロゲートペア・結合文字を Git の改行変換に左右されずに持つため、ファイルではなく JSON の文字列で持つ。変えたら README.md の手順で期待値を採り直す。",
+  "files": {
+    "_quarto.yml": "project:\n  type: book\n  output-dir: _book\n\nbook:\n  title: 契約試験\n  chapters:\n    - index.qmd\n    - chapters/01/index.qmd\n    - chapters/02/index.qmd\n\nlang: ja\n",
+    "index.qmd": "# 本書について {.unnumbered}\n\n前書き。\n",
+    "chapters/01/index.qmd": "# 概要\n\n{{< include 01-purpose.qmd >}}\n\n::: {.tbl caption=\"𠮷野家の一覧\" widths=\"30,70\"}\n| 区分 | 説明                     |\n|------|--------------------------|\n| 基本 | サロゲートペア 𠮷 を含む |\n:::\n\n| 項目 | 値 |\n|------|----|\n| a    | 1  |\n\n: パイプ表の例\n\n![構成図](/diagrams/x.svg)\n",
+    "chapters/01/01-purpose.qmd": "## 目的 𠮷とが\n\n本文。\n",
+    "chapters/02/index.qmd": "﻿# 二章\r\n\r\n## が行の扱い {.unlisted}\r\n\r\n::: {.ipo module=\"受注\" caption=\"受注処理\"}\r\n## 受注\r\n\r\n### 入力\r\n\r\n- 画面\r\n\r\n### 処理\r\n\r\n- 登録\r\n\r\n### 出力\r\n\r\n- 受注ID\r\n:::\r\n"
+  }
+}

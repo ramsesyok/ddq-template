@@ -125,8 +125,15 @@ pub fn load_all(dir: &Path) -> Result<Vec<(std::path::PathBuf, Revision)>> {
 
 /// 1 ファイルを読む。
 pub fn load(path: &Path) -> Result<Revision> {
-    let text = fs::read_to_string(path).with_context(|| format!("{} を読めません", path.display()))?;
-    let mut rev = parse(&text);
+    let bytes = fs::read(path).with_context(|| format!("{} を読めません", path.display()))?;
+    from_bytes(path, &bytes)
+}
+
+/// 読んだバイト列から（`path` はエラーの表示と、改訂記号の書き忘れをファイル名から拾うのに使う）。
+pub fn from_bytes(path: &Path, bytes: &[u8]) -> Result<Revision> {
+    let text = std::str::from_utf8(bytes)
+        .with_context(|| format!("{} を読めません（UTF-8 ではない）", path.display()))?;
+    let mut rev = parse(text);
     if rev.rev.is_empty() {
         // 書き忘れてもファイル名から拾う（rev-C.yml → C）
         rev.rev = path
@@ -280,12 +287,34 @@ fn scalar(value: &str, lines: &[&str], at: usize, key_indent: usize) -> (String,
 }
 
 /// 引用符を外す（`"…"` / `'…'`）。
+/// 1 行の値を読む（DATA-01。拡張の revfile.ts の `unquote` と同じ規則）。
+///
+/// - 二重引用: `\\` は `\`、`\"` は `"`。ほかの `\x` はそのまま（`quote` が書く形を読み戻せる）
+/// - 単一引用: `''` は `'`（逆斜線は文字のまま）
+/// - 引用なし: そのまま
 fn unquote(v: &str) -> String {
     let v = v.trim();
-    if v.len() >= 2
-        && ((v.starts_with('"') && v.ends_with('"')) || (v.starts_with('\'') && v.ends_with('\'')))
-    {
-        return v[1..v.len() - 1].replace("\\\"", "\"");
+    if v.len() >= 2 && v.starts_with('"') && v.ends_with('"') {
+        let mut out = String::new();
+        let mut chars = v[1..v.len() - 1].chars();
+        while let Some(c) = chars.next() {
+            if c != '\\' {
+                out.push(c);
+                continue;
+            }
+            match chars.next() {
+                Some(e @ ('\\' | '"')) => out.push(e),
+                Some(e) => {
+                    out.push('\\');
+                    out.push(e);
+                }
+                None => out.push('\\'),
+            }
+        }
+        return out;
+    }
+    if v.len() >= 2 && v.starts_with('\'') && v.ends_with('\'') {
+        return v[1..v.len() - 1].replace("''", "'");
     }
     v.to_string()
 }
@@ -405,6 +434,67 @@ mod tests {
         assert_eq!((r.rev.as_str(), r.base.as_str()), ("A", "rev--"));
         assert_eq!(r.entries.len(), 1);
         assert_eq!(r.entries[0].note, "文言を直した");
+    }
+
+    /// 拡張の往復試験（extensions/ddq-template/src/revision/revfile.test.ts）と**同じ golden**。
+    /// ddq が書いたファイルを ddq 自身が読み、書き戻して同じ文字列になること（QA-01）。
+    const SHARED_GOLDEN: &str =
+        include_str!("../../../extensions/ddq-template/src/revision/rev-B.golden.yml");
+
+    #[test]
+    fn shared_golden_round_trips_byte_for_byte() {
+        let golden = SHARED_GOLDEN.replace("\r\n", "\n");
+        let rev = parse(&golden);
+        assert_eq!(rev.rev, "B");
+        assert_eq!(rev.entries.len(), 5);
+        assert_eq!(to_yaml(&rev), golden, "拡張の golden と ddq の書き出しが食い違う");
+    }
+
+    /// 1 行の値の共有ケース（DATA-01。拡張の revfile.test.ts も同じものを parse / toYaml で読む）
+    #[test]
+    fn values_match_the_shared_cases() {
+        let shared: serde_json::Value =
+            serde_json::from_str(include_str!("../../tests/fixtures/contract/rev-values.json")).unwrap();
+        let doc = |title: &str| {
+            format!(
+                "rev: B\ndate: 2026-01-01\nentries:\n  - label: sec-a\n    kind: changed\n    unit: heading\n    \
+                 title: {title}\n    note: \"\"\n"
+            )
+        };
+        for c in shared["read"].as_array().unwrap() {
+            let written = c["written"].as_str().unwrap();
+            assert_eq!(
+                parse(&doc(written)).entries[0].title,
+                c["value"].as_str().unwrap(),
+                "{written}"
+            );
+        }
+        for c in shared["write"].as_array().unwrap() {
+            let value = c["value"].as_str().unwrap();
+            let mut rev = parse(&doc("x"));
+            rev.entries[0].title = value.to_string();
+            let yaml = to_yaml(&rev);
+            let line = format!("\n    title: {}\n", c["written"].as_str().unwrap());
+            assert!(yaml.contains(&line), "{value}:\n{yaml}");
+            // 読み戻すと同じ値。二度目の保存も同じバイト列
+            let again = parse(&yaml);
+            assert_eq!(again.entries[0].title, value);
+            assert_eq!(to_yaml(&again), yaml, "{value}");
+        }
+    }
+
+    /// メモ（ブロック）は逃がさない。逆斜線・引用・空行を含む複数行と空のメモが往復する
+    #[test]
+    fn notes_round_trip_without_escaping() {
+        let mut rev = parse(
+            "rev: B\ndate: 2026-01-01\nentries:\n  - label: a\n    kind: changed\n    unit: heading\n    title: a\n    note: \"\"\n  - label: b\n    kind: changed\n    unit: heading\n    title: b\n    note: \"\"\n",
+        );
+        rev.entries[0].note = "C:\\docs\\a.qmd を直した。\n\"引用\" と 'x'\n\n空行の後".into();
+        let yaml = to_yaml(&rev);
+        let again = parse(&yaml);
+        assert_eq!(again.entries[0].note, rev.entries[0].note);
+        assert_eq!(again.entries[1].note, "");
+        assert_eq!(to_yaml(&again), yaml);
     }
 
     #[test]

@@ -226,13 +226,19 @@ function scalar(value: string, lines: string[], at: number, keyIndent: number): 
     return [unquote(value), at + 1];
 }
 
+/**
+ * 1 行の値を読む（DATA-01。ddq の `cli/src/doc/revfile.rs` の `unquote` と同じ規則）。
+ * - 二重引用: `\\` は `\`、`\"` は `"`。ほかの `\x` はそのまま（`quote` が書く形を読み戻せる）
+ * - 単一引用: `''` は `'`（逆斜線は文字のまま）
+ * - 引用なし: そのまま
+ */
 function unquote(v: string): string {
     const s = v.trim();
-    if (
-        s.length >= 2 &&
-        ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")))
-    ) {
-        return s.slice(1, -1).split('\\"').join('"');
+    if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+        return s.slice(1, -1).replace(/\\([\s\S])?/g, (whole, c?: string) => (c === '\\' || c === '"' ? c : whole));
+    }
+    if (s.length >= 2 && s.startsWith("'") && s.endsWith("'")) {
+        return s.slice(1, -1).split("''").join("'");
     }
     return s;
 }

@@ -27,7 +27,7 @@ npm run test:smoke          # その VSIX を展開した中身で VSCode を起
 | `npm run typecheck` | 拡張ホストと Webview の型チェック |
 | `npm run build` | 拡張ホスト（esbuild）と Webview 2 画面（vite。`--mode revision` / `--mode tableEditor`）のビルド |
 | `npm run check:offline` | 配布物に通信 API・外部 URL が無いことを検査 |
-| `npm run check:audit` | 本番依存の脆弱性（0 件必須） |
+| `npm run check:audit` | 配布物に入る依存（Webview にバンドルする React 一式と本番依存）の脆弱性（0 件必須）。開発用だけの指摘は参考として表示する。バンドルの中身が `cli/tools/third_party.py` の一覧と違っても落ちる。npm のレジストリに問い合わせる |
 
 ## ソースの配置
 
@@ -41,6 +41,9 @@ npm run test:smoke          # その VSIX を展開した中身で VSCode を起
 | `src/folders.ts` | 執筆フォルダの決定と、右クリックメニュー用の一覧（`setContext`） |
 | `src/quarto.ts` | Quarto の有無の検査と `ddqTemplate.quartoPath` |
 | `src/ddq/locate.ts` `lock.ts` `version.ts` | ddq の解決順、執筆フォルダごとの実行中フラグ、版の比較 |
+| `src/ddq/launch.ts` `run.ts` | ddq の起動口（設定・起動する ddq・出力チャネル・進捗・終了時の後始末）と子プロセスの起動 |
+| `src/ddq/contract.ts` | ddq が返す JSON の形の検査（期待値は `cli/tests/fixtures/contract/`） |
+| `src/webviewHtml.ts` | Webview の HTML（CSP・nonce）と資産の範囲。表エディタとラベル一覧・改訂履歴が共有 |
 | `src/activateRevision.ts` | ラベル一覧・改訂履歴のコマンド登録（旧 ddq-revision の入口） |
 | `src/ddq/` `src/tagging/` `src/revision/` | ddq の起動、ラベル付け、改訂履歴の Custom Editor |
 | `src/revisionWebview/` | ラベル一覧・改訂履歴の画面（React） |

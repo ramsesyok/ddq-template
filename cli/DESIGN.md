@@ -38,7 +38,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 | 3 | 機構ファイル | **全部 exe に埋め込む**（`include_dir!`）。exe 単体で全コマンドが動く | 「exe = テンプレートの版」になり、`.template-version` と一意に対応 |
 | 4 | mermaid エンジン | 自動: **Edge → Chrome → merman**。`DDQ_MERMAID_ENGINE` / `EXECUTABLE_BROWSER` で上書き可 | ブラウザ経路は mermaid-cli と幾何一致。merman は保険 |
 | 5 | `quarto preview` | **常にクライアント描画**（現状維持）。SVG を焼くのは `ddq html` / `ddq pdf` だけ | プレビューは Quarto だけで動く速いクイックレビュー。発行物と図が微妙に違い得ることはマニュアルに明記 |
-| 6 | フィルタ⇔exe | フィルタが**図ごとに** `ddq mermaid` を呼ぶ（現行 `quarto run mmdc` の置換のみ）。CLI は複数入力対応にしておく | 正しさ優先。一括事前変換はフェンス抽出と hash の二重実装になるので保留 |
+| 6 | フィルタ⇔exe | `ddq pdf` / `ddq html` が Quarto の前に文書の mermaid をまとめて描き、フィルタはキャッシュに無い図だけを `ddq mermaid` で描く（2.4.4 から。§5.5）。CLI は複数入力に対応する | 当初は正しさを優先して図ごとの呼び出し（`quarto run mmdc` の置換）だけにし、一括事前変換はフェンス抽出とキーの二重実装になるので保留した。2.4.4 でブラウザの起動回数を減らすため一括化し、キーの一致は E2E の図の数の照合で守る（§5.5） |
 | 7 | mermaid.min.js | `template/vendor/mermaid.min.js`（11.16.1。`cli/tools/mermaid-bundle` が lock の依存で束ね直す）をコミットして埋め込む。実行時の npm / node_modules は廃止 | 版の固定と再現性。Quarto 同梱 11.12 は見た目が違う（§9） |
 | 8 | リポジトリ構成 | `template/` はソース置き場として残し、`cli/` に Cargo プロジェクトを追加。`build.rs` で `../template` を埋め込む | Lua/CSS/typ の編集体験と利用マニュアルの導線を壊さない |
 | 9 | 対象 OS | **Windows x64 のみ**（msvc, `+crt-static`）。CI も Windows 1 本 | まず簡易に。OS 依存部は `cfg(windows)` で分離し、後から他 OS を足せる形にする |
@@ -100,13 +100,24 @@ quarto-template-<版>/
     ├── 利用マニュアル.pdf
     └── html/index.html
 quarto-template-<版>.zip
-ddq-template-win32-x64-<版>.vsix … VSCode 拡張（ddq.exe 同梱）。zip には入れず隣に置き、リリースページの別資産にする
+ddq-template-win32-x64-<版>.vsix … VSCode 拡張（ddq.exe と THIRD-PARTY-NOTICES.md 同梱）。zip には入れず隣に置き、リリースページの別資産にする
 ```
 
 `template/` は release に**含めない**（すべて exe に埋め込まれている）。
 
 一式は隣の作業フォルダ（`quarto-template-<版>.building`）に集め、全部そろってから前回の配布フォルダと入れ替える。
-途中で失敗しても前回の配布フォルダは壊れない（以前は先に消してから集めたので、jar が無いと中途半端な配布フォルダが残った）。
+集める途中で失敗しても前回の一式（フォルダ・zip・VSIX）は壊れない（以前は先に消してから集めたので、jar が無いと中途半端な配布フォルダが残った。
+jar は 3.0.0 から同梱しない）。
+
+**入れ替えの途中で失敗した回の出力は、配布せずに消して作り直す。前回の一式は守らない。**
+入れ替えは、前回のフォルダを消す → 作業フォルダの名前を変える → 前回の zip を消して今回の zip を作る → VSIX をコピーする、の順で、
+どこで止まってもフォルダ・zip・VSIX が前回と今回で混ざる。たとえば前回の zip を他のプログラムが開いていて消せないと、
+フォルダは今回、zip と VSIX は前回のものが同じ名前で残り、正しい一式に見える。そのため入れ替えの途中で失敗したら、
+`ddq release` は残っている出力（その版のフォルダ・作業フォルダ・zip・VSIX）を並べ、配布せずに消してから再実行するよう表示して止まる
+（`cli/tests/release.rs` の `a_failure_after_the_swap_lists_what_to_discard`）。
+前回の一式を退避して戻す、読み手から見て一度に切り替える、といった保証は手元では作らない。**正式に配る一式は CI が作る**
+（§7.5・§7.6。`docs/refactoring-plan.md` §7、2026-11-22 決定）。CI のランナーは毎回新しく、公開に使う成果物はすべての検査に通った
+実行にだけ残り、公開は保守者が下書きのリリースに載せてから行う。手元の `ddq release` は試作・確認用。
 
 **plantuml.jar は同梱しない（3.0.0 から）**。2.2.0〜3.0.0-pre4 は `cli/vendor/plantuml.jar`（MIT 版）を同梱していたが、PlantUML の版・ライセンス・脆弱性への対応を利用者の組織の判断に任せるため外した。ローカルで描く利用者は PlantUML の公式リリースからjar を取得し、`DDQ_PLANTUML_JAR` か exe の隣に置く（§13.3 の探索順は変えていない）。
 
@@ -122,12 +133,16 @@ ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm �
 VSIX は `ddq release` が `extensions/<拡張>/` で `npm ci`（`node_modules/` があっても入れ直す）→
 `npm run package` を実行して作る（`--no-build` なら既存の VSIX を使う）。
 `package:win32-x64` スクリプトを持つ拡張（ddq-template）は ddq.exe を同梱する: release している exe を
-`<拡張>/bin/win32-x64/ddq.exe`（git 管理外）にコピーしてから `npm run package:win32-x64`
+`<拡張>/bin/win32-x64/ddq.exe`（git 管理外）に、リポジトリ直下の `THIRD-PARTY-NOTICES.md` を
+`<拡張>/THIRD-PARTY-NOTICES.md`（git 管理外）にコピーしてから `npm run package:win32-x64`
 （`vsce package --target win32-x64`）で `<name>-win32-x64-<版>.vsix` を作る。最後に VSIX の中の
-`extension/bin/win32-x64/ddq.exe` が release している exe とバイト一致することを確かめる
-（`--no-build` で前の版の ddq を同梱した VSIX を配らないため）。VSIX は zip に入れず、zip の隣に置く
+`extension/bin/win32-x64/ddq.exe` が release している exe と、`extension/THIRD-PARTY-NOTICES.md` が
+zip に入れるものとバイト一致することを確かめる（`--no-build` で前の版の ddq を同梱した VSIX や、
+ライセンス表示の無い・古い VSIX を配らないため。表示は REL-01 から）。VSIX は zip に入れず、zip の隣に置く
 （CLI 利用者は zip、VSCode 利用者は VSIX と、別の資産として取れるようにする）。
-`extensions/<拡張>/package.json` の `version` が `template/VERSION` と違えば止める（拡張の版＝テンプレートの版）。
+重いビルドの前に、`template/VERSION`・この exe の版・各拡張の `package.json` の `version`・
+`package-lock.json` の `version` と `packages[""].version` を照合し、1 つでも違えば何も作らずに止める
+（拡張の版＝テンプレートの版。古い exe での release も止まる。REL-03）。
 発行者・執筆者の端末に Node.js が要らない点は変わらない（要るのは保守者のリリース作成時だけ）。
 Windows の `npm` は `npm.cmd` なので `cmd /C npm …` で起動する（`Command::new("npm")` は .cmd を解決しない）。
 
@@ -404,15 +419,24 @@ PATH 上の古い `ddq` と release フォルダの新しい `ddq` が共存し�
 ```
 cd cli
 cargo build --release
-target\release\ddq.exe release            # 既定で ..\release\ に出力
+cd ..
+cli\target\release\ddq.exe release        # リポジトリのルートで実行する。既定で release\ に出力
 ```
 
+`ddq release` はカレントに `template/VERSION` と `docs/manual/_quarto.yml` を求めるので、`cli/` の中からは
+実行できない（以前の例は `cli/` のまま実行していた）。
 保守者の端末には Rust に加えて Node.js（20 以上）と npm が要る（VSIX のパッケージ。§3.2）。
-手順の正は利用マニュアル 18 章（`docs/manual/`）。
+手元の出力は `python cli/tools/check_release.py release`（`--smoke <作業フォルダ>` で、取り出した exe の init → pdf → html も）で、
+CI と同じ照合を流せる。
+
+**正式に配る一式は手元で作らず、CI の配布候補（§7.6 の `release-candidate.yml`）の成果物 `release-<版>` を使う。**
+保守者はそれをダウンロードして SHA-256 を照合し、下書きのリリースに載せてから公開する（タグは実行のコミットに付ける）。
+CI は公開済みのリリースにもタグにも書き込まない。手順の正は利用マニュアル 18 章（`docs/manual/`）。
 
 ### 7.6 CI（GitHub Actions, windows-latest）
 
-`cargo fmt --check` → `cargo clippy -- -D warnings` → `cargo test` → `cargo build --release`。
+`cargo fmt --check` → `cargo clippy --locked -- -D warnings` → `cargo test --locked` → `cargo build --release --locked`
+（jar は `cli/vendor/README.md` の SHA-256 と照合してから使う）。
 ブラウザ系テストは runner に Edge があるので動く（無い環境では skip）。
 
 `tests/e2e.rs` は runner に Quarto（`quarto-dev/quarto-actions/setup`、版は手元の検証環境に固定）を
@@ -438,34 +462,57 @@ runner のロケールは変えられない（`Set-WinSystemLocale` は再起動
 機構を意図して変えたときは `DDQ_BLESS=1 cargo test --release --test mechanism` で正解を書き直し、
 差分を確かめてからコミットする。
 
+**配布候補（`.github/workflows/release-candidate.yml`）**。main への push（配布物に入るファイルが変わったとき）と手動実行で走る
+（workflow 自身や `cli/tools/check_release.py` を変えた PR でも走る）。
+
+- `build`（Windows）: ddq.exe を `--locked` でビルドし、その exe の `ddq release` で一式を作る。`cli/tools/check_release.py` で
+  照合し、ZIP・VSIX の SHA-256 の一覧と、使った版（コミット・ランナー・ddq.exe の SHA-256・Quarto・Node・Edge・書体）の一覧を作る
+- `verify-zip`（Windows）: 別のランナーで、ZIP を照合し、取り出した exe で init → pdf → html を通す
+- `verify-vsix`（Windows）: 別のランナーで、配る VSIX そのものを `npm run test:smoke` で起動する（旧 ci.yml の vsix-smoke の役目）
+- `publishable`（Linux）: 上がすべて通ったら、`release-<版>` を残す（公開に使うのはこれだけ）
+
+runner には日本語フォントが無いので、`build` と `verify-zip` は `.github/actions/jp-fonts` で、`template/lib.typ` の本文・等幅の
+最初の候補（Meiryo UI・BIZ UDGothic）が Typst から見えることを確かめ、無ければ Windows の日本語の追加フォント
+（`Language.Fonts.Jpan`）を入れる。PDF に埋め込まれた書体は `check_release.py` が確かめる。
+
 ---
 
-## 8. コード構成（案）
+## 8. コード構成
+
+当初は案として書いたもの。改訂履歴（§14・§15）、一括変換（§5.5）、PlantUML（§13）、書き戻しの置換（§14.5）で増えた分を含め、
+現在のソースに合わせてある（各ファイル冒頭の `//!` が正）。
 
 ```
 cli/src/
 ├── main.rs            … clap の Cli / Commands enum と dispatch だけ
-├── commands/
+├── commands/          … 1 コマンド = 1 ファイル（入口は run）
 │   ├── init.rs  add.rs  update.rs  setup.rs
-│   ├── html.rs  pdf.rs  diagrams.rs  release.rs  tag.rs
+│   ├── html.rs  pdf.rs  diagrams.rs  release.rs
+│   ├── tag.rs  rev.rs  … ラベルの一覧・付与（§14）と改訂履歴（§15）
+│   ├── plantuml.rs    … ddq plantuml serve（§13）
 │   └── mermaid.rs     … hidden サブコマンド（引数→ renderer 呼び出し）
 ├── assets.rs          … include_dir! の窓口（機構ファイル名の定数、書き出し関数）
 ├── job.rs             … Job Object（Windows。JVM とヘッドレスブラウザを子孫ごと終わらせる）
 ├── fonts.rs           … 端末のフォントの指紋（図キャッシュの照合）
 ├── writing_folder.rs  … 執筆フォルダの検証・列挙（_quarto.yml の有無、コードページで表せない文字の検査）
 ├── quarto.rs          … quarto の起動（env 付与、終了コード → anyhow::Error）
+├── replace.rs         … 原稿・改訂ファイル・改訂履歴の表の置き換え（書く前の再照合、同じフォルダの一時ファイルから置換。§14.5）
 ├── mermaid/
 │   ├── mod.rs         … Engine 選択と共通インタフェース（Vec<(input, output)> → Result）
 │   ├── browser.rs     … 探索・HTML 生成・起動・CDP（DevToolsActivePort → WebSocket）
-│   └── merman.rs      … merman クレート呼び出しと foreignObject 抑止
-├── doc/               … 執筆フォルダを「論理文書」として読む層（§14）
+│   ├── merman_engine.rs … merman クレート呼び出しと foreignObject 抑止
+│   └── prerender.rs   … Quarto の前に文書の mermaid をまとめて描く（§5.5）
+├── doc/               … 執筆フォルダを「論理文書」として読む層（§14・§15）
 │   ├── mod.rs         … 走査の入口（Doc: 文書順のファイル列・見出し等の一覧・警告）
 │   ├── project.rs     … _quarto.yml の chapters と {{< include >}} の再帰展開
 │   ├── units.rs       … 行頭パターンによる見出し・.tbl・.ipo・#fig-・pipe 表キャプションの抽出
-│   └── labels.rs      … 候補ラベル（sha1）と編集指示の生成
+│   ├── labels.rs      … 候補ラベル（sha1）と編集指示の生成
+│   ├── gitsrc.rs      … 旧版の執筆フォルダを Git から読む
+│   ├── diff.rs        … ラベル単位の差分
+│   └── revfile.rs     … 改訂 1 回分のファイル revisions/rev-<記号>.yml の読み書き
 ├── plantuml/
 │   └── mod.rs         … Java / jar / サーバ URL の探索、PicoWeb の起動・停止（Job Object）、手書き HTTP、Session（§13）
-└── zip.rs             … release 用
+└── zip_archive.rs     … release 用
 ```
 
 方針:
@@ -525,7 +572,7 @@ cli/src/
 
 | 項目 | 状態 |
 |---|---|
-| 一括事前変換（`ddq pdf` が render 前に全フェンスを 1 起動で焼く） | 保留。`ddq mermaid` は複数入力対応なので、フェンス抽出と hash 再現の目処が付けば足せる |
+| 一括事前変換（`ddq pdf` が render 前に全フェンスを 1 起動で焼く） | 2.4.4 で実装した（§5.5・決定 6）。経緯として残す |
 | merman の実フォント計測（TextMeasurer + fontdb/rustybuzz） | 保留。フォールバック品質に不満が出たら |
 | Linux / macOS バイナリ | 保留。OS 依存は `cfg(windows)` に閉じ込めてある |
 | QuickJS + DOM シムで本物の mermaid.js をブラウザ無しで動かす | 見送り（R&D コスト大） |
@@ -639,7 +686,7 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 ### 13.1 方針
 
 1. **LAN 内に PlantUML サーバがあれば優先して使う。** ddq も Java も jar も無い執筆者が、サーバさえあれば図を見られる。
-2. LAN サーバが無い執筆者は、リリース一式（ddq + jar）と Java を用意し、執筆中は `ddq plantuml serve` を起動しておく。
+2. LAN サーバが無い執筆者は、ddq と、PlantUML の公式リリースから取得した jar（MIT 版を推奨。3.0.0 から同梱しない）と Java を用意し、執筆中は `ddq plantuml serve` を起動しておく。
 3. 発行者は `ddq pdf` / `ddq html` を打つだけ。サーバの起動・停止は ddq が内部で行う。
 
 mermaid と違い PlantUML にはブラウザ内で動く実装が無い。「フィルタが図ごとに ddq を呼ぶ」（決定 6）を
@@ -776,15 +823,20 @@ design-doc.lua ──┤                                        … POST /render
 
 ### 14.5 書き戻し
 
-`tag list` は編集指示（`file` / `line` / `col` / `insert`）を返し、`tag apply` がそれを当てる。
-**`col` は行頭からの文字数**（バイト数ではない。日本語の見出しで意味が変わる）。挿入はすべて
-1 行の中で完結し、行の増減を伴わない。VSCode 拡張はこの編集指示を `WorkspaceEdit` として自分で
-当てる（Undo が効き、未保存のバッファにもそのまま当たる）。
+`tag list` は編集指示（`file` / `line` / `col` / `insert` / `original`）を返し、`tag apply` がそれを当てる。
+**`col` は行頭からの文字数**（バイト数ではない。日本語の見出しで意味が変わる）。`original` は一覧を
+作ったときのその行の中身で、`--from` で当てるときに同じ行かを確かめる（`original` の無い指示＝古い ddq の
+一覧は当てずに止める）。挿入はすべて 1 行の中で完結し、行の増減を伴わない。VSCode 拡張はこの編集指示を
+`WorkspaceEdit` として自分で当てる（Undo が効き、未保存のバッファにもそのまま当たる）。
 
 - 同じファイルの中は**行番号の大きい順**に当てて位置ずれを防ぐ
-- 改行コードは保つ（CRLF の行に挿入しても CRLF のまま）
+- 改行コード・末尾の改行の有無・先頭の BOM は保つ（BOM は IO-01 から。それまでは落としていた）
 - `--from` は当てる前に文書側と突き合わせる: 行が動いた・既にラベルがある・ラベルの形が違う・
   他と重複する、のいずれかなら**何も書かずに止める**
+- 書く前に全ファイルの書き戻し後の中身を決め、書く直前に対象を読み直す。走査の後に変わった・消えた・
+  読み取り専用のファイルが 1 つでもあれば**何も書かずに止める**（IO-01）。書くのはパスの順で、各ファイルは
+  同じフォルダの一時ファイルから置き換える（`replace.rs`。ほかのプログラムが開いていて置き換えられなければ
+  1 秒ほど待ち、それでもだめならその場で書く）。途中で失敗したら、書いたファイルと書いていないファイルを挙げて止める
 
 ### 14.6 テスト
 

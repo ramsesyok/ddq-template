@@ -13,6 +13,8 @@ import { vscode } from './vscodeApi';
  */
 export function TagTable() {
     const [list, setList] = useState<TagList | undefined>();
+    /** いま見ている一覧の取り直しの番号（書き戻しに付けて返す） */
+    const [generation, setGeneration] = useState(0);
     const [version, setVersion] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<{ message: string; detail?: string } | undefined>();
@@ -26,6 +28,7 @@ export function TagTable() {
             switch (message.type) {
                 case 'list': {
                     setList(message.list);
+                    setGeneration(message.generation);
                     setVersion(message.version);
                     setError(undefined);
                     setErrors({});
@@ -77,7 +80,7 @@ export function TagTable() {
                 label: labels[rowKey(item)] ?? item.suggested ?? '',
                 checked: checked[rowKey(item)] ?? false
             }));
-        vscode().postMessage({ type: 'apply', rows });
+        vscode().postMessage({ type: 'apply', rows, generation });
     };
 
     const toggleAll = (value: boolean) => {

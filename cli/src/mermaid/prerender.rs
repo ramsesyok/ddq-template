@@ -37,10 +37,7 @@ pub fn run(dir: &Path) -> usize {
         .unwrap_or_else(|_| "?".into());
     let engine_key = env::var("DDQ_MERMAID_ENGINE").unwrap_or_else(|_| "auto".into());
     let config_path = dir.join("mermaid-config.json");
-    // フィルタは Lua の io.open（Windows では文字モード）で読むので、CRLF は LF になる
-    let config_text = fs::read_to_string(&config_path)
-        .map(|t| t.replace("\r\n", "\n"))
-        .unwrap_or_default();
+    let config_text = fs::read_to_string(&config_path).unwrap_or_default();
     let keep = env::var("DDQ_DIAGRAM_CACHE").is_ok_and(|v| v == "keep");
     let header = choose_engine_quiet()
         .ok()
@@ -50,7 +47,7 @@ pub fn run(dir: &Path) -> usize {
     let mut seen = HashSet::new();
     let mut jobs = Vec::new();
     for code in codes {
-        let key = cache_key(&[&version, "mermaid", &engine_key, &config_text, &code]);
+        let key = mermaid_key(&version, &engine_key, &config_text, &code);
         if !seen.insert(key.clone()) {
             continue;
         }
@@ -84,6 +81,13 @@ fn cache_key(parts: &[&str]) -> String {
     let joined = parts.join("\n\0\n");
     let digest = Sha1::digest(joined.as_bytes());
     digest.iter().take(8).map(|b| format!("{b:02x}")).collect()
+}
+
+/// 1 図のキャッシュのキー（フィルタの `mermaid_target` と同じ材料）。`config` は
+/// `mermaid-config.json` の中身そのまま。フィルタは Lua の io.open（Windows では文字モード）で
+/// 読むので、CRLF は LF にしてから混ぜる。
+fn mermaid_key(version: &str, engine: &str, config: &str, code: &str) -> String {
+    cache_key(&[version, "mermaid", engine, &config.replace("\r\n", "\n"), code])
 }
 
 /// フィルタの `cached_svg` と `mermaid_env_matches` と同じ判定。
@@ -157,6 +161,69 @@ fn mermaid_blocks(text: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// フィルタ（design-doc.lua）と共有する期待値（GEN-02。cli/tests/fixtures/contract/README.md）。
+    /// フィルタ側は cli/tests/filter_contract.rs が同じファイルで確かめる。
+    fn shared() -> serde_json::Value {
+        serde_json::from_str(include_str!("../../tests/fixtures/contract/diagrams.json")).unwrap()
+    }
+
+    fn strings(v: &serde_json::Value) -> Vec<String> {
+        v.as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s.as_str().unwrap().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn shared_cases_give_the_filter_s_codes_and_keys() {
+        let data = shared();
+        let version = data["version"].as_str().unwrap();
+        for case in data["mermaid"].as_array().unwrap() {
+            let name = case["name"].as_str().unwrap();
+            // フィルタが受け取るコード（Pandoc の CodeBlock）と、それに対するフィルタのキー
+            let filter_codes = strings(&case["codes"]);
+            let keys = strings(&case["keys"]);
+            // 既知の差（rustDiffers）があれば、prerender はそちらを拾う。直したら期待値も直すこと
+            let ours = match case.get("rustDiffers") {
+                Some(d) => {
+                    let ours = strings(&d["codes"]);
+                    assert_ne!(ours, filter_codes, "{name}: 差が無くなったら rustDiffers を外す");
+                    ours
+                }
+                None => filter_codes.clone(),
+            };
+            assert_eq!(mermaid_blocks(case["doc"].as_str().unwrap()), ours, "{name}");
+            let engine = case["engine"].as_str().unwrap_or("auto");
+            let config = case["config"].as_str().unwrap_or("");
+            let got: Vec<String> = filter_codes
+                .iter()
+                .map(|code| mermaid_key(version, engine, config, code))
+                .collect();
+            assert_eq!(got, keys, "{name}");
+        }
+    }
+
+    #[test]
+    fn shared_cases_decide_freshness_like_the_filter() {
+        let data = shared();
+        let tmp = tempfile::tempdir().unwrap();
+        let here = "<!-- ddq 9.9.9 engine=merman merman=1.0 -->";
+        for (i, case) in data["fresh"].as_array().unwrap().iter().enumerate() {
+            let name = case["name"].as_str().unwrap();
+            let svg = tmp.path().join(format!("{i}.svg"));
+            fs::write(&svg, case["svg"].as_str().unwrap().replace("{{HEADER}}", here)).unwrap();
+            // ddq identity が使えないとき、フィルタは照合しない（prerender はエンジンが選べないとき）
+            let header = (!case["unknownEnv"].as_bool().unwrap_or(false)).then_some(here);
+            let keep = case["keep"].as_bool().unwrap();
+            assert_eq!(
+                fresh(&svg, keep, header),
+                case["fresh"].as_bool().unwrap(),
+                "{name}"
+            );
+        }
+    }
 
     #[test]
     fn blocks_are_extracted_like_pandoc() {

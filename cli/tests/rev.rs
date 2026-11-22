@@ -440,3 +440,84 @@ fn build_without_any_revision_file_explains_what_to_do() {
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("rev diff"));
 }
+
+#[test]
+fn a_read_only_revision_file_is_not_overwritten() {
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    edit(tmp.path());
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+    assert_ok(&ddq(&["rev", "diff", &docs, "--write"]));
+    let yml = tmp.path().join("docs/revisions/rev-B.yml");
+    let before = fs::read(&yml).unwrap();
+    let mut p = fs::metadata(&yml).unwrap().permissions();
+    p.set_readonly(true);
+    fs::set_permissions(&yml, p.clone()).unwrap();
+
+    let out = ddq(&["rev", "diff", &docs, "--write"]);
+    assert_eq!(out.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("rev-B.yml を書けません") && err.contains("読み取り専用"),
+        "{err}"
+    );
+    assert_eq!(fs::read(&yml).unwrap(), before);
+    let names: Vec<String> = fs::read_dir(yml.parent().unwrap())
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, ["rev-B.yml"], "一時ファイルを残さない");
+    #[allow(clippy::permissions_set_readonly_false)]
+    p.set_readonly(false);
+    fs::set_permissions(&yml, p).unwrap();
+}
+
+/// 改訂履歴の表を開いたまま（削除の共有なし）だと置き換えられない。表は元のまま、閉じれば作れる
+#[cfg(windows)]
+#[test]
+fn a_history_table_held_open_is_left_alone() {
+    use std::os::windows::fs::OpenOptionsExt;
+    const FILE_SHARE_READ: u32 = 1;
+
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    edit(tmp.path());
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+    assert_ok(&ddq(&["rev", "diff", &docs, "--write"]));
+    let history = tmp.path().join("docs/revisions/history.qmd");
+    fs::write(&history, "古い表\n").unwrap();
+    let held = fs::OpenOptions::new()
+        .read(true)
+        .share_mode(FILE_SHARE_READ)
+        .open(&history)
+        .unwrap();
+
+    let out = ddq(&["rev", "build", &docs]);
+    assert_eq!(out.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("history.qmd を書けません") && err.contains("置き換えられません"),
+        "{err}"
+    );
+    drop(held);
+    assert_eq!(fs::read_to_string(&history).unwrap(), "古い表\n");
+
+    assert_ok(&ddq(&["rev", "build", &docs]));
+    assert!(
+        fs::read_to_string(&history)
+            .unwrap()
+            .contains("| 改訂日 | 記号 |")
+    );
+    let mut names: Vec<String> = fs::read_dir(history.parent().unwrap())
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    assert_eq!(names, ["history.qmd", "rev-B.yml"], "一時ファイルを残さない");
+}

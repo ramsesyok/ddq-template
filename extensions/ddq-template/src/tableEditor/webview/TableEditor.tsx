@@ -31,6 +31,8 @@ import { ContextMenu, type MenuItem } from './ContextMenu';
 export function TableEditor() {
   const [history, setHistory] = useState<History<TableModel> | undefined>();
   const [context, setContext] = useState<EditorContext | undefined>();
+  /** いま見ている表の編集セッションの番号（init で受け取り、Apply に付けて返す） */
+  const [session, setSession] = useState<number | undefined>();
   const [selection, setSelection] = useState<CellRange | undefined>();
   const [message, setMessage] = useState<string | undefined>();
   const [showPreview, setShowPreview] = useState(false);
@@ -53,6 +55,7 @@ export function TableEditor() {
       if (data.type === 'init') {
         setHistory(createHistory(normalizeTableModel(data.model)));
         setContext(data.context);
+        setSession(data.session);
         setMessage(data.context.warnings.join('\n') || undefined);
       } else if (data.type === 'applied') {
         setMessage('ドキュメントへ反映しました。');
@@ -249,7 +252,7 @@ export function TableEditor() {
         onChangeHeaderRows={n => update({ ...model, headerRows: n })}
         onTogglePreview={() => setShowPreview(v => !v)}
         showPreview={showPreview}
-        onApply={() => vscode().postMessage({ type: 'apply', model })}
+        onApply={() => session !== undefined && vscode().postMessage({ type: 'apply', session, model })}
       />
 
       <AttributesPanel

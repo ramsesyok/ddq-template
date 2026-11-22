@@ -1,6 +1,6 @@
 # 第三者のソフトウェアとライセンス（THIRD-PARTY-NOTICES）
 
-<!-- ddq-third-party inputs: cli/Cargo.lock=f6c245485b266eb88919c57e15f2db368e670198 template/vendor/mermaid.min.js=c39dd4ce5539ac2e1512ce949e8c03df9a5050e8 cli/tools/mermaid-bundle/package-lock.json=6724c79ea658dac210e5ea5f811c30c8cfb508c6 cli/tools/mermaid-bundle/bundled.json=1142d5ce5622d0fc929ddd72d9f36e572c8890dc extensions/ddq-template/package-lock.json=cc58cacbb5990fdbf7711f0799bed2f8f7c97e72 -->
+<!-- ddq-third-party inputs: cli/Cargo.lock=c798f8ab883cc9776936e165d3f7a9a72d9c8ea4 template/vendor/mermaid.min.js=c39dd4ce5539ac2e1512ce949e8c03df9a5050e8 cli/tools/mermaid-bundle/package-lock.json=6724c79ea658dac210e5ea5f811c30c8cfb508c6 cli/tools/mermaid-bundle/bundled.json=1142d5ce5622d0fc929ddd72d9f36e572c8890dc extensions/ddq-template/package-lock.json=cc58cacbb5990fdbf7711f0799bed2f8f7c97e72 -->
 <!-- 生成物。手で直さない（python cli/tools/third_party.py で作り直す） -->
 
 この配布物（quarto-template）の ddq 本体とテンプレートは MIT ライセンスである（同梱の LICENSE）。
@@ -63,7 +63,7 @@
 | flate2 | 1.1.10 | MIT OR Apache-2.0 | <https://crates.io/crates/flate2/1.1.10> |
 | foldhash | 0.2.0 | Zlib | <https://crates.io/crates/foldhash/0.2.0> |
 | fontdb | 0.23.0 | MIT | <https://crates.io/crates/fontdb/0.23.0> |
-| form_urlencoded | 1.2.2 | MIT OR Apache-2.0 | <https://crates.io/crates/form_urlencoded/1.2.2> |
+| form_urlencoded | 1.2.3 | MIT OR Apache-2.0 | <https://crates.io/crates/form_urlencoded/1.2.3> |
 | getrandom | 0.4.3 | MIT OR Apache-2.0 | <https://crates.io/crates/getrandom/0.4.3> |
 | granit-parser | 1.0.0 | MIT OR Apache-2.0 | <https://crates.io/crates/granit-parser/1.0.0> |
 | hashbrown | 0.17.1 | MIT OR Apache-2.0 | <https://crates.io/crates/hashbrown/0.17.1> |
@@ -185,7 +185,7 @@
 | unicode-normalization | 0.1.25 | MIT OR Apache-2.0 | <https://crates.io/crates/unicode-normalization/0.1.25> |
 | unicode-segmentation | 1.13.3 | MIT OR Apache-2.0 | <https://crates.io/crates/unicode-segmentation/1.13.3> |
 | unicode-width | 0.2.2 | MIT OR Apache-2.0 | <https://crates.io/crates/unicode-width/0.2.2> |
-| url | 2.5.8 | MIT OR Apache-2.0 | <https://crates.io/crates/url/2.5.8> |
+| url | 2.5.9 | MIT OR Apache-2.0 | <https://crates.io/crates/url/2.5.9> |
 | utf8_iter | 1.0.4 | Apache-2.0 OR MIT | <https://crates.io/crates/utf8_iter/1.0.4> |
 | utf8parse | 0.2.2 | Apache-2.0 OR MIT | <https://crates.io/crates/utf8parse/0.2.2> |
 | walkdir | 2.5.0 | Unlicense/MIT | <https://crates.io/crates/walkdir/2.5.0> |
@@ -1090,7 +1090,7 @@ SOFTWARE.
 
 ### 本文 12
 
-対象: arrayvec 0.7.8（LICENSE-APACHE）、base64 0.22.1（LICENSE-APACHE）、bitflags 2.13.2（LICENSE-APACHE）、bumpalo 3.20.3（LICENSE-APACHE）、by_address 1.2.1（LICENSE-APACHE）、cfg-if 1.0.5（LICENSE-APACHE）、core_detect 1.0.0（LICENSE-APACHE）、data-url 0.3.2（LICENSE-APACHE）、equivalent 1.0.2（LICENSE-APACHE）、euclid 0.22.14（LICENSE-APACHE）、fastrand 2.5.0（LICENSE-APACHE）、flate2 1.1.10（LICENSE-APACHE）、form_urlencoded 1.2.2（LICENSE-APACHE）、hashbrown 0.17.1（LICENSE-APACHE）、heck 0.5.0（LICENSE-APACHE）、httparse 1.10.1（LICENSE-APACHE）、idna 1.1.0（LICENSE-APACHE）、idna_adapter 1.2.2（LICENSE-APACHE）、indexmap 2.14.2（LICENSE-APACHE）、lalrpop-util 0.23.1（LICENSE-APACHE）、log 0.4.34（LICENSE-APACHE）、mime 0.3.17（LICENSE-APACHE）、num-traits 0.2.19（LICENSE-APACHE）、once_cell 1.21.4（LICENSE-APACHE）、palette 0.7.7（LICENSE-APACHE）、palette_math 0.7.7（LICENSE-APACHE）、percent-encoding 2.3.2（LICENSE-APACHE）、regex 1.13.1（LICENSE-APACHE）、regex-automata 0.4.18（LICENSE-APACHE）、regex-lite 0.1.9（LICENSE-APACHE）、regex-syntax 0.8.11（LICENSE-APACHE）、roxmltree 0.21.1（LICENSE-APACHE）、scopeguard 1.2.0（LICENSE-APACHE）、servo_arc 0.4.3（LICENSE-APACHE）、smallvec 1.16.1（LICENSE-APACHE）、stable_deref_trait 1.2.1（LICENSE-APACHE）、svgtypes 0.16.1（LICENSE-APACHE）、tempfile 3.27.0（LICENSE-APACHE）、ttf-parser 0.25.1（LICENSE-APACHE）、tungstenite 0.30.0（LICENSE-APACHE）、ucd-trie 0.1.7（LICENSE-APACHE）、unicase 2.9.0（LICENSE-APACHE）、unicode-normalization 0.1.25（LICENSE-APACHE）、unicode-segmentation 1.13.3（LICENSE-APACHE）、unicode-width 0.2.2（LICENSE-APACHE）、url 2.5.8（LICENSE-APACHE）
+対象: arrayvec 0.7.8（LICENSE-APACHE）、base64 0.22.1（LICENSE-APACHE）、bitflags 2.13.2（LICENSE-APACHE）、bumpalo 3.20.3（LICENSE-APACHE）、by_address 1.2.1（LICENSE-APACHE）、cfg-if 1.0.5（LICENSE-APACHE）、core_detect 1.0.0（LICENSE-APACHE）、data-url 0.3.2（LICENSE-APACHE）、equivalent 1.0.2（LICENSE-APACHE）、euclid 0.22.14（LICENSE-APACHE）、fastrand 2.5.0（LICENSE-APACHE）、flate2 1.1.10（LICENSE-APACHE）、form_urlencoded 1.2.3（LICENSE-APACHE）、hashbrown 0.17.1（LICENSE-APACHE）、heck 0.5.0（LICENSE-APACHE）、httparse 1.10.1（LICENSE-APACHE）、idna 1.1.0（LICENSE-APACHE）、idna_adapter 1.2.2（LICENSE-APACHE）、indexmap 2.14.2（LICENSE-APACHE）、lalrpop-util 0.23.1（LICENSE-APACHE）、log 0.4.34（LICENSE-APACHE）、mime 0.3.17（LICENSE-APACHE）、num-traits 0.2.19（LICENSE-APACHE）、once_cell 1.21.4（LICENSE-APACHE）、palette 0.7.7（LICENSE-APACHE）、palette_math 0.7.7（LICENSE-APACHE）、percent-encoding 2.3.2（LICENSE-APACHE）、regex 1.13.1（LICENSE-APACHE）、regex-automata 0.4.18（LICENSE-APACHE）、regex-lite 0.1.9（LICENSE-APACHE）、regex-syntax 0.8.11（LICENSE-APACHE）、roxmltree 0.21.1（LICENSE-APACHE）、scopeguard 1.2.0（LICENSE-APACHE）、servo_arc 0.4.3（LICENSE-APACHE）、smallvec 1.16.1（LICENSE-APACHE）、stable_deref_trait 1.2.1（LICENSE-APACHE）、svgtypes 0.16.1（LICENSE-APACHE）、tempfile 3.27.0（LICENSE-APACHE）、ttf-parser 0.25.1（LICENSE-APACHE）、tungstenite 0.30.0（LICENSE-APACHE）、ucd-trie 0.1.7（LICENSE-APACHE）、unicase 2.9.0（LICENSE-APACHE）、unicode-normalization 0.1.25（LICENSE-APACHE）、unicode-segmentation 1.13.3（LICENSE-APACHE）、unicode-width 0.2.2（LICENSE-APACHE）、url 2.5.9（LICENSE-APACHE）
 
 ```text
 Apache License
@@ -3385,7 +3385,7 @@ SOFTWARE.
 
 ### 本文 50
 
-対象: data-url 0.3.2（LICENSE-MIT）、idna 1.1.0（LICENSE-MIT）、percent-encoding 2.3.2（LICENSE-MIT）、url 2.5.8（LICENSE-MIT）
+対象: data-url 0.3.2（LICENSE-MIT）、idna 1.1.0（LICENSE-MIT）、percent-encoding 2.3.2（LICENSE-MIT）、url 2.5.9（LICENSE-MIT）
 
 ```text
 Copyright (c) 2013-2025 The rust-url developers
@@ -4143,7 +4143,7 @@ SOFTWARE.
 
 ### 本文 70
 
-対象: form_urlencoded 1.2.2（LICENSE-MIT）
+対象: form_urlencoded 1.2.3（LICENSE-MIT）
 
 ```text
 Copyright (c) 2013-2016 The rust-url developers

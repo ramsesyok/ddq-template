@@ -1,0 +1,10 @@
+{
+  "_comment": "ddq tag apply --all を manuscript.json に当てた結果（3.1.0-pre1 / HEAD 17ed32e の release exe で採取）。IO-01 で BOM を保持するように変えたので、BOM のある原稿（chapters/02/index.qmd）は採取した結果の先頭に BOM を足した（README の採取の記録）。",
+  "files": {
+    "_quarto.yml": "project:\n  type: book\n  output-dir: _book\n\nbook:\n  title: 契約試験\n  chapters:\n    - index.qmd\n    - chapters/01/index.qmd\n    - chapters/02/index.qmd\n\nlang: ja\n",
+    "index.qmd": "# 本書について {#sec-02a174 .unnumbered}\n\n前書き。\n",
+    "chapters/01/index.qmd": "# 概要 {#sec-4128f7}\n\n{{< include 01-purpose.qmd >}}\n\n::: {.tbl caption=\"𠮷野家の一覧\" widths=\"30,70\" label=\"tbl-143dbf\"}\n| 区分 | 説明                     |\n|------|--------------------------|\n| 基本 | サロゲートペア 𠮷 を含む |\n:::\n\n| 項目 | 値 |\n|------|----|\n| a    | 1  |\n\n: パイプ表の例 {#tbl-ea7b66}\n\n![構成図](/diagrams/x.svg)\n",
+    "chapters/01/01-purpose.qmd": "## 目的 𠮷とが {#sec-470eff}\n\n本文。\n",
+    "chapters/02/index.qmd": "﻿# 二章 {#sec-d872d5}\r\n\r\n## が行の扱い {#sec-7a9ce9 .unlisted}\r\n\r\n::: {.ipo module=\"受注\" caption=\"受注処理\" label=\"tbl-3d507c\"}\r\n## 受注\r\n\r\n### 入力\r\n\r\n- 画面\r\n\r\n### 処理\r\n\r\n- 登録\r\n\r\n### 出力\r\n\r\n- 受注ID\r\n:::\r\n"
+  }
+}

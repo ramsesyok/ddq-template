@@ -10,6 +10,8 @@ use std::{fs, path::Path};
 use anyhow::{Context, Result};
 use include_dir::{Dir, include_dir};
 
+use crate::replace;
+
 /// テンプレートの版（../template/VERSION。build.rs が渡す）
 pub const VERSION: &str = env!("DDQ_VERSION");
 
@@ -104,7 +106,9 @@ fn mermaid_version_of(js: &str) -> &str {
 /// 埋め込みファイルを書き出す（常に上書き）
 pub fn write_asset(dir: &Path, asset: &Asset) -> Result<()> {
     let dest = dir.join(asset.name);
-    fs::write(&dest, asset.body).with_context(|| format!("{} を書けません", dest.display()))?;
+    // 一時ファイルから置き換える（IO-01 の置き換えを使う。途中で止まっても機構が途中のバイト列にならない）
+    replace::replace(&dest, asset.body.as_bytes())
+        .with_context(|| format!("{} を書けません", dest.display()))?;
     Ok(())
 }
 
@@ -122,16 +126,7 @@ pub fn write_dir_if_absent(src: &Dir, strip: &str, dest: &Path) -> Result<Vec<Pl
     for file in src.files() {
         let rel = file.path().strip_prefix(strip).expect("strip は src の接頭辞");
         let shown = rel.to_string_lossy().replace('\\', "/");
-        let target = dest.join(rel);
-        if target.exists() {
-            placed.push(Placed::Skipped(shown));
-            continue;
-        }
-        if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent).with_context(|| format!("{} を作れません", parent.display()))?;
-        }
-        fs::write(&target, file.contents()).with_context(|| format!("{} を書けません", target.display()))?;
-        placed.push(Placed::Created(shown));
+        placed.push(create_if_absent(&dest.join(rel), file.contents(), shown)?);
     }
     for sub in src.dirs() {
         placed.extend(write_dir_if_absent(sub, strip, dest)?);
@@ -145,14 +140,23 @@ pub fn write_if_absent(target: &Path, body: &[u8]) -> Result<Placed> {
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
+    create_if_absent(target, body, shown)
+}
+
+/// 無いときだけ作る。確かめてから書くのではなく上書きしない新規作成で置くので、同時に走った
+/// init / add や人が先に置いたファイルを上書きしない（IO-02）。
+fn create_if_absent(target: &Path, body: &[u8], shown: String) -> Result<Placed> {
     if target.exists() {
         return Ok(Placed::Skipped(shown));
     }
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent).with_context(|| format!("{} を作れません", parent.display()))?;
     }
-    fs::write(target, body).with_context(|| format!("{} を書けません", target.display()))?;
-    Ok(Placed::Created(shown))
+    Ok(if replace::create_new(target, body)? {
+        Placed::Created(shown)
+    } else {
+        Placed::Skipped(shown)
+    })
 }
 
 impl Placed {
@@ -168,6 +172,46 @@ impl Placed {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 同時に走った init / add が同じファイルを置こうとしても「作成」は 1 つだけで、中身はその 1 つのもの。
+    /// 人が先に置いたファイルは上書きしない（IO-02）
+    #[test]
+    fn write_if_absent_creates_once_even_when_racing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let target = tmp.path().join("chapters").join("01").join("index.qmd");
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(8));
+        let handles: Vec<_> = (0..8)
+            .map(|i| {
+                let target = target.clone();
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    let placed = write_if_absent(&target, format!("writer {i}").as_bytes()).unwrap();
+                    (i, matches!(placed, Placed::Created(_)))
+                })
+            })
+            .collect();
+        let won: Vec<usize> = handles
+            .into_iter()
+            .map(|h| h.join().unwrap())
+            .filter(|(_, created)| *created)
+            .map(|(i, _)| i)
+            .collect();
+        assert_eq!(won.len(), 1, "{won:?}");
+        assert_eq!(fs::read_to_string(&target).unwrap(), format!("writer {}", won[0]));
+
+        fs::write(&target, "人が書いた").unwrap();
+        assert!(matches!(
+            write_if_absent(&target, b"x").unwrap(),
+            Placed::Skipped(_)
+        ));
+        assert_eq!(fs::read_to_string(&target).unwrap(), "人が書いた");
+        let left: Vec<String> = fs::read_dir(target.parent().unwrap())
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(left, ["index.qmd"], "一時ファイルを残さない");
+    }
 
     #[test]
     fn mermaid_version_reads_banner_then_falls_back() {

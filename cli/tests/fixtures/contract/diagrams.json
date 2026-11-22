@@ -1,0 +1,240 @@
+{
+  "_comment": "GEN-02。mermaid は文書→コード→キー、PlantUML は図＋共通設定→送るソース→キー。期待値は Pandoc と Python の hashlib で作った（README.md）",
+  "version": "3.1.0-pre1",
+  "mermaid": [
+    {
+      "name": "基本（設定なし・エンジン自動）",
+      "engine": null,
+      "config": null,
+      "doc": "# 章\n\n```mermaid\nflowchart LR\n  A[受注] --> B[出荷]\n```\n",
+      "codes": [
+        "flowchart LR\n  A[受注] --> B[出荷]"
+      ],
+      "keys": [
+        "2ca58c3ea8c3d513"
+      ]
+    },
+    {
+      "name": "CRLF の原稿と CRLF の設定（フィルタは文字モードで読むので LF になる）",
+      "engine": null,
+      "config": "{\r\n  \"theme\": \"neutral\",\r\n  \"flowchart\": { \"htmlLabels\": false }\r\n}\r\n",
+      "doc": "# 章\r\n\r\n```mermaid\r\nsequenceDiagram\r\n  利用者->>システム: 受注\r\n```\r\n",
+      "luaWindowsOnly": "Lua の io.open（文字モード）が CRLF を LF にするのは Windows だけ。ほかの OS ではフィルタのキーに CR が残り、CR を落とす prerender と食い違う（描き直すだけで結果は同じ）",
+      "codes": [
+        "sequenceDiagram\n  利用者->>システム: 受注"
+      ],
+      "keys": [
+        "c7f5ac4dd949fddc"
+      ]
+    },
+    {
+      "name": "フェンスの書き方（~~~{.mermaid}・箇条書きの中の字下げ・記法説明の内側は数えない）",
+      "engine": "merman",
+      "config": "{\"theme\":\"default\"}",
+      "doc": "本文\n\n````markdown\n```mermaid\nこれは記法の説明\n```\n````\n\n~~~{.mermaid}\nclassDiagram\n  class 受注\n~~~\n\n- 項目\n\n  ```mermaid\n  flowchart TB\n    X --> Y\n  ```\n\n```python\nprint(1)\n```\n",
+      "codes": [
+        "classDiagram\n  class 受注",
+        "flowchart TB\n  X --> Y"
+      ],
+      "keys": [
+        "7dd8a3727324dc1a",
+        "e534fea6a0a68af1"
+      ]
+    },
+    {
+      "name": "```{mermaid}（Quarto のセルの書き方。素の Pandoc は mermaid と読まないので Lua 側は試さない）",
+      "engine": null,
+      "config": null,
+      "doc": "```{mermaid}\nstateDiagram-v2\n  [*] --> 受付\n```\n",
+      "quartoOnly": true,
+      "codes": [
+        "stateDiagram-v2\n  [*] --> 受付"
+      ],
+      "keys": [
+        "d886b46d56859cdf"
+      ]
+    },
+    {
+      "name": "行末の空白とタブ（Pandoc が受け取ったまま）",
+      "engine": null,
+      "config": null,
+      "doc": "```mermaid\nflowchart LR  \n\tA --> B\n```\n",
+      "rustDiffers": {
+        "codes": [
+          "flowchart LR  \n\tA --> B"
+        ],
+        "why": "Pandoc はコードブロックのタブを 4 桁の空白に展開するが、prerender の mermaid_blocks はタブのまま。キーが変わり、先回りで描いた SVG をフィルタが使えず 1 図ずつ描き直す（出来上がりの図・ファイル名は同じ）"
+      },
+      "codes": [
+        "flowchart LR  \n    A --> B"
+      ],
+      "keys": [
+        "19aaf56c9116c4d7"
+      ]
+    }
+  ],
+  "plantuml": [
+    {
+      "name": "@start の無い図は @startuml … @enduml で包み、設定を直後に入れる",
+      "config": "skinparam dpi 150\n",
+      "code": "Alice -> Bob: こんにちは",
+      "source": "@startuml\nskinparam dpi 150\nAlice -> Bob: こんにちは\n@enduml\n",
+      "key": "63d5c3f0f533d545"
+    },
+    {
+      "name": "@startuml がある図は、その行の直後に設定を入れる",
+      "config": "skinparam dpi 150\n",
+      "code": "@startuml\nA -> B\n@enduml",
+      "source": "@startuml\nskinparam dpi 150\nA -> B\n@enduml\n",
+      "key": "622894ceec7fe1d2"
+    },
+    {
+      "name": "CRLF の図と、改行で終わらない CRLF の設定",
+      "config": "skinparam a b\r\nskinparam c d",
+      "code": "@startmindmap\r\n* 受注\r\n** 出荷\r\n@endmindmap",
+      "source": "@startmindmap\nskinparam a b\nskinparam c d\n* 受注\n** 出荷\n@endmindmap\n",
+      "key": "7e72cea9ed7b6770"
+    },
+    {
+      "name": "設定が空",
+      "config": "",
+      "code": "A -> B",
+      "source": "@startuml\nA -> B\n@enduml\n",
+      "key": "b9345430141e5060"
+    },
+    {
+      "name": "@startuml の前に空白・空行がある（Lua はそのまま残す）",
+      "config": "skinparam dpi 150\n",
+      "code": "  @startuml\nA -> B\n@enduml",
+      "source": "  @startuml\nskinparam dpi 150\nA -> B\n@enduml\n",
+      "rustDiffers": {
+        "source": "@startuml\nskinparam dpi 150\nA -> B\n@enduml\n",
+        "why": "Rust の assemble_source は @start の前の空白・空行を落とす。Rust 側はキーを作らず ddq diagrams の .puml をサーバへ送るときだけ使うので、図名・キャッシュには影響しない"
+      },
+      "key": "0d9e77f4b1b5c9c2"
+    }
+  ],
+  "freshDoc": {
+    "doc": "```mermaid\nflowchart LR\n  A --> B\n```\n",
+    "engine": "merman",
+    "key": "0ddb8b444c855d6e"
+  },
+  "fresh": [
+    {
+      "name": "同じ環境",
+      "svg": "{{HEADER}}\n<svg id=\"cached\"/>",
+      "keep": false,
+      "fresh": true
+    },
+    {
+      "name": "同じ環境（CRLF）",
+      "svg": "{{HEADER}}\r\n<svg id=\"cached\"/>",
+      "keep": false,
+      "fresh": true
+    },
+    {
+      "name": "別の環境",
+      "svg": "<!-- ddq 0.0.0 engine=merman merman=0 -->\n<svg id=\"cached\"/>",
+      "keep": false,
+      "fresh": false
+    },
+    {
+      "name": "別の環境でも keep なら使う",
+      "svg": "<!-- ddq 0.0.0 engine=merman merman=0 -->\n<svg id=\"cached\"/>",
+      "keep": true,
+      "fresh": true
+    },
+    {
+      "name": "先頭コメントが無い",
+      "svg": "<svg id=\"cached\"/>",
+      "keep": false,
+      "fresh": false
+    },
+    {
+      "name": "SVG でない（書きかけ）",
+      "svg": "{{HEADER}}\nエラー",
+      "keep": true,
+      "fresh": false
+    },
+    {
+      "name": "いまの環境が分からない（ddq identity が使えない）ならあるものを使う",
+      "svg": "<!-- ddq 0.0.0 engine=merman merman=0 -->\n<svg id=\"cached\"/>",
+      "keep": false,
+      "unknownEnv": true,
+      "fresh": true
+    }
+  ],
+  "pumlEnv": {
+    "serverVersion": "1.2026.8",
+    "diagram": 3,
+    "written": {
+      "local": "<!-- ddq {{VERSION}} engine=plantuml plantuml={{PV}} server={{URL}} fonts={{FONTS}} -->",
+      "lan": "<!-- ddq {{VERSION}} engine=plantuml plantuml={{PV}} server={{URL}} -->"
+    },
+    "cases": [
+      {
+        "name": "ローカル: 版とフォントが同じなら、別のポートで描いたものも使う（ポートはビルドごとに変わる）",
+        "server": "local",
+        "header": "<!-- ddq 0.0.0 engine=plantuml plantuml={{PV}} server=http://127.0.0.1:18080 fonts={{FONTS}} -->",
+        "keep": false,
+        "reuse": true
+      },
+      {
+        "name": "ローカル: フォントが違えば描き直す",
+        "server": "local",
+        "header": "<!-- ddq 0.0.0 engine=plantuml plantuml={{PV}} server=http://127.0.0.1:18080 fonts=00000000 -->",
+        "keep": false,
+        "reuse": false
+      },
+      {
+        "name": "ローカル: サーバの版が違えば描き直す",
+        "server": "local",
+        "header": "<!-- ddq 0.0.0 engine=plantuml plantuml=1.2025.0 server=http://127.0.0.1:18080 fonts={{FONTS}} -->",
+        "keep": false,
+        "reuse": false
+      },
+      {
+        "name": "ローカル: LAN のサーバで描いたものは描き直す",
+        "server": "local",
+        "header": "<!-- ddq 0.0.0 engine=plantuml plantuml={{PV}} server=http://plantuml.lan:8080 -->",
+        "keep": false,
+        "reuse": false
+      },
+      {
+        "name": "ローカル: 先頭コメントが無ければ描き直す",
+        "server": "local",
+        "header": null,
+        "keep": false,
+        "reuse": false
+      },
+      {
+        "name": "keep なら照合しない",
+        "server": "local",
+        "header": "<!-- ddq 0.0.0 engine=plantuml plantuml=1.2025.0 server=http://plantuml.lan:8080 -->",
+        "keep": true,
+        "reuse": true
+      },
+      {
+        "name": "LAN: 同じ URL・同じ版なら使う（フォントは見ない）",
+        "server": "lan",
+        "header": "<!-- ddq 0.0.0 engine=plantuml plantuml={{PV}} server={{URL}} -->",
+        "keep": false,
+        "reuse": true
+      },
+      {
+        "name": "LAN: 別の URL のサーバで描いたものは描き直す",
+        "server": "lan",
+        "header": "<!-- ddq 0.0.0 engine=plantuml plantuml={{PV}} server=http://plantuml.lan:8080 -->",
+        "keep": false,
+        "reuse": false
+      },
+      {
+        "name": "LAN: ローカルのサーバで描いたものは描き直す",
+        "server": "lan",
+        "header": "<!-- ddq 0.0.0 engine=plantuml plantuml={{PV}} server=http://127.0.0.1:18080 fonts={{FONTS}} -->",
+        "keep": false,
+        "reuse": false
+      }
+    ]
+  }
+}

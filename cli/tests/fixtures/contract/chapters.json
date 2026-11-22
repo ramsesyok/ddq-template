@@ -1,0 +1,179 @@
+{
+  "about": "GEN-01。_quarto.yml の book.chapters / appendices を、ddq（cli/src/doc/project.rs の chapters_of）と postprocess-html.js（docsOf）が Quarto と同じに読むか。正解は quarto inspect の config.book を part を展開して並べたもの（PyYAML の読みと一致を確かめた）。逆斜線は / に揃える。作り方は README.md",
+  "cases": [
+    {
+      "name": "雛形（17ed32e。第2〜7章に行末コメント。CRLF。リリース前）",
+      "yaml": "# ============================================================\n#  設計書 book プロジェクト（Quarto → HTML / PDF）\n#\n#  このファイルは ddq init / ddq add が置いた雛形である。発行者が文書に合わせて\n#  書き換える（表題・資料番号・会社名・章の並び）。\n#\n#  1ファイル = 1章。章の中をさらに節・項に割るときは {{< include >}} を使う。\n#  400〜1000ページ級の設計書を想定し、HTML は章ごとの別ページに分割して出す\n#  （単一 HTML は図の base64 内包で数十 MB になり実用に耐えないため）。\n#  PDF は1ファイルで、章番号・図表番号・相互参照は章をまたいで連続する。\n#\n#  執筆者は Quarto と VSCode 拡張だけで HTML を出せる（ddq は不要）。\n#  PDF（発行版）は発行者が ddq を使って出す。PDF 用の設定は\n#  _quarto-publish.yml（発行者の setup が置く）にあり、このファイルには無い。\n#\n#  注意（book 特有の落とし穴）:\n#   - include のパスは「その章ファイルのあるディレクトリ」基準（入れ子でも同じ）\n#   - chapters に並べたファイルの先頭見出しは h1（章）に昇格される。\n#     長い章を分割するときは章ファイルを1つ立て、そこから include すること。\n#   - 画像はプロジェクトルート基準の /diagrams/... で書く（../ は Windows で\n#     バックスラッシュ結合され typst 0.15 以降が拒否するため）\n# ============================================================\nproject:\n  type: book\n  output-dir: _book\n  # 図表番号を PDF と同じ「章.節-連番」に振り直す後処理。\n  # quarto render / quarto preview のたびに Quarto 同梱の Deno で走る（node 不要）。\n  post-render:\n    - postprocess-html.js\n\nbook:\n  title: ○○システム 基本設計書\n  subtitle: \"\"\n  author: ○○チーム\n  # 発行版 PDF のファイル名（拡張子 .pdf は付けない）。_book/ に この名前.pdf ができる。\n  # 省略すると Quarto が title から付ける。資料番号を入れておくと配布物の取り違えが減る。\n  # ddq pdf が取り出す中間版は名前を変えず design-doc.pdf のまま。\n  output-file: XX-2026-001_○○システム基本設計書\n  # 章の並び。1ファイル = 1章。増やしたらここに追記する。\n  # 2〜7章は記法の見本。本文を書き始めたら行を消し、フォルダも消す。\n  chapters:\n    - index.qmd\n    - chapters/01/index.qmd\n    - chapters/02/index.qmd   # 記法見本: 基本的な書き方\n    - chapters/03/index.qmd   # 記法見本: 文書の組み立て\n    - chapters/04/index.qmd   # 記法見本: 表\n    - chapters/05/index.qmd   # 記法見本: 図\n    - chapters/06/index.qmd   # 記法見本: 横向きページと IPO 図\n    - chapters/07/index.qmd   # 記法見本: 相互参照・コード・数式\n\nlang: ja\n# PlantUML 図（```plantuml）を描く LAN 内のサーバ。設定すると執筆者・発行者とも、\n# 自分の端末に Java や plantuml.jar が無くても図が出る（利用マニュアル 8 章・11 章）。\n# 例: plantuml-server: http://plantuml.example.local:8080\n# 空なら、ローカルの `ddq plantuml serve`（既定 http://127.0.0.1:18080）を探す。\nplantuml-server: \"\"\ndoc-number: XX-2026-001\ndoc-revision: \"\"       # 改訂記号（A〜Z / NC）。doc-number の末尾に結合して資料番号に表示。空=改訂記号なし\nspec: false            # スペック様式（全ページ上部に表題欄）にするか。true でスペック様式\ncompany-ja: ○○株式会社            # 様式フッターの会社名（日本語）\ncompany-en: ○○ Co., Ltd.          # 様式フッターの会社名（英語）\npage-start: 1          # PDF の開始ページ番号。表紙・前書きを別文書で作り、その続きとして綴じるときに使う（前付けが4ページなら 5）\npagebreak-level: 1     # PDF で見出しの先頭に自動改ページを入れる最深レベル。0=入れない、1=章(#)、2=章と節(##。各章で2つ目以降の節のみ)\n\ntoc: true\ntoc-location: left     # ページ内目次を右マージンから左へ移す（本文を広く取る）\ntoc-title: 目 次\ntoc-depth: 3\n\nformat:\n  # 執筆者が内容を確認するための HTML。章ごとに別ページ・共通アセットは\n  # site_libs/ に1回だけ。全文検索（search.json）も自動で付くが、利用には HTTP 配信が必要。\n  # 発行版の HTML も同じ設定で出る（違うのは mermaid の描き方だけ）。\n  html:\n    number-sections: true\n    css: design-doc.css\n    embed-resources: false\n    # 画面幅の基準を 1920px にする（Quarto 既定は sidebar 250 + body 800 +\n    # margin 250 ≒ 1280px）。左ペイン（sidebar）は「章番号 + 見出し15文字」＋\n    # ページ内目次（toc-location: left で左に移動）が折り返さずに収まる幅。\n    # 合計 300 + 1560 + 60 = 1920px。\n    grid:\n      sidebar-width: 300px\n      body-width: 1560px\n      margin-width: 60px\n\nfilters:\n  - design-doc.lua\n",
+      "chapters": [
+        "index.qmd",
+        "chapters/01/index.qmd",
+        "chapters/02/index.qmd",
+        "chapters/03/index.qmd",
+        "chapters/04/index.qmd",
+        "chapters/05/index.qmd",
+        "chapters/06/index.qmd",
+        "chapters/07/index.qmd"
+      ],
+      "appendices": []
+    },
+    {
+      "name": "引用＋コメント・part の入れ子・空白入りのパス・付録（Phase 3a の再現）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - \"chapters/01/index.qmd\"   # 引用＋コメント\n    - part: \"第1部 # 記号入り\"\n      chapters:\n        - chapters/02/index.qmd\n        - 'chapters/03/index.qmd'\n    - \"chapters/0 8/index.qmd\"\n  appendices:\n    - chapters/09/index.qmd   # 付録\nlang: ja\n",
+      "chapters": [
+        "index.qmd",
+        "chapters/01/index.qmd",
+        "chapters/02/index.qmd",
+        "chapters/03/index.qmd",
+        "chapters/0 8/index.qmd"
+      ],
+      "appendices": [
+        "chapters/09/index.qmd"
+      ]
+    },
+    {
+      "name": "引用の中の # と、単一引用の ''",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd # 表紙\n    - \"chapters/a #b/index.qmd\" # 引用の中の # はパスの一部\n    - 'chapters/it''s/index.qmd'\n    - chapters/c#d/index.qmd\n",
+      "chapters": [
+        "index.qmd",
+        "chapters/a #b/index.qmd",
+        "chapters/it's/index.qmd",
+        "chapters/c#d/index.qmd"
+      ],
+      "appendices": []
+    },
+    {
+      "name": "キーと同じ字下げの列（YAML が許す書き方）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n  - index.qmd\n  - a.qmd   # c\n  - part: 第I部\n    chapters:\n    - b.qmd\n  appendices:\n  - app.qmd\nlang: ja\n",
+      "chapters": [
+        "index.qmd",
+        "a.qmd",
+        "b.qmd"
+      ],
+      "appendices": [
+        "app.qmd"
+      ]
+    },
+    {
+      "name": "chapters: の行のコメント・.md の章・空行とコメントを挟む part",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:   # 章の並び\n    - index.qmd\n\n    # 第I部\n    - part: 第I部\n      chapters:\n        # 空行とコメントを挟む\n\n        - a.qmd\n        - notes.md\n    - b.qmd\n  appendices:   # 付録\n    - c.qmd\n    - d.qmd\n  repo-actions: []\nlang: ja\n",
+      "chapters": [
+        "index.qmd",
+        "a.qmd",
+        "notes.md",
+        "b.qmd"
+      ],
+      "appendices": [
+        "c.qmd",
+        "d.qmd"
+      ]
+    },
+    {
+      "name": "二重引用のエスケープ（逆斜線のパス）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - \"chapters\\\\05\\\\index.qmd\"\n",
+      "chapters": [
+        "index.qmd",
+        "chapters/05/index.qmd"
+      ],
+      "appendices": []
+    }
+  ],
+  "items": {
+    "about": "1 件の書き方（`- ` の後ろ）。paths は拾うパス、not_paths は拾わないもの。YAML の規則から手で決めた。二重引用の \\x だけは改訂ファイルと同じ「\\\\ と \\\" 以外はそのまま」で、YAML（\\t はタブ）とは違う",
+    "paths": [
+      [
+        "  a b.qmd   ",
+        "a b.qmd"
+      ],
+      [
+        "a.qmd   # c",
+        "a.qmd"
+      ],
+      [
+        "a.MD",
+        "a.MD"
+      ],
+      [
+        "'a''b.qmd' # c",
+        "a'b.qmd"
+      ],
+      [
+        "'''.qmd'",
+        "'.qmd"
+      ],
+      [
+        "\"a #b.qmd\"",
+        "a #b.qmd"
+      ],
+      [
+        "\"a\\\\b.qmd\"",
+        "a/b.qmd"
+      ],
+      [
+        "\"a\\tb.qmd\"",
+        "a/tb.qmd"
+      ],
+      [
+        "\"a\\\"b.qmd\"",
+        "a\"b.qmd"
+      ]
+    ],
+    "not_paths": [
+      [
+        "\"a.qmd",
+        "閉じていない引用"
+      ],
+      [
+        "'a.qmd",
+        "閉じていない引用"
+      ],
+      [
+        "\"a.qmd\\\"",
+        "最後の \" がエスケープされていて閉じていない"
+      ],
+      [
+        "\"a.qmd\" b",
+        "引用の後ろにコメント以外"
+      ],
+      [
+        "'a.qmd' b",
+        "引用の後ろにコメント以外"
+      ],
+      [
+        "\"a.qmd\": x",
+        "引用したキー（対応付け）"
+      ],
+      [
+        "\"a\\\".qmd\" x",
+        "閉じた引用の後ろにコメント以外"
+      ],
+      [
+        "part: a.qmd",
+        "対応付け"
+      ],
+      [
+        "part: \"第I部\"",
+        "対応付け"
+      ],
+      [
+        "\"c:/a.qmd\"",
+        ": を含む"
+      ],
+      [
+        "# a.qmd",
+        "コメントだけ（値なし）"
+      ],
+      [
+        "a.qmd#x",
+        "空白の無い # はパスの一部なので拡張子が合わない"
+      ],
+      [
+        "a.txt   # b.qmd",
+        "コメントの中の .qmd は見ない"
+      ],
+      [
+        "",
+        "空"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "about": "DATA-01。改訂ファイル（revisions/rev-*.yml）の 1 行の値。read は書かれた形 → 読んだ値、write は値 → 書き出す形（write の形を読むと元の値）。cli/src/doc/revfile.rs と extensions/ddq-template/src/revision/revfile.ts の 単体試験が parse / to_yaml（toYaml）を通して読む。決め方は README.md",
+  "read": [
+    {
+      "written": "\"C:\\\\docs\"",
+      "value": "C:\\docs",
+      "why": "ddq が書く Windows のパス"
+    },
+    {
+      "written": "\"path: C:\\\\docs と \\\"引用\\\"\"",
+      "value": "path: C:\\docs と \"引用\"",
+      "why": "ddq が書く形（Phase 3a の再現）"
+    },
+    {
+      "written": "\"C:\\\\\\\\docs\"",
+      "value": "C:\\\\docs",
+      "why": "旧拡張が 1 度保存して逆斜線を 2 倍にした形。戻せないので文字どおり（逆斜線 2 本）"
+    },
+    {
+      "written": "\"末尾\\\\\"",
+      "value": "末尾\\",
+      "why": "末尾の逆斜線"
+    },
+    {
+      "written": "\"a\\nb\"",
+      "value": "a\\nb",
+      "why": "\\n は改行にしない（YAML とは違う。\\\\ と \\\" 以外はそのまま）"
+    },
+    {
+      "written": "\"a\\b\"",
+      "value": "a\\b",
+      "why": "知らない \\x はそのまま"
+    },
+    {
+      "written": "\"\\\"引用で始まる\\\"\"",
+      "value": "\"引用で始まる\"",
+      "why": ""
+    },
+    {
+      "written": "'it''s'",
+      "value": "it's",
+      "why": "単一引用の ''"
+    },
+    {
+      "written": "'C:\\docs'",
+      "value": "C:\\docs",
+      "why": "単一引用の中の逆斜線は文字"
+    },
+    {
+      "written": "'say \\\"hi\\\"'",
+      "value": "say \\\"hi\\\"",
+      "why": "単一引用の中の \\\" も文字（旧版は \" にしていた）"
+    },
+    {
+      "written": "C:\\docs",
+      "value": "C:\\docs",
+      "why": "引用なし"
+    },
+    {
+      "written": "\"\"",
+      "value": "",
+      "why": "空"
+    },
+    {
+      "written": "\"日本語の題 #1\"",
+      "value": "日本語の題 #1",
+      "why": ""
+    }
+  ],
+  "write": [
+    {
+      "value": "C:\\docs",
+      "written": "C:\\docs",
+      "why": "引用が要らない"
+    },
+    {
+      "value": "path: C:\\docs と \"引用\"",
+      "written": "\"path: C:\\\\docs と \\\"引用\\\"\"",
+      "why": ""
+    },
+    {
+      "value": "C:\\docs\\a: b",
+      "written": "\"C:\\\\docs\\\\a: b\"",
+      "why": ""
+    },
+    {
+      "value": "#タグ",
+      "written": "\"#タグ\"",
+      "why": ""
+    },
+    {
+      "value": "a #b",
+      "written": "\"a #b\"",
+      "why": ""
+    },
+    {
+      "value": "x:",
+      "written": "\"x:\"",
+      "why": ""
+    },
+    {
+      "value": "- x",
+      "written": "\"- x\"",
+      "why": ""
+    },
+    {
+      "value": "'single",
+      "written": "\"'single\"",
+      "why": ""
+    },
+    {
+      "value": "\"引用で始まる\"",
+      "written": "\"\\\"引用で始まる\\\"\"",
+      "why": ""
+    },
+    {
+      "value": "",
+      "written": "\"\"",
+      "why": ""
+    },
+    {
+      "value": "日本語の題",
+      "written": "日本語の題",
+      "why": ""
+    },
+    {
+      "value": "末尾\\",
+      "written": "末尾\\",
+      "why": "引用が要らないので逆斜線もそのまま"
+    }
+  ]
+}

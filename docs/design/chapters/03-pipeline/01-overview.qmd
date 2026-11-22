@@ -21,7 +21,7 @@ flowchart TD
 :::
 
 **同じ qmd から 2 系統が出る**のが要点である。執筆者の記法は完全に共通で、
-分岐は `design-doc.lua` の `FORMAT` 判定 1 か所に閉じている。
+分岐は `design-doc.lua` の中に閉じている（`FORMAT` を見るのは図・表・IPO 図・相互参照・目次などの処理ごとで、1 か所ではない）。
 
 ::: {.tbl caption="2 系統の対応" label="tbl-two-outputs" widths="18,41,41"}
 | 観点 | PDF（typst） | HTML |
