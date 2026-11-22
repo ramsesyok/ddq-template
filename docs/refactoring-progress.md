@@ -98,7 +98,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | REL-03 | 検証済 | `1051dbc` | 単体、実 exe の release 試験、新旧の比較、変異 9 か所 | 成功 |
 | CI-02 | 検証済 | `1051dbc` | 模擬の監査結果・実ビルド、実 `npm audit`、変異 7 か所、PR の CI | 成功 |
 | REL-01 | 検証済 | `1051dbc` | 実 exe の release 試験、実 vsce、変異 5 か所、配布候補一式 | 成功 |
-| CI-01 | 一部 | `1051dbc` | jar の照合の手元実行、PR の CI | `--locked`・jar の照合・起動対象は成功。配布候補の流れは判断待ち |
+| CI-01 | 一部（残りは保留） | `1051dbc` | jar の照合の手元実行、PR の CI | `--locked`・jar の照合・起動対象は成功。配布候補の流れは REL-02 の結論を待つ（2026-11-22 の指示） |
 | DOC-01 | 検証済 | `1051dbc` | パスの照合、manual・設計書のビルド | 成功。旧資料は消していない |
 | REL-02 | 保留 | — | — | `ddq release` を GitHub Actions などで置き換えるかを別途検討（2026-11-22 の指示） |
 
@@ -647,7 +647,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 
 - **状況**: **一部実施**。`ddq release` に依らない部分（Cargo の `--locked`、jar の照合、起動対象のパス）だけを入れた。
   Windows 配布候補の作成者を 1 つにし、main・手動で実リリース候補（ZIP＋対象指定 VSIX）を作って検査する部分は、`ddq release` を
-  GitHub Actions などで置き換えるか（REL-02）が決まっていないため作っていない（判断待ち。下の「判断を求めること」）
+  GitHub Actions などで置き換えるか（REL-02）が決まっていないため作っていない（REL-02 の結論を待つ。下の「判断」）
 - **変更ファイル**: `.github/workflows/ci.yml`、`.github/workflows/extension.yml`
 - **規則**
   - `cargo clippy`・`cargo test`・`cargo build --release`（ci.yml）と、実Host 用の `cargo build --release`（extension.yml）に `--locked`
@@ -665,9 +665,9 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   - `cargo … --locked` は手元の全件・ビルドで従来から使っている形（計画 §6）
 - **計画からの逸脱**: 上の「配布候補の流れ」を作っていない（保留）。起動対象のパスに docs/manual・examples/plantuml は足していない
   （今の CI はどちらも読まない。配布候補の流れを作るときに足す）
-- **判断を求めること**: 配布候補の流れ（Windows 1 か所で exe→VSIX→ZIP を作り、同じ artifact を検査に渡す）を、今の
-  `ddq release` を CI から呼ぶ形で作るか、REL-02 の結論（GitHub Actions に置き換えるか）を待つか。前者なら、通常 VSIX の
-  artifact（extension.yml の package）の利用者の確認も要る（計画）
+- **判断**（2026-11-22 の指示）: 配布候補の流れ（Windows 1 か所で exe→VSIX→ZIP を作り、同じ artifact を検査に渡す）は、
+  今の `ddq release` を CI から呼ぶ形では作らず、**REL-02 の結論**（`ddq release` を GitHub Actions などに置き換えるか）を待つ。
+  作るときは、通常 VSIX の artifact（extension.yml の package）の利用者の確認も要る（計画）
 - **残存リスク**: workflow の変更は PR #142 で初めて GitHub 上で走った（ci の `cli` は成功。結果は「統合の検証」）。vsix-smoke は PR では走らず、まだ一度も走っていない。vsix-smoke の VSIX は `ddq release` を通さないので
   ライセンス表示が入らない（REL-01 の残存リスク）
 
@@ -767,7 +767,7 @@ vsix-smoke は PR では走らない（main への push と手動実行だけ）
   検証用リポジトリで `--no-build` からの梱包を確かめた。通常の経路は `tests/release.rs` の実ビルドの試験（実 Quarto・実 npm、梱包は模擬）が通す
 - `--with-sample` の ZIP、途中失敗からの再実行の手での確認（`tests/release.rs` が見る）
 - OS で通信を遮断した閉域端末、実 LAN の PlantUML サーバ、公開後の資産の再取得、実画面の IME・旧二拡張が同居したときの手操作（計画 §6 の未実施範囲と同じ）
-- CI の vsix-smoke（PR では走らない）と、配布候補を 1 か所で作る流れ（CI-01 の残り。判断待ち）
+- CI の vsix-smoke（PR では走らない）と、配布候補を 1 か所で作る流れ（CI-01 の残り。REL-02 の結論を待つ）
 
 ## 計画外で見つけた既存の不具合（直していない）
 
