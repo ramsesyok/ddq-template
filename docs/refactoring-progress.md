@@ -5,7 +5,7 @@
 
 - 基準: `main` `17ed32e`（`template/VERSION` 3.1.0-pre1）。作業開始時の作業ツリーは計画書だけが未追跡
 - 記録日: 2026-11-22
-- コミット・プッシュはしていない（指示があるまで行わない）。ID ごとの差分は「差分の取り出し方」参照
+- 2026-11-22 の指示で、ブランチ `refactor/refactoring-plan` に ID ごとのコミットとして積み、PR（ramsesyok/ddq-template#142。Draft）にした。ID ごとの差分は「差分の取り出し方」参照
 
 ## 環境
 
@@ -50,8 +50,10 @@ Rust の試験は計画 §6 の条件で実行する: Git 管理外の短い一�
 
 ## 差分の取り出し方
 
-コミットしないので、ID ごとの到達点を一時インデックスで木（tree）にして記録した（作業ツリーには触れない）。
-ID の差分は `git diff <前の ID の木> <その ID の木>`、基準からは `git diff HEAD <木>`。
+作業中はコミットしなかったので、ID ごとの到達点を一時インデックスで木（tree）にして記録した（作業ツリーには触れない）。
+PR にするときに、この木を順にコミットにした（どの木にも計画書を足した。先頭に計画書だけのコミット）。ブランチでは
+`git log 17ed32e..refactor/refactoring-plan` の各コミットが下の表の ID に当たる。REL-03・CI-02・REL-01・CI-01・DOC-01 は同じ
+ファイルに続けて手を入れたので、木にもコミットにも分けず 1 つ（`1051dbc`）にした。その後の試験の直しは `ed013ed`。
 
 | ID | 木（到達点。前の ID を含む） |
 |---|---|
@@ -78,7 +80,27 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 
 ## 項目別の記録
 
-<!-- 各 ID の節を実施順に追記する -->
+計画 §5 の台帳（実施順）。各 ID の詳細は下の節、全件と配布候補の結果は「統合の検証」。
+
+| ID | 状態 | 対象コミット | 実行した試験（環境は上の「環境」） | 結果／残件 |
+|---|---|---|---|---|
+| QA-01 | 検証済 | `ec7c412` | 実CLI（`contract.rs`・`e2e.rs`）、TS の契約、実Host、期待値を壊す確認 | 成功 |
+| CLI-01 | 検証済 | `94e9691` | 単体（読み取り回数）、新旧の release exe の出力比較 | 成功。新旧同じ出力 |
+| EXT-02 | 検証済 | `0a7a70a`・`ed013ed` | 実プロセス・模擬・実Host、変異 | 成功。孫の停止は Windows だけ（計画の範囲。PR の CI で試験の OS 依存を直した） |
+| GEN-02 | 検証済 | `0d1cd46` | 単体（Rust）、実生成（本物の design-doc.lua）、TS の契約 | 成功 |
+| EXT-03 | 検証済 | `782cb08`・`ed013ed` | 模擬（応答の順番を試験が決める）、変異 8 か所 | 成功（PR の CI で試験の OS 依存を直した） |
+| EXT-04 | 検証済 | `f1475d6` | 単体（HTML・CSP・資産の範囲）、模擬、変異 7 か所 | 成功 |
+| GEN-01 | 検証済 | `ff21870` | 単体・実スクリプト（JS）・e2e（`quarto inspect`）、変異、過去の `_quarto.yml` 52 版の比較 | 成功。新規作成の雛形が変わる（VERSION は上げていない） |
+| EXT-01 | 検証済 | `0c6a37e` | 単体（出荷済みの 30 版）、模擬（ダイアログ）、変異 6 か所 | 成功 |
+| DATA-01 | 検証済 | `9f5a926` | 単体（Rust・TS）、golden、変異 8 か所、新旧の ddq と拡張の相互確認 | 成功。移行なし |
+| IO-01 | 検証済 | `c53122a` | 単体、実 exe（読み取り専用・開いたままのファイル） | 成功 |
+| IO-02 | 検証済 | `c5aedf0` | 単体（同時の作成）、実 exe（失敗後の再実行・同時の `ddq add`） | 成功 |
+| REL-03 | 検証済 | `1051dbc` | 単体、実 exe の release 試験、新旧の比較、変異 9 か所 | 成功 |
+| CI-02 | 検証済 | `1051dbc` | 模擬の監査結果・実ビルド、実 `npm audit`、変異 7 か所、PR の CI | 成功 |
+| REL-01 | 検証済 | `1051dbc` | 実 exe の release 試験、実 vsce、変異 5 か所、配布候補一式 | 成功 |
+| CI-01 | 一部 | `1051dbc` | jar の照合の手元実行、PR の CI | `--locked`・jar の照合・起動対象は成功。配布候補の流れは判断待ち |
+| DOC-01 | 検証済 | `1051dbc` | パスの照合、manual・設計書のビルド | 成功。旧資料は消していない |
+| REL-02 | 保留 | — | — | `ddq release` を GitHub Actions などで置き換えるかを別途検討（2026-11-22 の指示） |
 
 ### QA-01　ddq と拡張の契約試験
 
@@ -646,7 +668,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 - **判断を求めること**: 配布候補の流れ（Windows 1 か所で exe→VSIX→ZIP を作り、同じ artifact を検査に渡す）を、今の
   `ddq release` を CI から呼ぶ形で作るか、REL-02 の結論（GitHub Actions に置き換えるか）を待つか。前者なら、通常 VSIX の
   artifact（extension.yml の package）の利用者の確認も要る（計画）
-- **残存リスク**: workflow の変更は GitHub 上で一度も走らせていない。vsix-smoke の VSIX は `ddq release` を通さないので
+- **残存リスク**: workflow の変更は PR #142 で初めて GitHub 上で走った（ci の `cli` は成功。結果は「統合の検証」）。vsix-smoke は PR では走らず、まだ一度も走っていない。vsix-smoke の VSIX は `ddq release` を通さないので
   ライセンス表示が入らない（REL-01 の残存リスク）
 
 ### DOC-01　資料の索引と、実装と食い違う記述
@@ -689,7 +711,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
     `e447a47^:docs/revision-impl/01-overview.qmd` で読めることを確かめた
   - 書き換えた記述は、それぞれソースと突き合わせた（§8 は `cli/src` の全ファイルと各ファイル冒頭の `//!`、`FORMAT` は `design-doc.lua` の
     該当行、採用版は `extensions/ddq-template/CHANGELOG.md`・タグ・各検討書）
-  - <!-- DOC01-BUILD -->
+  - 配布用マニュアルを release の exe で作り直した（PDF 136 ページ・HTML 20 ページ）。ZIP に入れたものが、本作業で直した 11 章・18 章を含む（保管の 3.1.0-pre1 と比べて中身が違う）ことを確かめた。テンプレート設計書も作り直した（下の「統合の検証」）
 - **計画からの逸脱**: なし。旧資料は消していない（削除には個別の承認が要る。今回、削除の候補は挙げていない）
 - **残存リスク**: 実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文は 3.0.0-pre4 の時点のままで、本作業の変更（IO-01 の置き換え、
   REL-01 のライセンス表示、REL-03 の版の照合、CI-02 の監査など）は入っていない。次に基準版を更新するときに反映する
@@ -706,7 +728,48 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | `process.test.ts` 取消（kill）・`stopAll`（EXT-02） | `killTree` は Windows でだけ `taskkill /T` で木ごと止め、ほかの OS は子だけ（変更前と同じ）。試験は全 OS で孫の停止を待っていた | 孫の停止は Windows でだけ確かめる。ほかの OS は子が止まること・起動中の数が 0 に戻ることを確かめ、孫は試験の後で片づける |
 | `provider.test.ts` 取り直しの応答が逆順（EXT-03） | 模擬の文書のパスが Windows の形（`C:\docs\revisions\rev-B.yml`）で、Linux の `path.basename` では改訂記号が取れず、確定済みの判定が常に偽 | 模擬の文書のパスをその OS の形（`path.resolve`）にする |
 
-### 計画外で見つけた既存の不具合（直していない）
+### 全件と配布候補（最終の作業ツリー。ブランチ `refactor/refactoring-plan`）
+
+| 対象 | 種類 | 結果 |
+|---|---|---|
+| `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings` | — | 成功 |
+| Rust 全件（計画 §6 の条件） | 実CLI・実生成・契約・模擬 | **223 件成功・失敗 0・ignored 0**（8 分 45 秒）。unit 116 / commands 10 / contract 5 / e2e 5 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 16 / rerun 4 / rev 15 / rev_ops 4 / table_pagination 2 / tag 22 / third_party 1。基準の 168 件から 55 件増（足した試験） |
+| `cargo build --release --locked --offline` | — | 成功。`ddq 3.1.0-pre1`、SHA-256 `94042ffbec9dbc8c9d954a80b6f88b82273c9afb3e98f90c7ff8826cf1bae4ec`（30,385,664 バイト） |
+| 拡張 `typecheck`・`REQUIRE_PANDOC=1 npm test` | 模擬・実 Pandoc・実プロセス | 2 つの tsconfig とも成功。**47 ファイル・491 件成功**（基準の 38・376 から増）。上の OS 依存の直しの後も同じ |
+| 拡張 `build`・`check:offline`・`check:audit` | — | 成功。監査の対象は react・react-dom・scheduler（Webview のバンドル 3・本番依存 0）、配布物に入る依存の指摘 0 件 |
+| 実 Extension Host（`DDQ_HOST_REAL=1`、debug の ddq） | 実Host | **30/30 合格**（基準 25 から増） |
+| 同梱版の VSIX（release の exe と表示を拡張にコピーして `package:win32-x64` → `test:smoke`） | 実Host | VSIX は 14 件・10.86 MB。展開した中身で 3/3 合格（設定・PATH なしで同梱の ddq に決まる、init、html）。コピーした exe・表示と VSIX は後で拡張のフォルダから消した（もともと無かった） |
+| 配布用マニュアル（検証用リポジトリに写し、release の exe で `update` → `pdf` → `html`） | 実生成 | 成功。PDF 136 ページ、HTML 20 ページ、`.template-version` 3.1.0-pre1 |
+| `ddq release <out> --no-build`（検証用リポジトリ。上のマニュアルと VSIX、同じ release の exe） | 実CLI | 成功。読み直して照合: ZIP 50 件の CRC、ZIP と配布フォルダの名前と中身がすべてバイト一致、日本語名 2 件に UTF-8 名フラグ、ZIP の exe と VSIX の exe がどちらも入力の exe と一致、ライセンス表示はリポジトリ直下・ZIP・VSIX の 3 つが一致（449,346 バイト）、ZIP に jar・VSIX が無い、ガイド・README・AGENT-GUIDE・LICENSE・manual がある。VSIX は 14 件の CRC、manifest の版 3.1.0-pre1・TargetPlatform win32-x64 |
+| 保管の 3.1.0-pre1 との一覧の比較 | — | ZIP は 50 件で増減なし。中身が違う 12 件は、exe、本作業（README・manual 11 章・18 章とその PDF・search.json）、#141（manual 4 章）、はじめかた.pdf（作り直し）、mermaid の SVG 4 枚。SVG 4 枚は先頭のコメントの Edge の版（157 → 158）とフォントの指紋だけが違い、2 行目以降はバイト一致。VSIX は 13 → 14 件で、増えたのは `extension/THIRD-PARTY-NOTICES.md` だけ（REL-01）。中身が違うのは exe・拡張の JS 3 本・package.json（`check:audit` の行）|
+| ZIP から取り出した exe（入力の exe と同じハッシュ）で、日本語のパス（`…\日本語 の検証\設計書`、執筆フォルダ `基本設計`）に `init --no-render` → `pdf` → `html` | 実CLI・実生成 | すべて exit 0。PDF 30 ページ、HTML 8 ページ（index と雛形の 7 章。GEN-01 の後の雛形の章がすべて出る） |
+| サンプルの版間比較（`examples/docs` を写したリポジトリで、HEAD `17ed32e` の exe と新しい release の exe で順に `update` → `regress.py capture`、`compare docs`。両側とも内蔵 merman、`TYPST_PACKAGE_PATH` は Quarto 同梱の packages） | 実生成 | **141 比較一致・差分 0**（機構 5、中間 Typst 1、ページ画像 51 とページ数、PDF 本文 1、HTML 59、SVG 23）。機構は `postprocess-html.js` だけが新旧で違う（GEN-01）が、作った HTML 59 件は新旧でバイト一致（サンプルの章の並びの読み方は変わらない）。計画 §6 の基準と同じ件数 |
+| PlantUML のサンプル（`examples/plantuml` の写し。新しい exe で `update` → `diagrams` → `pdf` → `html`、検証済みの jar でローカルの Java サーバ） | 実生成 | すべて exit 0。PDF 42 ページ、PlantUML のキャッシュ 25 図（計画 §6 の基準と同じ） |
+| テンプレート設計書（`docs/design` の写し。新しい exe で `update` → `pdf` → `html`。DOC-01 で 03-pipeline を直した） | 実生成 | すべて exit 0。PDF 38 ページ |
+
+### PR の CI（GitHub Actions）
+
+本作業の workflow の変更は、この PR（ramsesyok/ddq-template#142）で初めて GitHub 上で走った。
+
+| push | ジョブ | 結果 |
+|---|---|---|
+| 1 回目（`1051dbc`） | ci: `cli`（Windows。cargo audit・fmt・`--locked` の clippy・test・release ビルド、plantuml.jar の SHA-256 照合）、`mermaid-bundle` | 成功（CI-01 の jar の照合と `--locked` が GitHub 上で通った） |
+| 1 回目 | extension: テスト（ubuntu・Node 20／22） | **失敗 3 件**（上の「PR の CI で見つけた試験の OS 依存」）。実拡張ホストはテストの後なので走らなかった |
+| 1 回目 | extension: テスト（windows・Node 20／22）・脆弱性チェック（CI-02） | 成功 |
+| 2 回目（`ed013ed`。試験の直しだけ） | extension: テスト 4 本（ubuntu・windows × Node 20／22）・脆弱性チェック・実拡張ホスト（CI で ddq をビルドし、`DDQ_HOST_REAL=1`）・VSIX の生成、ci: mermaid-bundle | 成功 |
+| 2 回目 | ci: `cli` | 記録の時点で実行中（1 回目と同じ Rust のコードで、1 回目は成功） |
+
+vsix-smoke は PR では走らない（main への push と手動実行だけ）。
+
+### 統合の検証でしていないこと
+
+- 通常の `ddq release`（`--no-build` なし）をこのリポジトリで流すこと。`npm ci` で拡張の依存を入れ直すため、計画 §6 と同じく
+  検証用リポジトリで `--no-build` からの梱包を確かめた。通常の経路は `tests/release.rs` の実ビルドの試験（実 Quarto・実 npm、梱包は模擬）が通す
+- `--with-sample` の ZIP、途中失敗からの再実行の手での確認（`tests/release.rs` が見る）
+- OS で通信を遮断した閉域端末、実 LAN の PlantUML サーバ、公開後の資産の再取得、実画面の IME・旧二拡張が同居したときの手操作（計画 §6 の未実施範囲と同じ）
+- CI の vsix-smoke（PR では走らない）と、配布候補を 1 か所で作る流れ（CI-01 の残り。判断待ち）
+
+## 計画外で見つけた既存の不具合（直していない）
 
 1. `ddq tag list` が、同じファイルにラベル無しで種類と題名が同じ項目が 5 つ以上あると panic する（exit 101、
    `cli/src/doc/labels.rs:50`「sha1 40 桁が衝突することはない」。候補の長さ `[6, 8, 10, 40]` を使い切る）。
