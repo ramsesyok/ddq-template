@@ -89,6 +89,35 @@ fn in_use(e: &io::Error) -> bool {
     cfg!(windows) && matches!(e.raw_os_error(), Some(5 | 32 | 33))
 }
 
+/// `path` が無いときだけ `bytes` で作り、作ったら true（IO-02。init / add の「無いものだけ置く」）。
+/// 既にあれば（ファイルでもフォルダでも）触らずに false。
+///
+/// 同じフォルダの一時ファイルに書いてから、上書きしない付け替えで置く。無いことを確かめてから
+/// 書くのと違い、ほかの ddq や人が同時に作っても先に置かれた方が残る。途中で止まっても、
+/// 途中までのバイト列のファイルが「既にある」ものとして残ることもない。
+pub fn create_new(path: &Path, bytes: &[u8]) -> Result<bool> {
+    let dir = match path.parent() {
+        Some(d) if !d.as_os_str().is_empty() => d,
+        _ => Path::new("."),
+    };
+    let mut tmp = tempfile::Builder::new()
+        .prefix(".ddq-")
+        .suffix(".tmp")
+        .make_in(dir, |p| {
+            fs::OpenOptions::new().write(true).create_new(true).open(p)
+        })
+        .with_context(|| format!("{} に一時ファイルを作れません", dir.display()))?;
+    tmp.write_all(bytes)
+        .and_then(|()| tmp.as_file().sync_all())
+        .with_context(|| format!("{} を書けません", path.display()))?;
+    match tmp.persist_noclobber(path) {
+        Ok(_) => Ok(true),
+        // 一時ファイルは PersistError と一緒に捨てる（消える）
+        Err(e) if e.error.kind() == io::ErrorKind::AlreadyExists => Ok(false),
+        Err(e) => Err(e.error).with_context(|| format!("{} を書けません", path.display())),
+    }
+}
+
 /// シンボリックリンクはリンク先を書き換える（従来の fs::write と同じ。リンクを普通のファイルにしない）。
 fn resolve(path: &Path) -> PathBuf {
     match fs::symlink_metadata(path) {
@@ -243,6 +272,56 @@ mod tests {
         assert_eq!(seen, "new", "その場で書いた");
         drop(held);
         assert_eq!(fs::read(&a).unwrap(), b"new");
+        assert_eq!(names(tmp.path()), ["a.qmd"]);
+    }
+
+    #[test]
+    fn create_new_never_overwrites() {
+        let tmp = tempfile::tempdir().unwrap();
+        let a = tmp.path().join("a.qmd");
+        assert!(create_new(&a, b"first").unwrap());
+        assert!(!create_new(&a, b"second").unwrap());
+        assert_eq!(fs::read(&a).unwrap(), b"first");
+        // フォルダがあればそれも「既にある」
+        fs::create_dir(tmp.path().join("d")).unwrap();
+        assert!(!create_new(&tmp.path().join("d"), b"x").unwrap());
+        assert_eq!(names(tmp.path()), ["a.qmd", "d"]);
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            const FILE_ATTRIBUTE_TEMPORARY: u32 = 0x100;
+            assert_eq!(
+                fs::metadata(&a).unwrap().file_attributes() & FILE_ATTRIBUTE_TEMPORARY,
+                0
+            );
+        }
+    }
+
+    /// 同時に作っても、作るのは 1 つだけで、中身はその 1 つのもの（ほかは上書きしない）
+    #[test]
+    fn create_new_lets_exactly_one_of_many_writers_win() {
+        let tmp = tempfile::tempdir().unwrap();
+        let a = tmp.path().join("a.qmd");
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(8));
+        let handles: Vec<_> = (0..8)
+            .map(|i| {
+                let a = a.clone();
+                let barrier = barrier.clone();
+                thread::spawn(move || {
+                    barrier.wait();
+                    (i, create_new(&a, format!("writer {i}").as_bytes()).unwrap())
+                })
+            })
+            .collect();
+        let won: Vec<usize> = handles
+            .into_iter()
+            .map(|h| h.join().unwrap())
+            .filter(|(_, created)| *created)
+            .map(|(i, _)| i)
+            .collect();
+        assert_eq!(won.len(), 1, "{won:?}");
+        assert_eq!(fs::read_to_string(&a).unwrap(), format!("writer {}", won[0]));
         assert_eq!(names(tmp.path()), ["a.qmd"]);
     }
 
