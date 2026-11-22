@@ -370,13 +370,92 @@ impl Row {
     }
 
     fn note_cell(&self) -> String {
-        let note = self.note.trim().replace('|', "\\|");
+        let note = escape_tex_commands(self.note.trim()).replace('|', "\\|");
         let note = note.replace('\n', "<br>");
         if self.kind == "added" && note.is_empty() {
             return String::new();
         }
         note
     }
+}
+
+/// 修正内容の逆斜線のうち、Pandoc が TeX の命令と読むもの（後ろが文字。`C:\docs` の `\docs`、`\文書` など）を
+/// `\\` にして、書いたとおりに出す。TeX の命令は HTML でも PDF でも表から消えていた（`C:\docs\a.qmd` が
+/// `C:.qmd` と出た）。コード（`` `…` ``）と数式（`$…$`・`$$…$$`）の中、Markdown のエスケープ（`\\`・`\*` など）は
+/// 変えない。後ろが数字・空白・行末の逆斜線は、もとから書いたとおりに出るので変えない。
+fn escape_tex_commands(s: &str) -> String {
+    let c: Vec<char> = s.chars().collect();
+    let mut out = String::with_capacity(s.len() + 8);
+    let mut i = 0;
+    while i < c.len() {
+        let end = match c[i] {
+            '\\' => match c.get(i + 1) {
+                Some(n) if n.is_alphabetic() => {
+                    out.push('\\');
+                    i + 1
+                }
+                Some(_) => i + 2,
+                None => i + 1,
+            },
+            '`' => code_span_end(&c, i),
+            '$' => math_end(&c, i),
+            _ => i + 1,
+        };
+        out.extend(&c[i..end]);
+        i = end;
+    }
+    out
+}
+
+/// `i` から始まるコードの終わり（同じ数の ` で閉じる）。閉じるものが無ければ ` の並びだけ（ただの文字）。
+fn code_span_end(c: &[char], i: usize) -> usize {
+    let run = |j: usize| c[j..].iter().take_while(|&&x| x == '`').count();
+    let n = run(i);
+    let mut j = i + n;
+    while j < c.len() {
+        if c[j] == '`' {
+            let m = run(j);
+            if m == n {
+                return j + m;
+            }
+            j += m;
+        } else {
+            j += 1;
+        }
+    }
+    i + n
+}
+
+/// `i` の `$` から始まる数式の終わり（Pandoc の tex_math_dollars）。`$$…$$` は次の `$$` まで。`$…$` は、
+/// 開く `$` の直後と閉じる `$` の直前が空白でなく、閉じる `$` の直後が数字でないもの（`$5 と $10` は数式でない）。
+/// 数式でなければ `$` の 1 字だけ。数式を見落とすと中の命令を壊すので、迷う形は数式とみなす側に倒す。
+fn math_end(c: &[char], i: usize) -> usize {
+    if c.get(i + 1) == Some(&'$') {
+        let mut j = i + 2;
+        while j + 1 < c.len() {
+            if c[j] == '\\' {
+                j += 2;
+            } else if c[j] == '$' && c[j + 1] == '$' {
+                return j + 2;
+            } else {
+                j += 1;
+            }
+        }
+    }
+    if !c.get(i + 1).is_some_and(|n| !n.is_whitespace()) {
+        return i + 1;
+    }
+    let mut j = i + 1;
+    while j < c.len() {
+        match c[j] {
+            '\\' => j += 2,
+            '$' if !c[j - 1].is_whitespace() && !c.get(j + 1).is_some_and(char::is_ascii_digit) => {
+                return j + 1;
+            }
+            _ => j += 1,
+        }
+    }
+    i + 1
 }
 
 /// 改訂履歴の表（生成物）。PDF だけ「頁」列を足すので、書式ごとに出し分ける。
@@ -581,6 +660,50 @@ mod tests {
             gone: false,
         };
         assert_eq!(r.note_cell(), "1 行目<br>2 行目 \\| 記号");
+    }
+
+    #[test]
+    fn backslashes_that_pandoc_reads_as_tex_are_escaped() {
+        let e = escape_tex_commands;
+        // 後ろが文字の逆斜線は TeX の命令になって消えるので `\\` にする（漢字の前も同じ）
+        assert_eq!(e(r"C:\docs\a.qmd"), r"C:\\docs\\a.qmd");
+        assert_eq!(e(r"C:\文書\b"), r"C:\\文書\\b");
+        assert_eq!(e(r"\newpage と \textbf{x}"), r"\\newpage と \\textbf{x}");
+        // Markdown のエスケープ・後ろが数字・行末は、もとから書いたとおりに出るので変えない
+        assert_eq!(e(r"C:\\docs \* \_ \1 \@ 末尾\"), r"C:\\docs \* \_ \1 \@ 末尾\");
+        assert_eq!(e(r"\\\docs"), r"\\\\docs");
+        // コードの中は変えない（` の数が合うものだけがコード。閉じないものはただの文字）
+        assert_eq!(e(r"`C:\docs` と C:\docs"), r"`C:\docs` と C:\\docs");
+        assert_eq!(e(r"``a ` \x`` \y"), r"``a ` \x`` \\y");
+        assert_eq!(e(r"` \docs"), r"` \\docs");
+        assert_eq!(e(r"\` \docs`"), r"\` \\docs`");
+        // 数式の中は変えない
+        assert_eq!(e(r"$\alpha$ と \alpha"), r"$\alpha$ と \\alpha");
+        assert_eq!(e(r"$$\sum_i x$$ \x"), r"$$\sum_i x$$ \\x");
+        assert_eq!(e(r"$a$1 \b$"), r"$a$1 \b$");
+        // 数式にならない $ の間は直す
+        assert_eq!(e(r"価格 $5 と \docs と $10"), r"価格 $5 と \\docs と $10");
+        assert_eq!(e(r"$ \docs $"), r"$ \\docs $");
+        assert_eq!(e(r"$ \docs$"), r"$ \\docs$");
+        assert_eq!(e(r"\$ \docs $"), r"\$ \\docs $");
+    }
+
+    #[test]
+    fn note_cells_keep_backslashes_as_written() {
+        let r = Row {
+            date: "d".into(),
+            rev: "A".into(),
+            label: "sec-x".into(),
+            kind: "changed".into(),
+            unit: "heading".into(),
+            title: "t".into(),
+            note: "C:\\docs\\a.qmd を直した\n`C:\\x` | $\\alpha$".into(),
+            gone: false,
+        };
+        assert_eq!(
+            r.note_cell(),
+            "C:\\\\docs\\\\a.qmd を直した<br>`C:\\x` \\| $\\alpha$"
+        );
     }
 
     #[test]

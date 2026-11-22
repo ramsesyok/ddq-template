@@ -1,5 +1,6 @@
 //! `ddq rev next` / `rev diff` / `rev build` の統合テスト（docs/revision-study.md §5）。
-//! quarto は起動しない。git は必須（無ければ skip）。
+//! git は必須（無ければ skip）。quarto は、改訂履歴の表を本物の Pandoc で読む 1 件だけが使う
+//! （無ければその部分を skip。DDQ_E2E=1 なら失敗）。
 
 use std::{fs, path::Path, process::Command};
 
@@ -38,6 +39,43 @@ fn git_available() -> bool {
         .arg("--version")
         .output()
         .is_ok_and(|o| o.status.success())
+}
+
+fn quarto_available() -> bool {
+    let ok = Command::new("quarto")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success());
+    if !ok {
+        assert!(
+            std::env::var_os("DDQ_E2E").is_none(),
+            "DDQ_E2E=1 なのに quarto が PATH にありません"
+        );
+        eprintln!("skip: quarto が PATH にありません");
+    }
+    ok
+}
+
+/// Pandoc の JSON から、`t` が `tag` の要素の `c` を集める。
+fn collect<'a>(v: &'a Value, tag: &str, out: &mut Vec<&'a Value>) {
+    match v {
+        Value::Object(m) => {
+            if m.get("t").and_then(Value::as_str) == Some(tag)
+                && let Some(c) = m.get("c")
+            {
+                out.push(c);
+            }
+            for x in m.values() {
+                collect(x, tag, out);
+            }
+        }
+        Value::Array(a) => {
+            for x in a {
+                collect(x, tag, out);
+            }
+        }
+        _ => {}
+    }
 }
 
 fn write(dir: &Path, rel: &str, text: &str) {
@@ -405,6 +443,64 @@ fn build_makes_the_history_table() {
 
     // index.qmd が include していなければ知らせる
     assert!(stdout(&out).contains("include"), "{}", stdout(&out));
+}
+
+#[test]
+fn notes_with_backslashes_appear_as_written() {
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    edit(tmp.path());
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+    assert_ok(&ddq(&["rev", "diff", &docs, "--write"]));
+    // パス・コード・数式・前からの回避策の `\\`。YAML のブロックなので逆斜線は書いたまま読まれる
+    let yml = tmp.path().join("docs/revisions/rev-B.yml");
+    let text = fs::read_to_string(&yml).unwrap().replace(
+        "    note: \"\"\n",
+        "    note: |\n      C:\\docs\\a.qmd を直した\n      `C:\\x` と $\\alpha$ と C:\\\\keep\n",
+    );
+    fs::write(&yml, text).unwrap();
+
+    assert_ok(&ddq(&["rev", "build", &docs]));
+    let history = fs::read_to_string(tmp.path().join("docs/revisions/history.qmd")).unwrap();
+    // 以前は `C:\docs\a.qmd` をそのまま載せ、`\docs`・`\a` が TeX の命令になって `C:.qmd` と出た
+    assert!(
+        history.contains("| C:\\\\docs\\\\a.qmd を直した<br>`C:\\x` と $\\alpha$ と C:\\\\keep |"),
+        "{history}"
+    );
+
+    // 本物の Pandoc で読むと、TeX の命令にならずに書いたとおりの文字になる。コードと数式はそのまま
+    if !quarto_available() {
+        return;
+    }
+    let out = Command::new("quarto")
+        .args(["pandoc", "revisions/history.qmd", "-f", "markdown", "-t", "json"])
+        .current_dir(tmp.path().join("docs"))
+        .output()
+        .expect("quarto を起動できません");
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let ast: Value = serde_json::from_slice(&out.stdout).unwrap();
+    let mut raw = Vec::new();
+    collect(&ast, "RawInline", &mut raw);
+    assert!(
+        raw.iter().all(|r| r[0] != "tex"),
+        "TeX の命令が残っている: {raw:?}"
+    );
+    let mut strs = Vec::new();
+    collect(&ast, "Str", &mut strs);
+    for want in ["C:\\docs\\a.qmd", "C:\\keep"] {
+        assert!(
+            strs.iter().any(|s| s.as_str() == Some(want)),
+            "{want} が無い: {strs:?}"
+        );
+    }
+    let (mut code, mut math) = (Vec::new(), Vec::new());
+    collect(&ast, "Code", &mut code);
+    collect(&ast, "Math", &mut math);
+    assert!(code.iter().any(|c| c[1] == "C:\\x"), "{code:?}");
+    assert!(math.iter().any(|m| m[1] == "\\alpha"), "{math:?}");
 }
 
 #[test]

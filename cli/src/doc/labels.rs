@@ -12,6 +12,7 @@ use sha1::{Digest, Sha1};
 use super::units::{Edit, Item, Kind};
 
 /// 候補ラベルの既定の長さ（16 進の桁数）。衝突したら 8 → 10 → 40 と伸ばす。
+/// それでも重なれば、6 桁の後ろに番号を付ける（[`candidate`]）。
 const LEN: [usize; 4] = [6, 8, 10, 40];
 
 /// ラベルの無い item に候補と編集指示を入れる。`lines_of` は書き戻し先の行を引く関数。
@@ -47,7 +48,17 @@ pub fn candidate(file: &str, kind: Kind, title: &str, used: &HashSet<String>) ->
             return cand;
         }
     }
-    unreachable!("sha1 40 桁が衝突することはない")
+    // 同じファイルに種類と文言が同じ項目が 5 つ以上あると、ハッシュが同じなので伸ばしきっても重なる。
+    // 6 桁の後ろに、使われていない最初の番号（-2 から）を付ける。`used` は有限なので必ず見つかる。
+    let base = format!("{}{}", kind.prefix(), &hex[..LEN[0]]);
+    let mut k = 2usize;
+    loop {
+        let cand = format!("{base}-{k}");
+        if !used.contains(&cand) {
+            return cand;
+        }
+        k += 1;
+    }
 }
 
 /// 見出し文言・キャプションの正規化（空白の圧縮と前後の除去）。
@@ -204,6 +215,41 @@ mod tests {
         // 同じファイルに同じ文言の見出しが 2 つあっても別のラベルになる
         let items = suggest_on("a.qmd", "## 概要\n\n## 概要\n");
         assert_ne!(items[0].suggested, items[1].suggested);
+    }
+
+    #[test]
+    fn five_or_more_identical_items_get_numbered_candidates() {
+        // 同じ文言の見出しが 6 つ。4 つ目までは桁を伸ばし、5 つ目からは 6 桁の後ろに番号を付ける
+        // （以前は 5 つ目で panic した）
+        let items = suggest_on("a.qmd", &"## 目的\n\n".repeat(6));
+        let s: Vec<String> = items.iter().map(|i| i.suggested.clone().unwrap()).collect();
+        let base = &s[0];
+        assert_eq!(base.len(), "sec-".len() + 6);
+        assert_eq!(s[1].len(), "sec-".len() + 8);
+        assert_eq!(s[2].len(), "sec-".len() + 10);
+        assert_eq!(s[3].len(), "sec-".len() + 40);
+        assert_eq!(s[4], format!("{base}-2"));
+        assert_eq!(s[5], format!("{base}-3"));
+        assert!(s.iter().all(|l| valid(l, Kind::Heading)), "{s:?}");
+        let distinct: HashSet<&String> = s.iter().collect();
+        assert_eq!(distinct.len(), 6, "{s:?}");
+        // 4 つ目までの候補は以前と同じ（番号は伸ばしきったあとにだけ付く）
+        let two = suggest_on("a.qmd", &"## 目的\n\n".repeat(2));
+        assert_eq!(two[0].suggested.as_ref(), Some(&s[0]));
+        assert_eq!(two[1].suggested.as_ref(), Some(&s[1]));
+    }
+
+    #[test]
+    fn numbered_candidates_skip_labels_already_in_use() {
+        // 書き戻した番号つきのラベルは使われているので、残りの項目は次の番号になる
+        let first = suggest_on("a.qmd", &"## 目的\n\n".repeat(6));
+        let base = first[0].suggested.clone().unwrap();
+        let text = format!("## 目的 {{#{base}-2}}\n\n{}", "## 目的\n\n".repeat(5));
+        let items = suggest_on("a.qmd", &text);
+        let s: Vec<String> = items[1..].iter().map(|i| i.suggested.clone().unwrap()).collect();
+        assert_eq!(s[0], base);
+        assert_eq!(s[4], format!("{base}-3"));
+        assert!(!s.contains(&format!("{base}-2")), "{s:?}");
     }
 
     #[test]

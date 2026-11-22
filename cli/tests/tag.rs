@@ -161,6 +161,63 @@ fn candidates_are_stable_between_runs() {
 }
 
 #[test]
+fn many_identical_headings_get_distinct_labels() {
+    // 同じファイルに同じ文言の見出しが 6 つ。以前は 5 つ目の候補を作るところで panic した（exit 101）
+    let tmp = tempfile::tempdir().unwrap();
+    write(
+        tmp.path(),
+        "_quarto.yml",
+        "project:\n  type: book\nbook:\n  title: テスト\n  chapters:\n    - index.qmd\n",
+    );
+    write(
+        tmp.path(),
+        "index.qmd",
+        &format!(
+            "# 本書について {{.unnumbered}}\n\n{}",
+            "## 目的\n\n本文。\n\n".repeat(6)
+        ),
+    );
+    let dir = tmp.path().to_string_lossy().into_owned();
+
+    let out = ddq(&["tag", "list", &dir, "--json"]);
+    assert_ok(&out);
+    let v: Value = serde_json::from_str(&stdout(&out)).expect("JSON として読めません");
+    let suggested: Vec<&str> = v["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|i| i["title"] == "目的")
+        .map(|i| i["suggested"].as_str().expect("候補が無い"))
+        .collect();
+    assert_eq!(suggested.len(), 6);
+    let distinct: std::collections::HashSet<&str> = suggested.iter().copied().collect();
+    assert_eq!(distinct.len(), 6, "{suggested:?}");
+    assert_eq!(suggested[4], format!("{}-2", suggested[0]));
+    assert_eq!(suggested[5], format!("{}-3", suggested[0]));
+
+    // 書き戻すと、すべてにラベルが付き、重複の警告も出ない
+    let out = ddq(&["tag", "apply", &dir, "--all"]);
+    assert_ok(&out);
+    assert!(stdout(&out).contains("7 件"), "{}", stdout(&out));
+    let out = ddq(&["tag", "list", &dir, "--json"]);
+    assert_ok(&out);
+    let v: Value = serde_json::from_str(&stdout(&out)).unwrap();
+    let items = v["items"].as_array().unwrap();
+    assert!(
+        items
+            .iter()
+            .all(|i| i["label"].is_string() && i["suggested"].is_null()),
+        "{items:?}"
+    );
+    assert_eq!(v["warnings"].as_array().unwrap().len(), 0, "{}", v["warnings"]);
+    let index = fs::read_to_string(tmp.path().join("index.qmd")).unwrap();
+    assert!(
+        index.contains(&format!("## 目的 {{#{}}}\n", suggested[5])),
+        "{index}"
+    );
+}
+
+#[test]
 fn dry_run_does_not_touch_files() {
     let tmp = tempfile::tempdir().unwrap();
     fixture(tmp.path());
