@@ -407,6 +407,20 @@ mod tests {
         assert_eq!(r.entries[0].note, "文言を直した");
     }
 
+    /// 拡張の往復試験（extensions/ddq-template/src/revision/revfile.test.ts）と**同じ golden**。
+    /// ddq が書いたファイルを ddq 自身が読み、書き戻して同じ文字列になること（QA-01）。
+    const SHARED_GOLDEN: &str =
+        include_str!("../../../extensions/ddq-template/src/revision/rev-B.golden.yml");
+
+    #[test]
+    fn shared_golden_round_trips_byte_for_byte() {
+        let golden = SHARED_GOLDEN.replace("\r\n", "\n");
+        let rev = parse(&golden);
+        assert_eq!(rev.rev, "B");
+        assert_eq!(rev.entries.len(), 5);
+        assert_eq!(to_yaml(&rev), golden, "拡張の golden と ddq の書き出しが食い違う");
+    }
+
     #[test]
     fn symbols_advance() {
         assert_eq!(next_symbol(None, "alpha"), "A");

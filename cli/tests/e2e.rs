@@ -133,6 +133,32 @@ fn assert_ok(out: &std::process::Output, what: &str) {
     );
 }
 
+/// stdout の最後の空でない行（quarto の進捗は子プロセスがそのまま流すので、結果行はその後ろ）。
+fn last_line(out: &std::process::Output) -> String {
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .rev()
+        .find(|l| !l.trim().is_empty())
+        .unwrap_or_default()
+        .trim_end()
+        .to_string()
+}
+
+/// 契約の期待値（tests/fixtures/contract/cli.json の stdout.<key>）をこの執筆フォルダで展開する。
+fn contract_line(key: &str, folder: &Path) -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/contract/cli.json");
+    let cli: serde_json::Value = serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap();
+    cli["stdout"][key]
+        .as_str()
+        .unwrap_or_else(|| panic!("cli.json に stdout.{key} がありません"))
+        // ddq は引数のフォルダを std::path::absolute で解決して表示する（Windows では `/` が `\` になる）
+        .replace(
+            "{{FOLDER}}",
+            &std::path::absolute(folder).unwrap().display().to_string(),
+        )
+        .replace("{{SEP}}", std::path::MAIN_SEPARATOR_STR)
+}
+
 fn count_files(dir: &Path, prefix: &str, ext: &str) -> usize {
     fs::read_dir(dir)
         .map(|rd| {
@@ -153,7 +179,10 @@ fn build_and_check(dir: &Path) {
     let d = dir.to_string_lossy().into_owned();
     assert_ok(&ddq(&["update", &d]), "ddq update");
 
-    assert_ok(&ddq(&["pdf", &d]), "ddq pdf");
+    let out = ddq(&["pdf", &d]);
+    assert_ok(&out, "ddq pdf");
+    // 結果行は拡張との取り決め（QA-01。tests/fixtures/contract/cli.json）
+    assert_eq!(last_line(&out), contract_line("pdf", dir), "ddq pdf の結果行");
     let pdf = dir.join("design-doc.pdf");
     assert!(pdf.is_file(), "{} がありません", pdf.display());
     assert!(
@@ -181,7 +210,10 @@ fn build_and_check(dir: &Path) {
         }
     }
 
-    assert_ok(&ddq(&["html", &d]), "ddq html");
+    let out = ddq(&["html", &d]);
+    assert_ok(&out, "ddq html");
+    // 拡張はこの行から index.html を拾って「HTML を開く」を出す（build.ts の htmlIndexOf）
+    assert_eq!(last_line(&out), contract_line("html", dir), "ddq html の結果行");
     let book = dir.join("_book");
     assert!(book.join("index.html").is_file());
     assert!(book.join("search.json").is_file(), "全文検索の索引がありません");

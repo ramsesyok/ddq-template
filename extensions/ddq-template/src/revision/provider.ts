@@ -15,22 +15,13 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
+import { parseRevNext } from '../ddq/contract';
 import { DdqError, ddqCommand, run, runJson } from '../ddq/run';
 import { emptyNotes, type EditorContext, type FromEditorMessage, type ToEditorMessage } from './messages';
 import { parse, toYaml, type Revision } from './revfile';
 
 /** 空の左右ペインを出すための自前スキーム（§5.8）。 */
 export const EMPTY_SCHEME = 'ddq-rev';
-
-/** `ddq rev next --json` の答え（cli/src/commands/rev.rs と対）。 */
-type Next = {
-    rev: string;
-    base: string | null;
-    base_commit: string | null;
-    scheme: string;
-    tags: string[];
-    drafts: string[];
-};
 
 export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
     static readonly viewType = 'ddqTemplate.revisionEditor';
@@ -207,7 +198,7 @@ function ddq(): string {
 /** タグの有無（= 確定済みか）と、既にあるタグ。 */
 async function tagState(folder: string, uri: vscode.Uri): Promise<Partial<EditorContext>> {
     try {
-        const next = await runJson<Next>(ddq(), ['rev', 'next', folder, '--json'], folder);
+        const next = await runJson(ddq(), ['rev', 'next', folder, '--json'], folder, parseRevNext);
         const symbol = path.basename(uri.fsPath).replace(/^rev-/, '').replace(/\.ya?ml$/i, '');
         return { tags: next.tags, fixed: next.tags.includes(`rev-${symbol}`) };
     } catch {

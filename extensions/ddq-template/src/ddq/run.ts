@@ -7,6 +7,7 @@
 
 import { execFile, spawn } from 'node:child_process';
 
+import { ContractError } from './contract';
 import { locateDdq } from './locate';
 
 /** 実行に失敗したときの理由。UI にそのまま出す。 */
@@ -72,13 +73,33 @@ export function run(command: string, args: string[], cwd?: string): Promise<stri
     });
 }
 
-/** JSON を返すコマンドを実行する。 */
-export async function runJson<T>(command: string, args: string[], cwd?: string): Promise<T> {
+/**
+ * JSON を返すコマンドを実行し、`parse` で形を確かめてから返す（contract.ts）。
+ * 形が違えば、画面に流したり書き戻したりする前に `DdqError` で止める。
+ */
+export async function runJson<T>(
+    command: string,
+    args: string[],
+    cwd: string | undefined,
+    parse: (value: unknown) => T
+): Promise<T> {
     const out = await run(command, args, cwd);
+    let value: unknown;
     try {
-        return JSON.parse(out) as T;
+        value = JSON.parse(out);
     } catch {
         throw new DdqError('ddq の出力を JSON として読めません。', out.slice(0, 400));
+    }
+    try {
+        return parse(value);
+    } catch (e) {
+        if (e instanceof ContractError) {
+            throw new DdqError(
+                `${e.what} の出力が想定した形ではありません（拡張と ddq の版が合っていない可能性があります。設定 ddqTemplate.ddqPath を確認してください）。`,
+                e.problems.join('\n')
+            );
+        }
+        throw e;
     }
 }
 

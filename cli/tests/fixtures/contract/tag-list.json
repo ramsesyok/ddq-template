@@ -1,0 +1,145 @@
+{
+  "folder": "{{FOLDER}}",
+  "order": [
+    "index.qmd",
+    "chapters/01/index.qmd",
+    "chapters/01/01-purpose.qmd",
+    "chapters/02/index.qmd"
+  ],
+  "items": [
+    {
+      "kind": "heading",
+      "level": 1,
+      "file": "index.qmd",
+      "line": 1,
+      "title": "本書について",
+      "label": null,
+      "suggested": "sec-02a174",
+      "edit": {
+        "file": "index.qmd",
+        "line": 1,
+        "col": 10,
+        "insert": "#sec-02a174 ",
+        "original": "# 本書について {.unnumbered}"
+      }
+    },
+    {
+      "kind": "heading",
+      "level": 1,
+      "file": "chapters/01/index.qmd",
+      "line": 1,
+      "title": "概要",
+      "label": null,
+      "suggested": "sec-4128f7",
+      "edit": {
+        "file": "chapters/01/index.qmd",
+        "line": 1,
+        "col": 4,
+        "insert": " {#sec-4128f7}",
+        "original": "# 概要"
+      }
+    },
+    {
+      "kind": "tbl",
+      "file": "chapters/01/index.qmd",
+      "line": 5,
+      "title": "𠮷野家の一覧",
+      "label": null,
+      "suggested": "tbl-143dbf",
+      "edit": {
+        "file": "chapters/01/index.qmd",
+        "line": 5,
+        "col": 41,
+        "insert": " label=\"tbl-143dbf\"",
+        "original": "::: {.tbl caption=\"𠮷野家の一覧\" widths=\"30,70\"}"
+      }
+    },
+    {
+      "kind": "pipe",
+      "file": "chapters/01/index.qmd",
+      "line": 15,
+      "title": "パイプ表の例",
+      "label": null,
+      "suggested": "tbl-ea7b66",
+      "edit": {
+        "file": "chapters/01/index.qmd",
+        "line": 15,
+        "col": 8,
+        "insert": " {#tbl-ea7b66}",
+        "original": ": パイプ表の例"
+      }
+    },
+    {
+      "kind": "fig",
+      "file": "chapters/01/index.qmd",
+      "line": 17,
+      "title": "構成図",
+      "label": null,
+      "warning": "bare-figure"
+    },
+    {
+      "kind": "heading",
+      "level": 2,
+      "file": "chapters/01/01-purpose.qmd",
+      "line": 1,
+      "title": "目的 𠮷とが",
+      "label": null,
+      "suggested": "sec-470eff",
+      "edit": {
+        "file": "chapters/01/01-purpose.qmd",
+        "line": 1,
+        "col": 10,
+        "insert": " {#sec-470eff}",
+        "original": "## 目的 𠮷とが"
+      }
+    },
+    {
+      "kind": "heading",
+      "level": 1,
+      "file": "chapters/02/index.qmd",
+      "line": 1,
+      "title": "二章",
+      "label": null,
+      "suggested": "sec-d872d5",
+      "edit": {
+        "file": "chapters/02/index.qmd",
+        "line": 1,
+        "col": 4,
+        "insert": " {#sec-d872d5}",
+        "original": "# 二章"
+      }
+    },
+    {
+      "kind": "heading",
+      "level": 2,
+      "file": "chapters/02/index.qmd",
+      "line": 3,
+      "title": "が行の扱い",
+      "label": null,
+      "suggested": "sec-7a9ce9",
+      "edit": {
+        "file": "chapters/02/index.qmd",
+        "line": 3,
+        "col": 11,
+        "insert": "#sec-7a9ce9 ",
+        "original": "## が行の扱い {.unlisted}"
+      }
+    },
+    {
+      "kind": "ipo",
+      "file": "chapters/02/index.qmd",
+      "line": 5,
+      "title": "受注処理",
+      "label": null,
+      "suggested": "tbl-3d507c",
+      "edit": {
+        "file": "chapters/02/index.qmd",
+        "line": 5,
+        "col": 36,
+        "insert": " label=\"tbl-3d507c\"",
+        "original": "::: {.ipo module=\"受注\" caption=\"受注処理\"}"
+      }
+    }
+  ],
+  "warnings": []
+}

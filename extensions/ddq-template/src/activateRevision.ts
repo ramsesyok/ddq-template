@@ -9,6 +9,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
+import { parseRevNext, parseTagList } from './ddq/contract';
 import { DdqError, ddqCommand, run, runJson, versionOf } from './ddq/run';
 import type { TagList } from './ddq/types';
 import { resolveWritingFolder } from './folders';
@@ -180,7 +181,7 @@ async function refresh() {
             vscode.workspace.getConfiguration('ddqTemplate').get<string>('ddqPath')
         );
         const version = versionOf(await run(command, ['--version'], folder));
-        const list = await runJson<TagList>(command, ['tag', 'list', folder, '--json'], folder);
+        const list = await runJson(command, ['tag', 'list', folder, '--json'], folder, parseTagList);
         if (!latest()) return;
         current.list = list;
         post({ type: 'list', list, version });
@@ -340,11 +341,7 @@ async function newRevision(resource?: vscode.Uri) {
         vscode.workspace.getConfiguration('ddqTemplate').get<string>('ddqPath')
     );
     try {
-        const next = await runJson<{ rev: string; base: string | null; drafts: string[] }>(
-            command,
-            ['rev', 'next', folder, '--json'],
-            folder
-        );
+        const next = await runJson(command, ['rev', 'next', folder, '--json'], folder, parseRevNext);
         let base = next.base ?? undefined;
         if (!base) {
             base = await vscode.window.showInputBox({
