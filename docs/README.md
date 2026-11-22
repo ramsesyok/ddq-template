@@ -35,6 +35,7 @@
 | `design/analysis/table-pagination.md` | 検証の記録 | 自動分割表のページ通番修正の検証 | 比較元 `dca4f12`、2026-10-22 | — |
 | `refactoring-plan.md` | 計画 | アーキテクチャレビューとリファクタリング計画（承認済み） | `17ed32e`（3.1.0-pre1）、2026-11-22 | 実施の記録は `refactoring-progress.md` |
 | `refactoring-progress.md` | 実施の記録 | 上の計画の ID ごとの実装状況・試験と結果・計画からの逸脱・残存リスク | `17ed32e` からの作業、2026-11-22 | — |
+| `release-ci-proposal.md` | 検討書（承認済み） | 配布候補の作成を GitHub Actions に移す案（REL-02・CI-01 の残り） | 3.1.0-pre1、2026-11-22 | 計画 §7 に追記した。現行の手順は利用マニュアル 18 章と `cli/DESIGN.md` §7.5・§7.6 |
 
 ## 検討書で決めて、いまも有効な判断
 

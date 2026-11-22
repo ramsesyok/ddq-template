@@ -3,6 +3,8 @@
 配る一式は `ddq release` で作る。マニュアルのビルド・VSCode 拡張のパッケージ（`ddq.exe` の同梱）から
 zip 化までを 1 コマンドで行うので、**ビルド順（PDF → HTML）の間違い**や入れ忘れが起きない。
 `ddq` 自身がリリースに入るので、先に release ビルドしておく。
+**正式に配る一式は、同じ `ddq release` を CI が実行して作る**（@sec-release-publish）。手元の `ddq release` は、
+出力を確かめるための試作に使う。
 
 ```bat
 :: このリポジトリのルートで実行する
@@ -38,6 +40,7 @@ ddq.exe 入りの VSIX を作る）。
 前回の zip が同じ名前で残って正しい一式に見える。このとき `ddq release` は
 「前回の一式と入れ替える途中で失敗しました」と表示し、消すもの（その版のフォルダ・zip・VSIX）を並べて止まる。
 原因（zip を開いているプログラムなど）を取り除き、並んだものを消してからもう一度実行する。
+手元の出力は配らないので、前回の一式が失われても配布には影響しない。
 
 ```text
 quarto-template-<版>/
@@ -99,18 +102,35 @@ python cli/tools/third_party.py
 - `template/` を直したあと `cargo build` を忘れると、古い機構ファイルを内蔵した exe が
   リリースに入る。`cargo build` は `template/` の変更を検知して再ビルドするが、
   実行するのは保守者である。
+- 手元の出力は `python cli/tools/check_release.py release` で、CI と同じ照合を流せる（ZIP と VSIX の中身、
+  日本語名の UTF-8 名フラグ、ライセンス表示、PDF の書体）。`--smoke <作業フォルダ>` を付けると、ZIP から
+  取り出した exe で init → pdf → html も通す。
 
 ## リリースを配る {#sec-release-publish}
 
-`main` にマージし、**マージ後の `main` からリリースを作り直してから**タグを打つ
-（タグの指すコミットと配布物を一致させるため）。
+配る ZIP と VSIX は手元で作らず、**CI の配布候補**（`.github/workflows/release-candidate.yml`）から取る。
+`main` に入ると（配布物に入るファイルが変わったとき）、Windows のランナーが ddq.exe をビルドし、その exe の
+`ddq release` で一式を作る。別のランナーで ZIP（取り出した exe で init → pdf → html）と VSIX（配る VSIX
+そのもので VSCode を起動）を検査し、**すべて通った実行にだけ**成果物 `release-<版>`（ZIP・VSIX・SHA-256 の一覧・
+使った版の一覧）が残る。手動で起動するときは `gh workflow run release-candidate --ref main`
+（サンプルを同梱するなら `-f with_sample=true`）。
 
 ```bash
+# main の、すべてのジョブが通った実行を選ぶ
+gh run list --workflow release-candidate --branch main
+gh run download <実行の番号> -n release-3.1.0-pre1 -D release
+(cd release && sha256sum -c SHA256SUMS.txt)
+# 下書きで作り、資産がそろったのを確かめてから公開する（読み手には一式が一度に見える）
 gh release create v3.1.0-pre1 "release/quarto-template-3.1.0-pre1.zip" "release/ddq-template-win32-x64-3.1.0-pre1.vsix" \
-  --target main \
+  --draft --target <その実行のコミット> \
   --title "v3.1.0-pre1 — （変更の要約）" \
   --notes-file <リリースノートのファイル>
+gh release edit v3.1.0-pre1 --draft=false
 ```
+
+- **タグは実行のコミットに付ける**（`--target`。`release/versions.txt` の `commit:`）。タグの指すコミットと配布物が一致する。
+- CI は公開済みのリリースにもタグにも書き込まない。公開とタグは保守者が行う。
+- 成果物は 90 日で消える。公開したリリースの資産が正の記録になる。
 
 - タグは `v<版>`（`template/VERSION` と揃える）。
 - **VSIX と ZIP を、別々の資産として添付する。** 執筆者・発行者は VSIX を VSCode に入れ、

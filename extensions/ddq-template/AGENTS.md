@@ -145,7 +145,7 @@ npm run test:host   # 実拡張ホストで一覧・書き戻し・Undo・改訂
 
 配布する VSIX は ddq.exe を同梱したもの（`npm run package:win32-x64`。`bin/win32-x64/ddq.exe` は
 `ddq release` がコピーする。git 管理外）。同梱版は `npm run test:smoke` で、展開した VSIX の中身のまま
-init → html を通して確かめる（CI では ci.yml の vsix-smoke。main への push と手動実行のみ）。
+init → html を通して確かめる（CI では release-candidate.yml の verify-vsix が、配る VSIX そのもので。main への push と手動実行）。
 
 `test:host` の VSCode は「インストール済み → 無ければ `@vscode/test-electron` で取得」、
 ddq は「ビルド済み → 無ければ golden を返す差し替え」の順に決まる（CI は ddq をビルドし、

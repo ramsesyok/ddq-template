@@ -98,9 +98,9 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | REL-03 | 検証済 | `1051dbc` | 単体、実 exe の release 試験、新旧の比較、変異 9 か所 | 成功 |
 | CI-02 | 検証済 | `1051dbc` | 模擬の監査結果・実ビルド、実 `npm audit`、変異 7 か所、PR の CI | 成功 |
 | REL-01 | 検証済 | `1051dbc` | 実 exe の release 試験、実 vsce、変異 5 か所、配布候補一式 | 成功 |
-| CI-01 | 一部（残りは保留） | `1051dbc` | jar の照合の手元実行、PR の CI | `--locked`・jar の照合・起動対象は成功。配布候補の流れは REL-02 の結論を待つ（2026-11-22 の指示） |
+| CI-01 | 実装済（GitHub 上の試走待ち） | `1051dbc`・この記録と同じコミット | jar の照合の手元実行、PR の CI、配布候補の流れの手元での再現、照合の食い違い 5 つ | `--locked`・jar の照合・起動対象は PR の CI で成功。配布候補の流れ（`release-candidate.yml`）は手元の再現で成功し、GitHub 上ではまだ走っていない（下の「REL-02・CI-01　配布候補の作成を GitHub Actions に移す」） |
 | DOC-01 | 検証済 | `1051dbc` | パスの照合、manual・設計書のビルド | 成功。旧資料は消していない |
-| REL-02 | 一部（暫定。残りは保留） | この記録と同じコミット | 実CLI（`release.rs` の追加 1）、変異 3 か所、Rust 全件、実生成（マニュアル 18 章） | 入れ替えの途中で失敗した回の出力は捨てて作り直す、を表示と文書で明示。退避・復元などの実装は、`ddq release` を GitHub Actions などで置き換えるかとあわせて判断（2026-11-22 の指示） |
+| REL-02 | 実装済（GitHub 上の試走待ち） | `5d76c67`・この記録と同じコミット | 実CLI（`release.rs` の追加 1）、変異 3 か所、Rust 全件、実生成（マニュアル 18 章）、配布候補の流れの手元での再現 | 手元の `ddq release` は、入れ替えの途中で失敗した回の出力を捨てて作り直す（暫定の扱いのまま）。正式に配る一式は CI の配布候補だけ（2026-11-22 承認。計画 §7）。失敗した実行に成果物が残らないことと旧資産のハッシュは試走で確かめる |
 
 ### QA-01　ddq と拡張の契約試験
 
@@ -643,8 +643,10 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   - `EXTENSION_BUNDLED` は third_party.py の行を正規表現で読む。書き方を変えると読めずに失敗する（黙って通りはしない）
   - `docs/ddq-template-impl/` の解析記録（「本番依存の脆弱性検査」）は版付きの記録なので直していない（DOC-01 で索引に注記する）
 
-### CI-01　配布検証の CI（一部。配布候補の流れは保留）
+### CI-01　配布検証の CI（`ddq release` に依らない部分）
 
+- **追記（2026-11-22）**: 配布候補の流れは、REL-02 とあわせて下の「REL-02・CI-01　配布候補の作成を GitHub Actions に移す」で
+  実装した。この節は `1051dbc` の時点の記録で、その後に変わった点は下の節に書く（vsix-smoke は消した）
 - **状況**: **一部実施**。`ddq release` に依らない部分（Cargo の `--locked`、jar の照合、起動対象のパス）だけを入れた。
   Windows 配布候補の作成者を 1 つにし、main・手動で実リリース候補（ZIP＋対象指定 VSIX）を作って検査する部分は、`ddq release` を
   GitHub Actions などで置き換えるか（REL-02）が決まっていないため作っていない（REL-02 の結論を待つ。下の「判断」）
@@ -721,7 +723,8 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 - **状況**: **一部（暫定）**。計画の提案（実行ごとの作業場所で全資産を準備・検査してから公開する、固定の `.building` を共有しない、
   同じ出力先への同時実行を止める、前回の一式を退避・復元する）は実装していない。保証の範囲を「入れ替えの途中で失敗した回の出力は
   配布せずに消して作り直す。前回の一式は守らない」とし、失敗時の表示と文書で明示した。退避・復元などの実装は、`ddq release` を
-  GitHub Actions などで置き換えるかの判断とあわせて決める（保留のまま）
+  GitHub Actions などで置き換えるかの判断とあわせて決める（保留のまま）。→ 2026-11-22、手元では作らず、正式に配る一式は CI が
+  作ると決めた（下の「REL-02・CI-01　配布候補の作成を GitHub Actions に移す」）。手元の扱いはこの節のまま
 - **判断**（2026-11-22 の指示）: 計画どおりなら実装まで要る（提案の欄、完了条件の「保証する範囲（失敗後の旧一式復元／読み手から見た切替）を
   決定」と失敗の種類ごとの旧資産のハッシュの検査、Phase 3d の完了条件「失敗時の旧資産保証」）。「捨てて作り直す」は計画の候補に無く、
   範囲を狭める変更なので判断を求めた。`ddq release` を置き換えるなら、手元に作り込む退避・復元は使われなくなる（Actions は毎回新しい
@@ -781,6 +784,99 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
     VSIX のコピーでの失敗が同じ案内を通ることは、コードで確かめただけ
   - 下の「統合の検証」の release の exe のハッシュと配布候補は、この変更の前のもの。成功したときの出力は変わらないので、配布候補は
     作り直していない（成功の経路は `tests/release.rs` の、ZIP と配布フォルダのバイト一致などの試験が通す）
+
+### REL-02・CI-01　配布候補の作成を GitHub Actions に移す
+
+- **状況**: **実装済（GitHub 上の試走待ち）**。手元で workflow の手順を再現して全ジョブが通った。GitHub のランナーではまだ走って
+  いない（この記録のコミットを PR に push すると、workflow 自身を変えた PR として初めて走る。PR の起動対象は PR 全体の差分で
+  判定されるので、この PR が開いている間は push のたびに走る）
+- **判断**（2026-11-22 の指示「推奨どおり」）: 検討書 `docs/release-ci-proposal.md` §2 をすべて推奨どおりに決めた。計画 §7 の表に
+  1 行足した（本文のほかの箇所は変えていない）
+  1. 公開は保守者の手作業のまま（CI はリリースにもタグにも書き込まない。計画 §7「自動公開は含めない」のとおり）
+  2. 梱包は CI から今の `ddq release` を呼ぶ（版・ライセンス表示の照合、ZIP の UTF-8 名フラグと読み直しは試験済みのものを使う）
+  3. 走らせるのは main への push と手動実行（PR で毎回走らせるかは、試走で所要時間を測ってから）
+  4. ci.yml の vsix-smoke は新しい workflow に移して消す。extension.yml の通常 VSIX の artifact（`package`）は残す
+  5. 正式に配る一式は CI の成果物だけ。手元の `ddq release` は試作・確認用（途中で失敗した回は捨てて作り直す。上の節）
+- **REL-02 の保証の範囲**: 公開に使えるのは、すべての検査に通った 1 回の実行の `release-<版>` だけ。失敗した実行には
+  `release-<版>` ができない。CI は公開済みの資産に触れない。読み手には、保守者が下書きのリリースを公開した時点で一式が一度に見える
+- **変更ファイル**
+  - `.github/workflows/release-candidate.yml`（新規）: 起動は main への push（配布物に入るもの: `cli/`・`template/`・
+    `extensions/ddq-template/`・`docs/manual/`・`README.md`・`AGENT-GUIDE.md`・`LICENSE`・`THIRD-PARTY-NOTICES.md`、と書体の手順・
+    workflow 自身）、手動実行（入力 `with_sample` で `--with-sample`）、workflow 自身・照合の処理・書体の手順を変えた PR。
+    `permissions: contents: read`、同じブランチの実行は `concurrency` で 1 つずつ（打ち切らない）。ジョブは 4 つ
+    - `build`（Windows）: `cargo build --release --locked` → その exe で `ddq release <RUNNER_TEMP>/out` → `check_release.py` で照合し
+      SHA-256 の一覧を作る。使った版の一覧 `versions.txt`（コミット・実行・ランナーのイメージ・ddq・Quarto・Node／npm・Edge・書体）も
+      作る。ZIP・VSIX・2 つの一覧を `candidate`（保存 1 日）として渡す
+    - `verify-zip`（Windows。別のランナー）: SHA-256 を照合し、`check_release.py --smoke` で ZIP を照合して、取り出した exe で
+      `init --no-render` → `pdf` → `html` を通す
+    - `verify-vsix`（Windows。別のランナー）: SHA-256 を照合し、配る VSIX そのもので `npm run test:smoke -- <VSIX>`（旧 vsix-smoke の役目）
+    - `publishable`（Linux）: 3 つがすべて通ったら SHA-256 を照合し、同じ 4 つを `release-<版>`（保存は既定の 90 日）として残す
+  - `.github/actions/jp-fonts/action.yml`（新規。composite）: `template/lib.typ` の本文・等幅の最初の候補（Meiryo UI・BIZ UDGothic。
+    `check_release.py --expected-fonts` が lib.typ から読む）が `quarto typst fonts` に出るかを見て、無ければ Windows の日本語の
+    追加フォント（`Language.Fonts.Jpan`）を dism で入れる。入れても見えなければ失敗する。`build` と `verify-zip` が使う
+  - `cli/tools/check_release.py`（新規。標準ライブラリだけ）: `ddq release` の出力先を照合する。ZIP の CRC、全項目が
+    `quarto-template-<版>/` の下、日本語名に UTF-8 名フラグ、exe は `ddq.exe` だけ、必須のファイル（ddq.exe・はじめかた.pdf・README・
+    AGENT-GUIDE・LICENSE・ライセンス表示・manual の PDF と HTML）、ライセンス表示がリポジトリ直下と同じ、jar・VSIX が無い、`docs/` は
+    `--with-sample` のときだけ、配布フォルダがあれば ZIP と名前・中身が同じ、`--exe` と ZIP の exe が同じ、2 つの PDF に求める書体が
+    埋め込まれている。VSIX は CRC、exe とライセンス表示が ZIP と同じ、manifest の版と TargetPlatform。ほかに `--sums`（SHA-256 の一覧）、
+    `--smoke`（取り出した exe で init → pdf → html と、その PDF の書体）、`--expected-fonts`。手元でも同じものを流せる
+  - `.github/workflows/ci.yml`: vsix-smoke を消した。push の起動対象を pull_request と同じにした（`extensions/ddq-template/**` は
+    vsix-smoke のためだった。`cargo test` が読む拡張のファイルは残る）。`cli` ジョブの `ddq-windows-x64` の artifact はそのまま
+  - `cli/DESIGN.md` §3.2・§7.5・§7.6、利用マニュアル 18 章（`06-release.qmd`。「リリースを配る」を CI の成果物から取る手順に
+    書き換え、`check_release.py` を足した）、`extensions/ddq-template/AGENTS.md`（vsix-smoke の記述）、`docs/README.md`（索引に検討書）、
+    `docs/refactoring-plan.md` §7、`docs/release-ci-proposal.md`（新規。検討書）
+  - `cli/src/commands/release.rs`・`cli/tests/release.rs`: コメントだけ（REL-02 の「保留中」を、正式に配る一式は CI が作る、に）
+- **試験と結果**（どれも手元。GitHub 上ではまだ走っていない）
+  - `check_release.py` を、統合の検証の検証用リポジトリの出力（`ddq release --no-build`）に流してすべて OK。作った一覧で
+    `sha256sum -c` も OK。わざと食い違わせた 5 つ（`lib.typ` の本文の最初の候補を PDF に無い書体に、リポジトリ直下のライセンス表示を
+    ZIP と違うもの（`url` の更新の後の版）に、サンプルの無い出力を `--with-sample` で照合、debug の exe を `--exe` に、配布フォルダの
+    README に 1 行足す）は、それぞれ NG を出して exit 1。その後で直した照合の処理（表示の文言と `--expected-fonts`）は、下の再現で流した
+  - workflow を js-yaml で読み、ジョブと手順の数を確認: ci.yml は cli 17・mermaid-bundle 6（vsix-smoke が消えた）、
+    release-candidate.yml は build 12・verify-zip 6・verify-vsix 8・publishable 3。extension.yml は変えていない
+  - **手元での再現**（作業ツリーの写し（追跡中と、無視しない未追跡のファイル）で、各ジョブの手順を順に流した。pwsh の手順
+    （書体・使った版）は YAML から取り出し、GitHub と同じく `$ErrorActionPreference = 'stop'` を付けてそのまま実行。exe は
+    同じ作業ツリーの release ビルド）: **全ジョブ成功**
+    - 書体: Meiryo UI・BIZ UDGothic が Typst から見える（手元には入っているので dism の経路は通らない）
+    - 使った版: ddq 3.1.0-pre1、Quarto 1.9.38、Node v24.18.0／npm 11.13.0（CI は Node 22）、Edge 158.0.4370.33
+    - `ddq release`（`--no-build` なし。マニュアルの update → pdf → html、拡張の `npm ci` と梱包を含む）: 約 1 分で成功。
+      配布用マニュアルは、書き換えた 18 章を含めてこの中で作られた
+    - 照合: ZIP 50 件の CRC、日本語名 2 件に UTF-8 名フラグ、配布フォルダと ZIP が名前・中身とも同じ、ZIP の exe が入力の exe と同じ、
+      はじめかた.pdf と利用マニュアルの PDF に MeiryoUI と BIZ-UDGothic（太字を含む）が埋め込まれている、VSIX 14 件の CRC・exe と
+      ライセンス表示が ZIP と同じ・版 3.1.0-pre1・win32-x64
+    - verify-zip: SHA-256 の照合、取り出した exe で init → pdf → html がすべて exit 0。init した文書の PDF にも同じ書体、HTML 8 ページ
+    - verify-vsix: 配る VSIX そのもので `test:smoke` 成功（設定・PATH なしで同梱の ddq に決まる、init、html）
+    - publishable: SHA-256 の照合 OK
+  - **再現で見つけて直したこと**: `quarto typst fonts` は一覧を標準エラーに出すので、最初の版の書体の手順は一覧を受け取れず、
+    書体が無いと判断して dism を呼んだ（手元は管理者でないので exit 740 で止まった）。`cmd /c "quarto typst fonts 2>&1"` で受け取る形に
+    直し、pwsh の手順はどちらも出力を UTF-8 で読むようにした
+  - `cargo fmt --check` 成功（Rust はコメントだけの変更なので、全件は流し直していない）。release の exe を作り直した:
+    SHA-256 `da5b016e40518628147fbcdd40581a372a258595a4a817e159ed7edd50686ebc`
+- **手元の再現で確かめていないこと**（最初の試走で確かめる）
+  - ランナーに書体が無いときの dism（能力名が通るか、所要時間）と、ランナーで作った PDF に求める書体が埋め込まれること
+  - ランナーの Edge で描く manual の mermaid の図（手元の Edge 158 の SVG と比べる。違えば `DDQ_MERMAID_ENGINE` か、差を受け入れるか）
+  - actions（checkout・キャッシュ・artifact の受け渡し）、`concurrency`、ジョブごとの所要時間
+  - わざと失敗させた実行に `release-<版>` が残らないこと、その前後で公開済みの v3.1.0-pre1 の資産のハッシュが変わらないこと
+    （計画の完了条件「失敗の種類ごとの旧資産のハッシュ」）
+  - 手動実行（`with_sample` を含む）。`workflow_dispatch` は workflow が main に入るまで起動できない
+- **計画からの逸脱**
+  - 計画の REL-02 の提案（実行ごとの作業場所・`.building` を共有しない・同時実行の制御・退避と復元）は手元の `ddq release` には
+    作らず、CI のランナー（毎回新しい）と `concurrency`、検査の後にだけ残す `release-<版>` で満たす形にした（計画 §7 の追記で承認）
+  - 完了条件の旧資産のハッシュの検査は、まだしていない（上の「確かめていないこと」）
+  - workflow 自身・照合の処理・書体の手順を変えた PR でも走らせる（最初の試走のため。計画 CI-01 の「PR は高速試験」の例外。
+    検討書 §6）
+- **戻す方法**: `release-candidate.yml`・`.github/actions/jp-fonts/`・`check_release.py` を消し、ci.yml の vsix-smoke と push の
+  起動対象を `098aa3a` に戻す。利用マニュアル 18 章の「リリースを配る」を、マージ後の main から手元で作り直してタグを打つ手順に戻す
+- **残存リスク**
+  - GitHub 上ではまだ走っていない（上の「確かめていないこと」）。書体が入らない、図の配置が違う、所要時間が長い、のどれかで
+    手順を足すことになりうる
+  - ci.yml の `cli` ジョブは今も release の exe を `ddq-windows-x64` として残す（読むジョブは無くなった）。公開に使うのは
+    `release-<版>` だけだが、取り違えうる。vsix-smoke が残していた `ddq-template-vsix-win32-x64`（ライセンス表示の無い VSIX）は
+    無くなった。使っていた人がいれば `release-<版>` の VSIX に移ってもらう
+  - 日本語のパスでの確認は手元に残る（ランナーは CP1252）
+  - ランナーのイメージが更新されると、同じコミットでも Edge などの版が変わる（`versions.txt` に残す）
+  - artifact は 90 日で消える。公開したリリースの資産が正の記録になる
+  - 手元の `ddq release` は暫定の扱い（上の節）のまま。ddq.exe から `release` を外すかは、この流れが安定してから別に判断する（検討書 §5）
+  - 計画に残るもの: Phase 4 の人の手で行う検証（受入手順 3・4）、Phase 5／6 の完了レビュー（検討書 §8）
 
 ## 統合の検証（Phase 4）
 
@@ -852,7 +948,8 @@ vsix-smoke は PR では走らない（main への push と手動実行だけ）
   検証用リポジトリで `--no-build` からの梱包を確かめた。通常の経路は `tests/release.rs` の実ビルドの試験（実 Quarto・実 npm、梱包は模擬）が通す
 - `--with-sample` の ZIP、途中失敗からの再実行の手での確認（`tests/release.rs` が見る）
 - OS で通信を遮断した閉域端末、実 LAN の PlantUML サーバ、公開後の資産の再取得、実画面の IME・旧二拡張が同居したときの手操作（計画 §6 の未実施範囲と同じ）
-- CI の vsix-smoke（PR では走らない）と、配布候補を 1 か所で作る流れ（CI-01 の残り。REL-02 の結論を待つ）
+- 配布候補の流れ（`release-candidate.yml`）の GitHub 上での実行（手元で再現しただけ。上の「REL-02・CI-01　配布候補の作成を
+  GitHub Actions に移す」）。旧 ci.yml の vsix-smoke は PR では走らなかったので、この PR の CI では一度も走らせていない（消した）
 
 ## 計画外で見つけた既存の不具合（直していない）
 

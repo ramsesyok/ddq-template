@@ -115,8 +115,9 @@ jar は 3.0.0 から同梱しない）。
 フォルダは今回、zip と VSIX は前回のものが同じ名前で残り、正しい一式に見える。そのため入れ替えの途中で失敗したら、
 `ddq release` は残っている出力（その版のフォルダ・作業フォルダ・zip・VSIX）を並べ、配布せずに消してから再実行するよう表示して止まる
 （`cli/tests/release.rs` の `a_failure_after_the_swap_lists_what_to_discard`）。
-前回の一式を退避して戻す、読み手から見て一度に切り替える、といった保証は作っていない。`ddq release` を GitHub Actions などに
-置き換えるかの判断（`docs/refactoring-plan.md` の REL-02。保留中）とあわせて決める。
+前回の一式を退避して戻す、読み手から見て一度に切り替える、といった保証は手元では作らない。**正式に配る一式は CI が作る**
+（§7.5・§7.6。`docs/refactoring-plan.md` §7、2026-11-22 決定）。CI のランナーは毎回新しく、公開に使う成果物はすべての検査に通った
+実行にだけ残り、公開は保守者が下書きのリリースに載せてから行う。手元の `ddq release` は試作・確認用。
 
 **plantuml.jar は同梱しない（3.0.0 から）**。2.2.0〜3.0.0-pre4 は `cli/vendor/plantuml.jar`（MIT 版）を同梱していたが、PlantUML の版・ライセンス・脆弱性への対応を利用者の組織の判断に任せるため外した。ローカルで描く利用者は PlantUML の公式リリースからjar を取得し、`DDQ_PLANTUML_JAR` か exe の隣に置く（§13.3 の探索順は変えていない）。
 
@@ -425,7 +426,12 @@ cli\target\release\ddq.exe release        # リポジトリのルートで実行
 `ddq release` はカレントに `template/VERSION` と `docs/manual/_quarto.yml` を求めるので、`cli/` の中からは
 実行できない（以前の例は `cli/` のまま実行していた）。
 保守者の端末には Rust に加えて Node.js（20 以上）と npm が要る（VSIX のパッケージ。§3.2）。
-手順の正は利用マニュアル 18 章（`docs/manual/`）。
+手元の出力は `python cli/tools/check_release.py release`（`--smoke <作業フォルダ>` で、取り出した exe の init → pdf → html も）で、
+CI と同じ照合を流せる。
+
+**正式に配る一式は手元で作らず、CI の配布候補（§7.6 の `release-candidate.yml`）の成果物 `release-<版>` を使う。**
+保守者はそれをダウンロードして SHA-256 を照合し、下書きのリリースに載せてから公開する（タグは実行のコミットに付ける）。
+CI は公開済みのリリースにもタグにも書き込まない。手順の正は利用マニュアル 18 章（`docs/manual/`）。
 
 ### 7.6 CI（GitHub Actions, windows-latest）
 
@@ -455,6 +461,19 @@ runner のロケールは変えられない（`Set-WinSystemLocale` は再起動
 
 機構を意図して変えたときは `DDQ_BLESS=1 cargo test --release --test mechanism` で正解を書き直し、
 差分を確かめてからコミットする。
+
+**配布候補（`.github/workflows/release-candidate.yml`）**。main への push（配布物に入るファイルが変わったとき）と手動実行で走る
+（workflow 自身や `cli/tools/check_release.py` を変えた PR でも走る）。
+
+- `build`（Windows）: ddq.exe を `--locked` でビルドし、その exe の `ddq release` で一式を作る。`cli/tools/check_release.py` で
+  照合し、ZIP・VSIX の SHA-256 の一覧と、使った版（ランナー・Quarto・Node・Edge・書体）の一覧を作る
+- `verify-zip`（Windows）: 別のランナーで、ZIP を照合し、取り出した exe で init → pdf → html を通す
+- `verify-vsix`（Windows）: 別のランナーで、配る VSIX そのものを `npm run test:smoke` で起動する（旧 ci.yml の vsix-smoke の役目）
+- `publishable`（Linux）: 上がすべて通ったら、`release-<版>` を残す（公開に使うのはこれだけ）
+
+runner には日本語フォントが無いので、`build` と `verify-zip` は `.github/actions/jp-fonts` で、`template/lib.typ` の本文・等幅の
+最初の候補（Meiryo UI・BIZ UDGothic）が Typst から見えることを確かめ、無ければ Windows の日本語の追加フォント
+（`Language.Fonts.Jpan`）を入れる。PDF に埋め込まれた書体は `check_release.py` が確かめる。
 
 ---
 

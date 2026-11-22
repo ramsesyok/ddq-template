@@ -1,0 +1,195 @@
+# 配布候補（配布 ZIP と、ddq.exe を同梱したターゲット指定の VSIX）を作って検査する。
+# 計画 docs/refactoring-plan.md §7「配布候補の作成を GitHub Actions に移す」（REL-02・CI-01。検討は docs/release-ci-proposal.md）。
+#
+# - build: Windows のランナーで ddq.exe をビルドし、その exe の `ddq release` で一式を作る（マニュアルの
+#   update → pdf → html、拡張の npm ci と梱包、ZIP の作成と読み直し。版とライセンス表示の照合も ddq release が行う）
+# - verify-zip・verify-vsix: 別の新しいランナーで、同じ ZIP・VSIX を検査する
+# - publishable: すべて通った実行にだけ `release-<版>` を残す。公開に使うのはこれだけ
+#
+# CI は公開済みのリリースにもタグにも書き込まない（permissions: contents: read）。公開とタグは保守者が行う
+# （利用マニュアル 18 章「リリースを配る」）。手元の `ddq release` は試作・確認用。
+name: release-candidate
+
+on:
+  push:
+    branches: [main]
+    # 配布物に入るものと、ここで使うもの
+    paths:
+      - cli/**
+      - template/**
+      - extensions/ddq-template/**
+      - docs/manual/**
+      - README.md
+      - AGENT-GUIDE.md
+      - LICENSE
+      - THIRD-PARTY-NOTICES.md
+      - .github/actions/jp-fonts/**
+      - .github/workflows/release-candidate.yml
+  # この workflow 自身や照合の処理を変えた PR でだけ走らせる（手動実行は main に入るまで使えないので、その試走のため。
+  # PR で毎回走らせるかは所要時間を見て決める）
+  pull_request:
+    paths:
+      - cli/tools/check_release.py
+      - .github/actions/jp-fonts/**
+      - .github/workflows/release-candidate.yml
+  workflow_dispatch:
+    inputs:
+      with_sample:
+        description: サンプル文書（examples/docs）を docs/ として同梱する（ddq release --with-sample）
+        type: boolean
+        default: false
+
+# 同じブランチの実行は 1 つずつ（打ち切らずに待たせる）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SAMPLE_ARG: ${{ inputs.with_sample && '--with-sample' || '' }}
+
+jobs:
+  build:
+    name: 配布候補を作る
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: version
+        shell: bash
+        run: echo "version=$(tr -d '[:space:]' < template/VERSION)" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+      # 手元の検証環境と同じ版（ci.yml・extension.yml と同じ）
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.9.38
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: extensions/ddq-template/package-lock.json
+      - uses: ./.github/actions/jp-fonts
+      - name: ddq をビルド
+        working-directory: cli
+        run: cargo build --release --locked
+      - name: 使った版を書く
+        shell: pwsh
+        run: |
+          [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
+          $out = Join-Path $env:RUNNER_TEMP 'out'
+          New-Item -ItemType Directory -Force $out | Out-Null
+          $edge = (Get-Item "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" -ErrorAction SilentlyContinue).VersionInfo.ProductVersion
+          @(
+            "commit: $env:GITHUB_SHA"
+            "run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID (attempt $env:GITHUB_RUN_ATTEMPT)"
+            "runner: $env:ImageOS $env:ImageVersion"
+            "ddq: $(./cli/target/release/ddq.exe --version)"
+            "quarto: $(quarto --version)"
+            "node: $(node --version) / npm: $(npm --version)"
+            "edge: $edge"
+            "fonts: $((python cli/tools/check_release.py --expected-fonts) -join ', ')"
+          ) | Set-Content -Encoding utf8NoBOM (Join-Path $out 'versions.txt')
+          Get-Content (Join-Path $out 'versions.txt')
+      - name: ddq release
+        shell: bash
+        run: cli/target/release/ddq.exe release "$RUNNER_TEMP/out" $SAMPLE_ARG
+      - name: 出力を照合し、SHA-256 の一覧を作る
+        shell: bash
+        run: python cli/tools/check_release.py "$RUNNER_TEMP/out" --exe cli/target/release/ddq.exe --sums "$RUNNER_TEMP/out/SHA256SUMS.txt" $SAMPLE_ARG
+      - uses: actions/upload-artifact@v4
+        with:
+          name: candidate
+          retention-days: 1
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/out/quarto-template-${{ steps.version.outputs.version }}.zip
+            ${{ runner.temp }}/out/ddq-template-win32-x64-${{ steps.version.outputs.version }}.vsix
+            ${{ runner.temp }}/out/SHA256SUMS.txt
+            ${{ runner.temp }}/out/versions.txt
+
+  verify-zip:
+    name: ZIP を検査する
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.9.38
+      - uses: ./.github/actions/jp-fonts
+      - uses: actions/download-artifact@v4
+        with:
+          name: candidate
+          path: ${{ runner.temp }}/out
+      - name: SHA-256 の一覧と照合
+        shell: bash
+        working-directory: ${{ runner.temp }}/out
+        run: sha256sum -c SHA256SUMS.txt
+      # 取り出した exe で init → pdf → html。ランナーは CP1252 で日本語のパスを作れないので、日本語のパスでの確認は手元で行う
+      - name: ZIP の照合と、取り出した exe での init → pdf → html
+        shell: bash
+        run: python cli/tools/check_release.py "$RUNNER_TEMP/out" --smoke "$RUNNER_TEMP/smoke" $SAMPLE_ARG
+
+  verify-vsix:
+    name: VSIX を検査する
+    needs: build
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: extensions/ddq-template
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: extensions/ddq-template/package-lock.json
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.9.38
+      - uses: actions/download-artifact@v4
+        with:
+          name: candidate
+          path: ${{ runner.temp }}/out
+      - name: SHA-256 の一覧と照合
+        shell: bash
+        working-directory: ${{ runner.temp }}/out
+        run: sha256sum -c SHA256SUMS.txt
+      - run: npm ci
+      - name: 検証用の VSCode をキャッシュ
+        uses: actions/cache@v4
+        with:
+          path: extensions/ddq-template/.vscode-test
+          key: vscode-test-${{ runner.os }}
+      # 配る VSIX そのものを展開して VSCode を起動し、設定・PATH なしで同梱の ddq に決まること、init → html を確かめる
+      - name: 同梱版のスモーク
+        shell: bash
+        run: npm run test:smoke -- "$RUNNER_TEMP/out/ddq-template-win32-x64-${{ needs.build.outputs.version }}.vsix"
+
+  publishable:
+    name: 公開に使う一式を残す
+    needs: [build, verify-zip, verify-vsix]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: candidate
+          path: out
+      - name: SHA-256 の一覧と照合
+        working-directory: out
+        run: sha256sum -c SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ needs.build.outputs.version }}
+          if-no-files-found: error
+          path: |
+            out/quarto-template-${{ needs.build.outputs.version }}.zip
+            out/ddq-template-win32-x64-${{ needs.build.outputs.version }}.vsix
+            out/SHA256SUMS.txt
+            out/versions.txt

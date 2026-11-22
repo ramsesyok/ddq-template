@@ -135,7 +135,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     };
     // 3) 前回の一式と入れ替え、zip を作り、VSIX を隣に置く（zip には入れない。リリースページの
     //    別資産）。ここから先の失敗では前回の一式を守らない。フォルダ・zip・VSIX が前回と今回で
-    //    混ざるので、捨てるものを示して止まる（REL-02。退避・復元は `ddq release` の今後とともに判断する）
+    //    混ざるので、捨てるものを示して止まる（REL-02。正式に配る一式は CI が作るので、手元では退避・復元を作らない）
     let zip_path = out_root.join(format!("{name}.zip"));
     let mut vsix_names: Vec<String> = Vec::new();
     for vsix in &vsixes {
@@ -185,7 +185,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
 }
 
 /// 前回の一式と入れ替える途中で失敗したときの案内。`outputs` のうち残っているものを並べる。
-/// 失敗した回の出力は配らずに捨てて作り直す、が保証の範囲（REL-02 の保留中の扱い。cli/DESIGN.md §3.2）
+/// 失敗した回の出力は配らずに捨てて作り直す、が保証の範囲（REL-02。正式に配る一式は CI が作る。cli/DESIGN.md §3.2）
 fn discard_notice(outputs: &[PathBuf]) -> String {
     let mut s = String::from(
         "前回の一式と入れ替える途中で失敗しました。前回の一式は守っていないので、この版の出力は前回と今回の分が混ざっています。\
