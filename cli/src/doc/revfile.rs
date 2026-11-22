@@ -125,8 +125,15 @@ pub fn load_all(dir: &Path) -> Result<Vec<(std::path::PathBuf, Revision)>> {
 
 /// 1 ファイルを読む。
 pub fn load(path: &Path) -> Result<Revision> {
-    let text = fs::read_to_string(path).with_context(|| format!("{} を読めません", path.display()))?;
-    let mut rev = parse(&text);
+    let bytes = fs::read(path).with_context(|| format!("{} を読めません", path.display()))?;
+    from_bytes(path, &bytes)
+}
+
+/// 読んだバイト列から（`path` はエラーの表示と、改訂記号の書き忘れをファイル名から拾うのに使う）。
+pub fn from_bytes(path: &Path, bytes: &[u8]) -> Result<Revision> {
+    let text = std::str::from_utf8(bytes)
+        .with_context(|| format!("{} を読めません（UTF-8 ではない）", path.display()))?;
+    let mut rev = parse(text);
     if rev.rev.is_empty() {
         // 書き忘れてもファイル名から拾う（rev-C.yml → C）
         rev.rev = path

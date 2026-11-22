@@ -9,15 +9,18 @@
 //! 出し、人が直した候補を自分で `WorkspaceEdit` として当てる（Undo が効くため）。
 //! CLI 単体で使うときは `apply` がファイルを書く。
 
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::BTreeMap, fs, path::Path};
 
 use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 
-use crate::doc::{
-    self, labels,
-    labels::apply_to_line,
-    units::{Edit, Item},
+use crate::{
+    doc::{
+        self, labels,
+        labels::apply_to_line,
+        units::{Edit, Item},
+    },
+    replace,
 };
 
 /// `tag list` — 一覧を出す。
@@ -46,13 +49,39 @@ pub fn apply(dir: &Path, from: Option<&Path>, dry_run: bool) -> Result<()> {
         return Ok(());
     }
 
-    // ファイルごとに、行番号の大きい順に当てる（同じ行なら後ろの桁から）。
-    let mut by_file: HashMap<String, Vec<Edit>> = HashMap::new();
+    let plan = plan(&doc, edits)?;
+    let changed: usize = plan.iter().map(|p| p.edits.len()).sum();
+    if dry_run {
+        for p in &plan {
+            for e in p.edits.iter().rev() {
+                println!("  {}:{} に `{}` を挿入", p.rel, e.line, e.insert.trim());
+            }
+        }
+        println!("（--dry-run）{changed} 件を書き戻せます");
+        return Ok(());
+    }
+    write_all(dir, &doc, &plan)?;
+    println!("{changed} 件のラベルを書き戻しました");
+    Ok(())
+}
+
+/// 1 ファイル分の書き戻し。
+struct Planned {
+    rel: String,
+    /// 当てる順（行番号の大きい順。同じ行なら後ろの桁から）
+    edits: Vec<Edit>,
+    /// 当てた後の行（BOM は含まない。CR は行の末尾に残る）
+    lines: Vec<String>,
+}
+
+/// 書き戻した後の各ファイルの中身を、どれも書く前に全部決める。ファイルはパスの順。
+fn plan(doc: &doc::Doc, edits: Vec<Edit>) -> Result<Vec<Planned>> {
+    let mut by_file: BTreeMap<String, Vec<Edit>> = BTreeMap::new();
     for e in edits {
         by_file.entry(e.file.clone()).or_default().push(e);
     }
 
-    let mut changed = 0usize;
+    let mut out = Vec::new();
     for (rel, mut list) in by_file {
         list.sort_by_key(|e| (std::cmp::Reverse(e.line), std::cmp::Reverse(e.col)));
         let mut lines = doc
@@ -71,21 +100,73 @@ pub fn apply(dir: &Path, from: Option<&Path>, dry_run: bool) -> Result<()> {
                 next.push('\r');
             }
             lines[e.line - 1] = next;
-            changed += 1;
         }
-        if dry_run {
-            for e in list.iter().rev() {
-                println!("  {rel}:{} に `{}` を挿入", e.line, e.insert.trim());
-            }
-        } else {
-            fs::write(dir.join(&rel), lines.join("\n")).with_context(|| format!("{rel} を書けません"))?;
+        out.push(Planned {
+            rel,
+            edits: list,
+            lines,
+        });
+    }
+    Ok(out)
+}
+
+const BOM: &[u8] = b"\xEF\xBB\xBF";
+
+/// 書く直前に対象を全部読み直し、走査したときと同じ中身か（と読み取り専用でないか）を確かめてから
+/// 1 ファイルずつ置き換える（IO-01）。
+/// - 1 つでも変わっていれば、どれも書かずに止める（どのファイルかを挙げる）
+/// - 置き換えの途中で失敗したら、そこで止め、書き換えたファイルと書き換えていないファイルを挙げる
+/// - BOM は書く直前のファイルのまま。改行（CRLF / LF）と末尾の改行の有無は行ごとに元のまま
+fn write_all(dir: &Path, doc: &doc::Doc, plan: &[Planned]) -> Result<()> {
+    let mut blocked = Vec::new();
+    let mut boms = Vec::new();
+    for p in plan {
+        let path = dir.join(&p.rel);
+        let now = fs::read(&path).ok();
+        let bom = now.as_deref().is_some_and(|b| b.starts_with(BOM));
+        let scanned = doc.lines.get(&p.rel).map(|l| l.join("\n"));
+        let same = now
+            .as_deref()
+            .and_then(|b| std::str::from_utf8(b.strip_prefix(BOM).unwrap_or(b)).ok())
+            .is_some_and(|t| Some(t) == scanned.as_deref());
+        if !same {
+            blocked.push(format!("  {}: 読み込んだあとに変わっています", p.rel));
+        } else if fs::metadata(&path).is_ok_and(|m| m.permissions().readonly()) {
+            blocked.push(format!("  {}: 読み取り専用です", p.rel));
         }
+        boms.push(bom);
+    }
+    if !blocked.is_empty() {
+        bail!(
+            "書き戻せないファイルがあるため、どのファイルも書き換えていません（ラベル 0 件）\n{}\n\
+             ファイルを確かめてから、もう一度実行してください",
+            blocked.join("\n")
+        );
     }
 
-    if dry_run {
-        println!("（--dry-run）{changed} 件を書き戻せます");
-    } else {
-        println!("{changed} 件のラベルを書き戻しました");
+    let mut done: Vec<String> = Vec::new();
+    for (i, (p, bom)) in plan.iter().zip(boms).enumerate() {
+        let mut bytes = if bom { BOM.to_vec() } else { Vec::new() };
+        bytes.extend_from_slice(p.lines.join("\n").as_bytes());
+        if let Err(e) = replace::replace(&dir.join(&p.rel), &bytes) {
+            let n: usize = plan[..i].iter().map(|p| p.edits.len()).sum();
+            let rest: Vec<&str> = plan[i..].iter().map(|p| p.rel.as_str()).collect();
+            return Err(e.context(format!(
+                "{} を書き換えられないため、途中で止めました（{n} 件のラベルを書き戻しました）\n\
+                 \x20 書き換えたファイル: {}\n\
+                 \x20 書き換えていないファイル: {}\n\
+                 原因を取り除いてから、もう一度実行してください（--all なら残りだけを書き戻します。\
+                 --from のときは tag list を取り直してください）",
+                p.rel,
+                if done.is_empty() {
+                    "なし".to_string()
+                } else {
+                    done.join(", ")
+                },
+                rest.join(", ")
+            )));
+        }
+        done.push(format!("{}（{} 件）", p.rel, p.edits.len()));
     }
     Ok(())
 }
@@ -252,5 +333,162 @@ fn print_table(doc: &doc::Doc, unlabeled_only: bool) {
     );
     if n > 0 && !unlabeled_only {
         println!("書き戻すには: ddq tag apply <執筆フォルダ> --all");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// BOM＋CRLF＋末尾の改行あり・LF で末尾の改行なし・ふつうの LF の 3 ファイル。
+    fn folder() -> tempfile::TempDir {
+        let tmp = tempfile::tempdir().unwrap();
+        let w = |rel: &str, bytes: &[u8]| fs::write(tmp.path().join(rel), bytes).unwrap();
+        w(
+            "_quarto.yml",
+            b"project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - a.qmd\n    - b.qmd\n",
+        );
+        w("index.qmd", "\u{feff}# 前書き\r\n\r\n本文\r\n".as_bytes());
+        w("a.qmd", "# 章A\n\n本文".as_bytes());
+        w("b.qmd", "# 章B\n".as_bytes());
+        tmp
+    }
+
+    fn planned(dir: &Path) -> (doc::Doc, Vec<Planned>) {
+        let doc = doc::scan_folder(dir).unwrap();
+        let edits = doc.items.iter().filter_map(|i| i.edit.clone()).collect();
+        let plan = plan(&doc, edits).unwrap();
+        (doc, plan)
+    }
+
+    fn read(dir: &Path, rel: &str) -> Vec<u8> {
+        fs::read(dir.join(rel)).unwrap()
+    }
+
+    fn files(dir: &Path) -> Vec<Vec<u8>> {
+        ["a.qmd", "b.qmd", "index.qmd"]
+            .iter()
+            .map(|f| read(dir, f))
+            .collect()
+    }
+
+    /// 一時ファイル（.ddq-*.tmp）が残っていない。
+    fn no_temporary_files(dir: &Path) {
+        let left: Vec<String> = fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with(".ddq-"))
+            .collect();
+        assert!(left.is_empty(), "{left:?}");
+    }
+
+    #[test]
+    fn keeps_the_bom_line_endings_and_the_final_newline() {
+        let tmp = folder();
+        let (doc, plan) = planned(tmp.path());
+        let order: Vec<&str> = plan.iter().map(|p| p.rel.as_str()).collect();
+        assert_eq!(order, ["a.qmd", "b.qmd", "index.qmd"], "パスの順に書く");
+        write_all(tmp.path(), &doc, &plan).unwrap();
+
+        let index = read(tmp.path(), "index.qmd");
+        assert!(index.starts_with(BOM), "BOM が落ちた");
+        let index = String::from_utf8(index[BOM.len()..].to_vec()).unwrap();
+        assert!(
+            index.starts_with("# 前書き {#sec-") && index.ends_with("}\r\n\r\n本文\r\n"),
+            "{index:?}"
+        );
+        let a = String::from_utf8(read(tmp.path(), "a.qmd")).unwrap();
+        assert!(a.starts_with("# 章A {#sec-") && a.ends_with("}\n\n本文"), "{a:?}");
+        let b = String::from_utf8(read(tmp.path(), "b.qmd")).unwrap();
+        assert!(b.starts_with("# 章B {#sec-") && b.ends_with("}\n"), "{b:?}");
+        no_temporary_files(tmp.path());
+    }
+
+    #[test]
+    fn a_file_changed_after_scanning_stops_every_write() {
+        let tmp = folder();
+        let (doc, plan) = planned(tmp.path());
+        // 走査の後に、エディタなどで b.qmd が保存された
+        fs::write(tmp.path().join("b.qmd"), "# 章B\n\n追記\n").unwrap();
+        let before = files(tmp.path());
+
+        let err = format!("{:#}", write_all(tmp.path(), &doc, &plan).unwrap_err());
+        assert!(
+            err.contains("どのファイルも書き換えていません（ラベル 0 件）"),
+            "{err}"
+        );
+        assert!(err.contains("  b.qmd: 読み込んだあとに変わっています"), "{err}");
+        assert!(!err.contains("a.qmd:") && !err.contains("index.qmd:"), "{err}");
+        // パスの順で前にある a.qmd も書いていない
+        assert_eq!(files(tmp.path()), before);
+        no_temporary_files(tmp.path());
+    }
+
+    #[test]
+    fn deleted_and_read_only_files_stop_every_write() {
+        let tmp = folder();
+        let (doc, plan) = planned(tmp.path());
+        fs::remove_file(tmp.path().join("b.qmd")).unwrap();
+        let index = tmp.path().join("index.qmd");
+        let mut p = fs::metadata(&index).unwrap().permissions();
+        p.set_readonly(true);
+        fs::set_permissions(&index, p.clone()).unwrap();
+        let a = read(tmp.path(), "a.qmd");
+
+        let err = format!("{:#}", write_all(tmp.path(), &doc, &plan).unwrap_err());
+        assert!(err.contains("  b.qmd: 読み込んだあとに変わっています"), "{err}");
+        assert!(err.contains("  index.qmd: 読み取り専用です"), "{err}");
+        assert_eq!(read(tmp.path(), "a.qmd"), a);
+
+        #[allow(clippy::permissions_set_readonly_false)]
+        p.set_readonly(false);
+        fs::set_permissions(&index, p).unwrap();
+    }
+
+    /// 書き込みの途中で失敗したら、そこで止めて書いたもの・書いていないものを挙げる。
+    /// 原因（ほかのプログラムが開いている）を取り除いてもう一度走査すると、残りだけ書き戻す
+    #[cfg(windows)]
+    #[test]
+    fn a_file_held_open_stops_there_and_a_rerun_finishes_the_rest() {
+        use std::os::windows::fs::OpenOptionsExt;
+        const FILE_SHARE_READ: u32 = 1;
+
+        let tmp = folder();
+        let (doc, plan) = planned(tmp.path());
+        let held = fs::OpenOptions::new()
+            .read(true)
+            .share_mode(FILE_SHARE_READ)
+            .open(tmp.path().join("b.qmd"))
+            .unwrap();
+        let before = files(tmp.path());
+
+        let err = format!("{:?}", write_all(tmp.path(), &doc, &plan).unwrap_err());
+        assert!(
+            err.contains("b.qmd を書き換えられないため、途中で止めました（1 件のラベルを書き戻しました）"),
+            "{err}"
+        );
+        assert!(err.contains("  書き換えたファイル: a.qmd（1 件）"), "{err}");
+        assert!(
+            err.contains("  書き換えていないファイル: b.qmd, index.qmd"),
+            "{err}"
+        );
+        assert!(err.contains("を置き換えられません"), "{err}");
+        let after = files(tmp.path());
+        assert_ne!(after[0], before[0], "a.qmd は書き換えた");
+        assert_eq!(after[1..], before[1..], "b.qmd・index.qmd はそのまま");
+        drop(held);
+        no_temporary_files(tmp.path());
+
+        let (doc, plan) = planned(tmp.path());
+        let order: Vec<&str> = plan.iter().map(|p| p.rel.as_str()).collect();
+        assert_eq!(order, ["b.qmd", "index.qmd"]);
+        write_all(tmp.path(), &doc, &plan).unwrap();
+        assert!(
+            doc::scan_folder(tmp.path())
+                .unwrap()
+                .items
+                .iter()
+                .all(|i| i.label.is_some())
+        );
     }
 }

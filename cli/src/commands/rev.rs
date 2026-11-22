@@ -14,12 +14,15 @@ use std::{fs, path::Path};
 use anyhow::{Context, Result, bail};
 use serde::Serialize;
 
-use crate::doc::{
-    diff::{self, Change},
-    gitsrc::Repo,
-    project::{self, Folder},
-    revfile::{self, RevEntry, Revision, next_symbol, symbol_key},
-    units::Warning,
+use crate::{
+    doc::{
+        diff::{self, Change},
+        gitsrc::Repo,
+        project::{self, Folder},
+        revfile::{self, RevEntry, Revision, next_symbol, symbol_key},
+        units::Warning,
+    },
+    replace,
 };
 
 /// 生成物。`index.qmd` から include して使う。
@@ -195,7 +198,15 @@ fn write_revision(
     result: &Diff,
 ) -> Result<std::path::PathBuf> {
     let path = dir.join("revisions").join(format!("rev-{rev}.yml"));
-    let old = path.is_file().then(|| revfile::load(&path)).transpose()?;
+    // 読んだときのバイト列。書く直前に読み直して比べる（IO-01）
+    let before = path
+        .is_file()
+        .then(|| fs::read(&path).with_context(|| format!("{} を読めません", path.display())))
+        .transpose()?;
+    let old = before
+        .as_deref()
+        .map(|b| revfile::from_bytes(&path, b))
+        .transpose()?;
     let date = old
         .as_ref()
         .map(|r| r.date.clone())
@@ -242,8 +253,21 @@ fn write_revision(
     }
 
     fs::create_dir_all(path.parent().unwrap())?;
-    fs::write(&path, revfile::to_yaml(&next)).with_context(|| format!("{} を書けません", path.display()))?;
+    save_revision(&path, before.as_deref(), &revfile::to_yaml(&next))?;
     Ok(path)
+}
+
+/// 読んだときから変わっていなければ（無かったものは無いまま）置き換える。拡張などで保存されて
+/// いたら、人の書いたメモを上書きしないよう書かずに止める（IO-01）。
+fn save_revision(path: &Path, before: Option<&[u8]>, text: &str) -> Result<()> {
+    let now = path.is_file().then(|| fs::read(path).ok()).flatten();
+    if now.as_deref() != before {
+        bail!(
+            "{} は読み込んだあとに変わっています（拡張などで保存した？）。書き換えていません。もう一度実行してください",
+            path.display()
+        );
+    }
+    replace::replace(path, text.as_bytes()).with_context(|| format!("{} を書けません", path.display()))
 }
 
 /// `ddq rev build`
@@ -290,7 +314,8 @@ pub fn build(dir: &Path, check: bool) -> Result<()> {
 
     let path = dir.join(HISTORY);
     fs::create_dir_all(path.parent().unwrap())?;
-    fs::write(&path, history_qmd(&rows)).with_context(|| format!("{} を書けません", path.display()))?;
+    replace::replace(&path, history_qmd(&rows).as_bytes())
+        .with_context(|| format!("{} を書けません", path.display()))?;
     println!("{} を作りました（{} 行）", path.display(), rows.len());
 
     let mut warned = false;
@@ -556,5 +581,27 @@ mod tests {
             gone: false,
         };
         assert_eq!(r.note_cell(), "1 行目<br>2 行目 \\| 記号");
+    }
+
+    #[test]
+    fn a_revision_file_saved_in_between_is_not_overwritten() {
+        let tmp = tempfile::tempdir().unwrap();
+        let p = tmp.path().join("rev-B.yml");
+        // 無かったものが無いまま・読んだときと同じ中身なら書く
+        save_revision(&p, None, "1\n").unwrap();
+        assert_eq!(fs::read_to_string(&p).unwrap(), "1\n");
+        save_revision(&p, Some(b"1\n"), "2\n").unwrap();
+        assert_eq!(fs::read_to_string(&p).unwrap(), "2\n");
+        // 読んだ後に保存された・作られた・消された
+        let err = format!("{:#}", save_revision(&p, Some(b"1\n"), "3\n").unwrap_err());
+        assert!(
+            err.contains("読み込んだあとに変わっています") && err.contains("書き換えていません"),
+            "{err}"
+        );
+        assert!(save_revision(&p, None, "3\n").is_err());
+        assert_eq!(fs::read_to_string(&p).unwrap(), "2\n", "変わっていたら書かない");
+        fs::remove_file(&p).unwrap();
+        assert!(save_revision(&p, Some(b"2\n"), "3\n").is_err());
+        assert!(!p.exists());
     }
 }

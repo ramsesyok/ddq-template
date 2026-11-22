@@ -12,6 +12,7 @@ mod job;
 mod mermaid;
 mod plantuml;
 mod quarto;
+mod replace;
 mod writing_folder;
 mod zip_archive;
 

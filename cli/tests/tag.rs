@@ -714,3 +714,182 @@ fn apply_needs_all_or_from() {
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("--all"));
 }
+
+/// 執筆フォルダの全ファイル（相対パス → バイト列）。
+fn snapshot(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+    walkdir::WalkDir::new(dir)
+        .into_iter()
+        .map(|e| e.unwrap())
+        .filter(|e| e.file_type().is_file())
+        .map(|e| {
+            let rel = e
+                .path()
+                .strip_prefix(dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/");
+            (rel, fs::read(e.path()).unwrap())
+        })
+        .collect()
+}
+
+fn stderr(out: &std::process::Output) -> String {
+    String::from_utf8_lossy(&out.stderr).into_owned()
+}
+
+/// 書き換えは同じフォルダの一時ファイルから置き換える。失敗しても一時ファイルを残さない
+fn assert_no_temporary_files(dir: &Path) {
+    let left: Vec<String> = snapshot(dir)
+        .into_keys()
+        .filter(|k| k.contains(".ddq-"))
+        .collect();
+    assert!(left.is_empty(), "一時ファイルが残った: {left:?}");
+}
+
+#[test]
+fn bom_line_endings_and_the_final_newline_are_kept() {
+    let tmp = tempfile::tempdir().unwrap();
+    fixture(tmp.path());
+    // BOM＋CRLF（メモ帳などで保存した原稿）と、末尾に改行の無い原稿
+    fs::write(
+        tmp.path().join("index.qmd"),
+        "\u{feff}# 本書について {.unnumbered}\r\n\r\n前書きである。\r\n",
+    )
+    .unwrap();
+    fs::write(
+        tmp.path().join("chapters/01-system/01-hw/index.qmd"),
+        "## ハードウェア環境\n\n{{< include 01-hw/01-spec.qmd >}}",
+    )
+    .unwrap();
+
+    assert_ok(&ddq(&["tag", "apply", &tmp.path().to_string_lossy(), "--all"]));
+    let index = fs::read(tmp.path().join("index.qmd")).unwrap();
+    assert!(index.starts_with("\u{feff}".as_bytes()), "BOM が落ちた");
+    let index = String::from_utf8(index).unwrap();
+    assert!(
+        index.contains(" .unnumbered}\r\n\r\n前書きである。\r\n"),
+        "{index:?}"
+    );
+    let hw = fs::read_to_string(tmp.path().join("chapters/01-system/01-hw/index.qmd")).unwrap();
+    assert!(hw.ends_with("}\n\n{{< include 01-hw/01-spec.qmd >}}"), "{hw:?}");
+    assert_no_temporary_files(tmp.path());
+}
+
+#[test]
+fn a_read_only_file_stops_every_write_and_is_named() {
+    let tmp = tempfile::tempdir().unwrap();
+    fixture(tmp.path());
+    let spec = tmp.path().join("chapters/01-system/01-hw/01-spec.qmd");
+    let mut p = fs::metadata(&spec).unwrap().permissions();
+    p.set_readonly(true);
+    fs::set_permissions(&spec, p.clone()).unwrap();
+    let before = snapshot(tmp.path());
+
+    let out = ddq(&["tag", "apply", &tmp.path().to_string_lossy(), "--all"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert_eq!(stdout(&out), "");
+    let err = stderr(&out);
+    assert!(
+        err.contains("どのファイルも書き換えていません（ラベル 0 件）"),
+        "{err}"
+    );
+    assert!(
+        err.contains("  chapters/01-system/01-hw/01-spec.qmd: 読み取り専用です"),
+        "{err}"
+    );
+    assert_eq!(snapshot(tmp.path()), before, "どのファイルも書き換えない");
+
+    // --dry-run は書かないので従来どおり通る
+    assert_ok(&ddq(&[
+        "tag",
+        "apply",
+        &tmp.path().to_string_lossy(),
+        "--all",
+        "--dry-run",
+    ]));
+    #[allow(clippy::permissions_set_readonly_false)]
+    p.set_readonly(false);
+    fs::set_permissions(&spec, p).unwrap();
+}
+
+/// ほかのプログラムが開いたまま（削除の共有なし）のファイルで止まったら、書いたもの・
+/// 書いていないものを挙げて 1 で終わる。閉じてからもう一度実行すると残りを書き戻し、
+/// 1 回で書き戻したときと同じ中身になる
+#[cfg(windows)]
+#[test]
+fn a_file_held_open_stops_there_and_a_rerun_gives_the_same_result() {
+    use std::os::windows::fs::OpenOptionsExt;
+    const FILE_SHARE_READ: u32 = 1;
+
+    let once = tempfile::tempdir().unwrap();
+    fixture(once.path());
+    assert_ok(&ddq(&["tag", "apply", &once.path().to_string_lossy(), "--all"]));
+
+    let tmp = tempfile::tempdir().unwrap();
+    fixture(tmp.path());
+    let dir = tmp.path().to_string_lossy().into_owned();
+    let held = fs::OpenOptions::new()
+        .read(true)
+        .share_mode(FILE_SHARE_READ)
+        .open(tmp.path().join("chapters/01-system/index.qmd"))
+        .unwrap();
+    let before = snapshot(tmp.path());
+
+    let out = ddq(&["tag", "apply", &dir, "--all"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert_eq!(stdout(&out), "");
+    let err = stderr(&out);
+    assert!(
+        err.contains("chapters/01-system/index.qmd を書き換えられないため、途中で止めました"),
+        "{err}"
+    );
+    assert!(
+        err.contains("  書き換えたファイル: chapters/01-system/01-hw/01-spec.qmd（"),
+        "パスの順に書く: {err}"
+    );
+    assert!(
+        err.contains("  書き換えていないファイル: chapters/01-system/index.qmd, index.qmd"),
+        "{err}"
+    );
+    let after = snapshot(tmp.path());
+    assert_ne!(
+        after["chapters/01-system/01-hw/01-spec.qmd"],
+        before["chapters/01-system/01-hw/01-spec.qmd"]
+    );
+    assert_eq!(
+        after["chapters/01-system/index.qmd"],
+        before["chapters/01-system/index.qmd"]
+    );
+    assert_eq!(after["index.qmd"], before["index.qmd"]);
+    drop(held);
+    assert_no_temporary_files(tmp.path());
+
+    assert_ok(&ddq(&["tag", "apply", &dir, "--all"]));
+    assert_eq!(snapshot(tmp.path()), snapshot(once.path()));
+}
+
+/// 書き込みは共有するが削除は共有しない開き方（CRT の fopen・Python の open・同期ソフトなど）では、
+/// 一時ファイルからの付け替えが拒まれる。従来の ddq と同じく書き戻せる（その場で書く。IO-01 の利用者判断）
+#[cfg(windows)]
+#[test]
+fn a_file_open_without_delete_sharing_is_still_written() {
+    use std::os::windows::fs::OpenOptionsExt;
+    const FILE_SHARE_READ_WRITE: u32 = 3;
+
+    let once = tempfile::tempdir().unwrap();
+    fixture(once.path());
+    assert_ok(&ddq(&["tag", "apply", &once.path().to_string_lossy(), "--all"]));
+
+    let tmp = tempfile::tempdir().unwrap();
+    fixture(tmp.path());
+    let held = fs::OpenOptions::new()
+        .read(true)
+        .share_mode(FILE_SHARE_READ_WRITE)
+        .open(tmp.path().join("chapters/01-system/index.qmd"))
+        .unwrap();
+    let out = ddq(&["tag", "apply", &tmp.path().to_string_lossy(), "--all"]);
+    drop(held);
+    assert_ok(&out);
+    assert_eq!(stderr(&out), "");
+    assert_eq!(snapshot(tmp.path()), snapshot(once.path()));
+}
