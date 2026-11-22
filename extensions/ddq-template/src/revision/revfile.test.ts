@@ -152,3 +152,45 @@ describe('toYaml', () => {
         expect(yaml).toContain('entries:\n');
     });
 });
+
+/**
+ * 1 行の値の共有ケース（DATA-01）。ddq の `cli/src/doc/revfile.rs` の単体試験も同じファイルを読む。
+ * 期待値は実装の出力ではなく規則から手で決めた（決め方は fixtures/contract/README.md）。
+ */
+type ValueCase = { written: string; value: string; why: string };
+const shared = JSON.parse(
+    readFileSync(
+        join(__dirname, '..', '..', '..', '..', 'cli', 'tests', 'fixtures', 'contract', 'rev-values.json'),
+        'utf8'
+    )
+) as { read: ValueCase[]; write: ValueCase[] };
+
+const doc = (title: string): string =>
+    `rev: B\ndate: 2026-01-01\nentries:\n  - label: sec-a\n    kind: changed\n    unit: heading\n    title: ${title}\n    note: ""\n`;
+
+describe('1 行の値（ddq と共有）', () => {
+    it.each(shared.read)('読む $written', ({ written, value }) => {
+        expect(parse(doc(written)).entries[0].title).toBe(value);
+    });
+
+    it.each(shared.write)('書く $value', ({ value, written }) => {
+        const rev = parse(doc('x'));
+        rev.entries[0].title = value;
+        const yaml = toYaml(rev);
+        expect(yaml).toContain(`\n    title: ${written}\n`);
+        // 読み戻すと同じ値。二度目の保存も同じ文字列
+        const again = parse(yaml);
+        expect(again.entries[0].title).toBe(value);
+        expect(toYaml(again)).toBe(yaml);
+    });
+
+    it('メモ（ブロック）は逃がさない。逆斜線・引用・空行を含む複数行と空のメモが往復する', () => {
+        const rev = parse(doc('a') + '  - label: b\n    kind: changed\n    unit: heading\n    title: b\n    note: ""\n');
+        rev.entries[0].note = String.raw`C:\docs\a.qmd を直した。` + '\n"引用" と \'x\'\n\n空行の後';
+        const yaml = toYaml(rev);
+        const again = parse(yaml);
+        expect(again.entries[0].note).toBe(rev.entries[0].note);
+        expect(again.entries[1].note).toBe('');
+        expect(toYaml(again)).toBe(yaml);
+    });
+});
