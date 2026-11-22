@@ -161,17 +161,23 @@ function open(document: FakeDocument, line: number) {
     return state.commands.get('ddqTemplate.openTableEditor')!();
 }
 
-/** パネルに最後に送られた init の表 */
-function lastInit(panel: FakePanel) {
-    const init = panel.posted.filter((m) => m.type === 'init').at(-1);
-    return init?.model as { rows: { text: string }[][] } | undefined;
+/** パネルに最後に送られた init */
+function lastInitMessage(panel: FakePanel) {
+    return panel.posted.filter((m) => m.type === 'init').at(-1) as
+        | { session: number; model: { rows: { text: string }[][] } }
+        | undefined;
 }
 
-/** 表エディタで最初のデータセルを書き換えて Apply する（応答を待たない） */
-function applyFirstCell(panel: FakePanel, text: string) {
+/** パネルに最後に送られた init の表 */
+function lastInit(panel: FakePanel) {
+    return lastInitMessage(panel)?.model;
+}
+
+/** 表エディタで最初のデータセルを書き換えて Apply する（応答を待たない）。番号は最後の init のもの */
+function applyFirstCell(panel: FakePanel, text: string, session = lastInitMessage(panel)!.session) {
     const model = structuredClone(lastInit(panel)) as { rows: { text: string }[][] };
     model.rows[1][0].text = text;
-    return panel.receive!({ type: 'apply', model });
+    return panel.receive!({ type: 'apply', session, model });
 }
 
 async function untilWarning() {
@@ -271,9 +277,40 @@ describe('表エディタの編集セッション', () => {
         await second.receive!({ type: 'ready' });
         expect(lastInit(second)?.rows[0][0].text).toBe('c');
         // 閉じたパネルの Webview から遅れて届いた Apply
-        await first.receive!({ type: 'apply', model: lastInit(second) });
+        await first.receive!({ type: 'apply', session: lastInitMessage(second)!.session, model: lastInit(second) });
         expect(state.edits).toBe(0);
         expect(second.posted.map((m) => m.type)).toEqual(['init']);
+    });
+
+    it('開き直す前の表の Apply が遅れて届いたら、開き直した表に書かない（EXT-04）', async () => {
+        const doc = new FakeDocument([...DOC]);
+        open(doc, TABLE_B);
+        const [panel] = state.panels;
+        await panel.receive!({ type: 'ready' });
+        const before = lastInitMessage(panel)!;
+        // Webview が表 B の Apply を送った直後に、ホスト側で表 A を開き直した
+        open(doc, TABLE_A);
+        expect(lastInitMessage(panel)!.session).not.toBe(before.session);
+        const model = structuredClone(before.model);
+        model.rows[1][0].text = 'B のつもりの内容';
+        await panel.receive!({ type: 'apply', session: before.session, model });
+        expect(state.edits).toBe(0);
+        expect(state.warnings).toEqual([]);
+        expect(doc.lines).toEqual(DOC);
+        expect(panel.posted.at(-1)).toMatchObject({ type: 'error', message: expect.stringContaining('開いている表が変わった') });
+    });
+
+    it('書き戻した後も同じ表の番号のままで、続けて Apply できる', async () => {
+        const doc = new FakeDocument([...DOC]);
+        open(doc, TABLE_B);
+        const [panel] = state.panels;
+        await panel.receive!({ type: 'ready' });
+        const first = lastInitMessage(panel)!.session;
+        await applyFirstCell(panel, '1 回目');
+        expect(lastInitMessage(panel)!.session).toBe(first);
+        await applyFirstCell(panel, '2 回目');
+        expect(state.edits).toBe(2);
+        expect(doc.lines[TABLE_B + 2]).toContain('2 回目');
     });
 
     it('開いた後に文書が変わっていれば（未保存の編集を含む）書き戻さない', async () => {

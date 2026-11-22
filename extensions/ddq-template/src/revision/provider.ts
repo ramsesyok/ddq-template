@@ -18,6 +18,7 @@ import * as vscode from 'vscode';
 import { parseRevNext } from '../ddq/contract';
 import { currentDdq } from '../ddq/launch';
 import { DdqError, run, runJson } from '../ddq/run';
+import { noteReady, webviewHtml, webviewOptions } from '../webviewHtml';
 import { emptyNotes, type EditorContext, type FromEditorMessage, type ToEditorMessage } from './messages';
 import { parse, toYaml, type Revision } from './revfile';
 
@@ -42,7 +43,7 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
         panel: vscode.WebviewPanel,
         _token: vscode.CancellationToken
     ): Promise<void> {
-        panel.webview.options = { enableScripts: true };
+        panel.webview.options = webviewOptions(this.extensionUri, 'revision');
         panel.webview.html = html(panel.webview, this.extensionUri, 'revision');
 
         let disposed = false;
@@ -93,6 +94,7 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
             try {
                 switch (message.type) {
                     case 'ready':
+                        noteReady('revision');
                         send();
                         await refreshTags();
                         return;
@@ -401,31 +403,5 @@ type GitApi = {
 
 /** Webview の HTML（タグ付け画面と共通の 1 バンドルを、data-view で切り替える）。 */
 export function html(webview: vscode.Webview, extensionUri: vscode.Uri, view: 'tags' | 'revision'): string {
-    const nonce = nonceOf();
-    const scriptUri = webview.asWebviewUri(
-        vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'revision', 'assets', 'main.js')
-    );
-    const styleUri = webview.asWebviewUri(
-        vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'revision', 'assets', 'main.css')
-    );
-    // connect-src を書かないので default-src 'none' が効き、通信は一切できない
-    return `<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; script-src 'nonce-${nonce}'; style-src ${webview.cspSource} 'nonce-${nonce}';">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" nonce="${nonce}" href="${styleUri}">
-  <title>DDQ</title>
-</head>
-<body data-view="${view}">
-  <div id="root"></div>
-  <script nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
-}
-
-function nonceOf(): string {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('node:crypto').randomBytes(16).toString('base64');
+    return webviewHtml(webview, extensionUri, 'revision', { title: 'DDQ', view });
 }

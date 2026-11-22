@@ -1,4 +1,3 @@
-import { randomBytes } from 'crypto';
 import * as vscode from 'vscode';
 import type { TableModel } from './model/TableModel';
 import type { EditorContext, FromWebviewMessage, ToWebviewMessage } from './model/WebviewMessages';
@@ -9,6 +8,7 @@ import { findEditTarget, type EditTarget } from './markdown-document/findEditTar
 import { buildReplacement, anchorLineOf } from './markdown-document/applyTable';
 import { splitLines } from './markdown-document/splitLines';
 import { generateTableId } from './markdown-document/generateTableId';
+import { noteReady, webviewHtml, webviewOptions } from '../webviewHtml';
 
 /**
  * 開いている編集セッション。
@@ -17,6 +17,8 @@ import { generateTableId } from './markdown-document/generateTableId';
  * （`target` を使い回すと 2 回目以降に別の場所を書き潰してしまう）。
  */
 type Session = {
+  /** 開くたびに変わる番号。Webview は init で受け取り、Apply に付けて返す */
+  id: number;
   document: vscode.TextDocument;
   target: EditTarget;
   /** target を解決した時点のドキュメント版。ずれていたら書き戻さない。 */
@@ -31,13 +33,15 @@ type Host = {
   context: vscode.ExtensionContext;
   panel?: vscode.WebviewPanel;
   session?: Session;
+  /** 最後に振った編集セッションの番号 */
+  sessions: number;
 };
 
 /** いまの起動の表エディタ（deactivateTableEditor が捨てる） */
 let current: Host | undefined;
 
 export function activateTableEditor(context: vscode.ExtensionContext) {
-  const host: Host = { context };
+  const host: Host = { context, sessions: 0 };
   current = host;
   context.subscriptions.push(
     vscode.commands.registerCommand('ddqTemplate.openTableEditor', () => openTableEditor(host))
@@ -72,7 +76,7 @@ function openTableEditor(host: Host) {
     return;
   }
 
-  host.session = { document, target: found.value, documentVersion: document.version };
+  host.session = { id: ++host.sessions, document, target: found.value, documentVersion: document.version };
 
   // パネルは 1 つだけ使い回す。retainContextWhenHidden は保持コストが高いので、
   // コマンドを実行するたびに増やさない。
@@ -86,15 +90,11 @@ function openTableEditor(host: Host) {
     'ddqTemplate.tableEditor',
     'DDQ 表エディタ',
     vscode.ViewColumn.Beside,
-    {
-      enableScripts: true,
-      retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(host.context.extensionUri, 'out', 'webview', 'tableEditor')]
-    }
+    { ...webviewOptions(host.context.extensionUri, 'tableEditor'), retainContextWhenHidden: true }
   );
   host.panel = panel;
 
-  panel.webview.html = buildHtml(panel.webview, host.context.extensionUri);
+  panel.webview.html = webviewHtml(panel.webview, host.context.extensionUri, 'tableEditor', { title: 'DDQ 表エディタ' });
 
   panel.onDidDispose(() => {
     // 閉じたのがいまのパネルのときだけ捨てる（閉じた後に開き直したパネルは残す）
@@ -108,9 +108,15 @@ function openTableEditor(host: Host) {
     if (host.panel !== panel) return;
     switch (message.type) {
       case 'ready':
+        noteReady('tableEditor');
         postInit(host, panel);
         break;
       case 'apply': {
+        // Webview が見ている表（init で渡した番号）と、いまの編集セッションが同じときだけ書く
+        if (message.session !== host.session?.id) {
+          post(panel, { type: 'error', message: '表エディタで開いている表が変わったため、書き戻しませんでした。もう一度反映してください。' });
+          break;
+        }
         const result = await applyToDocument(host, panel, message.model);
         // 書き戻しのあいだにパネルを閉じた・拡張が終わった、または別の表を開き直した
         if (host.panel !== panel || result.superseded) break;
@@ -136,7 +142,12 @@ function post(panel: vscode.WebviewPanel, message: ToWebviewMessage) {
 
 function postInit(host: Host, panel: vscode.WebviewPanel) {
   if (!host.session) return;
-  post(panel, { type: 'init', model: host.session.target.model, context: toContext(host.session.target) });
+  post(panel, {
+    type: 'init',
+    session: host.session.id,
+    model: host.session.target.model,
+    context: toContext(host.session.target)
+  });
 }
 
 function toContext(target: EditTarget): EditorContext {
@@ -228,37 +239,12 @@ async function applyToDocument(host: Host, panel: vscode.WebviewPanel, rawModel:
   const updated = splitLines(document.getText());
   const refound = findEditTarget(updated, anchorLineOf(replacement), generateTableId());
   if (refound.ok) {
-    host.session = { document, target: refound.value, documentVersion: document.version };
+    // 同じ表の続きなので番号は変えない（Webview は init で受け取り直す）
+    host.session = { id: started.id, document, target: refound.value, documentVersion: document.version };
   } else {
     host.session = undefined;
     return { ok: false, message: `書き戻しましたが再読み込みに失敗しました: ${refound.message}` };
   }
 
   return { ok: true };
-}
-
-function buildHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
-  const nonce = randomBytes(16).toString('base64');
-  const scriptUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'tableEditor', 'assets', 'main.js')
-  );
-  const styleUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'out', 'webview', 'tableEditor', 'assets', 'main.css')
-  );
-
-  // connect-src を書かないので default-src 'none' が効き、通信は一切できない
-  return `<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; script-src 'nonce-${nonce}'; style-src ${webview.cspSource} 'nonce-${nonce}';">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" nonce="${nonce}" href="${styleUri}">
-  <title>DDQ 表エディタ</title>
-</head>
-<body>
-  <div id="root"></div>
-  <script nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
 }

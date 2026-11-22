@@ -14,6 +14,7 @@ import { currentDdq } from './ddq/launch';
 import { DdqError, run, runJson, versionOf } from './ddq/run';
 import type { TagList } from './ddq/types';
 import { resolveWritingFolder } from './folders';
+import { noteReady, webviewOptions } from './webviewHtml';
 import {
     EMPTY_SCHEME,
     RevisionEditorProvider,
@@ -151,7 +152,7 @@ async function openTags(context: vscode.ExtensionContext, resource?: vscode.Uri)
             'ddqTemplate.tags',
             `ラベル一覧: ${path.basename(folder)}`,
             vscode.ViewColumn.Active,
-            { enableScripts: true, retainContextWhenHidden: true }
+            { ...webviewOptions(context.extensionUri, 'revision'), retainContextWhenHidden: true }
         );
         panel.webview.html = html(panel.webview, context.extensionUri, 'tags');
         panel.onDidDispose(() => {
@@ -182,7 +183,7 @@ async function refresh() {
         const list = await runJson(command, ['tag', 'list', folder, '--json'], folder, parseTagList);
         if (!latest()) return;
         current.list = list;
-        post({ type: 'list', list, version });
+        post({ type: 'list', list, version, generation });
         if (lacksOriginal(list.items)) {
             // 一覧は見られるが、書き戻しは applyRows がすべて飛ばす。先に理由を知らせる
             vscode.window.showWarningMessage(
@@ -207,6 +208,9 @@ async function onMessage(message: FromWebviewMessage) {
     if (!session) return;
     switch (message.type) {
         case 'ready':
+            noteReady('tags');
+            await refresh();
+            return;
         case 'reload':
             await refresh();
             return;
@@ -214,7 +218,7 @@ async function onMessage(message: FromWebviewMessage) {
             await reveal(path.join(session.folder, message.file), message.line);
             return;
         case 'apply':
-            await apply(message.rows);
+            await apply(message.rows, message.generation);
             return;
     }
 }
@@ -240,8 +244,17 @@ async function reveal(file: string, line: number) {
  * `WorkspaceEdit` 1 つにまとめるので、Ctrl+Z 一回で全部戻る。当てる前に、一覧を
  * 取った時点から行が動いていないかを実際のバッファで確かめる（別の場所を書き潰さない）。
  */
-async function apply(rows: Row[]) {
+async function apply(rows: Row[], generation: number) {
     if (!session?.list) return;
+    // 画面が見ている一覧（list を送ったときの番号）と、いま持っている一覧が同じときだけ書く
+    if (generation !== session.generation) {
+        post({
+            type: 'error',
+            message: '一覧を取り直したため、書き戻しませんでした。',
+            detail: '取り直した一覧で確かめてから、もう一度書き戻してください。'
+        });
+        return;
+    }
     const result = await applyRows(session.folder, session.list, rows);
     if (result.errors.length > 0) {
         post({ type: 'errors', errors: result.errors });

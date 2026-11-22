@@ -12,12 +12,14 @@ export type EditorContext = {
 
 /** 拡張ホスト → Webview */
 export type ToWebviewMessage =
-  | { type: 'init'; model: TableModel; context: EditorContext }
+  /** session: 編集セッションの番号（Apply に付けて返す） */
+  | { type: 'init'; session: number; model: TableModel; context: EditorContext }
   | { type: 'applied' }
   | { type: 'error'; message: string };
 
 /** Webview → 拡張ホスト */
 export type FromWebviewMessage =
   | { type: 'ready' }
-  | { type: 'apply'; model: TableModel }
+  /** session: その表を受け取った init の番号（開き直した表に古い内容を書かないため） */
+  | { type: 'apply'; session: number; model: TableModel }
   | { type: 'close' };

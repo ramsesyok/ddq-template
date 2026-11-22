@@ -5,7 +5,8 @@ import type { Row } from './labels';
 
 /** 拡張 → Webview */
 export type ToWebviewMessage =
-    | { type: 'list'; list: TagList; version: string }
+    /** generation: 取り直しの番号（書き戻しに付けて返す） */
+    | { type: 'list'; list: TagList; version: string; generation: number }
     | { type: 'busy'; busy: boolean }
     | { type: 'errors'; errors: [string, string][] }
     | { type: 'error'; message: string; detail?: string };
@@ -15,7 +16,8 @@ export type FromWebviewMessage =
     | { type: 'ready' }
     | { type: 'reload' }
     | { type: 'reveal'; file: string; line: number }
-    | { type: 'apply'; rows: Row[] };
+    /** generation: その行を選んだ一覧の番号（取り直した後の一覧に古い選択を当てないため） */
+    | { type: 'apply'; rows: Row[]; generation: number };
 
 /** 表示の並び（文書順）。`order` に無いファイルは後ろにまとめる。 */
 export function sortItems(items: Item[], order: string[]): Item[] {

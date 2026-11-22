@@ -80,10 +80,13 @@ function send(data: unknown) {
   });
 }
 
+/** 拡張が付けた編集セッションの番号。Apply はこれを付けて返す（EXT-04） */
+const SESSION = 7;
+
 /** 描画して、拡張から表を渡す。 */
 function render(context: Partial<EditorContext> = {}, model: TableModel = tableModel()) {
   act(() => root.render(<TableEditor />));
-  send({ type: 'init', model, context: { ...CONTEXT, ...context } });
+  send({ type: 'init', session: SESSION, model, context: { ...CONTEXT, ...context } });
 }
 
 const q = <T extends Element = HTMLElement>(sel: string) => container.querySelector<T>(sel);
@@ -165,6 +168,7 @@ function apply(): TableModel {
   click(button('Apply'));
   const last = posted.at(-1);
   if (last?.type !== 'apply') throw new Error(`apply ではない: ${JSON.stringify(last)}`);
+  expect(last.session).toBe(SESSION);
   return last.model;
 }
 

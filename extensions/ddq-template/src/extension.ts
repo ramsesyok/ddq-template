@@ -16,6 +16,7 @@ import { activateAdd } from './add';
 import { activateInit } from './init';
 import { warnLegacyExtensions } from './legacy';
 import { activateTableEditor, deactivateTableEditor } from './tableEditor/activateTableEditor';
+import { activateWebviewProbe } from './webviewHtml';
 
 export function activate(context: vscode.ExtensionContext) {
     initLocate(context.extensionPath);
@@ -25,6 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
     activateAdd(context);
     activateRevision(context);
     activateTableEditor(context);
+    activateWebviewProbe(context);
     warnLegacyExtensions();
 }
 
