@@ -9,7 +9,8 @@
 import * as vscode from 'vscode';
 
 import { activateRevision, deactivateRevision } from './activateRevision';
-import { activateBuild, deactivateBuild } from './build';
+import { activateBuild } from './build';
+import { activateLaunch, deactivateLaunch } from './ddq/launch';
 import { initLocate } from './ddq/locate';
 import { activateAdd } from './add';
 import { activateInit } from './init';
@@ -18,6 +19,7 @@ import { activateTableEditor, deactivateTableEditor } from './tableEditor/activa
 
 export function activate(context: vscode.ExtensionContext) {
     initLocate(context.extensionPath);
+    activateLaunch();
     activateBuild(context);
     activateInit(context);
     activateAdd(context);
@@ -27,7 +29,8 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    deactivateBuild();
+    // 起動中の ddq（発行・JSON の取得とも）を孫ごと止める
+    deactivateLaunch();
     deactivateRevision();
     deactivateTableEditor();
 }

@@ -32,14 +32,20 @@ vi.mock('./ddq/run', async (importOriginal) => ({
     runStreaming: async (
         _command: string,
         args: string[],
-        options: { onOutput: (t: string) => void; onSpawn?: (c: { kill: () => void }) => void }
+        options: {
+            onOutput: (t: string) => void;
+            onSpawn?: (c: { kill: () => void }) => void;
+            keepLine?: (line: string) => boolean;
+        }
     ) => {
         ddq.calls.push(args);
         options.onSpawn?.({ kill: ddq.kill });
         ddq.onRun?.(args);
-        const result = ddq.results.shift() ?? { code: 0 };
-        options.onOutput(result.output ?? '');
-        return { output: '', ...result };
+        const { output = '', ...result } = ddq.results.shift() ?? { code: 0 };
+        options.onOutput(output);
+        // 本物の runStreaming と同じく、keepLine に合う行だけを結果に残す
+        const lines = output.split('\n').filter((line) => options.keepLine?.(line) ?? false);
+        return { ...result, lines };
     }
 }));
 vi.mock('./ddq/locate', () => ({ locateDdq: () => ({ command: 'ddq', source: 'path' }) }));

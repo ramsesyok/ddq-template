@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 // build.ts の結果行の読み取りだけを使う（VSCode API には触れない）
 vi.mock('vscode', () => ({}));
 
-import { htmlIndexOf, warningOf } from '../build';
+import { htmlIndexOf, isResultLine, warningOf } from '../build';
 import { NO_ORIGINAL, characterOffset, checkRows, lacksOriginal, sortForApply, staleReason } from '../tagging/labels';
 import { ContractError, parseRevNext, parseTagList } from './contract';
 import type { TagList } from './types';
@@ -178,6 +178,13 @@ describe('結果行と終了コード', () => {
     it('ddq diagrams の「図が無い」警告を拾う', () => {
         const line = expand(cli.stdout.diagramsEmpty, 'C:\\w\\docs', '\\');
         expect(warningOf(`${line}\n`)).toBe('C:\\w\\docs\\diagrams に .mmd / .puml がありません');
+    });
+
+    it('結果行（OK -> / OK: / 警告:）は手元に残す行として選ばれる', () => {
+        for (const key of ['pdf', 'html', 'diagramsEmpty']) {
+            expect(isResultLine(expand(cli.stdout[key], 'C:\\w\\docs', '\\')), key).toBe(true);
+        }
+        expect(isResultLine('[quarto] 進捗')).toBe(false);
     });
 
     it('機構の不一致の終了コードは ddq と同じ', () => {

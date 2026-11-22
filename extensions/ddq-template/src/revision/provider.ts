@@ -16,7 +16,8 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 import { parseRevNext } from '../ddq/contract';
-import { DdqError, ddqCommand, run, runJson } from '../ddq/run';
+import { currentDdq } from '../ddq/launch';
+import { DdqError, run, runJson } from '../ddq/run';
 import { emptyNotes, type EditorContext, type FromEditorMessage, type ToEditorMessage } from './messages';
 import { parse, toYaml, type Revision } from './revfile';
 
@@ -192,7 +193,7 @@ export function writingFolderOf(uri: vscode.Uri): string {
 }
 
 function ddq(): string {
-    return ddqCommand(vscode.workspace.getConfiguration('ddqTemplate').get<string>('ddqPath'));
+    return currentDdq().command;
 }
 
 /** タグの有無（= 確定済みか）と、既にあるタグ。 */

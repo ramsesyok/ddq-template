@@ -10,7 +10,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
-import { channel, runWithProgress, settings, showError } from './build';
+import { channel, runWithProgress, settings, showError } from './ddq/launch';
 import { tryLock } from './ddq/lock';
 import { QUARTO_YML, listWritingFolders } from './folders';
 import { validateFolderName, writingFoldersIn } from './init';

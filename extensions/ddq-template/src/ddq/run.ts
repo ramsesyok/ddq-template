@@ -42,17 +42,32 @@ export function unsupportedCommand(command: string): string | undefined {
     );
 }
 
+/** 起動中の ddq（JSON を返す短い実行も、pdf / html のような長い実行も載せる）。 */
+const live = new Set<{ kill: () => void }>();
+
+/** 起動中の ddq を孫ごと止める（拡張の終了時。docs/ddq-template-study.md §3.4）。 */
+export function stopAll(): void {
+    for (const child of live) child.kill();
+    live.clear();
+}
+
+/** いま起動中の ddq の数（試験用）。 */
+export function liveCount(): number {
+    return live.size;
+}
+
 /** 標準出力を返す。終了コードが 0 でなければ `DdqError`。 */
 export function run(command: string, args: string[], cwd?: string): Promise<string> {
     const unsupported = unsupportedCommand(command);
     if (unsupported) return Promise.reject(new DdqError(unsupported));
     return new Promise((resolve, reject) => {
-        execFile(
+        const child = execFile(
             command,
             args,
             // 設計書は 1000 ページ級になりうるので、既定の 1MB では足りない
             { cwd, maxBuffer: 64 * 1024 * 1024, windowsHide: true },
             (error, stdout, stderr) => {
+                live.delete(handle);
                 if (!error) {
                     resolve(stdout);
                     return;
@@ -70,6 +85,8 @@ export function run(command: string, args: string[], cwd?: string): Promise<stri
                 reject(new DdqError(`ddq ${args.join(' ')} に失敗しました。`, detail));
             }
         );
+        const handle = { kill: () => killTree(child.pid, () => child.kill()) };
+        live.add(handle);
     });
 }
 
@@ -108,12 +125,22 @@ export type StreamOptions = {
     env?: NodeJS.ProcessEnv;
     /** 標準出力・標準エラーを届いた順に渡す（出力チャネルへ流す） */
     onOutput: (text: string) => void;
-    /** 起動した子プロセス。止めるとき（キャンセル・拡張の終了）に使う */
+    /** 起動した子プロセス。止めるとき（キャンセル）に使う。拡張の終了時は `stopAll` が止める */
     onSpawn?: (child: { pid?: number; kill: () => void }) => void;
+    /**
+     * 結果として手元に残す行（通知に使う `OK: …` など）。出力の全部は `onOutput` へ流すだけで
+     * 溜めない（1000 ページ級の文書では Quarto の進捗が長い）。省略すれば何も残さない
+     */
+    keepLine?: (line: string) => boolean;
 };
 
 /** 実行結果。`code` が null のときは起動できなかったか、止められた。 */
-export type StreamResult = { code: number | null; output: string; error?: string };
+export type StreamResult = {
+    code: number | null;
+    /** `keepLine` に合った行（行末の改行を除く。届いた順） */
+    lines: string[];
+    error?: string;
+};
 
 /**
  * pdf / html のように時間のかかるコマンドを、出力を流しながら実行する。
@@ -121,29 +148,61 @@ export type StreamResult = { code: number | null; output: string; error?: string
  */
 export function runStreaming(command: string, args: string[], options: StreamOptions): Promise<StreamResult> {
     const unsupported = unsupportedCommand(command);
-    if (unsupported) return Promise.resolve({ code: null, output: '', error: unsupported });
+    if (unsupported) return Promise.resolve({ code: null, lines: [], error: unsupported });
     return new Promise((resolve) => {
-        let output = '';
+        const lines: string[] = [];
+        const keep = options.keepLine ?? (() => false);
         const child = spawn(command, args, { cwd: options.cwd, env: options.env, windowsHide: true });
-        options.onSpawn?.({ pid: child.pid, kill: () => killTree(child.pid, () => child.kill()) });
-        const take = (text: string) => {
-            output += text;
-            options.onOutput(text);
+        const handle = { pid: child.pid, kill: () => killTree(child.pid, () => child.kill()) };
+        live.add(handle);
+        options.onSpawn?.(handle);
+        // 行は流れごとに組み立てる（stdout と stderr の断片が交互に届いても行が混ざらないように）
+        const streams = [child.stdout, child.stderr].map((stream) => {
+            const splitter = lineSplitter((line) => {
+                if (keep(line)) lines.push(line);
+            });
+            // 文字列で受ける（Buffer の境目で日本語の 1 文字が割れないように）
+            stream.setEncoding('utf8');
+            stream.on('data', (text: string) => {
+                options.onOutput(text);
+                splitter.push(text);
+            });
+            return splitter;
+        });
+        const finish = (result: Omit<StreamResult, 'lines'>) => {
+            live.delete(handle);
+            for (const s of streams) s.end();
+            resolve({ ...result, lines });
         };
-        // 文字列で受ける（Buffer の境目で日本語の 1 文字が割れないように）
-        child.stdout.setEncoding('utf8');
-        child.stderr.setEncoding('utf8');
-        child.stdout.on('data', take);
-        child.stderr.on('data', take);
         child.on('error', (e: NodeJS.ErrnoException) => {
             const error =
                 e.code === 'ENOENT'
                     ? `${command} を実行できません。設定 ddqTemplate.ddqPath に ddq.exe のパスを指定してください。`
                     : e.message;
-            resolve({ code: null, output, error });
+            finish({ code: null, error });
         });
-        child.on('close', (code) => resolve({ code, output }));
+        child.on('close', (code) => finish({ code }));
     });
+}
+
+/** 届いた断片を行に切り、1 行ずつ `onLine` に渡す（`\r\n` も `\n` も行の終わり）。 */
+export function lineSplitter(onLine: (line: string) => void): { push: (text: string) => void; end: () => void } {
+    let rest = '';
+    let ended = false;
+    const emit = (line: string) => onLine(line.endsWith('\r') ? line.slice(0, -1) : line);
+    return {
+        push(text: string) {
+            const parts = (rest + text).split('\n');
+            rest = parts.pop() ?? '';
+            for (const part of parts) emit(part);
+        },
+        end() {
+            if (ended) return;
+            ended = true;
+            if (rest !== '') emit(rest);
+            rest = '';
+        }
+    };
 }
 
 /**

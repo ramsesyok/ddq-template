@@ -10,7 +10,8 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 import { parseRevNext, parseTagList } from './ddq/contract';
-import { DdqError, ddqCommand, run, runJson, versionOf } from './ddq/run';
+import { currentDdq } from './ddq/launch';
+import { DdqError, run, runJson, versionOf } from './ddq/run';
 import type { TagList } from './ddq/types';
 import { resolveWritingFolder } from './folders';
 import {
@@ -177,9 +178,7 @@ async function refresh() {
     const latest = () => session === current && current.generation === generation;
     post({ type: 'busy', busy: true });
     try {
-        const command = ddqCommand(
-            vscode.workspace.getConfiguration('ddqTemplate').get<string>('ddqPath')
-        );
+        const command = currentDdq().command;
         const version = versionOf(await run(command, ['--version'], folder));
         const list = await runJson(command, ['tag', 'list', folder, '--json'], folder, parseTagList);
         if (!latest()) return;
@@ -337,9 +336,7 @@ export async function applyRows(
 async function newRevision(resource?: vscode.Uri) {
     const folder = await resolveWritingFolder(resource);
     if (!folder) return;
-    const command = ddqCommand(
-        vscode.workspace.getConfiguration('ddqTemplate').get<string>('ddqPath')
-    );
+    const command = currentDdq().command;
     try {
         const next = await runJson(command, ['rev', 'next', folder, '--json'], folder, parseRevNext);
         let base = next.base ?? undefined;
