@@ -402,21 +402,6 @@
           ]
         }
       ],
-      "tsDiffers": {
-        "spans": [
-          [
-            [
-              2,
-              2
-            ],
-            [
-              0,
-              0
-            ]
-          ]
-        ],
-        "why": "拡張（parseMergeCols）は大文字小文字を無視して all とみなし、全列を結合して表示する"
-      },
       "doc": "::: {.tbl merge-cols=\"ALL\"}\n| a | b |\n|---|---|\n| A | x |\n| A | x |\n:::\n"
     },
     {
@@ -450,21 +435,6 @@
           ]
         }
       ],
-      "tsDiffers": {
-        "spans": [
-          [
-            [
-              2,
-              2
-            ],
-            [
-              0,
-              0
-            ]
-          ]
-        ],
-        "why": "拡張（parseMergeCols）は空の値を all とみなし、全列を結合して表示する"
-      },
       "doc": "::: {.tbl merge-cols=\"\"}\n| a | b |\n|---|---|\n| A | x |\n| A | x |\n:::\n"
     },
     {
@@ -498,21 +468,6 @@
           ]
         }
       ],
-      "tsDiffers": {
-        "spans": [
-          [
-            [
-              2,
-              2
-            ],
-            [
-              0,
-              0
-            ]
-          ]
-        ],
-        "why": "拡張（findEditTarget）は .merge-rows を見て全列の結合を展開して表示する（旧記法の名残）"
-      },
       "doc": "::: {.tbl .merge-rows}\n| a | b |\n|---|---|\n| A | x |\n| A | x |\n:::\n"
     }
   ]

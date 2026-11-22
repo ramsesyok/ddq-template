@@ -53,13 +53,13 @@ Rust・Lua・TypeScript のどの実装の出力も期待値に使わない。
 - PlantUML のソース・先頭コメントの照合・表の rowspan … design-doc.lua のコメントに書かれた規則から手で決めた
 
 **既知の差**は期待値の側に印を付けて固定している。直したら印を外す（試験が差の消えたことを知らせる）。
+mermaid のタブ（`rustDiffers`）・CRLF の設定（`luaWindowsOnly`）・merge-cols の `"ALL"`・`""`・旧 `.merge-rows`
+（`tsDiffers`）は 2026-11-23 に直して印を外した（`docs/refactoring-progress.md` の「GEN-02 の既知の差を直す」）。
 
 | 印 | 中身 |
 |---|---|
-| `rustDiffers`（mermaid・タブ） | Pandoc はコードのタブを空白 4 つに展開するが、prerender の `mermaid_blocks` はタブのまま。キーがずれ、先回りで描いた SVG をフィルタが使わずに描き直す（図・図の名前は同じ） |
 | `rustDiffers`（PlantUML・`@start` の前の空白） | Rust の `assemble_source` は落とし、Lua は残す。Rust はこれでキーを作らない（`ddq diagrams` が `.puml` を送るときだけ）ので図の名前は変わらない |
-| `luaWindowsOnly`（mermaid・CRLF の設定） | Lua の文字モードで CRLF が LF になるのは Windows だけ。ほかの OS ではフィルタのキーに CR が残る（描き直すだけ） |
-| `tsDiffers`（merge-cols） | 表エディタの表示だけが文書の出力と違う。書式つきのセル（原文で比べる）、`merge-cols="ALL"`・`""`（全列とみなす）、旧 `.merge-rows`（結合を展開する） |
+| `tsDiffers`（merge-cols・書式つきのセル） | 表エディタの表示だけが文書の出力と違う。拡張はセルの原文で比べ、Lua は `pandoc.utils.stringify` の文字で比べる |
 
 ## 章の並びの期待値の決め方（GEN-01）
 

@@ -87,7 +87,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | QA-01 | 検証済 | `ec7c412` | 実CLI（`contract.rs`・`e2e.rs`）、TS の契約、実Host、期待値を壊す確認 | 成功 |
 | CLI-01 | 検証済 | `94e9691` | 単体（読み取り回数）、新旧の release exe の出力比較 | 成功。新旧同じ出力 |
 | EXT-02 | 検証済 | `0a7a70a`・`ed013ed` | 実プロセス・模擬・実Host、変異 | 成功。孫の停止は Windows だけ（計画の範囲。PR の CI で試験の OS 依存を直した） |
-| GEN-02 | 検証済 | `0d1cd46` | 単体（Rust）、実生成（本物の design-doc.lua）、TS の契約 | 成功 |
+| GEN-02 | 検証済 | `0d1cd46`・2026-11-23 の直し | 単体（Rust）、実生成（本物の design-doc.lua）、TS の契約、変異 | 成功。既知の差のうち 3 組を 2026-11-23 に直した（下の「GEN-02 の既知の差を直す」） |
 | EXT-03 | 検証済 | `782cb08`・`ed013ed` | 模擬（応答の順番を試験が決める）、変異 8 か所 | 成功（PR の CI で試験の OS 依存を直した） |
 | EXT-04 | 検証済 | `f1475d6` | 単体（HTML・CSP・資産の範囲）、模擬、変異 7 か所 | 成功 |
 | GEN-01 | 検証済 | `ff21870` | 単体・実スクリプト（JS）・e2e（`quarto inspect`）、変異、過去の `_quarto.yml` 52 版の比較 | 成功。新規作成の雛形が変わる（VERSION は上げていない） |
@@ -196,6 +196,9 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   3. CRLF の `mermaid-config.json`: Lua が LF に読むのは Windows だけ。ほかの OS ではキーがずれる（描き直すだけ）
   4. 表エディタの merge-cols 表示: 書式つきのセル・`"ALL"`・`""`・旧 `.merge-rows` で文書の出力と違う
      （docs/ddq-template-impl の表エディタ 7 章に既載の差）
+
+  → 2026-11-23 の指示で 1・3 と、4 のうち `"ALL"`・`""`・旧 `.merge-rows` を直した（下の「GEN-02 の既知の差を直す」）。
+  2 と、4 の書式つきのセルは残した
 - **残存リスク**: `filter_contract.rs` は Quarto が要る（CI の Windows ジョブは `DDQ_E2E=1` なので skip されない）。
   拡張の CI（Linux）は TS 側だけ。PlantUML の URL の判定で、Rust の `is_local_url` はスキームの無い `localhost:8080` を
   ローカルとみなすが Lua はみなさない差があるが、Lua 側を外から試す手段が無いので期待値には入れていない
@@ -913,6 +916,65 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   - 手元の `ddq release` は暫定の扱い（上の節）のまま。ddq.exe から `release` を外すかは、この流れが安定してから別に判断する（検討書 §5）
   - 計画に残るもの: Phase 4 の人の手で行う検証（受入手順 3・4）、Phase 5／6 の完了レビュー（検討書 §8）
 
+### GEN-02 の既知の差を直す（完了レビューの後。2026-11-23）
+
+- **指示**: 2026-11-23「Yes, in this PR」。GEN-02 で印を付けて固定した既知の差のうち、手間の小さいもの（mermaid のタブ、
+  CRLF の設定、表エディタの `merge-cols="ALL"`・`merge-cols=""`・旧 `.merge-rows`）をこの PR で直す。PlantUML の `@start` の前の
+  空白（見た目に差が無い）と、書式つきのセルの比較（手間が中くらい）は残す
+- **状況**: 実装・検証済み
+- **変更ファイル**
+  - `cli/src/mermaid/prerender.rs`: `expand_tabs` を足した。`mermaid_blocks` は、各行のタブを Pandoc と同じく次の 4 桁目まで空白に
+    広げてから字下げを測り、フェンスの字下げを外す（桁は行頭からの文字数。全角も 1 桁）
+  - `template/design-doc.lua`（機構ファイル）: `mermaid_target` が `mermaid-config.json` の CRLF を LF にしてからキーに混ぜる
+  - `extensions/ddq-template/src/tableEditor/formats/mergeCols/simulateMergeCols.ts`: `parseMergeCols` を design-doc.lua の `.tbl` の
+    Div と同じ読み方にした（無い・空は結合しない、`all` は小文字そのままだけ、数字の無い値は解釈できない）。戻り値は
+    `none`・`invalid`・`merge` の 3 通り
+  - `extensions/ddq-template/src/tableEditor/markdown-document/findEditTarget.ts`: `.merge-rows` を見る分岐を外した。解釈できない値は
+    警告する（「結合しないものとして扱います」。`widths` の警告と同じ形）
+  - 期待値と試験: `cli/tests/fixtures/contract/diagrams.json`（タブの例の `rustDiffers` と CRLF の例の `luaWindowsOnly` を外し、
+    行の途中のタブと字下げしたフェンスの中のタブの例を 1 つ足した。期待値は Quarto 1.9.38 同梱の Pandoc の `-t json` と hashlib）、
+    `cli/tests/filter_contract.rs`（Windows 以外で CRLF の例を飛ばす分岐を外した）、`merge-cols.json`（3 例の `tsDiffers` を外した）、
+    `contract.test.ts`（`warns` の例で警告が出ることも見る）、`mergeCols.test.ts`（`parseMergeCols` 4 件）、`findEditTarget.test.ts`
+    （3 件。結合せずに開き、書き戻しても `merge-cols` を足さない）、期待値の README の印の表
+  - 資料: `docs/ddq-template-impl/parts/table-editor/07-issues-unknowns.qmd` の「merge-cols の不正値」「旧 `.merge-rows`」の 2 行に、
+    直したことを注記した（調査時点の記述は残した）
+- **試験と結果**
+  - 単体（Rust）: prerender 5/5。変異 4 か所（文字でなくバイトで数える、広げない、いつも空白 4 つ、広げる前に字下げを測る）の
+    すべてで共有の例の試験が落ちる。初めの例（「受注」の 2 文字）ではバイトで数える変異が落ちなかった（2 文字で 2 バイトずつ多く、
+    合わせて 4 桁ずれるのでタブの行き先が同じになる）ので、例を「利用者」の 3 文字に替えた
+  - 実生成（Lua）: `filter_contract.rs` の mermaid の試験が、足した例を含めて本物の design-doc.lua で成功。Windows の文字モードは
+    元から LF にするので、ほかの OS の読み方を `read_file` を一時的にバイナリモードにして再現した: 直したフィルタは成功し、
+    `gsub` を外すと CRLF の例が「置いた SVG を使わなかった」で落ちる
+  - TS: 変異 5 か所（大文字小文字を無視する、空を全列とみなす、`.merge-rows` を見る、警告を出さない、結合しないときも警告する）の
+    すべてで落ちる。直す前の判定に戻すと、足した書き戻しの試験 3 件が落ち、書き戻した見出しに `merge-cols="1,2"` が付くことを確かめた
+  - 実CLI（試験には入れていない）: `ddq init --no-render` で作った執筆フォルダの 1 章に、タブを含む mermaid の図
+    （`\tA[利用者]\t--> B`）を足して `ddq html`（`DDQ_MERMAID_ENGINE=merman`）。直す前の release の exe では `diagrams` に SVG が 6 枚
+    （prerender が雛形の 4 図とタブの図をまとめて 5 枚描き、フィルタがタブの図をもう 1 枚描いた）、直した debug の exe では 5 枚。
+    HTML が参照する図の名前は両方で同じ 5 つ（直す前の余分な 1 枚はどこからも参照されていない）。直した exe が書いた
+    `design-doc.lua` はリポジトリのものとハッシュが一致
+  - 本物のフィルタでの確認（試験には入れていない）:`"ALL"`・`"all "`・`"none"` は警告して結合しない、`""` は警告せず結合しない。
+    `" all"` のように引用の中が空白で始まる値は、Pandoc がその行を div の見出しと読まない（段落になる）ので Lua の判定まで届かない
+  - Rust: `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings` 成功。全件（計画 §6 の条件）: **224 件成功・失敗 0・ignored 0**（試験の時間の合計 8 分 11 秒。件数は前と同じ。足した例は既存の試験の中で回る）
+  - 拡張: `npm run typecheck` 成功、`REQUIRE_PANDOC=1 npm test` **47 ファイル・496 件成功**（前の 491 件から、`parseMergeCols` 2 件と書き戻しの 3 件が増えた）、`build`・`check:offline` 成功
+- **計画からの逸脱**: GEN-02 の「出力を変えない」の外（2026-11-23 に承認）。変わるもの:
+  - prerender のキー（タブを含む mermaid の図だけ）。フィルタのキー・図のファイル名・発行物は変わらない。先回りで描いた SVG を
+    フィルタが使うようになり、1 図ずつの描き直しが無くなる。前にタブのままのキーで描いた SVG は使われずに残る（版を上げたときの
+    `ddq update` が消す）。キャッシュの移行は要らない
+  - フィルタのキー: Windows では変わらない（文字モードで元から LF）。ほかの OS で CRLF の設定を使うときだけ、Windows・prerender と
+    同じキーになる
+  - 表エディタ: `"ALL"`・`""`・旧 `.merge-rows` の表を、文書の出力と同じく結合せずに開く。前は全列の結合を展開して開き、そのまま
+    書き戻すと `merge-cols="1,2"` のような指定が付いて、文書でも結合されるようになっていた。いまは書き戻すと、解釈できない値・空の
+    `merge-cols` は見出しから消える（`widths` の不正値と同じ扱い。分割表は div の見出しに触れないので残る）。`.merge-rows` の
+    クラスは残る
+- **残存リスク**
+  - design-doc.lua は機構ファイルなので、既存の執筆フォルダは `ddq update` が要る。版を上げる必要は前からある（完了レビューの
+    「次のリリースの前に」）
+  - prerender は `preserve-tabs`・`tab-stop` の設定を読まない（既定の、4 桁で広げる、を前提にする）。これを設定した文書では、
+    タブを含む図だけ先回りの SVG が使われず描き直す（直す前と同じ）
+  - 残した差: PlantUML の `@start` の前の空白（Rust はキーを作らないので図・図名に差が無い）、書式つきのセルの比較（表エディタの
+    表示だけ）。どちらも期待値の印は残っている
+  - 引用の中が空白で始まる属性の値（上）は、Pandoc が div と読まないのに表エディタは `.tbl` として開く。別の既存の差で、直していない
+
 ## 統合の検証（Phase 4）
 
 ### PR の CI で見つけた試験の OS 依存（直した）
@@ -1003,7 +1065,7 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 | QA-01 | 現行／旧版の JSON・stdout/stderr・exit・明示 update・Undo を固定し、fixture の更新理由と exe の版を記録 | 満たす（`cli/tests/fixtures/contract/`、旧版は `tag-list.2.4.4.json`、README に採取の手順と exe の版。exit 3 → update → setup の回復は実CLI、Undo は既存の実 Host の項目） | — |
 | CLI-01 | 読込回数・大文書の実行時間、警告・相対パス・ラベル・diff の順序が一致 | 満たす（新旧の release exe の出力が同じ） | — |
 | EXT-02 | 引数・cwd・PATH、UTF-8 のチャンク境界、exit 3、ENOENT、別フォルダの並行、取消時の子孫の終了、deactivate 後の出力 | 満たす（孫の停止は Windows だけ。計画の範囲） | — |
-| GEN-02 | 出力を変えず、3 組の重複を同じ入力で検証 | 満たす（既知の差 4 つは直さず期待値に印を付けた） | 4 つの差を直すか（キャッシュの移行判断が要る） |
+| GEN-02 | 出力を変えず、3 組の重複を同じ入力で検証 | 満たす（既知の差は期待値に印を付けた。そのうち 3 組は、レビューの後の 2026-11-23 の指示で直した。キャッシュの移行は要らなかった） | 残した 2 つ（PlantUML の `@start` の前の空白、書式つきのセルの比較） |
 | EXT-03 | 応答順の逆転・close→reopen・未保存・設定変更・多ルート・deactivate 後を模擬と実 Host で | 満たす（多ルートと deactivate 後は模擬だけ。理由は節に記録） | ステータスバーの逆転（計画の対象外。表示だけ） |
 | EXT-04 | 2 バンドルの配信・起動・メッセージ・CSP・旧データを実 Host と `check:offline` で | 満たす（逸脱 3 件を記録） | — |
 | GEN-01 | 新規／既存／過去の Git 版、増分 HTML と再実行で章・付録が一致し、従来の fixture の出力が一致 | 満たす（過去の `_quarto.yml` 52 版、サンプルの版間比較 141 一致） | 版を上げていない（下の「次のリリースの前に」） |
@@ -1074,14 +1136,15 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
    - **変更履歴とリリースノート**に書く利用者に見える差: 章の並びの読み方（GEN-01。行末コメント・引用・空白入りのパス・part・同じ字下げの列）、
      新規作成の雛形の章立て、版の比較と update の案内（EXT-01）、改訂ファイルの引用付きの値（DATA-01）、BOM の保持と書く前の照合（IO-01）、
      init/add が既存のファイルを上書きしない・update の順（IO-02）、VSIX に `THIRD-PARTY-NOTICES.md` が入る（REL-01。両資産のファイル一覧差）、
-     機構ファイルが変わるので `ddq update` が要ること
+     表エディタの merge-cols の読み方（`"ALL"`・`""`・旧 `.merge-rows` を結合せずに開く。解釈できない値の警告）、タブを含む mermaid の図を
+     先回りの SVG で描く（GEN-02 の直し）、機構ファイル（`postprocess-html.js`・`design-doc.lua`）が変わるので `ddq update` が要ること
    - PR で release-candidate を毎回走らせるか（計画 §7「PR でのフル配布検査の所要時間を確認してジョブ配置を決める」）: 所要時間は 38 分
      （うち書体を入れる時間が 25 分あまり）。検討書 §2 の 3 の形（main と手動。PR は workflow などを変えたときだけ）のままを勧める
 4. **計画の中の小さな直し**（2026-11-22 の指示で、このレビューで直した）
    - REL-03: CI の成果物に exe の SHA-256 を残す（`versions.txt` に 1 行）。workflow から手順を取り出して手元で流し、書いた値が
      exe と ZIP の中の exe の SHA-256 と一致することを確かめた。workflow は YAML として読め、手順の数は変わらない（build 12）
    - 拡張の開発文書の追随（上の「資料の整合」のずれ）
-5. **計画の外・別の判断**: GEN-02 の既知の差 4 つ、ddq.exe から `release` を外すか（検討書 §5）、既存の不具合 2 件（下）、
+5. **計画の外・別の判断**: GEN-02 の既知の差のうち残した 2 つ（3 組は 2026-11-23 に直した）、ddq.exe から `release` を外すか（検討書 §5）、既存の不具合 2 件（下）、
    実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文の更新、書体を入れる時間の短縮、`actions/*@v4` の Node.js 20 の警告、
    `versions.txt` に書体の版を残すか、EXT-03 のステータスバー
 

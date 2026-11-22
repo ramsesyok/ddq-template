@@ -20,8 +20,8 @@ I-01 は `findEditTarget.ts` が `outputFormat === 'pipeTable'` の場合だけ 
 | 分割表の形式 | 非結合・改行なし・ヘッダ1行では pipe を出力 | 「分割表は grid 固定」という説明とは異なる。残した div の merge-cols が再結合する可能性は推定で、解除操作から Lua 描画まで要確認 |
 | 分割表の幅 | 属性パネルは無効化するが GridView の幅入力は無効化しない。Apply は div を置換しない | 入力した幅は共通 widths に保存されない。実機 UI で表示・検証・反映のずれを確認する |
 | merge-cols の本文比較 | 拡張は生文字列、Lua は Pandoc stringify | 強調・リンク・コード等を含む場合に判定がずれる可能性。全ケースの同値性は未確認 |
-| merge-cols の不正値 | 拡張は空・数字なしを全列扱い、大小文字を無視して all 判定。Lua の Div は非空値のみを扱い、不正値は警告し結合しない | 手書きの不正値・空値に対する読込表示と描画の差に注意 |
-| 旧 `.merge-rows` | README では非対応。`.tbl` 内では当該クラスを見て pipe の結合展開へ進むコードが残る | 旧記法全体の互換対応と解釈しない |
+| merge-cols の不正値 | 拡張は空・数字なしを全列扱い、大小文字を無視して all 判定。Lua の Div は非空値のみを扱い、不正値は警告し結合しない | 手書きの不正値・空値に対する読込表示と描画の差に注意。→ 2026-11-23 に Lua と同じ読み方に直した（空は結合しない、`all` は小文字だけ、数字の無い値は警告して結合しない。GEN-02 の契約試験 `cli/tests/fixtures/contract/merge-cols.json`） |
+| 旧 `.merge-rows` | README では非対応。`.tbl` 内では当該クラスを見て pipe の結合展開へ進むコードが残る | 旧記法全体の互換対応と解釈しない。→ 2026-11-23 にこのクラスを見る分岐を外した（Lua と同じく結合しない） |
 | UI の形式案内 | 結合なし・改行なしでは pipe と表示するが、シリアライザはヘッダ数も判断する | ヘッダ0行・複数行では実出力が grid になる |
 
 根拠：[E-0003](appendix-evidence.qmd#ev-te-e-0003)、[E-0005](appendix-evidence.qmd#ev-te-e-0005)、[E-0006](appendix-evidence.qmd#ev-te-e-0006)、[E-0009](appendix-evidence.qmd#ev-te-e-0009)、[E-0012](appendix-evidence.qmd#ev-te-e-0012)、[E-0013](appendix-evidence.qmd#ev-te-e-0013)。上表の可能性は未観測の障害を断定するものではない。

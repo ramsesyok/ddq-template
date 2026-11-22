@@ -4,8 +4,9 @@
  * cli/tests/filter_contract.rs が本物のフィルタに同じ原稿を通して確かめる。
  *
  * 表エディタが原稿を開いたときの結合の展開（findEditTarget → expandMergeCols）を通す。
+ * `warns` の例は、Lua と同じく解釈できない値として警告が出ることも見る。
  * `tsDiffers` は、表エディタの表示が文書の出力と食い違う既知の差
- * （docs/ddq-template-impl の表エディタ 7 章「merge-cols の本文比較」「不正値」「旧 .merge-rows」）。
+ * （docs/ddq-template-impl の表エディタ 7 章「merge-cols の本文比較」）。
  */
 
 import { readFileSync } from 'node:fs';
@@ -20,6 +21,7 @@ type Case = {
   name: string;
   doc: string;
   parts: Part[];
+  warns?: boolean;
   tsDiffers?: { spans: number[][][]; why: string };
 };
 
@@ -40,6 +42,8 @@ describe('merge-cols（design-doc.lua と同じ期待値）', () => {
       const target = findEditTarget(lines, line, 'tbl-new');
       if (!target.ok) throw new Error(target.message);
       expect(target.value.kind).toBe('tblPart');
+      const warned = target.value.warnings.some((w) => w.includes('merge-cols'));
+      expect(warned, 'merge-cols の警告').toBe(c.warns === true);
       // 1 行目は見出し
       return target.value.model.rows.slice(1).map((row) => row.map((cell) => (cell.hidden ? 0 : cell.rowspan)));
     });

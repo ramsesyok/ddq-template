@@ -145,10 +145,13 @@ end
 -- 1 図分のキャッシュの置き場所。`fresh` は、いまの環境で描いた SVG が既にあるか。
 -- エンジン（browser / merman）で出来上がりが違う。自動選択の結果はここでは分からないので、
 -- 明示されていればその値、無ければ 'auto' をキーに混ぜる。
+-- 設定は改行を LF にそろえてから混ぜる（文字モードの io.open が CRLF を LF にするのは Windows
+-- だけなので。ddq の先回り（prerender）も LF にそろえる。cli/tests/fixtures/contract/diagrams.json）。
 local function mermaid_target(code)
   local conf = mermaid_conf_path()
+  local conf_text = conf and (read_file(conf) or '') or ''
   local hash = cache_key('mermaid', os.getenv('DDQ_MERMAID_ENGINE') or 'auto',
-    conf and (read_file(conf) or '') or '', code)
+    (conf_text:gsub('\r\n', '\n')), code)
   local t = {
     conf = conf,
     svg = DIAG .. '/mmd-' .. hash .. '.svg',

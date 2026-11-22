@@ -15,11 +15,10 @@
       ]
     },
     {
-      "name": "CRLF の原稿と CRLF の設定（フィルタは文字モードで読むので LF になる）",
+      "name": "CRLF の原稿と CRLF の設定（フィルタはどの OS でも設定の CRLF を LF にしてからキーに混ぜる）",
       "engine": null,
       "config": "{\r\n  \"theme\": \"neutral\",\r\n  \"flowchart\": { \"htmlLabels\": false }\r\n}\r\n",
       "doc": "# 章\r\n\r\n```mermaid\r\nsequenceDiagram\r\n  利用者->>システム: 受注\r\n```\r\n",
-      "luaWindowsOnly": "Lua の io.open（文字モード）が CRLF を LF にするのは Windows だけ。ほかの OS ではフィルタのキーに CR が残り、CR を落とす prerender と食い違う（描き直すだけで結果は同じ）",
       "codes": [
         "sequenceDiagram\n  利用者->>システム: 受注"
       ],
@@ -55,21 +54,27 @@
       ]
     },
     {
-      "name": "行末の空白とタブ（Pandoc が受け取ったまま）",
+      "name": "行末の空白と行頭のタブ（行末の空白は残し、タブは次の 4 桁目まで空白に広げる）",
       "engine": null,
       "config": null,
       "doc": "```mermaid\nflowchart LR  \n\tA --> B\n```\n",
-      "rustDiffers": {
-        "codes": [
-          "flowchart LR  \n\tA --> B"
-        ],
-        "why": "Pandoc はコードブロックのタブを 4 桁の空白に展開するが、prerender の mermaid_blocks はタブのまま。キーが変わり、先回りで描いた SVG をフィルタが使えず 1 図ずつ描き直す（出来上がりの図・ファイル名は同じ）"
-      },
       "codes": [
         "flowchart LR  \n    A --> B"
       ],
       "keys": [
         "19aaf56c9116c4d7"
+      ]
+    },
+    {
+      "name": "行の途中のタブと、字下げしたフェンスの中のタブ（桁は原稿の行頭から文字数で数え、広げてからフェンスの字下げを外す）",
+      "engine": null,
+      "config": null,
+      "doc": "- 項目\n\n  ```mermaid\n  flowchart LR\n  \tA[利用者]\t--> B\n  ab\t\tc\n  ```\n",
+      "codes": [
+        "flowchart LR\n  A[利用者]  --> B\nab        c"
+      ],
+      "keys": [
+        "1bdf7c0a4a18dbb7"
       ]
     }
   ],

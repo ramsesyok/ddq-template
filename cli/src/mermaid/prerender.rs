@@ -12,7 +12,7 @@
 //! フィルタが従来どおり 1 図ずつ描くので、遅くなるだけで結果は同じ。描けなかった図も同じく
 //! フィルタが描き直し、図ごとのエラーを出す（ここでは止めない）。
 
-use std::{collections::HashSet, env, fs, path::Path};
+use std::{borrow::Cow, collections::HashSet, env, fs, path::Path};
 
 use sha1::{Digest, Sha1};
 
@@ -108,15 +108,38 @@ fn fresh(svg: &Path, keep: bool, header: Option<&str>) -> bool {
     }
 }
 
+/// Pandoc が読む前にするのと同じく、タブを次の 4 桁目の位置まで空白に広げる。桁は行頭からの
+/// 文字数で数える（全角も 1 桁）。`preserve-tabs`・`tab-stop` の設定は読まない（既定のまま）。
+fn expand_tabs(line: &str) -> Cow<'_, str> {
+    if !line.contains('\t') {
+        return Cow::Borrowed(line);
+    }
+    let mut out = String::with_capacity(line.len() + 8);
+    let mut col = 0;
+    for c in line.chars() {
+        if c == '\t' {
+            let n = 4 - col % 4;
+            out.push_str(&"    "[..n]);
+            col += n;
+        } else {
+            out.push(c);
+            col += 1;
+        }
+    }
+    Cow::Owned(out)
+}
+
 /// 本文の中の mermaid のコードブロック（```` ```mermaid ```` / ```` ```{mermaid} ```` /
-/// ```` ```{.mermaid} ````）の中身。Pandoc と同じく、フェンスの字下げを外し、行を LF でつなぐ
-/// （最後の改行は含めない）。ほかのコードブロックの内側（記法の説明など）は数えない。
+/// ```` ```{.mermaid} ````）の中身。Pandoc と同じく、タブを空白に広げ、フェンスの字下げを外し、
+/// 行を LF でつなぐ（最後の改行は含めない）。ほかのコードブロックの内側（記法の説明など）は数えない。
 fn mermaid_blocks(text: &str) -> Vec<String> {
     let mut out = Vec::new();
     // 開いているフェンス: (記号, 本数, 字下げ, mermaid か, 中身)
     let mut open: Option<(char, usize, usize, bool, Vec<String>)> = None;
     for raw in text.split('\n') {
-        let line = raw.trim_end_matches('\r');
+        // 字下げはタブを広げてから測る（Pandoc はフェンスの字下げもタブを広げた桁で外す）
+        let line = expand_tabs(raw.trim_end_matches('\r'));
+        let line = line.as_ref();
         let indent = line.len() - line.trim_start_matches(' ').len();
         let body = line.trim_start_matches(' ');
         if let Some((ch, n, ind, is_mermaid, lines)) = open.as_mut() {
