@@ -3,7 +3,7 @@
 //!   init ──► add ──► update
 //!   html ──► 版・機構の検査 ──► quarto render ──► design-doc.lua ──► ddq mermaid
 //!   pdf  ──► setup（版・機構の検査 + PDF 側配置）─► quarto render ──► design-doc.lua ──► ddq mermaid
-//!   release ──► update, pdf, html（manual に対して）
+//! リリース一式は保守者用の別の exe（src/bin/ddq-release/。配る ddq.exe には入れない）が作る。
 
 pub mod add;
 pub mod diagrams;
@@ -12,7 +12,6 @@ pub mod init;
 pub mod mermaid;
 pub mod pdf;
 pub mod plantuml;
-pub mod release;
 pub mod rev;
 pub mod setup;
 pub mod tag;

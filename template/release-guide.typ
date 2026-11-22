@@ -3,9 +3,9 @@
 //  旧 README-release.md の内容を、発行者が最初に開いて 5 分で読める形にしたもの。
 //
 //  Marp ではなく Quarto 同梱の Typst で組む（保守者のビルドに npm を持ち込まないため）。
-//  ビルドは `ddq release` が行う（`quarto typst compile` を呼ぶ）。手で確認するなら:
+//  ビルドは保守者用の ddq-release が行う（`quarto typst compile` を呼ぶ）。手で確認するなら:
 //    quarto typst compile template/release-guide.typ out.pdf
-//  版番号は `ddq release` が `--input version=<版>` で渡す。手で試すときは省略可（VERSION と表示）。
+//  版番号は ddq-release が `--input version=<版>` で渡す。手で試すときは省略可（VERSION と表示）。
 //
 //  外部パッケージは使わない（閉域でも保守者の手元でも同じ結果にするため）。
 // ============================================================

@@ -5,7 +5,8 @@
 ### 対象・版・解析範囲
 
 対象は `extensions/ddq-template/`（版 3.1.0-pre1。`template/VERSION` と同じ）と、拡張との契約に関わる
-`ddq` 側（`cli/src/commands/setup.rs` の終了コード、`cli/src/commands/release.rs` の同梱）である。
+`ddq` 側（`cli/src/commands/setup.rs` の終了コード、`cli/src/bin/ddq-release/release.rs` の同梱。2026-11-23 に
+`ddq release` から保守者用の別の exe `ddq-release` に分けた）である。
 確認済み（静的・実行）の範囲は段階 1a〜1d（`docs/ddq-template-study.md` §9）の実装と、
 その後 3.0.0-pre4 までに入った変更（@tbl-post-merge-changes）である。`update` のコマンドパレット対応・
 `plantuml` は実装していない。
@@ -59,6 +60,7 @@
 | 3.0.0-pre3 | 出力した PDF・HTML を Windows では `explorer.exe` で開く（日本語パスで開けなかった） | @sec-behavior-build |
 | 3.0.0-pre3 | 図の変換で ddq が `警告:` を出したら（変換する図が無いなど）、完了ではなく警告を出す | @sec-behavior-build |
 | 3.0.0-pre4 | 表エディタのグリッド表で、縦結合の途中の区切り行を pandoc と同じ形で読み書きする | @sec-data-te |
+| 3.1.0-pre1 の作業中（2026-11-23） | 拡張の処理は変えていない。ddq.exe を同梱した VSIX を作るのが、`ddq release` から保守者用の別の exe `ddq-release` に変わり、同梱するのは ddq-release に渡した配る ddq.exe（`--ddq`。既定は ddq-release と同じフォルダの `ddq.exe`）になった | @sec-build-common |
 :::
 
 ### 読み始める場所

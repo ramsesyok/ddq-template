@@ -15,7 +15,7 @@
 
 plantuml.jar は同梱しない（3.0.0 から。利用者が自分で用意する）ので対象外。
 
-出力の先頭に入力のハッシュを書く。`ddq release` はこれを照合し、入力が変わったのに作り直して
+出力の先頭に入力のハッシュを書く。ddq-release（保守者用）はこれを照合し、入力が変わったのに作り直して
 いなければ止める（古い表示のまま配らない）。docs/cli-impl U-0003。
 """
 from __future__ import annotations
@@ -33,7 +33,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "THIRD-PARTY-NOTICES.md"
 TARGET = "x86_64-pc-windows-msvc"
-# 出力の新しさを照合する入力（リポジトリ相対）。ddq release が同じ一覧を読む
+# 出力の新しさを照合する入力（リポジトリ相対）。ddq-release が同じ一覧を読む
 INPUTS = [
     "cli/Cargo.lock",
     "template/vendor/mermaid.min.js",
@@ -74,7 +74,7 @@ SOFTWARE."""
 
 def sha1(path: Path) -> str:
     """入力のハッシュ。改行を LF に揃えてから取る（Cargo.lock は checkout の設定で
-    CRLF にも LF にもなるため）。ddq release（release.rs の input_sha1）と同じ規則。"""
+    CRLF にも LF にもなるため）。ddq-release（cli/src/bin/ddq-release/release.rs の input_sha1）と同じ規則。"""
     return hashlib.sha1(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 

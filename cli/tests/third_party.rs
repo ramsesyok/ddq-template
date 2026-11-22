@@ -1,6 +1,6 @@
 //! THIRD-PARTY-NOTICES.md（第三者のソフトウェアのライセンス表示）が入力と合っているか
 //! （docs/cli-impl U-0003）。依存を足した・更新したのに作り直していなければ、ここで気づく
-//! （`ddq release` も同じ照合で止まるが、それより前の PR の段階で落とす）。
+//! （ddq-release も同じ照合で止まるが、それより前の PR の段階で落とす）。
 //!
 //! 作り直すには、リポジトリのルートで `python cli/tools/third_party.py` を実行する。
 
@@ -21,7 +21,7 @@ fn third_party_notices_are_up_to_date() {
     for pair in line.trim_end_matches("-->").split_whitespace() {
         let (rel, want) = pair.split_once('=').expect("<path>=<sha1> の形");
         let bytes = fs::read(repo.join(rel)).unwrap_or_else(|_| panic!("{rel} が無い"));
-        // 改行を LF に揃えてから（release.rs の input_sha1・third_party.py と同じ規則）
+        // 改行を LF に揃えてから（ddq-release の release.rs の input_sha1・third_party.py と同じ規則）
         let mut lf = Vec::with_capacity(bytes.len());
         for (i, &b) in bytes.iter().enumerate() {
             if !(b == b'\r' && bytes.get(i + 1) == Some(&b'\n')) {

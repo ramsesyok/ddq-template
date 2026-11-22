@@ -100,7 +100,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | REL-01 | 検証済 | `1051dbc` | 実 exe の release 試験、実 vsce、変異 5 か所、配布候補一式 | 成功 |
 | CI-01 | 実装済（GitHub 上で 1 回成功。失敗させた実行の確認は未実施） | `1051dbc`・`810249b` | jar の照合の手元実行、PR の CI、配布候補の流れの手元での再現と GitHub 上の実行、照合の食い違い 5 つ、CI と手元の成果物の比較 | `--locked`・jar の照合・起動対象は PR の CI で成功。配布候補の流れ（`release-candidate.yml`）は PR の CI で全ジョブ成功（38 分）。CI の成果物は手元の出力と見た目が同じ（下の「REL-02・CI-01　配布候補の作成を GitHub Actions に移す」） |
 | DOC-01 | 検証済 | `1051dbc` | パスの照合、manual・設計書のビルド | 成功。旧資料は消していない |
-| REL-02 | 実装済（GitHub 上で 1 回成功。失敗させた実行の確認は未実施） | `5d76c67`・`810249b` | 実CLI（`release.rs` の追加 1）、変異 3 か所、Rust 全件、実生成（マニュアル 18 章）、配布候補の流れの手元での再現と GitHub 上の実行 | 手元の `ddq release` は、入れ替えの途中で失敗した回の出力を捨てて作り直す（暫定の扱いのまま）。正式に配る一式は CI の配布候補だけ（2026-11-22 承認。計画 §7）。失敗した実行に成果物が残らないことと旧資産のハッシュは、まだ確かめていない |
+| REL-02 | 実装済（GitHub 上で 1 回成功。失敗させた実行の確認は未実施） | `5d76c67`・`810249b` | 実CLI（`release.rs` の追加 1）、変異 3 か所、Rust 全件、実生成（マニュアル 18 章）、配布候補の流れの手元での再現と GitHub 上の実行 | 手元の `ddq release`（2026-11-23 から保守者用の ddq-release）は、入れ替えの途中で失敗した回の出力を捨てて作り直す（暫定の扱いのまま）。正式に配る一式は CI の配布候補だけ（2026-11-22 承認。計画 §7）。失敗した実行に成果物が残らないことと旧資産のハッシュは、まだ確かめていない |
 
 ### QA-01　ddq と拡張の契約試験
 
@@ -913,7 +913,8 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   - 日本語のパスでの確認は手元に残る（ランナーは CP1252）
   - ランナーのイメージが更新されると、同じコミットでも Edge などの版が変わる（`versions.txt` に残す）
   - artifact は 90 日で消える。公開したリリースの資産が正の記録になる
-  - 手元の `ddq release` は暫定の扱い（上の節）のまま。ddq.exe から `release` を外すかは、この流れが安定してから別に判断する（検討書 §5）
+  - 手元の `ddq release` は暫定の扱い（上の節）のまま。ddq.exe から `release` を外すかは、この流れが安定してから別に判断する（検討書 §5）。
+    → 2026-11-23 に外した（保守者用の ddq-release。下の「ddq から release を外す」。手元の ddq-release の扱いは同じ）
   - 計画に残るもの: Phase 4 の人の手で行う検証（受入手順 3・4）、Phase 5／6 の完了レビュー（検討書 §8）
 
 ### GEN-02 の既知の差を直す（完了レビューの後。2026-11-23）
@@ -974,6 +975,77 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   - 残した差: PlantUML の `@start` の前の空白（Rust はキーを作らないので図・図名に差が無い）、書式つきのセルの比較（表エディタの
     表示だけ）。どちらも期待値の印は残っている
   - 引用の中が空白で始まる属性の値（上）は、Pandoc が div と読まないのに表エディタは `.tbl` として開く。別の既存の差で、直していない
+
+### ddq から release を外す（保守者用の ddq-release。完了レビューの後。2026-11-23）
+
+- **指示**: 2026-11-23「つづいて ddqからreleaseを外しましょう。これに合わせて、実装設計書を更新してください。」。
+  置き場所は「保守者用の別 exe（推奨）」（同じ `cli/` パッケージの 2 本目のバイナリ `ddq-release`。配る ddq.exe を `--ddq` で受け取り、
+  既定はその隣の ddq.exe。利用マニュアルはその ddq.exe を呼んで作る）、実装仕様書の更新は「release を外した分だけ」（検討書 §5 の判断）
+- **状況**: 実装・検証済み
+- **変更ファイル**
+  - `cli/src/bin/ddq-release/main.rs`（新規）: clap の `Cli`（`out-dir`・`--with-sample`・`--no-build`・`--ddq <PATH>`）と呼び出し。
+    `quarto.rs` は ddq と同じファイルを `#[path]` で読む（`render` は使わないので `dead_code` を許す）。Cargo.toml は変えていない
+    （`src/bin/<名前>/main.rs` を Cargo が 2 本目のバイナリとして拾う）
+  - `cli/src/commands/release.rs` → `cli/src/bin/ddq-release/release.rs`（`git mv` してから直した）: `default_ddq`（自分と同じフォルダの
+    `ddq.exe`）、`run` が配る ddq.exe の有無を確かめ、`ddq_version`（`--version` を読む）を版の照合に足す。マニュアルの update → pdf → html は
+    配る ddq.exe を子プロセスで呼ぶ。配布フォルダと同梱の VSIX に入れる exe、`check_bundled` の比べる相手を、自分自身から配る ddq.exe に替えた。
+    「はじめかた」の原稿と名前（`RELEASE_GUIDE_TYP`・`RELEASE_GUIDE_PDF`）を `assets.rs` からここへ移した。表示は「ddq-release」に
+  - `cli/src/zip_archive.rs` → `cli/src/bin/ddq-release/zip_archive.rs`（中身は変えていない）
+  - `cli/src/main.rs`・`cli/src/commands/mod.rs`・`cli/src/assets.rs`: `Release` のサブコマンド・`ReleaseArgs`・`mod zip_archive`・
+    `pub mod release`・上の 2 つの定数を外した
+  - `cli/tests/release.rs`: `CARGO_BIN_EXE_ddq-release` を起動する。足した試験 3 件（`a_missing_ddq_stops`、
+    `the_ddq_to_ship_must_report_the_same_version`（ddq でない exe を `--ddq` に渡すと版の照合で止まる）、`ddq_no_longer_has_release`
+    （ddq の `release` は終了コード 2、`--help` に出ない））。`zip_matches_the_stage_byte_for_byte` は配布フォルダの `ddq.exe` が配る ddq.exe と
+    同じことも見る。期待する表示を ddq-release の言葉に替えた
+  - `.github/workflows/release-candidate.yml`: build のビルドの手順名と、一式を作る手順
+    （`cli/target/release/ddq-release.exe "$RUNNER_TEMP/out" --ddq cli/target/release/ddq.exe $SAMPLE_ARG`）。手順の数は変わらない
+    （build 12・verify-zip 6・verify-vsix 8・publishable 3）
+  - コメントと説明: `extension.yml`、`cli/tools/check_release.py`、`cli/tools/third_party.py`、`cli/tests/third_party.rs`、
+    `template/release-guide.typ`、`.gitignore`
+  - 資料（現行のもの）: `cli/DESIGN.md`（決定 1 の注記、§3.1・§3.2、§4 のコマンドの一覧・呼び出し関係、表から release の行を外して
+    「保守者用の ddq-release」の節、§7.4〜§7.6、§8 のコード構成、§10）、利用マニュアル 17 章・18 章（`tbl-release-opts` に `--ddq` の行）、
+    `README.md`、`docs/README.md`、`examples/README.md`、`migration/README.md`、拡張の `AGENTS.md`・`DEVELOPMENT.md`、テンプレート設計書
+    （`docs/design/` の「拡張の作法」）、検討書 §5 に決定の注記
+  - 実装仕様書（release を外した分だけ）: `docs/cli-impl/` の 1〜7 章の配布の箇所と根拠 E-0013 の注記・E-0037（新規）、
+    改版の表に 1 行（**本書はこの分離だけを反映した**こと、3.0.0 から後の他の変更と plantuml.jar を同梱しなくなったことは反映していないこと、
+    `analysis/source-sha256.json` は基準のままであることを書いた）。`docs/ddq-template-impl/` の同梱の箇所（1・5・6 章、改訂履歴の 6 章、
+    根拠の追補）と「統合後に変えた処理」の表に 1 行（拡張の処理は変えていない）
+  - 変えていないもの: 過去の記録（検討書の本文、`docs/studies/`・各 study、変更履歴、実装仕様書の過去の観測 E-0027・E-0031 など、
+    `analysis/validation.md`）。当時の `ddq release` のまま残した
+- **試験と結果**
+  - 実CLI（`cli/tests/release.rs`。模擬の梱包 `pack.js` と、Windows では実ビルドの経路を含む）: 20 件成功（足した 3 件を含む）。実ビルドの経路で、
+    マニュアルの update → pdf → html を配る ddq.exe（ddq-release の隣の ddq）を子プロセスで呼んで作ることを確かめた
+  - 変異 5 か所（試験には入れていない）: 配る ddq.exe の版の照合を外す → 2 件落ちる、配布フォルダに配る ddq.exe でなく ddq-release 自身を入れる →
+    `zip_matches_the_stage_byte_for_byte` が落ちる、配る ddq.exe の有無を見ない → `a_missing_ddq_stops` が落ちる、`check_bundled` の比べる相手を
+    ddq-release 自身にする → `zip_matches…` が落ちる、`--version` が「ddq」で始まれば何でも通す → `the_ddq_to_ship…` が落ちる
+  - Rust: `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings` 成功。全件（計画 §6 の条件）: **228 件成功・失敗 0・
+    ignored 0**（試験の時間の合計 8 分 11 秒）。前の 224 件から、release の試験 3 件と、ddq-release でも走る `quarto.rs` の単体 1 件
+    （`output_dir_follows_the_project_and_the_profile`。`#[path]` で共有するので 2 つのバイナリで走る）が増えた
+  - 実生成・実CLI（試験には入れていない）: 作業ツリーの写し（`%TEMP%\ddqint\relsplit-repo`。ここの未コミットの変更に触れないため）で
+    `cargo build --release --locked --offline`（4 分 31 秒。`ddq.exe` 29,651,968 バイト、`ddq-release.exe` 1,760,768 バイト）→ ルートで
+    `cli\target\release\ddq-release.exe <出力先>`（`--ddq` なし）が終了 0、55 秒。`check_release.py <出力先> --exe cli/target/release/ddq.exe --smoke <作業フォルダ>`
+    がすべて OK（ZIP と VSIX の `ddq.exe` が配る ddq.exe と同じ、取り出した exe で init → pdf → html）。ZIP 50 件・VSIX 14 件の項目の名前は、
+    分ける前の CI の配布候補（PR の実行の成果物）と同じ。同梱のマニュアルの 18 章は新しい記述（`ddq-release`・`--ddq` の行）
+  - 資料のビルド（実生成）: 写しで `docs/cli-impl`・`docs/ddq-template-impl`・`docs/design` を `ddq update` → `ddq html`。どれも終了 0 で
+    フィルタの警告なし。`cli-impl` の構成図（mermaid）に ddq-release の節が出て、E-0037 と `@sec-update-scope` へのリンクが解決する
+  - 拡張: コードは変えていない（`AGENTS.md`・`DEVELOPMENT.md` の文だけ）ので、試験は流し直していない（上の GEN-02 の直しの 496 件が最後）
+  - GitHub 上: まだ（コミット・push していない）
+- **計画からの逸脱**: 計画に無い変更（検討書 §5 の「別の項目として決める」を 2026-11-23 に保守者が決めた）。**互換性が変わる**のは
+  保守者の操作だけ:
+  - `ddq release` は無くなった（未知のサブコマンドで終了コード 2）。保守者は `cli\target\release\ddq-release.exe` を使う。引数とオプションは
+    同じで、`--ddq` が増えた
+  - 発行者・執筆者・VSCode 拡張が使うコマンド（init / add / update / setup / html / pdf / diagrams / plantuml / tag / rev / mermaid）と
+    その出力・終了コードは変わらない。配布の一式（ZIP・VSIX の中身と名前）も変わらない
+  - 配る ddq.exe が、release を実行した exe そのものから、ddq-release が受け取った ddq.exe に替わった。CI は明示して渡す
+- **残存リスク**
+  - 保守者の手元に古い手順（`ddq.exe release`）が残っていると「unrecognized subcommand」で止まる。18 章と DESIGN §7.5 は直した
+  - `zip` クレートは ddq-release だけが使うが、同じパッケージの依存なので ddq.exe のビルドでもコンパイルされ、`THIRD-PARTY-NOTICES.md` にも
+    載ったまま（ddq.exe には入らない。表示が 1 つ多いだけで、足りないわけではない）
+  - `quarto.rs` を 2 つのバイナリが `#[path]` で共有する。ddq-release が使わない関数は `dead_code` を許しているので、ddq 側で使わなくなった
+    関数があっても警告が出ない（ddq 側は従来どおり警告が出る）
+  - 実装仕様書は分離の分だけを直したので、配布工程の他の記述（jar の同梱、版の照合の詳細、入れ替え途中の失敗の扱い）は 3.0.0-pre4 の
+    基準のまま。改版の表にそう書いた
+  - GitHub 上の配布候補の流れは、この変更ではまだ走らせていない（PR に push すると、`release-candidate.yml` を変えているので走る）
 
 ## 統合の検証（Phase 4）
 
@@ -1144,8 +1216,8 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
    - REL-03: CI の成果物に exe の SHA-256 を残す（`versions.txt` に 1 行）。workflow から手順を取り出して手元で流し、書いた値が
      exe と ZIP の中の exe の SHA-256 と一致することを確かめた。workflow は YAML として読め、手順の数は変わらない（build 12）
    - 拡張の開発文書の追随（上の「資料の整合」のずれ）
-5. **計画の外・別の判断**: GEN-02 の既知の差のうち残した 2 つ（3 組は 2026-11-23 に直した）、ddq.exe から `release` を外すか（検討書 §5）、既存の不具合 2 件（下）、
-   実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文の更新、書体を入れる時間の短縮、`actions/*@v4` の Node.js 20 の警告、
+5. **計画の外・別の判断**: GEN-02 の既知の差のうち残した 2 つ（3 組は 2026-11-23 に直した）、ddq.exe から `release` を外すか（検討書 §5。2026-11-23 に外した。上の「ddq から release を外す」）、既存の不具合 2 件（下）、
+   実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文の更新（release の分離の分だけは 2026-11-23 に直した）、書体を入れる時間の短縮、`actions/*@v4` の Node.js 20 の警告、
    `versions.txt` に書体の版を残すか、EXT-03 のステータスバー
 
 ## 計画外で見つけた既存の不具合（直していない）

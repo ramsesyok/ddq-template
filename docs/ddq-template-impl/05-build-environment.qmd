@@ -20,11 +20,12 @@ lib モードの iife は複数エントリを持てないので、Webview は�
 
 ### ddq.exe の同梱
 
-`ddq release`（`cli/src/commands/release.rs`）が、`package:win32-x64` スクリプトを持つ拡張について次を行う。
+保守者用の `ddq-release`（`cli/src/bin/ddq-release/release.rs`。2026-11-23 に `ddq release` から分けた別の exe で、配らない）が、
+`package:win32-x64` スクリプトを持つ拡張について次を行う。
 
-1. 自分自身（`current_exe`）を `<拡張>/bin/win32-x64/ddq.exe` にコピーする（`extensions/*/bin/` は git 管理外）。
+1. 配る ddq.exe（`--ddq`。既定は ddq-release と同じフォルダの `ddq.exe`）を `<拡張>/bin/win32-x64/ddq.exe` にコピーする（`extensions/*/bin/` は git 管理外）。
 2. `npm ci`（`node_modules` が無いときだけ）→ `npm run package:win32-x64`。
-3. VSIX の `extension/bin/win32-x64/ddq.exe` が、release している exe と**バイト一致**することを確かめる
+3. VSIX の `extension/bin/win32-x64/ddq.exe` が、配る ddq.exe と**バイト一致**することを確かめる
    （`--no-build` で前の版の ddq を同梱した VSIX を配らないため）。
 4. VSIX は配布 zip に入れず、zip の隣に置く（リリースページの別資産）。
 

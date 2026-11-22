@@ -94,6 +94,11 @@ gh release edit v<版> --draft=false
 
 この案（§3）は `ddq release` をそのまま呼ぶので、外すかどうかに左右されない。**CI の流れが安定してから、別の項目として決める**ことを勧める。
 
+**決定（2026-11-23、保守者）**: 外した。処理は同じ `cli/` パッケージの保守者用の別の exe `ddq-release`（`cli/src/bin/ddq-release/`）に移し、
+配る ddq.exe を `--ddq` で受け取る（既定は ddq-release と同じフォルダの `ddq.exe`）。利用マニュアルもその ddq.exe で作る。
+CI（`release-candidate.yml`）は `ddq-release.exe … --ddq cli/target/release/ddq.exe` を呼ぶ。実装仕様書（`docs/cli-impl`・`docs/ddq-template-impl`）は
+この分離の分だけを直した。記録は `docs/refactoring-progress.md`。
+
 ## 6. 先に確かめること・リスク
 
 - **フォント**: 手元で作ったマニュアルの PDF には Meiryo UI と BIZ UDGothic が埋め込まれている（`template/lib.typ` の

@@ -12,7 +12,7 @@
 | PDF側4本 | setup → Quarto publish／Typst | `lib.typ`、`typst-template.typ`、`typst-show.typ`、`_quarto-publish.yml` を上書き |
 | 静的図 | 執筆者の `.mmd/.puml` → diagrams → `.svg` | 同名SVGを上書き。失敗した図の前回SVGは削除する |
 | フェンス図キャッシュ | Lua → `diagrams/mmd-*`、`puml-*` → Lua／Quarto | ソースとSVGを保存。下記の内容キーで再利用。版を上げる update が削除する |
-| 出力先（既定 `_book/`）、`design-doc.pdf` | Quarto → pdfのコピー／release | 出力先は `output-dir`（PDF は publish の profile を優先）。PDFはその直下に一件。HTMLとPDFは同じ出力領域を利用 |
+| 出力先（既定 `_book/`）、`design-doc.pdf` | Quarto → pdfのコピー／ddq-release | 出力先は `output-dir`（PDF は publish の profile を優先）。PDFはその直下に一件。HTMLとPDFは同じ出力領域を利用 |
 | 原稿中のラベル | 執筆者／`tag apply` → tag・rev・Quarto相互参照 | `{#sec-…}`、`label="tbl-…"`、`{#tbl-…}`、`{#fig-…}`。一度付けたら改訂履歴のキーとして不変に扱う |
 | `revisions/rev-<記号>.yml` | `rev diff --write` → 執筆者（note記入）→ `rev build`／VSCode拡張 | 改訂履歴の正本。確定は `rev-<記号>` タグの有無で判断。下記の固定形式 |
 | `revisions/history.qmd` | 雛形（空）／`rev build` → `index.qmd` の include → Quarto | 生成物。常に上書き。手で編集しない |
@@ -29,7 +29,7 @@
 | IF-02 | Lua `prerender_mermaid`／`render_mermaid`、Rust `mermaid::prerender` → `ddq mermaid` | 入力・出力パス（一括は複数組）、JSON設定、背景色。一括のキーは Lua と Rust で同じ規則 | 一括の失敗は無視し、図ごとの呼び出しでプロセス成功とSVG存在の両方を要求 |
 | IF-03 | `browser::Cdp` → Edge/Chrome | ローカルWebSocket上のJSON、図ソース→JSON中のSVG | 通信／ページ例外はバッチ全体のエラー、図構文エラーは図単位 |
 | IF-04 | Rust `plantuml`／Lua → PlantUML | HTTP GET `/serverinfo`、POST `/render`。UTF-8 JSON→SVG | HTTP状態・エラーヘッダ・本文を確認 |
-| IF-05 | `release` → npm／Quarto Typst／ZIP | 拡張ごとのVSIXビルド（`package:win32-x64` を持つ拡張には自身を `bin/win32-x64/ddq.exe` として渡す）、案内PDFコンパイル、ファイル群の圧縮 | 各段階で停止。同梱 exe が自身とバイト一致しなければ停止。組み立て中の `.building` は失敗時に消す |
+| IF-05 | ddq-release の `release` → 配る ddq.exe／npm／Quarto Typst／ZIP | 配る ddq.exe の `--version` とマニュアルの `update`・`pdf`・`html`（子プロセス）、拡張ごとのVSIXビルド（`package:win32-x64` を持つ拡張には配る ddq.exe を `bin/win32-x64/ddq.exe` として渡す）、案内PDFコンパイル、ファイル群の圧縮 | 各段階で停止。配る ddq.exe が無い、または版が違えば何も作らずに停止。同梱 exe が配る ddq.exe とバイト一致しなければ停止。組み立て中の `.building` は失敗時に消す |
 | IF-06 | `doc::gitsrc` → git | `rev-parse`、`tag --list rev-*`、`ls-tree -r --name-only`、`show <commit>:<path>`。常に `-c core.quotepath=off` | 非成功はstderr付きのエラー。旧版に無いファイルは `ls-tree` の一覧で先に除外 |
 | IF-07 | VSCode拡張 ddq-template → `ddq` | `init`・`add`・`update`・`pdf`・`html`・`diagrams` の終了コードと標準出力（`OK: …index.html`、`警告: …`）、`tag list --json`（編集指示の `original` を拡張が書き戻し前の照合に使う）、`rev next/diff --json`、`rev diff --write`、`rev build` | 終了コード 3（版不一致）を拡張が update の案内に使う。拡張側の扱いは `docs/ddq-template-impl` |
 | IF-08 | `rev build` の生成qmd → `lib.typ` | 「頁」列の `` `#_xref-page("ラベル")`{=typst} `` | 参照先が無ければTypst側が赤い「?」を出す |

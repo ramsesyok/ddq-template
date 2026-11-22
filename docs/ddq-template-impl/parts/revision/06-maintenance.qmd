@@ -11,7 +11,7 @@
 | 挿入位置の決め方（`col` の意味） | `characterOffset` と `labels.test.ts`。バイト数に変えると日本語の見出しでずれる |
 | Webview の成果物名 | `html()` の参照先と `vite.config.mts` の `fileName` / `assetFileNames` は対になっている |
 | 画面を増やす | `html()` の `view` 引数と `main.tsx` の分岐（`data-view`） |
-| 版 | `package.json` の `version` を `template/VERSION` に揃える。揃っていないと `ddq release` と CI が止まる |
+| 版 | `package.json` の `version` を `template/VERSION` に揃える。揃っていないと `ddq-release`（保守者用。旧 `ddq release`）と CI が止まる |
 :::
 
 ### 守るべき作法

@@ -20,13 +20,14 @@ flowchart TB
   C -->|セッション準備| U[plantuml モジュール]
   U -->|接続または起動| S[外部サーバ / Java PicoWeb]
   P -->|Lua / curl / HTTP| S
-  C -->|配布フォルダ| Z[zip_archive]
+  RL[ddq-release（保守者用の別の exe）] -->|配る ddq.exe を起動| M
+  RL -->|配布フォルダ| Z[zip_archive]
   C -->|tag / rev| O[doc モジュール]
   O -->|原稿をテキストで読む| W
   O -->|子プロセス| G[git]
 ```
 
-図の辺は静的確認済みの呼出し・データ供給を示す。`assets`・`doc` 等は ddq 内のモジュール、Quarto・ブラウザ・Java・git は別プロセスである。`doc` は Quarto を起動せず、`tag`／`rev` は描画経路と独立している。全コマンドが全経路を使うわけではない。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0012](appendix-evidence.qmd#ev-e-0012)、[E-0020](appendix-evidence.qmd#ev-e-0020)
+図の辺は静的確認済みの呼出し・データ供給を示す。`assets`・`doc` 等は ddq 内のモジュール、Quarto・ブラウザ・Java・git は別プロセスである。`ddq-release` とその `zip_archive` は 2026-11-23 から ddq とは別の exe で、配る ddq.exe を子プロセスとして起動する。`doc` は Quarto を起動せず、`tag`／`rev` は描画経路と独立している。全コマンドが全経路を使うわけではない。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0012](appendix-evidence.qmd#ev-e-0012)、[E-0020](appendix-evidence.qmd#ev-e-0020)
 
 ## 主要コンポーネント {#sec-02d92f}
 
@@ -40,7 +41,7 @@ flowchart TB
 | Quarto起動 | `quarto::render / run / self_exe` | CWD、DDQ_BIN、終了状態の統一 |
 | Mermaid変換 | `mermaid::choose_engine / render_jobs`、`browser::Cdp`、`merman_engine::render` | hidden CLI と diagrams |
 | PlantUML連携 | `plantuml::ensure / Session / LocalServer / render` | html/pdf/diagrams/serve |
-| 配布 | `release::run / build_extensions / build_extension / check_bundled_exe / rename_patiently / copy_tree`、`zip_archive::create` | manual、VSIX（拡張ごと。自身を同梱した `win32-x64` 版）、jar、ZIP |
+| 配布（別の exe ddq-release。`cli/src/bin/ddq-release/`） | `main.rs::Cli`、`release::default_ddq / run / ddq_version / check_versions / build_extensions / build_extension / check_bundled / rename_patiently / copy_tree`、`zip_archive::create` | manual（配る ddq.exe で作る）、VSIX（拡張ごと。配る ddq.exe を同梱した `win32-x64` 版）、jar、ZIP |
 | 論理文書 | `doc::project::order / logical / Source`、`doc::units::scan`、`doc::scan_folder` | tag、rev |
 | ラベル付与 | `commands::tag::list / apply / from_file`、`doc::labels::suggest / candidate / valid` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |
 | 改訂履歴 | `commands::rev::next / diff_cmd / build`、`doc::diff::units_of / compare`、`doc::revfile`、`doc::gitsrc::Repo / GitFolder` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |

@@ -169,7 +169,7 @@ jobs:
           cache-dependency-path: extensions/${{ matrix.ext }}/package-lock.json
       - run: npm ci
 
-      # ddq release と同じ照合（各 package.json の version = template/VERSION）
+      # ddq-release と同じ照合（各 package.json の version = template/VERSION）
       - name: 版の照合
         run: |
           expected=$(tr -d '[:space:]' < ../../template/VERSION)

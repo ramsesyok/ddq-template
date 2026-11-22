@@ -33,7 +33,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 
 | # | 項目 | 決定 | 理由 |
 |---|---|---|---|
-| 1 | 配布形態 | exe 1 本に全コマンド統合。`.bat` `.sh` は release から**完全に削除** | ラッパーを残すと bat の制約とメンテ対象が残る |
+| 1 | 配布形態 | exe 1 本に全コマンド統合。`.bat` `.sh` は release から**完全に削除**。（2026-11-23 から、保守者だけが使うリリース一式の作成は別の exe `ddq-release` に分けた。発行者に配るのは ddq.exe 1 本のまま。§4） | ラッパーを残すと bat の制約とメンテ対象が残る |
 | 2 | exe の置き場所 | release フォルダ直下。exe は `quarto render` 起動時に自分のパスを `DDQ_BIN` で渡す。ユーザ判断で PATH に置いてもよい | 発行者の運用（展開フォルダをそのまま使う）を変えない |
 | 3 | 機構ファイル | **全部 exe に埋め込む**（`include_dir!`）。exe 単体で全コマンドが動く | 「exe = テンプレートの版」になり、`.template-version` と一意に対応 |
 | 4 | mermaid エンジン | 自動: **Edge → Chrome → merman**。`DDQ_MERMAID_ENGINE` / `EXECUTABLE_BROWSER` で上書き可 | ブラウザ経路は mermaid-cli と幾何一致。merman は保険 |
@@ -63,14 +63,14 @@ quarto-template/
 │   ├── DESIGN.md                … このファイル
 │   ├── Cargo.toml / Cargo.lock
 │   ├── build.rs                 … ../template を埋め込み、VERSION を env に出す
-│   ├── src/…                    … §8 参照
+│   ├── src/…                    … §8 参照（src/bin/ddq-release/ = 保守者用の ddq-release。配らない）
 │   ├── tests/                   … golden テスト（§10）
 │   └── vendor/plantuml.jar      … 試験・確認用の PlantUML（MIT 版。git 管理外。リリースには同梱しない。vendor/README.md）
 ├── template/                    … 機構ファイルのソース（従来どおり編集する）
 │   ├── VERSION
 │   ├── design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json / plantuml-config.puml
 │   ├── lib.typ / typst-template.typ / typst-show.typ / quarto-publish.yml
-│   ├── release-guide.typ        … 「はじめかた」スライド（Typst。ddq release が PDF にする）
+│   ├── release-guide.typ        … 「はじめかた」スライド（Typst。ddq-release が PDF にする）
 │   ├── scaffold/{repo,content}/
 │   └── vendor/mermaid.min.js    … 新規（11.16.1。cli/tools/mermaid-bundle で作る）
 ├── docs/                        … 設計リポジトリ（執筆フォルダ manual/ = 利用マニュアル、design/ = テンプレート設計書）
@@ -78,7 +78,7 @@ quarto-template/
 ├── extensions/                  … VSCode 拡張（1 フォルダ = 1 拡張。2.4.0 で extension/ から移した）
 │   └── ddq-template/            … 旧 ddq-revision（ラベル付け・改訂履歴）と旧 ddq-table-editor（表の視覚編集）を
 │                                   統合し、ddq.exe を同梱して init / pdf / html / diagrams を VSCode から行う拡張
-│                                   （docs/ddq-template-study.md。ddq release が win32-x64 の VSIX を作る）
+│                                   （docs/ddq-template-study.md。ddq-release が win32-x64 の VSIX を作る）
 ├── .github/workflows/ci.yml     … Windows: fmt / clippy / test / build --release、その exe を同梱した VSIX のスモーク
 └── .github/workflows/extension.yml … 拡張の CI（Ubuntu / Windows × Node 20 / 22）
 ```
@@ -113,11 +113,11 @@ jar は 3.0.0 から同梱しない）。
 入れ替えは、前回のフォルダを消す → 作業フォルダの名前を変える → 前回の zip を消して今回の zip を作る → VSIX をコピーする、の順で、
 どこで止まってもフォルダ・zip・VSIX が前回と今回で混ざる。たとえば前回の zip を他のプログラムが開いていて消せないと、
 フォルダは今回、zip と VSIX は前回のものが同じ名前で残り、正しい一式に見える。そのため入れ替えの途中で失敗したら、
-`ddq release` は残っている出力（その版のフォルダ・作業フォルダ・zip・VSIX）を並べ、配布せずに消してから再実行するよう表示して止まる
+ddq-release は残っている出力（その版のフォルダ・作業フォルダ・zip・VSIX）を並べ、配布せずに消してから再実行するよう表示して止まる
 （`cli/tests/release.rs` の `a_failure_after_the_swap_lists_what_to_discard`）。
 前回の一式を退避して戻す、読み手から見て一度に切り替える、といった保証は手元では作らない。**正式に配る一式は CI が作る**
 （§7.5・§7.6。`docs/refactoring-plan.md` §7、2026-11-22 決定）。CI のランナーは毎回新しく、公開に使う成果物はすべての検査に通った
-実行にだけ残り、公開は保守者が下書きのリリースに載せてから行う。手元の `ddq release` は試作・確認用。
+実行にだけ残り、公開は保守者が下書きのリリースに載せてから行う。手元の ddq-release は試作・確認用。
 
 **plantuml.jar は同梱しない（3.0.0 から）**。2.2.0〜3.0.0-pre4 は `cli/vendor/plantuml.jar`（MIT 版）を同梱していたが、PlantUML の版・ライセンス・脆弱性への対応を利用者の組織の判断に任せるため外した。ローカルで描く利用者は PlantUML の公式リリースからjar を取得し、`DDQ_PLANTUML_JAR` か exe の隣に置く（§13.3 の探索順は変えていない）。
 
@@ -126,23 +126,23 @@ ddq.exe に埋め込む mermaid.min.js（と、そのバンドルに入る npm �
 バンドルする React が入る。これらのライセンス表示を `python cli/tools/third_party.py` がリポジトリ直下に作る
 （本文はローカルの Cargo レジストリ・npm パッケージから取る。merman の
 `THIRD_PARTY_LICENSES/`、ratex-katex-fonts の KaTeX フォント（SIL OFL 1.1）も含む）。先頭に入力
-（`Cargo.lock`・`mermaid.min.js`・拡張の `package-lock.json`）の SHA-1 を書き、`ddq release` と
+（`Cargo.lock`・`mermaid.min.js`・拡張の `package-lock.json`）の SHA-1 を書き、ddq-release と
 `tests/third_party.rs` が照合する。依存を変えたら作り直してコミットする（しないとリリースと CI が止まる）。
 テキストの入力は改行を LF に揃えてからハッシュする（`Cargo.lock` は checkout の設定で CRLF にもなる）。
 
-VSIX は `ddq release` が `extensions/<拡張>/` で `npm ci`（`node_modules/` があっても入れ直す）→
+VSIX は ddq-release が `extensions/<拡張>/` で `npm ci`（`node_modules/` があっても入れ直す）→
 `npm run package` を実行して作る（`--no-build` なら既存の VSIX を使う）。
-`package:win32-x64` スクリプトを持つ拡張（ddq-template）は ddq.exe を同梱する: release している exe を
+`package:win32-x64` スクリプトを持つ拡張（ddq-template）は ddq.exe を同梱する: 配る ddq.exe を
 `<拡張>/bin/win32-x64/ddq.exe`（git 管理外）に、リポジトリ直下の `THIRD-PARTY-NOTICES.md` を
 `<拡張>/THIRD-PARTY-NOTICES.md`（git 管理外）にコピーしてから `npm run package:win32-x64`
 （`vsce package --target win32-x64`）で `<name>-win32-x64-<版>.vsix` を作る。最後に VSIX の中の
-`extension/bin/win32-x64/ddq.exe` が release している exe と、`extension/THIRD-PARTY-NOTICES.md` が
+`extension/bin/win32-x64/ddq.exe` が配る ddq.exe と、`extension/THIRD-PARTY-NOTICES.md` が
 zip に入れるものとバイト一致することを確かめる（`--no-build` で前の版の ddq を同梱した VSIX や、
 ライセンス表示の無い・古い VSIX を配らないため。表示は REL-01 から）。VSIX は zip に入れず、zip の隣に置く
 （CLI 利用者は zip、VSCode 利用者は VSIX と、別の資産として取れるようにする）。
-重いビルドの前に、`template/VERSION`・この exe の版・各拡張の `package.json` の `version`・
+重いビルドの前に、`template/VERSION`・ddq-release 自身の版・配る ddq.exe の版（`--version`）・各拡張の `package.json` の `version`・
 `package-lock.json` の `version` と `packages[""].version` を照合し、1 つでも違えば何も作らずに止める
-（拡張の版＝テンプレートの版。古い exe での release も止まる。REL-03）。
+（拡張の版＝テンプレートの版。古い exe で作ろうとしても止まる。REL-03）。
 発行者・執筆者の端末に Node.js が要らない点は変わらない（要るのは保守者のリリース作成時だけ）。
 Windows の `npm` は `npm.cmd` なので `cmd /C npm …` で起動する（`Command::new("npm")` は .cmd を解決しない）。
 
@@ -169,10 +169,11 @@ ddq html     <writing-folder>
 ddq pdf      <writing-folder>
 ddq diagrams <writing-folder>
 ddq plantuml serve [--port 18080] [--bind 127.0.0.1]
-ddq release  [out-dir] [--with-sample] [--no-build]
 ddq mermaid  -i <in.mmd>… -o <out.svg>… -c <config.json> [-b <color>]   (hidden)
 ddq --version
 ```
+
+リリース一式の作成（旧 `ddq release`）は、保守者用の別の exe `ddq-release` にある（下記「保守者用の ddq-release」）。
 
 共通: `<writing-folder>` 省略時は `docs`。相対パスはカレント基準（現行 bat と同じ）。
 執筆フォルダの妥当性は「`_quarto.yml` があること」で判定する。
@@ -187,7 +188,7 @@ pdf  ──► setup（版・機構の一致検査 + PDF 側配置）──► p
                                               └─► POST /render（PlantUML サーバ。§13）
 diagrams ──────────────────────────────────────► mermaid と同じ変換器 / PlantUML サーバ
 plantuml serve ─► ローカルの PicoWeb を上げたままにする（執筆者のプレビュー用）
-release ──► update, pdf, html（manual に対して）
+ddq-release（別の exe）──► 配る ddq.exe の update, pdf, html（manual に対して）
 tag list ─┐
 tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出し・表・図の抽出）
 ```
@@ -204,7 +205,6 @@ tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出�
 | **pdf** | `setup` → PlantUML サーバの用意 → `quarto render --to typst --profile publish`（env: `DDQ_BIN` `DDQ_PLANTUML_SERVER`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
 | **diagrams** | `diagrams/*.mmd *.puml` → 同名 `.svg`（キャッシュ `mmd-*` `puml-*` は対象外）。設定は執筆フォルダ直下の `mermaid-config.json` / `plantuml-config.puml`（無ければ埋め込み） | render-diagrams |
 | **plantuml serve** | §13.4。Java と jar を探し、PicoWeb を既定ポートに上げて Ctrl-C まで待つ | （新規） |
-| **release** | 1) `--no-build` でなければ `update` `pdf` `html` を `docs/manual/` に実行 2) `release/quarto-template-<版>/` を作り直し、`current_exe()` を `ddq.exe` としてコピー（plantuml.jar は同梱しない）、`README.md`、`AGENT-GUIDE.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
 | **tag list** | 執筆フォルダの見出し・表・図と Quarto ラベルの有無を一覧する。ラベルが無いものには内容由来ハッシュの候補と**編集指示**（ファイル・行・行頭からの文字数・挿入する文字列）を付ける。`--json` は機械可読（VSCode 拡張・CI 向け）、`--unlabeled` はラベルの無いものだけ | （新規。§14） |
 | **tag apply** | `--all` で候補をすべて書き戻す。`--from <FILE>` は `tag list --json` の出力（人が候補を直したもの）を読んで書き戻し、当てる前に文書側と突き合わせる。`--dry-run` で書かずに内容だけ出す | （新規。§14） |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
@@ -212,6 +212,23 @@ tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出�
 `TEMPLATE_ROOT`（旧フィルタが `mermaid-config.json` のフォールバック探索に使っていた）は廃止した。
 フィルタは執筆フォルダ直下の `mermaid-config.json` があれば `-c` で渡し、無ければ渡さない
 （ddq が埋め込みの同じ既定を使う）。§6 参照。
+
+### 保守者用の ddq-release（別の exe）
+
+リリース一式は、保守者用の別の exe `ddq-release` が作る（2026-11-23 に `ddq release` から分けた。`docs/release-ci-proposal.md` §5）。
+ソースは `cli/src/bin/ddq-release/`（同じ Cargo パッケージの 2 本目のバイナリ）で、`cargo build --release` で `ddq.exe` と同じ
+`target/release/` にできる。発行者に配る ddq.exe には入らず、配布物にも入れない。`ddq release` は 2026-11-23 から
+「unrecognized subcommand」（終了コード 2）になる。
+
+```
+ddq-release [out-dir] [--with-sample] [--no-build] [--ddq <ddq.exe>]
+```
+
+テンプレートのリポジトリのルートで実行する。
+
+| 処理 | 現行 |
+|---|---|
+| 0) 配る ddq.exe を決める（`--ddq`。省略時は ddq-release と同じフォルダの `ddq.exe`。相対パスはカレント＝リポジトリのルートから）。無ければ何もせずに止まる。版を照合する（§3.2） 1) `--no-build` でなければ、配る ddq.exe の `update` `pdf` `html` を `docs/manual/` に実行（配る exe と同梱のマニュアルが同じ版になる） 2) `release/quarto-template-<版>/` を作り直し、配る ddq.exe を `ddq.exe` としてコピー（plantuml.jar は同梱しない）、`README.md`、`AGENT-GUIDE.md`、埋め込みの `release-guide.typ` を `quarto typst compile --input version=<版>` で `はじめかた.pdf` に、`docs/manual/design-doc.pdf` → `manual/利用マニュアル.pdf`、`docs/manual/_book` → `manual/html` 3) `--with-sample` で `examples/docs/` を `docs/` として同梱（`_book` `.quarto` `design-doc.pdf` `lib.typ` 等を除外） 4) zip（§7.3） | make-release |
 
 ### 非 ASCII パス
 
@@ -412,7 +429,8 @@ PATH 上の古い `ddq` と release フォルダの新しい `ddq` が共存し�
 
 - `ddq --version` = `template/VERSION`（`build.rs` が `cargo:rustc-env` で渡す）。
 - `update` は `.template-version` に同じ値を書く。
-- 版上げ手順: `template/VERSION` を上げる → `cargo build --release` → `ddq release`。
+- 版上げ手順: `template/VERSION` を上げる → `cargo build --release`（ddq.exe と ddq-release.exe）→ `ddq-release`。
+  ddq-release は自身の版と配る ddq.exe の版をどちらも `template/VERSION` と照合する。
 
 ### 7.5 リリース手順
 
@@ -420,10 +438,11 @@ PATH 上の古い `ddq` と release フォルダの新しい `ddq` が共存し�
 cd cli
 cargo build --release
 cd ..
-cli\target\release\ddq.exe release        # リポジトリのルートで実行する。既定で release\ に出力
+cli\target\release\ddq-release.exe        # リポジトリのルートで実行する。既定で release\ に出力。
+                                          # 配る ddq.exe は既定で隣の cli\target\release\ddq.exe（--ddq で変えられる）
 ```
 
-`ddq release` はカレントに `template/VERSION` と `docs/manual/_quarto.yml` を求めるので、`cli/` の中からは
+ddq-release はカレントに `template/VERSION` と `docs/manual/_quarto.yml` を求めるので、`cli/` の中からは
 実行できない（以前の例は `cli/` のまま実行していた）。
 保守者の端末には Rust に加えて Node.js（20 以上）と npm が要る（VSIX のパッケージ。§3.2）。
 手元の出力は `python cli/tools/check_release.py release`（`--smoke <作業フォルダ>` で、取り出した exe の init → pdf → html も）で、
@@ -465,7 +484,7 @@ runner のロケールは変えられない（`Set-WinSystemLocale` は再起動
 **配布候補（`.github/workflows/release-candidate.yml`）**。main への push（配布物に入るファイルが変わったとき）と手動実行で走る
 （workflow 自身や `cli/tools/check_release.py` を変えた PR でも走る）。
 
-- `build`（Windows）: ddq.exe を `--locked` でビルドし、その exe の `ddq release` で一式を作る。`cli/tools/check_release.py` で
+- `build`（Windows）: ddq.exe と ddq-release.exe を `--locked` でビルドし、ddq-release でその ddq.exe を配る一式を作る。`cli/tools/check_release.py` で
   照合し、ZIP・VSIX の SHA-256 の一覧と、使った版（コミット・ランナー・ddq.exe の SHA-256・Quarto・Node・Edge・書体）の一覧を作る
 - `verify-zip`（Windows）: 別のランナーで、ZIP を照合し、取り出した exe で init → pdf → html を通す
 - `verify-vsix`（Windows）: 別のランナーで、配る VSIX そのものを `npm run test:smoke` で起動する（旧 ci.yml の vsix-smoke の役目）
@@ -487,7 +506,7 @@ cli/src/
 ├── main.rs            … clap の Cli / Commands enum と dispatch だけ
 ├── commands/          … 1 コマンド = 1 ファイル（入口は run）
 │   ├── init.rs  add.rs  update.rs  setup.rs
-│   ├── html.rs  pdf.rs  diagrams.rs  release.rs
+│   ├── html.rs  pdf.rs  diagrams.rs
 │   ├── tag.rs  rev.rs  … ラベルの一覧・付与（§14）と改訂履歴（§15）
 │   ├── plantuml.rs    … ddq plantuml serve（§13）
 │   └── mermaid.rs     … hidden サブコマンド（引数→ renderer 呼び出し）
@@ -512,7 +531,11 @@ cli/src/
 │   └── revfile.rs     … 改訂 1 回分のファイル revisions/rev-<記号>.yml の読み書き
 ├── plantuml/
 │   └── mod.rs         … Java / jar / サーバ URL の探索、PicoWeb の起動・停止（Job Object）、手書き HTTP、Session（§13）
-└── zip_archive.rs     … release 用
+└── bin/ddq-release/   … 保守者用の別の exe ddq-release（2026-11-23 に ddq から分けた。配らない）
+    ├── main.rs        … clap の Cli（out-dir・--with-sample・--no-build・--ddq）と呼び出し
+    ├── release.rs     … 一式の作成（版・ライセンス表示の照合、マニュアル、VSIX、入れ替え。§3.2）
+    └── zip_archive.rs … zip（§7.3）
+                         （quarto.rs は ddq と同じファイルを `#[path]` で読む）
 ```
 
 方針:
@@ -564,7 +587,7 @@ cli/src/
   保守者の手元（ja-JP）では厳密一致のまま。
 - merman 系: 常時実行。foreignObject を含まないことをアサート。
 - コマンド系: 一時ディレクトリに `init` → `add` → `update --all` を流し、置かれるファイル一覧と `.template-version` を検証。`quarto` の起動はモック（`quarto.rs` を trait 化）か、PATH に `quarto` があるときだけ実施。
-- 手動: `ddq release` 後に `docs/manual/` の PDF/HTML を目視。`examples/docs/` の全図を旧 PDF と並べて確認（§9 の比較ページ生成をスクリプト化しておく）。
+- 手動: `ddq-release` 後に `docs/manual/` の PDF/HTML を目視。`examples/docs/` の全図を旧 PDF と並べて確認（§9 の比較ページ生成をスクリプト化しておく）。
 
 ---
 

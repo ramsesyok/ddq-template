@@ -14,7 +14,6 @@ mod plantuml;
 mod quarto;
 mod replace;
 mod writing_folder;
-mod zip_archive;
 
 use std::{path::PathBuf, process::ExitCode};
 
@@ -50,8 +49,6 @@ enum Command {
     Tag(TagArgs),
     /// 見出し・表・図の単位で改訂履歴を作る（Git の版と作業ツリーを比べる）
     Rev(RevArgs),
-    /// 発行者向けリリース一式（exe + 利用マニュアル + README + VSCode 拡張）を作る（保守者用）
-    Release(ReleaseArgs),
     /// mermaid ソースを SVG に変換する（design-doc.lua が内部で呼ぶ）
     #[command(hide = true)]
     Mermaid(MermaidArgs),
@@ -95,18 +92,6 @@ struct UpdateArgs {
 struct FolderArg {
     /// 執筆フォルダ（_quarto.yml のあるフォルダ。省略時 docs）
     writing_folder: Option<PathBuf>,
-}
-
-#[derive(Args)]
-struct ReleaseArgs {
-    /// 出力先（省略時 <リポジトリ>/release）
-    out_dir: Option<PathBuf>,
-    /// サンプル文書（examples/docs/）も docs/ として同梱する
-    #[arg(long)]
-    with_sample: bool,
-    /// 利用マニュアルと VSCode 拡張のビルドを省略する（docs/manual/ と extensions/ に成果物が残っているとき）
-    #[arg(long)]
-    no_build: bool,
 }
 
 #[derive(Args)]
@@ -278,7 +263,6 @@ fn run() -> anyhow::Result<()> {
         Command::Html(a) => commands::html::run(&writing_folder::resolve(a.writing_folder)?),
         Command::Pdf(a) => commands::pdf::run(&writing_folder::resolve(a.writing_folder)?),
         Command::Diagrams(a) => commands::diagrams::run(&writing_folder::resolve(a.writing_folder)?),
-        Command::Release(a) => commands::release::run(a.out_dir.as_deref(), a.with_sample, a.no_build),
         Command::Tag(a) => match a.command {
             TagCommand::List(t) => {
                 commands::tag::list(&writing_folder::resolve(t.writing_folder)?, t.json, t.unlabeled)

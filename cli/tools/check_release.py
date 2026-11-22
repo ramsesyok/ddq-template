@@ -1,4 +1,4 @@
-"""`ddq release` の出力（配布 ZIP と同梱版 VSIX）を読み直して照合する。
+"""ddq-release（保守者用。旧 `ddq release`）の出力（配布 ZIP と同梱版 VSIX）を読み直して照合する。
 
     python cli/tools/check_release.py <出力フォルダ> [--exe <ddq.exe>] [--with-sample]
                                       [--sums <SHA256SUMS>] [--smoke <作業フォルダ>]
@@ -129,7 +129,7 @@ def smoke(zip_path: Path, root_name: str, work: Path, want_fonts: list[str]) -> 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("out", type=Path, nargs="?", help="ddq release の出力フォルダ")
+    ap.add_argument("out", type=Path, nargs="?", help="ddq-release の出力フォルダ")
     ap.add_argument("--expected-fonts", action="store_true", help="PDF に要る書体の名前を 1 行ずつ出して終わる")
     ap.add_argument("--exe", type=Path, help="ZIP の exe と同じであるべき ddq.exe")
     ap.add_argument("--with-sample", action="store_true", help="--with-sample で作った（docs/ がある）")

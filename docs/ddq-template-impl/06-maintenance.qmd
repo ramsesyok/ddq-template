@@ -8,7 +8,7 @@
 | 変えるもの | 一緒に直すもの |
 |---|---|
 | 版不一致の終了コード（3） | `cli/src/commands/setup.rs` の `TEMPLATE_MISMATCH_EXIT_CODE` と `src/ddq/version.ts` の `TEMPLATE_MISMATCH_EXIT_CODE`、`cli/tests/commands.rs`、`cli/DESIGN.md` |
-| 同梱 ddq の置き場（`bin/win32-x64/ddq.exe`） | `src/ddq/locate.ts` の `bundledPath`、`cli/src/commands/release.rs` の `BUNDLED_EXE`、`tests/host/smoke.mjs` |
+| 同梱 ddq の置き場（`bin/win32-x64/ddq.exe`） | `src/ddq/locate.ts` の `bundledPath`、`cli/src/bin/ddq-release/release.rs` の `BUNDLED_EXE`、`tests/host/smoke.mjs` |
 | ターゲット（`win32-x64`） | `package.json` の `package:win32-x64`、`release.rs` の `BUNDLE_SCRIPT` / `BUNDLE_TARGET`（VSIX 名に入る） |
 | `ddq html` の完了行（`OK: …index.html`） | `src/build.ts` の `htmlIndexOf`（読めなければ「HTML を開く」が出ないだけ） |
 | ddq の警告行（`警告: …`） | `cli/src/commands/diagrams.rs` の出力と `src/build.ts` の `warningOf`（読めなければ、図が無くても「終わりました」と出る） |

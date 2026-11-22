@@ -1,9 +1,11 @@
 ## リリースを作る {#sec-release}
 
-配る一式は `ddq release` で作る。マニュアルのビルド・VSCode 拡張のパッケージ（`ddq.exe` の同梱）から
+配る一式は、保守者用の **`ddq-release`** で作る。マニュアルのビルド・VSCode 拡張のパッケージ（`ddq.exe` の同梱）から
 zip 化までを 1 コマンドで行うので、**ビルド順（PDF → HTML）の間違い**や入れ忘れが起きない。
-`ddq` 自身がリリースに入るので、先に release ビルドしておく。
-**正式に配る一式は、同じ `ddq release` を CI が実行して作る**（@sec-release-publish）。手元の `ddq release` は、
+`ddq-release` は `ddq.exe` とは別の exe で、発行者には配らない（以前の `ddq release` は
+`ddq` から外した）。`cargo build --release` で `ddq.exe` の隣にでき、その `ddq.exe` を配る一式に入れ、
+マニュアルもその `ddq.exe` で作る。
+**正式に配る一式は、同じ `ddq-release` を CI が実行して作る**（@sec-release-publish）。手元の `ddq-release` は、
 出力を確かめるための試作に使う。
 
 ```bat
@@ -11,22 +13,23 @@ zip 化までを 1 コマンドで行うので、**ビルド順（PDF → HTML�
 cd cli
 cargo build --release
 cd ..
-cli\target\release\ddq.exe release
+cli\target\release\ddq-release.exe
 ```
 
 ビルドには Rust（stable）と MSVC のリンカ（Visual Studio の「C++ によるデスクトップ開発」
 ワークロード）、それに VSCode 拡張のパッケージ用に **Node.js（20 以上）と npm** が要る
-（`ddq release` が `extensions/ddq-template/` に自分自身を `bin/win32-x64/ddq.exe` として、
+（`ddq-release` が `extensions/ddq-template/` に配る `ddq.exe` を `bin/win32-x64/ddq.exe` として、
 `THIRD-PARTY-NOTICES.md` を拡張のフォルダ直下にコピーし、`npm ci` → `npm run package:win32-x64` で
 ddq.exe 入りの VSIX を作る）。
 配布先には何も要らない（CRT は静的リンク。`cli/DESIGN.md` §7.1）。
 
-::: {.tbl caption="ddq release の引数・オプション" label="tbl-release-opts" widths="24,76"}
+::: {.tbl caption="ddq-release の引数・オプション" label="tbl-release-opts" widths="24,76"}
 | 引数・オプション | 効果 |
 |---|---|
 | 第1引数 | 出力先フォルダ（既定は `release/`） |
 | `--with-sample` | サンプル文書（`examples/docs/`）を `docs/` として同梱する（原稿と図だけ。生成物は除く）。発行者へ記法の実例を渡したいときに使う |
-| `--no-build` | マニュアルと VSCode 拡張を再ビルドせず、既にある成果物（`docs/manual/design-doc.pdf`・`docs/manual/_book/`・`extensions/ddq-template/ddq-template-win32-x64-<版>.vsix`）を使う。VSIX の中の `ddq.exe` が release している exe と違うか、`THIRD-PARTY-NOTICES.md` が無いかリポジトリ直下のものと違えば止まる |
+| `--no-build` | マニュアルと VSCode 拡張を再ビルドせず、既にある成果物（`docs/manual/design-doc.pdf`・`docs/manual/_book/`・`extensions/ddq-template/ddq-template-win32-x64-<版>.vsix`）を使う。VSIX の中の `ddq.exe` が配る `ddq.exe` と違うか、`THIRD-PARTY-NOTICES.md` が無いかリポジトリ直下のものと違えば止まる |
+| `--ddq <ddq.exe>` | 配る `ddq.exe`（既定は `ddq-release` と同じフォルダの `ddq.exe`。相対パスはリポジトリのルートから）。無ければ何も作らずに止まる |
 :::
 
 出力は `release/quarto-template-<版>/`（展開済み）と同名の `.zip`、それに
@@ -37,7 +40,7 @@ ddq.exe 入りの VSIX を作る）。
 
 ただし、**入れ替えの途中で失敗した回の出力は、配布せずに消して作り直す**（前回の一式は守らない）。
 フォルダ・zip・VSIX が前回と今回で混ざり、たとえば前回の zip を他のプログラムが開いていて消せないと、
-前回の zip が同じ名前で残って正しい一式に見える。このとき `ddq release` は
+前回の zip が同じ名前で残って正しい一式に見える。このとき `ddq-release` は
 「前回の一式と入れ替える途中で失敗しました」と表示し、消すもの（その版のフォルダ・zip・VSIX）を並べて止まる。
 原因（zip を開いているプログラムなど）を取り除き、並んだものを消してからもう一度実行する。
 手元の出力は配らないので、前回の一式が失われても配布には影響しない。
@@ -73,7 +76,7 @@ ddq-template-win32-x64-<版>.vsix               … VSCode 拡張 DDQ Template�
 python cli/tools/third_party.py
 ```
 
-作り直していないと `ddq release` が止まり（「THIRD-PARTY-NOTICES.md が古くなっています」）、CI の
+作り直していないと `ddq-release` が止まり（「THIRD-PARTY-NOTICES.md が古くなっています」）、CI の
 `cargo test` も落ちる。表示は zip と VSIX の両方に同じファイルが入る（VSIX だけを受け取る利用者にも、
 同梱の `ddq.exe` と React の表示が届くように）。plantuml.jar は 3.0.0 から同梱しないので、表示の対象に入らない
 （利用者が PlantUML の公式リリースから取得する。@sec-plantuml-setup）。
@@ -87,11 +90,11 @@ python cli/tools/third_party.py
 
 ### 作るときの注意
 
-- `ddq release` は重いビルドの前に版を照合する。`template/VERSION`・`ddq` 自身の版（ビルドしたときの
-  `template/VERSION`）・拡張の `package.json` の `version`・`package-lock.json` の `version` と
+- `ddq-release` は重いビルドの前に版を照合する。`template/VERSION`・`ddq-release` 自身の版と配る `ddq.exe` の版
+  （どちらもビルドしたときの `template/VERSION`）・拡張の `package.json` の `version`・`package-lock.json` の `version` と
   `packages[""].version` が 1 つでも違えば、何も作らずに止まり、違うものをまとめて表示する
-  （`--no-build` でも同じ）。`ddq` の版だけが違うときは、`cargo build --release` を忘れている
-- zip は `ddq` が Rust の `zip` クレートで作り、**UTF-8 名フラグ（general purpose bit 11）
+  （`--no-build` でも同じ）。exe の版だけが違うときは、`cargo build --release` を忘れている
+- zip は `ddq-release` が Rust の `zip` クレートで作り、**UTF-8 名フラグ（general purpose bit 11）
   を立てる**（`manual/利用マニュアル.pdf` が日本語名のため。旧 bat 時代に bsdtar で
   文字化けした教訓）。作成後に**ファイル数が展開フォルダと一致するか検査**し、
   欠けていればエラーにして zip を消す。
@@ -109,8 +112,8 @@ python cli/tools/third_party.py
 ## リリースを配る {#sec-release-publish}
 
 配る ZIP と VSIX は手元で作らず、**CI の配布候補**（`.github/workflows/release-candidate.yml`）から取る。
-`main` に入ると（配布物に入るファイルが変わったとき）、Windows のランナーが ddq.exe をビルドし、その exe の
-`ddq release` で一式を作る。別のランナーで ZIP（取り出した exe で init → pdf → html）と VSIX（配る VSIX
+`main` に入ると（配布物に入るファイルが変わったとき）、Windows のランナーが ddq.exe と ddq-release.exe をビルドし、
+`ddq-release` でその ddq.exe を配る一式を作る。別のランナーで ZIP（取り出した exe で init → pdf → html）と VSIX（配る VSIX
 そのもので VSCode を起動）を検査し、**すべて通った実行にだけ**成果物 `release-<版>`（ZIP・VSIX・SHA-256 の一覧・
 使った版の一覧。コミットと ddq.exe の SHA-256 も載る）が残る。手動で起動するときは `gh workflow run release-candidate --ref main`
 （サンプルを同梱するなら `-f with_sample=true`）。
