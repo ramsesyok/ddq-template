@@ -163,7 +163,7 @@
 
 ### E-0037：release の分離（ddq-release。2026-11-23） {#ev-e-0037 .unnumbered}
 
-**確認済み／種別：ソース・テスト期待値・実行観測**。基準はブランチ `refactor/refactoring-plan`（PR #142）の作業ツリー、2026-11-23
+**確認済み／種別：ソース・テスト期待値・実行観測**。基準は #142 のマージ（`6bb9232`）の後の作業ツリー（ブランチ `refactor/release-split-and-fixes`）、2026-11-23
 （`template/VERSION` 3.1.0-pre1）。本書はこの分離だけを反映した（@sec-update-scope）。
 
 - 入口：`cli/src/bin/ddq-release/main.rs::Cli / main`（`out-dir`・`--with-sample`・`--no-build`・`--ddq`）。`cli/src/main.rs::Command` から

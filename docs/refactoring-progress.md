@@ -6,6 +6,9 @@
 - 基準: `main` `17ed32e`（`template/VERSION` 3.1.0-pre1）。作業開始時の作業ツリーは計画書だけが未追跡
 - 記録日: 2026-11-22
 - 2026-11-22 の指示で、ブランチ `refactor/refactoring-plan` に ID ごとのコミットとして積み、PR（ramsesyok/ddq-template#142）にした。ID ごとの差分は「差分の取り出し方」参照
+- #142 は 2026-11-22 15:45（UTC。日本時間では 11-23 の 0:45）に `f6e27ed` までがマージされた（マージコミット `6bb9232`）。
+  その後の 3 件（GEN-02 の既知の差を直す、ddq から release を外す、既存の不具合 2 件を直す）は、2026-11-23 の指示でブランチ
+  `refactor/release-split-and-fixes` に移した（main の上に載せ替えた。中身は同じ）
 
 ## 環境
 
@@ -920,7 +923,8 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 ### GEN-02 の既知の差を直す（完了レビューの後。2026-11-23）
 
 - **指示**: 2026-11-23「Yes, in this PR」。GEN-02 で印を付けて固定した既知の差のうち、手間の小さいもの（mermaid のタブ、
-  CRLF の設定、表エディタの `merge-cols="ALL"`・`merge-cols=""`・旧 `.merge-rows`）をこの PR で直す。PlantUML の `@start` の前の
+  CRLF の設定、表エディタの `merge-cols="ALL"`・`merge-cols=""`・旧 `.merge-rows`）を直す（指示の「この PR」は #142 だが、
+  #142 はすでにマージされていたので、続きのブランチ `refactor/release-split-and-fixes` に入れた。冒頭参照）。PlantUML の `@start` の前の
   空白（見た目に差が無い）と、書式つきのセルの比較（手間が中くらい）は残す
 - **状況**: 実装・検証済み
 - **変更ファイル**
