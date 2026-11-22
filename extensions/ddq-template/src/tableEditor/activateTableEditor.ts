@@ -23,27 +23,41 @@ type Session = {
   documentVersion: number;
 };
 
-let panel: vscode.WebviewPanel | undefined;
-let session: Session | undefined;
+/**
+ * この起動が持つ表エディタ。パネルは 1 枚だけを使い回し、編集セッションはそのパネルに 1 つ。
+ * 拡張の終了（context の破棄）で捨てる。
+ */
+type Host = {
+  context: vscode.ExtensionContext;
+  panel?: vscode.WebviewPanel;
+  session?: Session;
+};
+
+/** いまの起動の表エディタ（deactivateTableEditor が捨てる） */
+let current: Host | undefined;
 
 export function activateTableEditor(context: vscode.ExtensionContext) {
+  const host: Host = { context };
+  current = host;
   context.subscriptions.push(
-    vscode.commands.registerCommand('ddqTemplate.openTableEditor', () => openTableEditor(context))
+    vscode.commands.registerCommand('ddqTemplate.openTableEditor', () => openTableEditor(host))
   );
-  context.subscriptions.push({ dispose: disposePanel });
+  context.subscriptions.push({ dispose: () => disposePanel(host) });
 }
 
 export function deactivateTableEditor() {
-  disposePanel();
+  if (current) disposePanel(current);
+  current = undefined;
 }
 
-function disposePanel() {
+function disposePanel(host: Host) {
+  const panel = host.panel;
+  host.panel = undefined;
+  host.session = undefined;
   panel?.dispose();
-  panel = undefined;
-  session = undefined;
 }
 
-function openTableEditor(context: vscode.ExtensionContext) {
+function openTableEditor(host: Host) {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     vscode.window.showErrorMessage('テーブルを編集する .qmd / .md ファイルを開いてください。');
@@ -58,64 +72,71 @@ function openTableEditor(context: vscode.ExtensionContext) {
     return;
   }
 
-  session = { document, target: found.value, documentVersion: document.version };
+  host.session = { document, target: found.value, documentVersion: document.version };
 
   // パネルは 1 つだけ使い回す。retainContextWhenHidden は保持コストが高いので、
   // コマンドを実行するたびに増やさない。
-  if (panel) {
-    panel.reveal(vscode.ViewColumn.Beside, true);
-    postInit();
+  if (host.panel) {
+    host.panel.reveal(vscode.ViewColumn.Beside, true);
+    postInit(host, host.panel);
     return;
   }
 
-  panel = vscode.window.createWebviewPanel(
+  const panel = vscode.window.createWebviewPanel(
     'ddqTemplate.tableEditor',
     'DDQ 表エディタ',
     vscode.ViewColumn.Beside,
     {
       enableScripts: true,
       retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'out', 'webview', 'tableEditor')]
+      localResourceRoots: [vscode.Uri.joinPath(host.context.extensionUri, 'out', 'webview', 'tableEditor')]
     }
   );
+  host.panel = panel;
 
-  panel.webview.html = buildHtml(panel.webview, context.extensionUri);
+  panel.webview.html = buildHtml(panel.webview, host.context.extensionUri);
 
   panel.onDidDispose(() => {
-    panel = undefined;
-    session = undefined;
+    // 閉じたのがいまのパネルのときだけ捨てる（閉じた後に開き直したパネルは残す）
+    if (host.panel !== panel) return;
+    host.panel = undefined;
+    host.session = undefined;
   });
 
   panel.webview.onDidReceiveMessage(async (message: FromWebviewMessage) => {
+    // 閉じたパネルから遅れて届いたものは扱わない
+    if (host.panel !== panel) return;
     switch (message.type) {
       case 'ready':
-        postInit();
+        postInit(host, panel);
         break;
       case 'apply': {
-        const result = await applyToDocument(message.model);
+        const result = await applyToDocument(host, panel, message.model);
+        // 書き戻しのあいだにパネルを閉じた・拡張が終わった、または別の表を開き直した
+        if (host.panel !== panel || result.superseded) break;
         if (result.ok) {
           // 取り直した編集対象を送り直し、Webview とファイルの状態を揃える
-          postInit();
-          post({ type: 'applied' });
+          postInit(host, panel);
+          post(panel, { type: 'applied' });
         } else {
-          post({ type: 'error', message: result.message });
+          post(panel, { type: 'error', message: result.message });
         }
         break;
       }
       case 'close':
-        disposePanel();
+        disposePanel(host);
         break;
     }
   });
 }
 
-function post(message: ToWebviewMessage) {
-  panel?.webview.postMessage(message);
+function post(panel: vscode.WebviewPanel, message: ToWebviewMessage) {
+  void panel.webview.postMessage(message);
 }
 
-function postInit() {
-  if (!session) return;
-  post({ type: 'init', model: session.target.model, context: toContext(session.target) });
+function postInit(host: Host, panel: vscode.WebviewPanel) {
+  if (!host.session) return;
+  post(panel, { type: 'init', model: host.session.target.model, context: toContext(host.session.target) });
 }
 
 function toContext(target: EditTarget): EditorContext {
@@ -129,17 +150,21 @@ function toContext(target: EditTarget): EditorContext {
   };
 }
 
-type ApplyResult = { ok: true } | { ok: false; message: string };
+/** `superseded`: 書き戻しのあいだに別の表を開き直した（画面は開き直した表のまま、何も送らない） */
+type ApplyResult = { ok: true; superseded?: boolean } | { ok: false; message: string; superseded?: false };
 
-async function applyToDocument(rawModel: TableModel): Promise<ApplyResult> {
-  if (!session) return { ok: false, message: '編集セッションが失われました。開き直してください。' };
-  const { document, target } = session;
+async function applyToDocument(host: Host, panel: vscode.WebviewPanel, rawModel: TableModel): Promise<ApplyResult> {
+  const started = host.session;
+  if (!started) return { ok: false, message: '編集セッションが失われました。開き直してください。' };
+  const { document, target } = started;
+  // 書き戻しを始めたときのパネル・編集セッションのままか（確認ダイアログの間に別の表を開き直せる）
+  const unchanged = () => host.panel === panel && host.session === started;
 
   if (document.isClosed) {
     return { ok: false, message: '対象のファイルが閉じられています。開き直してください。' };
   }
   // 外部で編集されていると行番号がずれており、そのまま書くと別の場所を壊す
-  if (document.version !== session.documentVersion) {
+  if (document.version !== started.documentVersion) {
     return {
       ok: false,
       message: 'エディタを開いてからファイルが変更されました。表を開き直してください。'
@@ -162,8 +187,12 @@ async function applyToDocument(rawModel: TableModel): Promise<ApplyResult> {
       '続行する'
     );
     if (choice !== '続行する') return { ok: false, message: '書き戻しを中止しました。' };
+    // モーダル表示中に、表エディタで別の表を開き直していないか
+    if (!unchanged()) {
+      return { ok: false, message: '確認のあいだに表エディタで別の表を開いたため、書き戻しを中止しました。' };
+    }
     // モーダル表示中に変更されていないか、もう一度確かめる
-    if (document.isClosed || document.version !== session.documentVersion) {
+    if (document.isClosed || document.version !== started.documentVersion) {
       return { ok: false, message: 'ファイルが変更されました。表を開き直してください。' };
     }
   }
@@ -191,15 +220,17 @@ async function applyToDocument(rawModel: TableModel): Promise<ApplyResult> {
   if (!(await vscode.workspace.applyEdit(edit))) {
     return { ok: false, message: 'ドキュメントへの反映に失敗しました。' };
   }
+  // 反映のあいだに別の表を開き直したなら、その表の編集セッションを上書きしない
+  if (!unchanged()) return { ok: true, superseded: true };
 
   // 行番号がずれたので、いま書いた場所から編集対象を取り直す。
   // これをしないと 2 回目の Apply が別の範囲を書き潰す。
   const updated = splitLines(document.getText());
   const refound = findEditTarget(updated, anchorLineOf(replacement), generateTableId());
   if (refound.ok) {
-    session = { document, target: refound.value, documentVersion: document.version };
+    host.session = { document, target: refound.value, documentVersion: document.version };
   } else {
-    session = undefined;
+    host.session = undefined;
     return { ok: false, message: `書き戻しましたが再読み込みに失敗しました: ${refound.message}` };
   }
 

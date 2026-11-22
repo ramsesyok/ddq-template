@@ -92,8 +92,7 @@ export function activateRevision(context: vscode.ExtensionContext) {
                 const revision = parse(document.getText());
                 if (revision.entries.length === 0) return false;
                 revision.entries[0].note = note;
-                await write(document, revision);
-                return true;
+                return write(document, revision);
             }
         )
     );

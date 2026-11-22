@@ -129,21 +129,34 @@ async function readSubdirectories(dir: string): Promise<string[]> {
  * （`resourcePath in ddqTemplate.writingFolders`）。`when` 句ではフォルダの中身も親も
  * 見られないので、執筆フォルダと配下のフォルダのパスをキーに持つオブジェクトを渡す。
  * 起動時と、版ファイル・_quarto.yml・執筆フォルダの中身の増減時に作り直す。
+ *
+ * 作り直しは重なりうる（起動直後の走査中にワークスペースのフォルダが増えた、など）。
+ * 遅れて終わった古い走査で新しい結果を上書きしないよう、いちばん新しい作り直しの結果だけを
+ * 使う（通し番号。ラベル一覧の取り直しと同じ流儀）。拡張の終了後は何も書かない。
  */
 export function watchWritingFolders(context: vscode.ExtensionContext, onChange: () => void): void {
     let writing: string[] = [];
+    let generation = 0;
+    let disposed = false;
     const update = async () => {
-        writing = await listWritingFolders();
+        const mine = ++generation;
+        const latest = () => !disposed && mine === generation;
+        const found = await listWritingFolders();
+        if (!latest()) return;
+        writing = found;
         const keys: Record<string, true> = {};
-        for (const dir of writing) {
+        for (const dir of found) {
             keys[vscode.Uri.file(dir).fsPath] = true;
             for (const sub of await subfolders(dir, readSubdirectories)) {
                 keys[vscode.Uri.file(sub).fsPath] = true;
             }
         }
+        if (!latest()) return;
         await vscode.commands.executeCommand('setContext', 'ddqTemplate.writingFolders', keys);
+        if (!latest()) return;
         // 「執筆フォルダを追加」をリポジトリ（ルート）の右クリックに出すかどうか
-        await vscode.commands.executeCommand('setContext', 'ddqTemplate.hasWritingFolders', writing.length > 0);
+        await vscode.commands.executeCommand('setContext', 'ddqTemplate.hasWritingFolders', found.length > 0);
+        if (!latest()) return;
         onChange();
     };
     for (const name of [TEMPLATE_VERSION_FILE, QUARTO_YML]) {
@@ -166,7 +179,12 @@ export function watchWritingFolders(context: vscode.ExtensionContext, onChange: 
     const anything = vscode.workspace.createFileSystemWatcher('**/*', false, true, false);
     anything.onDidCreate(later);
     anything.onDidDelete(later);
-    context.subscriptions.push(anything, { dispose: () => timer && clearTimeout(timer) });
+    context.subscriptions.push(anything, {
+        dispose: () => {
+            disposed = true;
+            if (timer) clearTimeout(timer);
+        }
+    });
 
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(update));
     void update();

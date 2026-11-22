@@ -25,7 +25,7 @@ else process.exit(1);`,
 // 設定の ddqTemplate.ddqPath に node を指定した扱い（引数の先頭にスクリプトを置く）
 vi.mock('./locate', () => ({ locateDdq: () => ({ command: process.execPath, source: 'setting' }) }));
 
-import { fake } from '../testing/fakeVscode';
+import { extensionContext, fake } from '../testing/fakeVscode';
 import { isResultLine } from '../build';
 import { activateLaunch, deactivateLaunch, runWithProgress, showError } from './launch';
 import { liveCount } from './run';
@@ -40,7 +40,7 @@ async function until(cond: () => boolean, ms = 10000) {
 
 beforeEach(() => {
     fake.reset();
-    activateLaunch();
+    activateLaunch(extensionContext() as never);
 });
 
 describe('runWithProgress', () => {

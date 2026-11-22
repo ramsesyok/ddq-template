@@ -19,7 +19,7 @@ import { activateTableEditor, deactivateTableEditor } from './tableEditor/activa
 
 export function activate(context: vscode.ExtensionContext) {
     initLocate(context.extensionPath);
-    activateLaunch();
+    activateLaunch(context);
     activateBuild(context);
     activateInit(context);
     activateAdd(context);

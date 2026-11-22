@@ -47,9 +47,15 @@ export async function showError(reason: string) {
     if ((await vscode.window.showErrorMessage(reason, show)) === show) channel().show(true);
 }
 
-/** 拡張の起動時に呼ぶ（終了処理の印を戻す）。 */
-export function activateLaunch(): void {
+/** 拡張の起動時に呼ぶ（終了処理の印を戻す）。出力チャネルはこの起動が持ち、終了で捨てる。 */
+export function activateLaunch(context: vscode.ExtensionContext): void {
     closing = false;
+    context.subscriptions.push({
+        dispose: () => {
+            output?.dispose();
+            output = undefined;
+        }
+    });
 }
 
 /** 拡張の終了時に呼ぶ。起動中の ddq を孫ごと止め、以後は出力・通知を出さない。 */

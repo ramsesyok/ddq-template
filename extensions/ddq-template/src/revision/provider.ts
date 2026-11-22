@@ -24,6 +24,9 @@ import { parse, toYaml, type Revision } from './revfile';
 /** 空の左右ペインを出すための自前スキーム（§5.8）。 */
 export const EMPTY_SCHEME = 'ddq-rev';
 
+/** 文書の変更が止まってからタグの状態を取り直すまで（ミリ秒） */
+export const TAG_REFRESH_DELAY_MS = 800;
+
 export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
     static readonly viewType = 'ddqTemplate.revisionEditor';
 
@@ -42,7 +45,11 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
         panel.webview.options = { enableScripts: true };
         panel.webview.html = html(panel.webview, this.extensionUri, 'revision');
 
-        const post = (message: ToEditorMessage) => void panel.webview.postMessage(message);
+        let disposed = false;
+        // 閉じたエディタには送らない（遅れて終わった取得・書き戻しから）
+        const post = (message: ToEditorMessage) => {
+            if (!disposed) void panel.webview.postMessage(message);
+        };
         const folder = writingFolderOf(document.uri);
 
         let context: EditorContext = {
@@ -52,25 +59,49 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
             tags: []
         };
 
-        const send = async () => {
-            context = { ...context, ...(await tagState(folder, document.uri)) };
-            post({ type: 'revision', revision: parse(document.getText()), context });
+        /** いまの文書を画面に送る（タグの状態は覚えているものを使う） */
+        const send = () => post({ type: 'revision', revision: parse(document.getText()), context });
+
+        // タグの状態（確定済みか・既にあるタグ）は Git のタグで決まり、メモの入力そのものでは
+        // 変わらない。文書が変わったら本文はすぐ送り、タグは入力が止まってから 1 回だけ取り直す
+        // （以前は 1 打鍵ごとに ddq rev next を起動していた。端末でタグを打った後に入力すれば
+        // 反映される点は変わらない）。取り直しが重なったら、いちばん新しい結果だけを使う。
+        let generation = 0;
+        const refreshTags = async () => {
+            const mine = ++generation;
+            const state = await tagState(folder, document.uri);
+            if (disposed || mine !== generation) return;
+            context = { ...context, ...state };
+            send();
         };
+        let timer: ReturnType<typeof setTimeout> | undefined;
 
         const changed = vscode.workspace.onDidChangeTextDocument((e) => {
             // ddq rev diff --write で外から書き換わったときも画面を合わせる
-            if (e.document.uri.toString() === document.uri.toString()) void send();
+            if (e.document.uri.toString() !== document.uri.toString()) return;
+            send();
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => void refreshTags(), TAG_REFRESH_DELAY_MS);
         });
-        panel.onDidDispose(() => changed.dispose());
+        panel.onDidDispose(() => {
+            disposed = true;
+            if (timer) clearTimeout(timer);
+            changed.dispose();
+        });
 
         panel.webview.onDidReceiveMessage(async (message: FromEditorMessage) => {
             try {
                 switch (message.type) {
                     case 'ready':
-                        await send();
+                        send();
+                        await refreshTags();
                         return;
                     case 'edit':
-                        await write(document, message.revision);
+                        if (!(await write(document, message.revision))) {
+                            // 書けなかった。画面を文書に戻してから知らせる
+                            send();
+                            throw new DdqError('改訂履歴の文書に書き込めませんでした。ファイルを開き直してください。');
+                        }
                         return;
                     case 'reveal':
                         await reveal(folder, message.file, message.line);
@@ -80,12 +111,14 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
                         return;
                     case 'refresh':
                         await this.refresh(folder, document, message.base, post);
+                        await refreshTags();
                         return;
                     case 'build':
                         await this.build(folder, post);
                         return;
                     case 'fix':
                         await this.fix(folder, document, post);
+                        await refreshTags();
                         return;
                 }
             } catch (e) {
@@ -168,23 +201,25 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
 
 /**
  * 直した内容を YAML に直して文書へ書く（保存はしない = VSCode の流儀）。
+ * 書けたか（変える必要が無かったときも true）を返す。
  *
  * ddq は LF で書くが、Git の設定によっては作業ツリーの yml が CRLF になっている。
  * その文書の改行に合わせて書かないと、メモを 1 つ直しただけで全行が書き換わってしまう。
  */
-export async function write(document: vscode.TextDocument, revision: Revision) {
+export async function write(document: vscode.TextDocument, revision: Revision): Promise<boolean> {
     const next =
         document.eol === vscode.EndOfLine.CRLF
             ? toYaml(revision).replace(/\n/g, '\r\n')
             : toYaml(revision);
-    if (next === document.getText()) return;
+    if (next === document.getText()) return true;
+    if (document.isClosed) return false;
     const edit = new vscode.WorkspaceEdit();
     edit.replace(
         document.uri,
         new vscode.Range(0, 0, document.lineCount, 0),
         next
     );
-    await vscode.workspace.applyEdit(edit);
+    return vscode.workspace.applyEdit(edit);
 }
 
 /** `revisions/rev-B.yml` から執筆フォルダ（`revisions` の親）を求める。 */

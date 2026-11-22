@@ -79,7 +79,22 @@ async function run() {
         .find((t) => t.input instanceof vscode.TabInputWebview && /DDQ 表エディタ/.test(t.label));
     assert.ok(tableTab, '表エディタのパネルが開いていない');
     say(`表エディタのパネルが開く（${tableTab.label}）`);
-    await vscode.window.tabGroups.close(tableTab);
+    // もう一度開いてもパネルは増えない（1 枚を使い回す）。閉じてから開き直せる（EXT-03）
+    const tableTabs = () =>
+        vscode.window.tabGroups.all
+            .flatMap((g) => g.tabs)
+            .filter((t) => t.input instanceof vscode.TabInputWebview && /DDQ 表エディタ/.test(t.label));
+    await vscode.commands.executeCommand('ddqTemplate.openTableEditor');
+    await new Promise((r) => setTimeout(r, 1000));
+    assert.strictEqual(tableTabs().length, 1, '表エディタのパネルが増えた');
+    say('表エディタをもう一度開いてもパネルは 1 枚のまま');
+    await vscode.window.tabGroups.close(tableTabs());
+    await new Promise((r) => setTimeout(r, 500));
+    await vscode.commands.executeCommand('ddqTemplate.openTableEditor');
+    await new Promise((r) => setTimeout(r, 2000));
+    assert.strictEqual(tableTabs().length, 1, '閉じた表エディタを開き直せない');
+    say('表エディタを閉じてから開き直せる');
+    await vscode.window.tabGroups.close(tableTabs());
 
     // 旧拡張の ID は残っていない
     const commands = await vscode.commands.getCommands(true);
