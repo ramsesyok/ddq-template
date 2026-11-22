@@ -14,6 +14,7 @@ ddq（Rust）が出し、拡張（TypeScript）が読むものの期待値を、
 
 | `diagrams.json` | 図のキャッシュ（GEN-02）。mermaid は原稿 → フィルタが受け取るコード → キー、PlantUML は図＋共通設定 → サーバに送るソース → キー。SVG の先頭コメントでの照合（`fresh` / `pumlEnv`）と、先頭に書く 1 行の形 | `cli/src/mermaid/prerender.rs`・`cli/src/plantuml/mod.rs` の単体試験、`cli/tests/filter_contract.rs`（本物の design-doc.lua） |
 | `merge-cols.json` | `.tbl` の merge-cols の結合（GEN-02）。原稿とボディ行ごとの rowspan | `cli/tests/filter_contract.rs`、`extensions/ddq-template/src/tableEditor/formats/mergeCols/contract.test.ts` |
+| `chapters.json` | `_quarto.yml` の章の並び（GEN-01）。`cases` は `_quarto.yml` 全体と、そこから読む章・付録の並び（行末コメントで章が落ちた 17ed32e の雛形そのもの。リリースには入っていない）。`items` は `- ` の後ろ 1 件の書き方 | `cli/src/doc/project.rs` の単体試験、`cli/tests/filter_contract.rs`（本物の postprocess-html.js を `quarto run` で） |
 
 `{{FOLDER}}` は、ddq が引数の執筆フォルダを `std::path::absolute` で解決したパス（Windows では
 `/` が `\` になり、`.` / `..` が畳まれる）。`{{SEP}}` はその OS のパス区切り。
@@ -25,6 +26,7 @@ ddq（Rust）が出し、拡張（TypeScript）が読むものの期待値を、
 | 2026-11-22 | HEAD `17ed32e` の release ビルド（`ddq 3.1.0-pre1`）。保管版 3.1.0-pre1・3.0.0 の `ddq.exe` も同じ出力 | 初回採取 |
 | 2026-11-22 | 保管版 2.4.4 の `ddq.exe` | `tag-list.2.4.4.json`。HEAD との差は `edit.original` の有無だけ |
 | 2026-11-22 | （exe は使わない。下の「図・表の期待値の決め方」） | `diagrams.json`・`merge-cols.json` の初回作成 |
+| 2026-11-22 | （exe は使わない。下の「章の並びの期待値の決め方」） | `chapters.json` の初回作成 |
 
 期待値を変えたら、上の表に理由と exe の版を足す。**既存の期待値を黙って上書きしない**
 （出力が変わったこと自体が、拡張側の対応が要るかどうかを判断する材料になる）。
@@ -55,3 +57,16 @@ Rust・Lua・TypeScript のどの実装の出力も期待値に使わない。
 | `rustDiffers`（PlantUML・`@start` の前の空白） | Rust の `assemble_source` は落とし、Lua は残す。Rust はこれでキーを作らない（`ddq diagrams` が `.puml` を送るときだけ）ので図の名前は変わらない |
 | `luaWindowsOnly`（mermaid・CRLF の設定） | Lua の文字モードで CRLF が LF になるのは Windows だけ。ほかの OS ではフィルタのキーに CR が残る（描き直すだけ） |
 | `tsDiffers`（merge-cols） | 表エディタの表示だけが文書の出力と違う。書式つきのセル（原文で比べる）、`merge-cols="ALL"`・`""`（全列とみなす）、旧 `.merge-rows`（結合を展開する） |
+
+## 章の並びの期待値の決め方（GEN-01）
+
+ddq（Rust）・postprocess-html.js のどちらの出力も期待値に使わない。
+
+- `cases` … 各 `_quarto.yml` を一時フォルダに置き、並びに出てくるファイルを見出しだけの中身で作って
+  `quarto inspect` を通し、`config.book.chapters`（`part` はその `chapters` を展開）と
+  `config.book.appendices` を書かれた順に並べたもの。PyYAML で読んだ並びとも一致することを確かめた。
+  逆斜線は `/` に揃える（両実装ともパスの区切りを `/` にする）
+- `items` … YAML の規則から手で決めた。二重引用の中の `\x` だけは改訂ファイルの読み方（DATA-01）と同じく
+  「`\\` は `\`、`\"` は `"`、ほかはそのまま」で、YAML（`\t` はタブ）とは違う
+- `part` にファイルを書いたとき（`- part: part1.qmd`。Quarto は部の扉ページとして出す）は対象外。
+  両実装ともその扉ページを文書の並びに入れない

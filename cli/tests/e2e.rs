@@ -373,3 +373,120 @@ fn diagram_cache_from_another_environment_is_redrawn_unless_kept() {
         "いまの環境の先頭コメントで描き直していない"
     );
 }
+
+/// `quarto inspect` が返す book.chapters（part は展開）と appendices を、書かれた順に並べる。
+/// inspect は入れ子の include を「include したファイルの場所」から探して失敗する（render と ddq は
+/// 章のフォルダから探す）ので、`_quarto.yml` と、中身を見出しだけにした qmd/md の写しで調べる。
+fn quarto_chapters(dir: &Path) -> Vec<String> {
+    let mirror = tempfile::tempdir().unwrap();
+    fs::copy(dir.join("_quarto.yml"), mirror.path().join("_quarto.yml")).unwrap();
+    for entry in walkdir::WalkDir::new(dir) {
+        let entry = entry.unwrap();
+        let ext = entry.path().extension().and_then(|e| e.to_str()).unwrap_or("");
+        if entry.file_type().is_file() && (ext == "qmd" || ext == "md") {
+            let to = mirror.path().join(entry.path().strip_prefix(dir).unwrap());
+            fs::create_dir_all(to.parent().unwrap()).unwrap();
+            fs::write(to, "# x\n").unwrap();
+        }
+    }
+    let out = Command::new("quarto")
+        .arg("inspect")
+        .arg(mirror.path())
+        .output()
+        .expect("quarto inspect を起動できません");
+    assert!(
+        out.status.success(),
+        "quarto inspect が失敗: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    fn flat(v: &serde_json::Value, out: &mut Vec<String>) {
+        for x in v.as_array().into_iter().flatten() {
+            match x {
+                serde_json::Value::String(s) => out.push(s.replace('\\', "/")),
+                _ => flat(&x["chapters"], out),
+            }
+        }
+    }
+    let mut chapters = Vec::new();
+    flat(&v["config"]["book"]["chapters"], &mut chapters);
+    flat(&v["config"]["book"]["appendices"], &mut chapters);
+    chapters
+}
+
+/// 後処理が番号を振っていないキャプション（Quarto の既定の「表&nbsp;4.1: 」のまま・分割表のラベル無し）
+fn unnumbered_captions(html: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    for (open, kinds) in [
+        ("<figcaption", &["図&nbsp;", "表&nbsp;", "コード&nbsp;"][..]),
+        ("<div class=\"split-caption", &[""][..]),
+    ] {
+        for (i, _) in html.match_indices(open) {
+            let tag_end = i + html[i..].find('>').unwrap();
+            let tag = &html[i..tag_end];
+            let body: String = html[tag_end + 1..].chars().take(30).collect();
+            let bad = if open.starts_with("<div") {
+                !tag.contains("data-unnumbered=\"true\"") && !body.starts_with("表 ")
+            } else {
+                kinds.iter().any(|k| body.starts_with(k))
+            };
+            if bad {
+                found.push(format!("{tag}>{body}"));
+            }
+        }
+    }
+    found
+}
+
+/// 新規作成の雛形の章の並び（GEN-01）。Quarto が読む章（quarto inspect）が ddq の文書順
+/// （tag list の order）に同じ順で全部入り、HTML の後処理でどの章のキャプションにも番号が付く。
+/// 17ed32e（リリース前）の雛形は第 2〜7 章の行末コメントで ddq と postprocess-html.js から章が落ち、
+/// 第 4 章の .tbl に表番号が付かなかった。
+#[test]
+fn scaffold_chapters_are_all_read() {
+    if skip_without_quarto() {
+        return;
+    }
+    let _lock = QUARTO_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    let docs = repo.join("docs");
+    assert_ok(
+        &ddq(&["init", &repo.to_string_lossy(), "docs", "--no-render"]),
+        "ddq init",
+    );
+    let chapters = quarto_chapters(&docs);
+    assert!(chapters.len() >= 8, "雛形の章が少ない: {chapters:?}");
+
+    let d = docs.to_string_lossy().into_owned();
+    let out = ddq(&["tag", "list", &d, "--json"]);
+    assert_ok(&out, "ddq tag list");
+    let list: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let order: Vec<&str> = list["order"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    let mut rest = order.iter();
+    for ch in &chapters {
+        assert!(rest.any(|o| o == ch), "文書順に {ch} が無いか順が違う: {order:?}");
+    }
+    assert_eq!(list["warnings"], serde_json::json!([]), "章立ての警告");
+
+    assert_ok(&ddq(&["html", &d]), "ddq html");
+    for ch in &chapters {
+        let html_path = docs
+            .join("_book")
+            .join(format!("{}.html", ch.rsplit_once('.').unwrap().0));
+        let html =
+            fs::read_to_string(&html_path).unwrap_or_else(|_| panic!("{} が無い", html_path.display()));
+        let bad = unnumbered_captions(&html);
+        assert!(bad.is_empty(), "{ch} に番号の無いキャプション: {bad:#?}");
+    }
+    let ch4 = fs::read_to_string(docs.join("_book/chapters/04/index.html")).unwrap();
+    assert!(
+        ch4.contains("data-ref=\"tbl-user\" data-part=\"1\" data-total=\"1\">表 4.1.1-1　"),
+        "第 4 章の tbl-user に表番号が付いていない"
+    );
+}

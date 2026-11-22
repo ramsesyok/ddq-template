@@ -49,24 +49,72 @@ if (outFiles.length > 0 && !outFiles.some((f) => f.endsWith('.html'))) process.e
 const root = process.argv[2] || process.env.QUARTO_PROJECT_OUTPUT_DIR || '_book';
 
 // 章順は _quarto.yml の chapters をそのまま使う（並びを二重管理しない）。
-// chapters は「- パス.qmd」が1行1件で並ぶだけなので、簡易パースで足りる。
 // 章ファイルは .qmd と .md のどちらでもよい（実行コードセルを使わない章は .md にできる）。
 const conf = fs.readFileSync('_quarto.yml', 'utf8');
 
-/** `キー:` の下に続く「- パス.qmd」を html の名前にして返す。 */
-const listOf = (key) => {
-  const block = conf.match(new RegExp(String.raw`^\s*${key}:\s*$([\s\S]*?)^\s*\w+:`, 'm'))
-    || conf.match(new RegExp(String.raw`^\s*${key}:\s*$([\s\S]*)`, 'm'));
-  return [...(block?.[1] ?? '').matchAll(/^\s*-\s*(\S+\.(?:qmd|md))\s*$/gm)]
-    .map((m) => m[1].replace(/\.(?:qmd|md)$/, '.html'));
+/**
+ * `- ` の後ろが文書ファイルのパスならそれを返す（`part:` などは undefined）。ddq（Rust）の
+ * `cli/src/doc/project.rs` の `as_doc_path` と同じ規則（GEN-01。両方を
+ * cli/tests/fixtures/contract/chapters.json に照らす）:
+ *   - 二重引用 "…": `\\` は `\`、`\"` は `"`。ほかの `\x` はそのまま
+ *   - 単一引用 '…': `''` は `'`
+ *   - 引用なし: 先頭か空白の後の `#` から後ろはコメント。前後の空白は落とし、途中の空白はパスの一部
+ * 引用の後ろには空白とコメントしか置けない。`:` を含むもの（`part: …` などの対応付け）は外す。
+ */
+const docPath = (item) => {
+  const s = item.trim();
+  let value;
+  let rest = '';
+  const quoted = /^"((?:[^"\\]|\\.)*)"(.*)$/.exec(s) ?? /^'((?:[^']|'')*)'(.*)$/.exec(s);
+  if (quoted) {
+    value = s.startsWith('"')
+      ? quoted[1].replace(/\\(.)/g, (whole, c) => (c === '\\' || c === '"' ? c : whole))
+      : quoted[1].replace(/''/g, "'");
+    rest = quoted[2];
+  } else if (/^["']/.test(s)) {
+    return undefined;                     // 閉じていない引用
+  } else {
+    value = s.replace(/(?:^|\s)#.*$/, '').trimEnd();
+  }
+  rest = rest.trimStart();
+  if (!(rest === '' || rest.startsWith('#')) || value.includes(':')) return undefined;
+  return /\.(?:qmd|md)$/i.test(value) ? value.replace(/\\/g, '/') : undefined;
 };
 
-const chapters = listOf('chapters');
+/**
+ * `chapters:` と `appendices:` の下に続く「その行より深い字下げ」の範囲から、文書のパスを
+ * 書かれた順に拾う（Rust の `chapters_of` と同じ規則）。キーと同じ字下げの `- ` もそのキーの列。
+ * `part:` で束ねた入れ子の `chapters:` も同じ範囲に入るので、外側の列に続けて拾う。
+ */
+const docsOf = (text) => {
+  const lists = { chapters: [], appendices: [] };
+  let inside;                             // { indent, list }
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trimStart();
+    const indent = line.length - trimmed.length;
+    if (trimmed === '' || trimmed.startsWith('#')) continue;
+    if (inside && (indent < inside.indent || (indent === inside.indent && !trimmed.startsWith('- ')))) {
+      inside = undefined;
+    }
+    if (!inside) {
+      const key = /^(chapters|appendices):/.exec(trimmed);
+      if (key) inside = { indent, list: lists[key[1]] };
+      continue;
+    }
+    const p = trimmed.startsWith('- ') ? docPath(trimmed.slice(2)) : undefined;
+    if (p) inside.list.push(p);
+  }
+  return lists;
+};
+
+const toHtml = (f) => f.replace(/\.(?:qmd|md)$/i, '.html');
+const docs = docsOf(conf);
+const chapters = docs.chapters.map(toHtml);
 // 付録（book.appendices）。Quarto は章番号を A・B… と振るが、**HTML の章タイトルには
 // chapter-number を出さず**「付録 A — 解析根拠」という文にしてしまう（id を付けた章では
 // 特に）。語は言語設定で変わるので、記号は _quarto.yml の並び順から決める。
 const appendixLetter = new Map(
-  listOf('appendices').map((f, i) => [f, String.fromCharCode(65 + i)])
+  docs.appendices.map(toHtml).map((f, i) => [f, String.fromCharCode(65 + i)])
 );
 const order = [...chapters, ...[...appendixLetter.keys()].filter((f) => !chapters.includes(f))];
 if (order.length === 0) {

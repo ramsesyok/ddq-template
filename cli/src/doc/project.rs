@@ -237,9 +237,12 @@ fn include_path(line: &str) -> Option<String> {
 /// `_quarto.yml` から章ファイルのパスを取り出す。
 ///
 /// `chapters:` と `appendices:`（付録。2.4.0 から）の下に続く「その行より深い字下げ」の
-/// 範囲から `- <パス>.qmd|md` を、書かれた順に拾う。`part:` で束ねた入れ子の `chapters:` も
-/// 同じ範囲に入るので、これで両方拾える（`- part: "第I部"` の行はパスの形に合わないので
-/// 自然に外れる）。
+/// 範囲から `- <パス>.qmd|md` を、書かれた順に拾う。キーと同じ字下げの `- ` もそのキーの列
+/// （YAML はこの書き方を許す）。`part:` で束ねた入れ子の `chapters:` も同じ範囲に入るので、
+/// これで両方拾える（`- part: "第I部"` の行はパスの形に合わないので自然に外れる）。
+///
+/// 1 件の書き方は `as_doc_path` を参照（GEN-01）。postprocess-html.js の `docsOf` は同じ規則で、
+/// 両方を tests/fixtures/contract/chapters.json（正解は `quarto inspect`）に照らす。
 fn chapters_of(conf: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut inside = None::<usize>;
@@ -251,7 +254,7 @@ fn chapters_of(conf: &str) -> Vec<String> {
             continue;
         }
         // 字下げが戻ったら範囲の終わり。同じ行が次の範囲の始まり（`appendices:`）でありうる。
-        if inside.is_some_and(|start| indent <= start) {
+        if inside.is_some_and(|start| indent < start || (indent == start && !trimmed.starts_with("- "))) {
             inside = None;
         }
         match inside {
@@ -262,7 +265,7 @@ fn chapters_of(conf: &str) -> Vec<String> {
             }
             Some(_) => {
                 if let Some(rest) = trimmed.strip_prefix("- ")
-                    && let Some(p) = as_doc_path(rest.trim())
+                    && let Some(p) = as_doc_path(rest)
                 {
                     out.push(p);
                 }
@@ -273,13 +276,63 @@ fn chapters_of(conf: &str) -> Vec<String> {
 }
 
 /// `- ` の後ろが文書ファイルのパスならそれを返す（`part:` などは None）。
+///
+/// - 二重引用 `"…"`: `\\` は `\`、`\"` は `"`。ほかの `\x` はそのまま（改訂ファイルの読み方と同じ）
+/// - 単一引用 `'…'`: `''` は `'`
+/// - 引用なし: 先頭か空白の後の `#` から後ろはコメント。前後の空白は落とし、途中の空白はパスの一部
+///
+/// 引用の後ろには空白とコメントしか置けない。`:` を含むもの（`part: …` などの対応付け）は外す。
 fn as_doc_path(s: &str) -> Option<String> {
-    let s = s.trim_matches(|c| c == '"' || c == '\'');
-    if s.contains(char::is_whitespace) || s.contains(':') {
+    let s = s.trim();
+    let (value, rest) = match s.chars().next()? {
+        '"' => {
+            let mut value = String::new();
+            let mut chars = s[1..].char_indices();
+            let end = loop {
+                let (i, c) = chars.next()?;
+                match c {
+                    '"' => break i + 2,
+                    '\\' => match chars.next()? {
+                        (_, e @ ('\\' | '"')) => value.push(e),
+                        (_, e) => {
+                            value.push('\\');
+                            value.push(e);
+                        }
+                    },
+                    c => value.push(c),
+                }
+            };
+            (value, &s[end..])
+        }
+        '\'' => {
+            let mut value = String::new();
+            let mut chars = s[1..].char_indices().peekable();
+            let end = loop {
+                let (i, c) = chars.next()?;
+                if c != '\'' {
+                    value.push(c);
+                } else if chars.next_if(|&(_, n)| n == '\'').is_some() {
+                    value.push('\'');
+                } else {
+                    break i + 2;
+                }
+            };
+            (value, &s[end..])
+        }
+        _ => {
+            let end = s
+                .char_indices()
+                .find(|&(i, c)| c == '#' && (i == 0 || s[..i].ends_with(char::is_whitespace)))
+                .map_or(s.len(), |(i, _)| i);
+            (s[..end].trim_end().to_string(), "")
+        }
+    };
+    let rest = rest.trim_start();
+    if !(rest.is_empty() || rest.starts_with('#')) || value.contains(':') {
         return None;
     }
-    let lower = s.to_ascii_lowercase();
-    (lower.ends_with(".qmd") || lower.ends_with(".md")).then(|| s.replace('\\', "/"))
+    let lower = value.to_ascii_lowercase();
+    (lower.ends_with(".qmd") || lower.ends_with(".md")).then(|| value.replace('\\', "/"))
 }
 
 /// 相対パスの親（`chapters/04/index.qmd` → `chapters/04`）。
@@ -323,6 +376,43 @@ mod tests {
     fn chapters_include_parts_but_not_part_titles() {
         let conf = "book:\n  title: x\n  chapters:\n    - index.qmd\n    - part: \"第I部\"\n      chapters:\n        - a/b.qmd\n        - c.md\n\nlang: ja\n";
         assert_eq!(chapters_of(conf), ["index.qmd", "a/b.qmd", "c.md"]);
+    }
+
+    /// 章の並びの共有ケース（GEN-01）。正解は `quarto inspect` の読み方。postprocess-html.js も
+    /// 同じケースで試す（tests/filter_contract.rs）
+    #[test]
+    fn chapters_match_the_shared_cases() {
+        let shared: serde_json::Value =
+            serde_json::from_str(include_str!("../../tests/fixtures/contract/chapters.json")).unwrap();
+        for case in shared["cases"].as_array().unwrap() {
+            let want: Vec<&str> = ["chapters", "appendices"]
+                .iter()
+                .flat_map(|key| case[key].as_array().unwrap())
+                .map(|v| v.as_str().unwrap())
+                .collect();
+            assert_eq!(
+                chapters_of(case["yaml"].as_str().unwrap()),
+                want,
+                "{}",
+                case["name"]
+            );
+        }
+    }
+
+    /// 1 件の書き方の共有ケース（GEN-01。postprocess-html.js の docPath も同じものを読む）
+    #[test]
+    fn items_match_the_shared_cases() {
+        let shared: serde_json::Value =
+            serde_json::from_str(include_str!("../../tests/fixtures/contract/chapters.json")).unwrap();
+        let items = &shared["items"];
+        for pair in items["paths"].as_array().unwrap() {
+            let (item, want) = (pair[0].as_str().unwrap(), pair[1].as_str().unwrap());
+            assert_eq!(as_doc_path(item).as_deref(), Some(want), "{item}");
+        }
+        for pair in items["not_paths"].as_array().unwrap() {
+            let item = pair[0].as_str().unwrap();
+            assert_eq!(as_doc_path(item), None, "{item}（{}）", pair[1]);
+        }
     }
 
     #[test]

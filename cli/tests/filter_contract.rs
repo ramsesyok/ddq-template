@@ -1,6 +1,7 @@
-//! フィルタ（template/design-doc.lua）と Rust・拡張で重複している規則を、同じ期待値で確かめる（GEN-02）。
+//! フィルタ（template/design-doc.lua）・postprocess-html.js と Rust・拡張で重複している規則を、
+//! 同じ期待値で確かめる（GEN-02。章の並びは GEN-01）。
 //!
-//! 期待値は cli/tests/fixtures/contract/ の `diagrams.json` と `merge-cols.json`（README.md）。
+//! 期待値は cli/tests/fixtures/contract/ の `diagrams.json`・`merge-cols.json`・`chapters.json`（README.md）。
 //! Rust 側（mermaid/prerender.rs・plantuml/mod.rs の単体試験）と拡張側
 //! （extensions/ddq-template の mergeCols/contract.test.ts）も同じファイルを読む。ここでは
 //! フィルタを**そのまま** `quarto pandoc … --lua-filter` に通し、外から見える結果で比べる:
@@ -463,5 +464,167 @@ fn merge_cols_match_the_shared_cases() {
             .map(|p| serde_json::from_value(p["spans"].clone()).unwrap())
             .collect();
         assert_eq!(got, want, "{name}");
+    }
+}
+
+/// 章ごとに図を 1 つ持つ最小の HTML（Quarto の book が出す形）。`chapter` が None なら付録の形
+/// （章タイトルに chapter-number が無い）。
+fn chapter_page(n: usize, chapter: Option<&str>) -> String {
+    let title = match chapter {
+        Some(c) => format!(
+            r#"<span class="chapter-number">{c}</span>&nbsp; <span class="chapter-title">章{n}</span>"#
+        ),
+        None => format!("付録 — 章{n}"),
+    };
+    format!(
+        "<!DOCTYPE html>\n<html><body>\n<h1 class=\"title\">{title}</h1>\n\
+         <figure><figcaption id=\"fig-d{n}-caption-0\">図&nbsp;1.1: 図{n}</figcaption></figure>\n</body></html>\n"
+    )
+}
+
+/// `dir` で本物の postprocess-html.js を `quarto run`（Quarto 同梱の Deno）に通す
+fn postprocess(dir: &Path, output_files: Option<&str>) -> String {
+    let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("../template/postprocess-html.js");
+    let mut cmd = Command::new("quarto");
+    cmd.arg("run").arg(script).arg("_book").current_dir(dir);
+    cmd.env_remove("QUARTO_PROJECT_OUTPUT_DIR");
+    match output_files {
+        Some(files) => cmd.env("QUARTO_PROJECT_OUTPUT_FILES", files),
+        None => cmd.env_remove("QUARTO_PROJECT_OUTPUT_FILES"),
+    };
+    let out = cmd.output().expect("quarto run を起動できません");
+    let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
+    assert!(
+        out.status.success(),
+        "postprocess-html.js が失敗:\n{stdout}\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    stdout
+}
+
+/// 章の並び（GEN-01）。chapters.json の各ケースの `_quarto.yml` と章ごとの最小の HTML を置き、
+/// 本物の postprocess-html.js に通す。並びに入った章だけが番号を振り直され（図 3-1）、付録は
+/// 並び順に A・B…（図 A-1）。並びに無い HTML には触れない。もう一度通しても同じ（preview の
+/// 保存ごとの再実行）、出力が 1 つだけと渡されても同じ（増分の再描画）。Rust 側は
+/// src/doc/project.rs の単体試験が同じケースを読む。
+#[test]
+fn chapter_lists_match_the_shared_cases() {
+    if !quarto_available() {
+        return;
+    }
+    for case in fixture("chapters.json")["cases"].as_array().unwrap() {
+        let name = s(case, "name");
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("_quarto.yml"), s(case, "yaml")).unwrap();
+        let html_of = |v: &Value| format!("{}.html", v.as_str().unwrap().rsplit_once('.').unwrap().0);
+        // （HTML, 期待する番号の接頭辞。None は触れないこと）
+        let mut pages: Vec<(String, Option<String>)> = Vec::new();
+        for (i, ch) in case["chapters"].as_array().unwrap().iter().enumerate() {
+            pages.push((html_of(ch), Some((i + 1).to_string())));
+        }
+        for (i, ap) in case["appendices"].as_array().unwrap().iter().enumerate() {
+            pages.push((html_of(ap), Some(char::from(b'A' + i as u8).to_string())));
+        }
+        pages.push(("not-listed.html".into(), None));
+        let book = dir.path().join("_book");
+        let appendices = case["appendices"].as_array().unwrap().len();
+        let first_appendix = pages.len() - 1 - appendices;
+        for (n, (html, _)) in pages.iter().enumerate() {
+            let path = book.join(html);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            let chapter = (n < first_appendix || n == pages.len() - 1).then(|| (n + 1).to_string());
+            fs::write(path, chapter_page(n, chapter.as_deref())).unwrap();
+        }
+
+        let stdout = postprocess(dir.path(), None);
+        assert!(
+            stdout.contains(&format!("図表 {} 件", pages.len() - 1)),
+            "{name}: 並びの章の数だけ振り直していない: {stdout}"
+        );
+        let first: Vec<String> = pages
+            .iter()
+            .map(|(html, _)| fs::read_to_string(book.join(html)).unwrap())
+            .collect();
+        for (n, ((html, prefix), text)) in pages.iter().zip(&first).enumerate() {
+            match prefix {
+                Some(p) => assert!(
+                    text.contains(&format!(">図 {p}-1　図{n}<")),
+                    "{name}: {html} が「図 {p}-1」にならない:\n{text}"
+                ),
+                None => assert_eq!(
+                    *text,
+                    chapter_page(n, Some(&(n + 1).to_string())),
+                    "{name}: 並びに無い {html} を書き換えた"
+                ),
+            }
+        }
+        // 再実行（preview の保存ごと）と増分（出力 1 つ）で変わらない
+        postprocess(dir.path(), None);
+        postprocess(dir.path(), Some(&book.join(&pages[0].0).to_string_lossy()));
+        for ((html, _), before) in pages.iter().zip(&first) {
+            assert_eq!(
+                fs::read_to_string(book.join(html)).unwrap(),
+                *before,
+                "{name}: 再実行で {html} が変わった"
+            );
+        }
+    }
+}
+
+/// postprocess-html.js から `const <name> = … };` の定義を切り出す（関数を書き出していないため）
+fn js_definition(src: &str, name: &str) -> String {
+    let start = src
+        .find(&format!("\nconst {name} = "))
+        .unwrap_or_else(|| panic!("postprocess-html.js に {name} が無い"))
+        + 1;
+    let end = start + src[start..].find("\n};\n").expect("定義の終わりが無い") + 4;
+    src[start..end].to_string()
+}
+
+/// 1 件の書き方（GEN-01）。chapters.json の items を、postprocess-html.js の `docPath` を
+/// 切り出して Quarto 同梱の Deno で評価し、比べる。Rust 側は src/doc/project.rs の単体試験。
+/// 正しい YAML の `_quarto.yml` では起きない書き方（引用の後ろのゴミなど）もここで見る。
+#[test]
+fn chapter_items_match_the_shared_cases() {
+    if !quarto_available() {
+        return;
+    }
+    let src =
+        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../template/postprocess-html.js"))
+            .unwrap();
+    let items = &fixture("chapters.json")["items"];
+    let dir = tempfile::tempdir().unwrap();
+    let harness = dir.path().join("items.js");
+    fs::write(
+        &harness,
+        format!(
+            "{}\nconst items = {items};\nconst read = (xs) => xs.map(([item]) => docPath(item) ?? null);\n\
+             console.log(JSON.stringify({{ paths: read(items.paths), not_paths: read(items.not_paths) }}));\n",
+            js_definition(&src, "docPath")
+        ),
+    )
+    .unwrap();
+    let out = Command::new("quarto")
+        .arg("run")
+        .arg(&harness)
+        .output()
+        .expect("quarto run を起動できません");
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let got: Value = serde_json::from_slice(&out.stdout).unwrap();
+    for (pair, path) in items["paths"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(got["paths"].as_array().unwrap())
+    {
+        assert_eq!(path, &pair[1], "{}", pair[0]);
+    }
+    for (pair, path) in items["not_paths"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(got["not_paths"].as_array().unwrap())
+    {
+        assert_eq!(path, &Value::Null, "{}（{}）", pair[0], pair[1]);
     }
 }
