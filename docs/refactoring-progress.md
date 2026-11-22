@@ -827,6 +827,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | 3・4 回目（`115409d`・`6f37060`。記録だけ） | ci・extension の全ジョブ（vsix-smoke は PR では走らない） | 成功（extension の `115409d` の分は次の push で取り消され、`6f37060` で成功） |
 | 5 回目（`5d76c67`。REL-02 の暫定） | extension 全ジョブ（実拡張ホストを含む）、ci: mermaid-bundle | 成功 |
 | 5 回目 | ci: `cli` | **失敗**。`cargo audit` が `url` 2.5.8 の RUSTSEC-2026-0592 で止まった（下の「PR の CI で見つけた依存の脆弱性」） |
+| 6 回目（`2dc31e2`。`url` の更新） | ci・extension の全ジョブ（vsix-smoke は PR では走らない） | 成功（ci の `cli` 19 分 23 秒、実拡張ホスト 11 分 28 秒）。`cargo audit` も通った |
 
 vsix-smoke は PR では走らない（main への push と手動実行だけ）。
 
@@ -840,7 +841,7 @@ vsix-smoke は PR では走らない（main への push と手動実行だけ）
   ほかは変わらない）。`python cli/tools/third_party.py` で `THIRD-PARTY-NOTICES.md` を作り直した（版の表記 6 か所と入力のハッシュだけが
   変わり、本文は同じ。Rust 190・mermaid 66・拡張 3、本文 182 種類）
 - **試験と結果**: 手元の `cargo audit`（advisory-db `248aea097`。RUSTSEC-2026-0592 を含む）で脆弱性 0 件、許可済みの警告 1 件
-  （`ttf-parser` の unmaintained。従来から）。`cargo fmt --check`・clippy 成功。Rust 全件（計画 §6 の条件）: **224 件成功・失敗 0・ignored 0**（8 分 37 秒。1 回目はビルド中に一時フォルダを Windows がつかんでいて消せず（os error 32）コンパイルで止まったので、流し直した）
+  （`ttf-parser` の unmaintained。従来から）。`cargo fmt --check`・clippy 成功。Rust 全件（計画 §6 の条件）: **224 件成功・失敗 0・ignored 0**（8 分 37 秒。1 回目はビルド中に一時フォルダを Windows がつかんでいて消せず（os error 32）コンパイルで止まったので、流し直した）。PR の CI（6 回目の push）も `cargo audit` を含めて全ジョブ成功
 - **計画からの逸脱**: 計画の項目ではない依存の更新（版の更新だけで、コードは変えていない）
 - **残存リスク**: 上の「全件と配布候補」の release の exe のハッシュと配布候補は、この更新の前のもの（exe は変わる）。配布候補は
   作り直していない。merman を通る図の描画は、全件のうち e2e・golden・release などの試験が通す
