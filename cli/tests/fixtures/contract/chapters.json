@@ -135,6 +135,110 @@
         "app.qmd",
         "app2.qmd"
       ]
+    },
+    {
+      "name": "フロー形式の対応付け {part: …, chapters: […]}（キーの順・部の題名・複数行・付録の中）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - {part: p1.qmd, chapters: [a.qmd, b.qmd]}\n    - {part: \"題名だけ\", chapters: [c.qmd]}\n    - {chapters: [d.qmd], part: p2.qmd}   # chapters を先に書いても扉ページが先\n    - { part: p3.qmd,   # 複数行の対応付け\n        chapters: [e.qmd,\n                   f.qmd] }\n  appendices:\n    - app1.qmd\n    - {part: ap.qmd, chapters: [app2.qmd]}\nlang: ja\n",
+      "part_files": [
+        "p1.qmd",
+        "p2.qmd",
+        "p3.qmd",
+        "ap.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "p1.qmd",
+        "a.qmd",
+        "b.qmd",
+        "c.qmd",
+        "p2.qmd",
+        "d.qmd",
+        "p3.qmd",
+        "e.qmd",
+        "f.qmd"
+      ],
+      "appendices": [
+        "app1.qmd",
+        "ap.qmd",
+        "app2.qmd"
+      ]
+    },
+    {
+      "name": "href:・file: の項目（text: の前後・フロー形式・部の中・付録）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - href: a.qmd\n    - file: b.qmd   # file: は href: と同じ\n    - text: Cの題\n      href: c.qmd\n    - href: d.qmd\n      text: Dの題\n    - {href: e.qmd}\n    - {file: f.qmd, text: \"F\"}\n    - part: p1.qmd\n      chapters:\n        - href: g.qmd\n        - file: h.qmd\n  appendices:\n    - href: app1.qmd\n    - text: 付録2\n      file: app2.qmd\nlang: ja\n",
+      "part_files": [
+        "p1.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "a.qmd",
+        "b.qmd",
+        "c.qmd",
+        "d.qmd",
+        "e.qmd",
+        "f.qmd",
+        "p1.qmd",
+        "g.qmd",
+        "h.qmd"
+      ],
+      "appendices": [
+        "app1.qmd",
+        "app2.qmd"
+      ]
+    },
+    {
+      "name": "フロー形式の列の中の対応付け（引用の中の , と :・コメント・部の中の列）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters: [index.qmd, {part: p1.qmd, chapters: [a.qmd, \"b, c.qmd\"]},   # コメント\n             {href: 'd.qmd', text: \"D, の題\"}, {part: 総論.qmd, chapters: [e.qmd]}]\n  appendices:\n    - part: p2.qmd\n      chapters: [app1.qmd, {file: app2.qmd}]\n    - {text: \"付録: 三\", href: app3.qmd}\nlang: ja\n",
+      "part_files": [
+        "p1.qmd",
+        "p2.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "p1.qmd",
+        "a.qmd",
+        "b, c.qmd",
+        "d.qmd",
+        "e.qmd"
+      ],
+      "appendices": [
+        "p2.qmd",
+        "app1.qmd",
+        "app2.qmd",
+        "app3.qmd"
+      ]
+    },
+    {
+      "name": "部の項目に href:・file: も書く（項目のページは 1 つ: 扉ページ → href: → file:）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - href: d.qmd   # 部の扉ページ（ファイル）があれば href: は使わない\n      part: q.qmd\n    - part: r.qmd\n      href: e.qmd\n      chapters:\n        - f.qmd\n    - {part: \"題\", href: g.qmd, chapters: [a.qmd]}   # 部の題名なら href: が部のページ\n    - {part: \"題2\", file: h.qmd}\n    - chapters: [b.qmd]\n      href: c.qmd\n      part: 題3\n    - {file: x.qmd, href: y.qmd}   # 両方なら href:\n    - file: z.qmd\n      href: w.qmd\n  appendices:\n    - {part: \"付録の部\", href: ap.qmd, chapters: [app1.qmd]}\n    - app2.qmd\nlang: ja\n",
+      "part_files": [
+        "q.qmd",
+        "r.qmd"
+      ],
+      "part_hrefs": [
+        "g.qmd",
+        "h.qmd",
+        "c.qmd",
+        "ap.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "q.qmd",
+        "r.qmd",
+        "f.qmd",
+        "g.qmd",
+        "a.qmd",
+        "h.qmd",
+        "c.qmd",
+        "b.qmd",
+        "y.qmd",
+        "w.qmd"
+      ],
+      "appendices": [
+        "ap.qmd",
+        "app1.qmd",
+        "app2.qmd"
+      ]
     }
   ],
   "items": {

@@ -1315,6 +1315,7 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
      改訂履歴の画面がほかで直したメモを古い値で戻さない（H-02）
    - PR で release-candidate を毎回走らせるか（計画 §7「PR でのフル配布検査の所要時間を確認してジョブ配置を決める」）: 所要時間は 38 分
      （うち書体を入れる時間が 25 分あまり）。検討書 §2 の 3 の形（main と手動。PR は workflow などを変えたときだけ）のままを勧める
+     → 2026-11-23 に利用者が「今のまま」と決めた（末尾の「2 回目」）
 4. **計画の中の小さな直し**（2026-11-22 の指示で、このレビューで直した）
    - REL-03: CI の成果物に exe の SHA-256 を残す（`versions.txt` に 1 行）。workflow から手順を取り出して手元で流し、書いた値が
      exe と ZIP の中の exe の SHA-256 と一致することを確かめた。workflow は YAML として読め、手順の数は変わらない（build 12）
@@ -1634,7 +1635,64 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
     書体が要る）。書体を入れる時間はランナーによって 3 分ほど揺れる
   - 変更履歴の日付は 2026-11-23。公開する日が違えば直す。タグ・リリースは作っていない
   - 章立てでフロー形式の対応付け `{part: …}` と `href:`・`file:` の項目は読まない（Quarto とは並びが違う）
+    → 同じ日の 2 回目に、利用者の判断で Quarto と同じに読むようにした（下の節）
   - GEN-02 の既知の差 2 つは残した（利用者の判断）
   - 部（`- part:`）を書いた book は、扉ページのファイルでも題名だけでも `ddq pdf` が Typst の `unknown variable: part` で失敗する
     （前からの制約。Quarto 1.9.38 が出す `#part[…]` を `template/lib.typ`・`typst-template.typ` が定義しない）。HTML・`tag`・`rev` は
     扉ページを含めて読む。部は利用マニュアルに書いていない。利用者の判断で記録だけにした（扉の体裁を決めてから直す）
+
+## 2026-11-23 の残作業（2 回目。章の書き方の残り・regress・判断の記録。ブランチ `fix/review-critical`）
+
+- **利用者の指示（2026-11-23）**: 同じ指示「外部レビューおよび人の手で行う検証以外で実行できるものは実施してください。判断が必要な
+  ものは確認を実施してください」の 2 回目（`cd00267` の後）。尋ねた判断と答え:
+  - PR #144 のマージ: 「まだマージしない (推奨)」（外部レビューと人の手で行う検証の後に、利用者がマージする）
+  - 章立てで読まない書き方（フロー形式の対応付け `{part: …}`、`href:`・`file:` の項目）: 「Quarto に合わせて読む (推奨)」（Rust と
+    postprocess-html.js の両方を直し、共有の正解は `quarto inspect` で取る。3.1.0 は公開前なので版はそのまま）
+  - PR で配布候補（`release-candidate.yml`）を毎回走らせるか（計画 §7）: 「今のまま (推奨)」（main への push・手動実行・
+    workflow・`.github/actions/jp-fonts`・`cli/tools/check_release.py` を変えた PR だけ）
+- **変更**
+  - 章の並び（`cli/src/doc/project.rs`、`template/postprocess-html.js`）: フロー形式の対応付け `{part: …, chapters: […]}`（列の中・
+    複数行・コメントも）と、`href:`・`file:` で書いた項目（`text:` は前後のどちらの行でもよい。`{href: …}` も）を Quarto と同じ並びに
+    読む。1 つの項目のページは 1 つで、部の扉ページ（`part:` の値がファイル）→ `href:` → `file:` の順に使い、どの行に書いても子の章の
+    前に入れる。部の題名の項目の `href:`・`file:` のページは部のページで、Quarto は番号なしで出し、付録の中なら記号を振らない
+    （postprocess-html.js はこれを `parts` に入れる）。Quarto の動きは `quarto inspect`（並び）と `quarto render`（番号・付録の記号）で
+    確かめた。フロー形式は、閉じるまで読んでから（`flow_text`）引用と入れ子の外で区切って形を見る（`split_flow`・`flow_node`・
+    `key_value`・`flow_docs`）読み方に書き直した。読まないのは、引用したキー・アンカーと別名・ブロックスカラー・タグのような YAML の
+    珍しい書き方（`docs/cli-impl` 7 章）
+  - 共有の期待値 `chapters.json`: 4 ケースを足して 13 ケース。部の題名の項目に `href:`・`file:` で書いたページ `part_hrefs` を足し、
+    `filter_contract.rs` はそれも部のページとして見る（契約の README に採取の記録を足した）
+  - 文書: `cli/DESIGN.md` §14.3・§14.6、設計書の後処理の節（`docs/design/chapters/06-html/01-postprocess.qmd`）、実装仕様書
+    （`docs/cli-impl` の 3 章・5 章・7 章・E-0038・`analysis/validation.md`・`analysis/source-sha256.json`）、変更履歴の 3.1.0 の節
+- **試験と結果**
+  - Rust 全件（`DDQ_E2E=1`・`DDQ_PLANTUML_JAR`・`--test-threads=1`）: **255 件成功・失敗 0・ignored 0**（534 秒）。
+    unit 126 / ddq-release 6 / commands 10 / contract 5 / e2e 8 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1。`cargo fmt --check`・clippy・release ビルドも成功
+  - 章の並び: `project.rs` の単体 +1（`href_file_and_flow_mapping_items`。`flow_items_read_quoted_nested_and_multiline_values` も
+    対応付けと閉じない入れ子に広げた）、共有ケース +4（全 13 ケースを `quarto inspect` の `files.input` に照らし直し、すべて一致。
+    `part_hrefs` のケースは `quarto render` の番号・付録の記号とも一致）、`tests/e2e.rs` +1（フロー形式の対応付けと `href:`・`file:` の
+    book を、`quarto inspect` の並び・`tag list` の文書順・`ddq html` の番号と付録の記号で照らす）
+  - わざと壊した実装（JS 8 通り・Rust 6 通り）: すべて試験で落ちた。初めは JS の「値の中の引用を見分けない」が通った（共有ケースで、
+    引用の中の `,` が結果に効く例が無かった）ので、ケースのパスを `"b, c.qmd"` にしてから落ちることを確かめた
+  - 拡張: 変わったのは変更履歴だけ（拡張は章の並びを読まない）なので流していない
+  - regress（`cli/tools/regress.py`）: v3.1.0-pre1 のソース（`git archive v3.1.0-pre1 cli template`）から作った ddq と、今の作業ツリーの
+    release ビルドの ddq で、`examples/docs`・`examples/plantuml`・`docs/manual` を capture → compare した（リポジトリの写しで流し、
+    作業ツリーには触れない）。compare の NG は docs 107 件（ok 81）・plantuml 111 件（ok 72）・manual 22 件（ok 179）。すべて次の 3 つで説明がつく:
+    - 図のキャッシュのキーに ddq の版が入るので、SVG の名前が版ごとに違う（片方にしか無い SVG と、それを指す `index.typ`・HTML の差）。
+      キーと版を伏せて比べ直すと、3 文書とも `index.typ`・HTML（15・13・20 ページ）・`search.json` が同じ。PDF の文字（`3.pdf-text`）は
+      compare でも一致
+    - docs の mermaid の図 4 つ（システムコンテキスト・ハードウェア構成・要求と機能の充足関係・受注DB の ER 図）は、描くたびに線の形が
+      変わる（同じ v3.1.0-pre1 の ddq でも、1 回目と 2 回目の regress で 4 図の SVG の大きさが違った）。ページの画素の差（docs の
+      5・8・12・35 ページ）は、ちょうどこの 4 図の載るページ。ほかの図は同じ（docs 23 のうち 19、plantuml
+      25 のうち 25、manual 4 のうち 4）
+    - 機構ファイルの照合（`0.mechanism`）の `postprocess-html.js` 1 件（各文書）: 比べる写しはコミット済みの HEAD（`cd00267`）から
+      取り出すが、新しい ddq は今回直した作業ツリーの `postprocess-html.js` を持つ。新しい ddq が書いたものは作業ツリーのものと一致した。
+      ほかの機構ファイル 4 本は一致
+  - 実装仕様書: 新しい ddq で `docs/cli-impl` を `ddq update` → `ddq html`（警告なし。`analysis/check_output.py` で 9 ページ・図 3 つ・壊れたリンク 0・ハッシュの不一致 0）。`analysis/source-sha256.json` を取り直した
+    （91 ファイル。うち今回変わったのは 7 ファイル）
+- **利用者に見える差**: 変更履歴の 3.1.0 の節に、フロー形式の対応付けと `href:`・`file:` で書いた章も tag・rev・HTML の番号の対象に
+  なることを足した
+- **計画からの逸脱**: なし（利用者の判断に沿った残りの片付け）
+- **戻す方法**: 上の変更のファイルを `cd00267` に戻す
+- **残存リスク**
+  - 章立ては `_quarto.yml` を行ごとに読む。引用したキー・アンカーと別名・ブロックスカラー・タグは読まない（書き方としては珍しい）
+  - regress は、描くたびに線の形が変わる mermaid の図を版の違いと見分けない（今回の 4 図は図ごとに確かめた）
+  - 部（`- part:`）を書いた book の `ddq pdf` は前のとおり失敗する（前の節の残存リスク。扉の体裁を決めてから直す）

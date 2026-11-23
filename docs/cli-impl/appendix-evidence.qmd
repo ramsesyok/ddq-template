@@ -193,10 +193,14 @@
   と単体テスト（障害注入 `FAULT`）、`cli/src/commands/tag.rs::apply / plan / write_all`、`cli/src/commands/rev.rs::write_revision / save_revision / build`、
   `cli/src/assets.rs::write_asset / write_dir_if_absent / write_if_absent / create_if_absent`、`cli/src/commands/update.rs::run / prune_diagram_cache`。
   `cli/tests/tag.rs`・`rev.rs`・`rerun.rs`
-- 章立て（GEN-01・CLI-01、レビュー H-01 とその外の書き方）：`cli/src/doc/project.rs::chapters_of / value_of / flow_items / as_doc_path / assemble /
-  order_with_texts / Source::exists`、`cli/src/doc/gitsrc.rs::GitFolder::exists`、`cli/src/doc/mod.rs::scan_folder`、`template/postprocess-html.js` の
-  `valueOf / flowItems / docsOf`、`template/scaffold/content/_quarto.yml`。共有の期待値 `cli/tests/fixtures/contract/chapters.json`（9ケース。正解は
-  Quarto 1.9.38 の `quarto inspect` の `files.input`）、`cli/tests/filter_contract.rs`・`e2e.rs`
+- 章立て（GEN-01・CLI-01、レビュー H-01 とその外の書き方）：`cli/src/doc/project.rs::chapters_of / MapItem / page_rank / item_key / value_of /
+  map_key / flow_items / flow_text / unquoted / split_flow / flow_node / key_value / flow_docs / as_doc_path / assemble / order_with_texts /
+  Source::exists`、`cli/src/doc/gitsrc.rs::GitFolder::exists`、`cli/src/doc/mod.rs::scan_folder`、`template/postprocess-html.js` の
+  `valueOf / mapKey / flowText / unquoted / splitFlow / flowNode / keyValue / PAGE_RANK / flowDocs / flowItems / docsOf`、
+  `template/scaffold/content/_quarto.yml`。共有の期待値 `cli/tests/fixtures/contract/chapters.json`（13ケース。正解は Quarto 1.9.38 の
+  `quarto inspect` の `files.input`。部の題名の項目の `href:`・`file:` のページ `part_hrefs` に番号・付録の記号が付かないことは
+  `quarto render` で確かめた）、`cli/tests/filter_contract.rs`・`e2e.rs`。フロー形式の対応付けと `href:`・`file:` は `cd00267` の上の
+  作業ツリー（2026-11-23。利用者の判断「Quarto に合わせて読む」）
 - 改訂ファイルと履歴表（DATA-01 と既存の不具合）：`cli/src/doc/revfile.rs::unquote`（共有の期待値 `rev-values.json`）、
   `cli/src/commands/rev.rs::Row::note_cell / escape_tex_commands / code_span_end / math_end`
 - ラベル（既存の不具合）：`cli/src/doc/labels.rs::candidate`（`LEN` を使い切ったら `-2`・`-3`…）
@@ -220,3 +224,7 @@
   build ではランナーに書体が無く、`phase: start` が dism を裏で走らせて 8 秒で進み、ビルドの後の `phase: wait` が終わり（終了コード）を
   待って、Meiryo UI・BIZ UDGothic が Typst から見えることを確かめた。build ジョブは 15 分 4 秒（`f2c6e0e`）→ 11 分 44 秒、
   ワークフロー全体は 28 分 4 秒 → 28 分 12 秒（verify-zip が書体を重ねずに入れ、今回 14 分 39 秒）
+  2 回目（`cd00267` の上の作業ツリー。章立てのフロー形式の対応付けと `href:`・`file:`）：Rust 全件 255 件成功・失敗 0・ignored 0
+  （unit 126 / ddq-release 6 / commands 10 / contract 5 / e2e 8 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1）。`cli/tools/regress.py` で v3.1.0-pre1 の ddq と比べ、`examples/docs`・`examples/plantuml`・`docs/manual` の
+  差が図のキャッシュのキー（ddq の版を含む）と、描くたびに線の形が変わる docs の mermaid の図 4 つ（とその 4 ページの画素）だけ
+  であることを確かめた（キーと版を伏せると `index.typ`・HTML・`search.json` が同じ。PDF の文字も同じ）

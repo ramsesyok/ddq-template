@@ -500,8 +500,8 @@ fn postprocess(dir: &Path, output_files: Option<&str>) -> String {
 
 /// 章の並び（GEN-01・H-01）。chapters.json の各ケースの `_quarto.yml`、部の扉ページの原稿（`part_files`）と
 /// 章ごとの最小の HTML を置き、本物の postprocess-html.js に通す。並びに入った章だけが番号を振り直され
-/// （図 3-1）、付録は部の扉ページを除いた並び順に A・B…（図 A-1）、部の扉ページは番号なしの章と同じく 0
-/// （図 0-1。Quarto は扉ページに章番号を出さない）。並びに無い HTML には触れない。もう一度通しても同じ
+/// （図 3-1）、付録は部のページ（扉ページと `part_hrefs`）を除いた並び順に A・B…（図 A-1）、部のページは
+/// 番号なしの章と同じく 0（図 0-1。Quarto は部のページに章番号を出さない）。並びに無い HTML には触れない。もう一度通しても同じ
 /// （preview の保存ごとの再実行）、出力が 1 つだけと渡されても同じ（増分の再描画）。Rust 側は
 /// src/doc/project.rs の単体試験が同じケースを読む。
 #[test]
@@ -524,6 +524,17 @@ fn chapter_lists_match_the_shared_cases() {
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             fs::write(path, "# 部\n").unwrap();
         }
+        // 部のページ: 扉ページのファイルと、部の題名の項目に href:・file: で書いたページ（`part_hrefs`）
+        let parts: Vec<&str> = parts
+            .into_iter()
+            .chain(
+                case["part_hrefs"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|v| v.as_str().unwrap()),
+            )
+            .collect();
         let html_of = |p: &str| format!("{}.html", p.rsplit_once('.').unwrap().0);
         // （HTML, HTML の章番号（None は付録・扉ページの形）, 期待する番号の接頭辞（None は触れないこと））
         let mut pages: Vec<(String, Option<String>, Option<String>)> = Vec::new();

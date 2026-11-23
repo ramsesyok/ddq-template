@@ -132,4 +132,9 @@ Cargo 1.98.1、Quarto 1.9.38、Java 17.0.2、PlantUML 1.2026.8（cli/vendor/plan
 - GitHub Actions: 本書の基準をコミットした 1fafcc5（PR #144）で ci・extension・release-candidate の 13 ジョブが成功した。配布候補の build では
   書体を裏で入れ始めてビルドと重ね、後で待って Typst から見えることを確かめた（build ジョブ 15 分 4 秒 → 11 分 44 秒。全体は verify-zip の
   書体の導入で決まり、約 28 分のまま）
-- 未実行: tools/regress.py、Linux/macOS（Rust の試験。拡張の試験は CI の ubuntu で通る）、日本語以外のコードページ
+- 2 回目（cd00267 の上の作業ツリー。章立てのフロー形式の対応付けと href:・file:）: Rust 全件 255 件成功・失敗 0・ignored 0
+  （unit 126 / ddq-release 6 / commands 10 / contract 5 / e2e 8 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1）。fmt・clippy・release ビルドも成功
+- tools/regress.py: v3.1.0-pre1 のソースから作った ddq と 3.1.0 の ddq で examples/docs・examples/plantuml・docs/manual を比べた。
+  差は図のキャッシュのキー（ddq の版を含む）と、描くたびに線の形が変わる docs の mermaid の図 4 つ（とその 4 ページの画素）だけ。
+  キーと版を伏せると index.typ・HTML・search.json が同じで、PDF の文字も同じ
+- 未実行: Linux/macOS（Rust の試験。拡張の試験は CI の ubuntu で通る）、日本語以外のコードページ、regress.py の旧 bat 比較
