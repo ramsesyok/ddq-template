@@ -13,10 +13,17 @@ npm run test:host   # 実拡張ホストでの検証
 npm run package     # VSIX を作る（ddq.exe なし。開発・CI 用）
 ```
 
-配布する VSIX は ddq.exe を同梱したターゲット指定の版で、保守者用の `ddq-release` が作ります
-（exe を `bin/win32-x64/ddq.exe` にコピーしてから `npm run package:win32-x64`）。手で作るときは:
+配布する VSIX は ddq.exe を同梱したターゲット指定の版で、**人に渡すのは CI の配布候補だけ**です
+（`../../.github/workflows/release-candidate.yml`。利用マニュアル 18 章「リリースを配る」）。CI では保守者用の
+`ddq-release` が、配る ddq.exe を `bin/win32-x64/ddq.exe` に、リポジトリ直下の `THIRD-PARTY-NOTICES.md` を
+このフォルダ直下にコピーしてから `npm run package:win32-x64` で作り、中身を照合します。
+
+手で作るのは、同梱版の動きを確かめるときだけです。**手で作った VSIX は人に渡しません**（梱包のスクリプトは
+ライセンス表示が無くても止まらないので、コピーを忘れると表示の無い VSIX ができます）。2 つのコピーはどちらも
+Git の管理外です（ルートの `.gitignore`）。
 
 ```bash
+cp ../../THIRD-PARTY-NOTICES.md .   # 配るものと同じ形にする（ddq-release もこれをコピーする）
 npm run package:win32-x64   # bin/win32-x64/ddq.exe を置いてから。ddq-template-win32-x64-<版>.vsix ができる
 npm run test:smoke          # その VSIX を展開した中身で VSCode を起動し、同梱 ddq で init → html を通す
 ```

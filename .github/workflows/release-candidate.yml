@@ -9,6 +9,12 @@
 #
 # CI は公開済みのリリースにもタグにも書き込まない（permissions: contents: read）。公開とタグは保守者が行う
 # （利用マニュアル 18 章「リリースを配る」）。手元の ddq-release は試作・確認用。
+#
+# 外部の Action は、版のタグではなくコミットの SHA で固定する（版はその行のコメント。タグは付け替えられるので、
+# 同じコミットのこの workflow が、いつ走っても同じ Action で動くように。レビュー L-02）。上げるときは、上げたい版の
+# タグが指すコミットを `gh api repos/<owner>/<repo>/commits/<タグ> --jq .sha` で調べて SHA とコメントを書き換え、
+# PR（この workflow を変えると PR でも走る）で通してから main に入れる。dtolnay/rust-toolchain は stable の枝の
+# コミットで、入る Rust は固定しない（その時点の stable。使った版は versions.txt に残る）。
 name: release-candidate
 
 on:
@@ -40,10 +46,13 @@ on:
         type: boolean
         default: false
 
-# 同じブランチの実行は 1 つずつ（打ち切らずに待たせる）
+# 同じブランチの実行は 1 つずつ。打ち切らずに、来た順にすべて待たせる（queue: max。待てるのは 100 件まで）。
+# 既定の queue: single では待てるのが 1 件だけで、実行中に要求が 2 件来ると、先に待っていた方が取り消される
+# （手動で要求したサンプル付きの候補が消えうる。レビュー L-03）。queue: max は cancel-in-progress: true と併用できない
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: read
@@ -58,19 +67,21 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - id: version
         shell: bash
         run: echo "version=$(tr -d '[:space:]' < template/VERSION)" >> "$GITHUB_OUTPUT"
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable の枝（2026-11-23）
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: cli
       # 手元の検証環境と同じ版（ci.yml・extension.yml と同じ）
-      - uses: quarto-dev/quarto-actions/setup@v2
+      - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b # v2.2.0
         with:
           version: 1.9.38
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: '22'
           cache: npm
@@ -88,17 +99,31 @@ jobs:
           [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
           $out = Join-Path $env:RUNNER_TEMP 'out'
           New-Item -ItemType Directory -Force $out | Out-Null
+          # 書体は名前だけでなく、実際に入っている版（フォントの name 表の Version）も残す（L-02）
+          Add-Type -AssemblyName PresentationCore
+          $want = @(python cli/tools/check_release.py --expected-fonts)
+          $en = [Globalization.CultureInfo]::GetCultureInfo('en-US')
+          $fonts = @(foreach ($f in Get-ChildItem "$env:WINDIR/Fonts/*", "$env:LOCALAPPDATA/Microsoft/Windows/Fonts/*" -Include *.ttf, *.ttc, *.otf -ErrorAction SilentlyContinue) {
+            for ($i = 0; $i -lt 32; $i++) {
+              try { $g = [Windows.Media.GlyphTypeface]::new([uri]::new("$(([uri]$f.FullName).AbsoluteUri)#$i")) } catch { break }
+              $fam = $g.Win32FamilyNames[$en]
+              if ($want -contains $fam -and $g.Win32FaceNames[$en] -eq 'Regular') { "$fam $($g.VersionStrings[$en]) ($($f.Name))" }
+              if ($f.Extension -ne '.ttc') { break }
+            }
+          })
+          if ($fonts.Count -eq 0) { $fonts = $want | ForEach-Object { "$_（版を読めない）" } }
           $edge = (Get-Item "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" -ErrorAction SilentlyContinue).VersionInfo.ProductVersion
           @(
             "commit: $env:GITHUB_SHA"
             "run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID (attempt $env:GITHUB_RUN_ATTEMPT)"
             "runner: $env:ImageOS $env:ImageVersion"
+            "rust: $(rustc --version) / $(cargo --version)"
             "ddq: $(./cli/target/release/ddq.exe --version)"
             "ddq.exe sha256: $((Get-FileHash ./cli/target/release/ddq.exe -Algorithm SHA256).Hash.ToLowerInvariant())"
             "quarto: $(quarto --version)"
             "node: $(node --version) / npm: $(npm --version)"
             "edge: $edge"
-            "fonts: $((python cli/tools/check_release.py --expected-fonts) -join ', ')"
+            "fonts: $($fonts -join ', ')"
           ) | Set-Content -Encoding utf8NoBOM (Join-Path $out 'versions.txt')
           Get-Content (Join-Path $out 'versions.txt')
       - name: ddq-release で一式を作る
@@ -107,7 +132,7 @@ jobs:
       - name: 出力を照合し、SHA-256 の一覧を作る
         shell: bash
         run: python cli/tools/check_release.py "$RUNNER_TEMP/out" --exe cli/target/release/ddq.exe --sums "$RUNNER_TEMP/out/SHA256SUMS.txt" $SAMPLE_ARG
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: candidate
           retention-days: 1
@@ -123,12 +148,12 @@ jobs:
     needs: build
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: quarto-dev/quarto-actions/setup@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b # v2.2.0
         with:
           version: 1.9.38
       - uses: ./.github/actions/jp-fonts
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: candidate
           path: ${{ runner.temp }}/out
@@ -149,16 +174,16 @@ jobs:
       run:
         working-directory: extensions/ddq-template
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: extensions/ddq-template/package-lock.json
-      - uses: quarto-dev/quarto-actions/setup@v2
+      - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b # v2.2.0
         with:
           version: 1.9.38
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: candidate
           path: ${{ runner.temp }}/out
@@ -168,28 +193,44 @@ jobs:
         run: sha256sum -c SHA256SUMS.txt
       - run: npm ci
       - name: 検証用の VSCode をキャッシュ
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: extensions/ddq-template/.vscode-test
           key: vscode-test-${{ runner.os }}
       # 配る VSIX そのものを展開して VSCode を起動し、設定・PATH なしで同梱の ddq に決まること、init → html を確かめる
+      # 使った VSCode の版を smoke-versions.txt に書き、publishable が versions.txt に足す（L-02）
       - name: 同梱版のスモーク
         shell: bash
         run: npm run test:smoke -- "$RUNNER_TEMP/out/ddq-template-win32-x64-${{ needs.build.outputs.version }}.vsix"
+        env:
+          SMOKE_VERSIONS: ${{ runner.temp }}/smoke-versions.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: smoke-versions
+          retention-days: 1
+          if-no-files-found: error
+          path: ${{ runner.temp }}/smoke-versions.txt
 
   publishable:
     name: 公開に使う一式を残す
     needs: [build, verify-zip, verify-vsix]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: candidate
           path: out
       - name: SHA-256 の一覧と照合
         working-directory: out
         run: sha256sum -c SHA256SUMS.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: smoke-versions
+          path: smoke
+      # versions.txt は SHA-256 の一覧に入らない（一覧は ZIP と VSIX だけ）ので、足しても照合は変わらない
+      - name: スモークに使った版を、使った版の一覧に足す
+        run: cat smoke/smoke-versions.txt >> out/versions.txt && cat out/versions.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: release-${{ needs.build.outputs.version }}
           if-no-files-found: error

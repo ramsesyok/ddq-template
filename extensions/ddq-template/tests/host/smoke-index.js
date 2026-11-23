@@ -17,6 +17,9 @@ function say(what) {
 }
 
 async function run() {
+    // 使った VSCode の版（smoke.mjs が表示し、CI では配布候補の versions.txt に足す）
+    fs.writeFileSync(path.join(process.env.HOST_OUT, 'vscode-version.txt'), vscode.version, 'utf8');
+
     // 内部コマンドは package.json に出していないので、呼んでも拡張は起動しない。先に起動しておく
     const extension = vscode.extensions.getExtension('ramsesyok.ddq-template');
     assert.ok(extension, '拡張 ramsesyok.ddq-template が読み込まれていない');

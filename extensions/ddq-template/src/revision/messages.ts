@@ -8,6 +8,11 @@ export type EditorContext = {
     folder: string;
     /** このファイルの名前（rev-B.yml） */
     fileName: string;
+    /**
+     * タグの状態を確かめ終えたか。開いてから最初の `ddq rev next` が返るまでは偽で、そのあいだは
+     * 確定済みかどうかが分からないので編集させない（M-01）
+     */
+    checked: boolean;
     /** `rev-<記号>` のタグがある = 確定済み（編集させない） */
     fixed: boolean;
     /** 既にあるタグ（基準の選び直しに使う） */

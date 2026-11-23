@@ -65,6 +65,7 @@ const revision: Revision = {
 const context: EditorContext = {
     folder: 'C:/work/order-design/docs',
     fileName: 'rev-B.yml',
+    checked: true,
     fixed: false,
     tags: ['rev-A']
 };
@@ -189,6 +190,31 @@ describe('RevisionEditor', () => {
         expect(button('確定する').disabled).toBe(true);
         // 表を作るのは確定後でもできる
         expect(button('表を作る').disabled).toBe(false);
+    });
+
+    it('タグの状態を確かめ終わるまでは編集させず、確かめたら編集できる（M-01）', () => {
+        // 中身が届く前（開いた直後）も編集欄は使えない
+        act(() => root.render(<RevisionEditor />));
+        expect(container.querySelector('input')?.disabled).toBe(true);
+
+        render({ checked: false });
+        expect(container.textContent).toContain('タグの状態を確かめています');
+        expect(container.textContent).not.toContain('確定済み');
+        expect(container.querySelector('textarea')?.disabled).toBe(true);
+        expect(container.querySelector('input')?.disabled).toBe(true);
+        expect(button('差分を取り直す').disabled).toBe(true);
+        expect(button('確定する').disabled).toBe(true);
+        expect(button('消す').disabled).toBe(true);
+        expect(button('表を作る').disabled).toBe(false);
+
+        act(() => {
+            window.dispatchEvent(
+                new MessageEvent('message', { data: { type: 'revision', revision, context } })
+            );
+        });
+        expect(container.textContent).not.toContain('タグの状態を確かめています');
+        expect(container.querySelector('textarea')?.disabled).toBe(false);
+        expect(button('確定する').disabled).toBe(false);
     });
 
     it('ddq からの知らせを出す', () => {

@@ -117,7 +117,8 @@ ddq-release は残っている出力（その版のフォルダ・作業フォ�
 （`cli/tests/release.rs` の `a_failure_after_the_swap_lists_what_to_discard`）。
 前回の一式を退避して戻す、読み手から見て一度に切り替える、といった保証は手元では作らない。**正式に配る一式は CI が作る**
 （§7.5・§7.6。`docs/refactoring-plan.md` §7、2026-11-22 決定）。CI のランナーは毎回新しく、公開に使う成果物はすべての検査に通った
-実行にだけ残り、公開は保守者が下書きのリリースに載せてから行う。手元の ddq-release は試作・確認用。
+実行にだけ残り、公開は保守者が 1 つの `gh release create` で行う（gh が下書きで資産を上げ終えてから公開する。利用マニュアル
+18 章「リリースを配る」）。手元の ddq-release は試作・確認用。
 
 **plantuml.jar は同梱しない（3.0.0 から）**。2.2.0〜3.0.0-pre4 は `cli/vendor/plantuml.jar`（MIT 版）を同梱していたが、PlantUML の版・ライセンス・脆弱性への対応を利用者の組織の判断に任せるため外した。ローカルで描く利用者は PlantUML の公式リリースからjar を取得し、`DDQ_PLANTUML_JAR` か exe の隣に置く（§13.3 の探索順は変えていない）。
 
@@ -217,7 +218,7 @@ tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出�
 
 リリース一式は、保守者用の別の exe `ddq-release` が作る（2026-11-23 に `ddq release` から分けた。`docs/release-ci-proposal.md` §5）。
 ソースは `cli/src/bin/ddq-release/`（同じ Cargo パッケージの 2 本目のバイナリ）で、`cargo build --release` で `ddq.exe` と同じ
-`target/release/` にできる。発行者に配る ddq.exe には入らず、配布物にも入れない。`ddq release` は 2026-11-23 から
+`target/release/` にできる。`cargo run` の既定は ddq（`Cargo.toml` の `default-run`。ddq-release は `cargo run --bin ddq-release`）。発行者に配る ddq.exe には入らず、配布物にも入れない。`ddq release` は 2026-11-23 から
 「unrecognized subcommand」（終了コード 2）になる。
 
 ```
@@ -355,7 +356,9 @@ auto:
 2 か所にあり、同じでなければならない（E2E の図の数の照合が、ずれを検出する）。キーは SHA-1 の先頭 16 桁で、図のソースに加えて
 **テンプレートの版・`mermaid-config.json` の中身・`DDQ_MERMAID_ENGINE`（未設定なら `auto`）**を混ぜる
 （2.4.1 から。以前は図のソースだけの 8 桁で、設定やエンジンを変えても古い絵を使い回した）。
-版の違うキャッシュは `ddq update` が版を上げるときに消す（`update::prune_diagram_cache`）。
+版の違うキャッシュは `ddq update` が版を上げるときに消す（`update::prune_diagram_cache`）。`diagrams/` が無いときだけ
+「消すものが無い」とし、フォルダでない・読めない・途中の項目を読めないときは、版マーカーを古いまま残して止まる（消しきれたか
+分からないまま版を上げると、再実行が同じ版の修復に見えて古いキャッシュが残る。2026-11-23、レビュー M-03）。
 存在だけでなく先頭に `<svg` があることを見るので、書きかけ・空のファイルは描き直す。
 
 **環境の照合（2.4.2 から）**。ブラウザの実体・端末のフォント・PlantUML サーバの版は図を変えるが、
@@ -485,10 +488,18 @@ runner のロケールは変えられない（`Set-WinSystemLocale` は再起動
 （workflow 自身や `cli/tools/check_release.py` を変えた PR でも走る）。
 
 - `build`（Windows）: ddq.exe と ddq-release.exe を `--locked` でビルドし、ddq-release でその ddq.exe を配る一式を作る。`cli/tools/check_release.py` で
-  照合し、ZIP・VSIX の SHA-256 の一覧と、使った版（コミット・ランナー・ddq.exe の SHA-256・Quarto・Node・Edge・書体）の一覧を作る
+  照合し、ZIP・VSIX の SHA-256 の一覧と、使った版（コミット・ランナー・Rust・ddq.exe の SHA-256・Quarto・Node・Edge・書体とその版）の
+  一覧 `versions.txt` を作る
 - `verify-zip`（Windows）: 別のランナーで、ZIP を照合し、取り出した exe で init → pdf → html を通す
-- `verify-vsix`（Windows）: 別のランナーで、配る VSIX そのものを `npm run test:smoke` で起動する（旧 ci.yml の vsix-smoke の役目）
-- `publishable`（Linux）: 上がすべて通ったら、`release-<版>` を残す（公開に使うのはこれだけ）
+- `verify-vsix`（Windows）: 別のランナーで、配る VSIX そのものを `npm run test:smoke` で起動する（旧 ci.yml の vsix-smoke の役目）。
+  使った VSCode の版を書き出す
+- `publishable`（Linux）: 上がすべて通ったら、スモークの VSCode の版を `versions.txt` に足して、`release-<版>` を残す（公開に使うのは
+  これだけ）
+
+外部の Action はコミットの SHA で固定する（版はコメント。上げる手順は workflow の冒頭）。入る Rust は固定せず、その時点の stable
+の版を `versions.txt` に残す（2026-11-23、レビュー L-02）。同じ枝の実行は 1 つずつ、`queue: max` で来た順にすべて待たせる
+（既定の `single` では 3 件目の要求が待っている要求を取り消す。L-03）。配布候補は専用の検査だけで残るので、公開の手順が、同じ
+コミットの `ci.yml`・`extension.yml` の成功を照合する（M-04。利用マニュアル 18 章）。
 
 runner には日本語フォントが無いので、`build` と `verify-zip` は `.github/actions/jp-fonts` で、`template/lib.typ` の本文・等幅の
 最初の候補（Meiryo UI・BIZ UDGothic）が Typst から見えることを確かめ、無ければ Windows の日本語の追加フォント

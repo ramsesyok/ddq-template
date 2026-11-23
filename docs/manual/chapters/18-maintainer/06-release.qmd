@@ -115,8 +115,10 @@ python cli/tools/third_party.py
 `main` に入ると（配布物に入るファイルが変わったとき）、Windows のランナーが ddq.exe と ddq-release.exe をビルドし、
 `ddq-release` でその ddq.exe を配る一式を作る。別のランナーで ZIP（取り出した exe で init → pdf → html）と VSIX（配る VSIX
 そのもので VSCode を起動）を検査し、**すべて通った実行にだけ**成果物 `release-<版>`（ZIP・VSIX・SHA-256 の一覧・
-使った版の一覧。コミットと ddq.exe の SHA-256 も載る）が残る。手動で起動するときは `gh workflow run release-candidate --ref main`
-（サンプルを同梱するなら `-f with_sample=true`）。
+使った版の一覧 `versions.txt`。コミット、ddq.exe の SHA-256、Rust・Quarto・Node・Edge・書体・スモークに使った VSCode の版が
+載る）が残る。手動で起動するときは `gh workflow run release-candidate --ref main`
+（サンプルを同梱するなら `-f with_sample=true`）。同じ枝への実行は 1 つずつ、来た順にすべて走る（待っている要求は
+打ち切らない）。外部の Action はコミットの SHA で固定してある（上げる手順は `release-candidate.yml` の冒頭）。
 
 まず `gh run list --workflow release-candidate --branch main` で、main の、すべてのジョブが通った実行を選ぶ。
 次の手順を `publish.sh` などに保存し、先頭の 3 行を書き換えてから、リポジトリのルートで `bash publish.sh` を実行する。
@@ -131,6 +133,23 @@ NOTES=<リリースノートのファイル>
 gh run download "$RUN" -n "release-$VER" -D release
 (cd release && sha256sum -c SHA256SUMS.txt)
 COMMIT=$(sed -n 's/^commit: *//p' release/versions.txt | tr -d '\r')
+# 選んだ実行が、main のそのコミットの、すべて通った配布候補か
+RUNINFO=$(gh run view "$RUN" --json workflowName,headBranch,headSha,event,conclusion \
+  --jq '"\(.workflowName) \(.headBranch) \(.headSha) \(.event) \(.conclusion)"')
+case "$RUNINFO" in
+  "release-candidate main $COMMIT push success" | "release-candidate main $COMMIT workflow_dispatch success") ;;
+  *) echo "実行 $RUN は、main のコミット $COMMIT の通った配布候補ではありません（$RUNINFO）。公開しません" >&2
+     exit 1 ;;
+esac
+# 通常の CI（ci.yml: Rust の試験・監査。extension.yml: 拡張の試験・実拡張ホスト・監査）も、そのコミットで通っているか
+for WF in ci.yml extension.yml; do
+  GOT=$(gh run list --workflow "$WF" --branch main --commit "$COMMIT" --limit 1 --json status,conclusion \
+    --jq '.[0] // {} | "\(.status // "実行が無い") \(.conclusion // "")"')
+  if [ "$GOT" != "completed success" ]; then
+    echo "$WF がコミット $COMMIT で通っていません（$GOT）。公開しません" >&2
+    exit 1
+  fi
+done
 # タグが既にあれば、実行のコミットを指しているかを確かめる（--target は新しく作るタグにしか効かない）
 TAGGED=$(git ls-remote --tags origin "v$VER" "v$VER^{}" | tail -n 1 | cut -f1)
 if [ -n "$TAGGED" ] && [ "$TAGGED" != "$COMMIT" ]; then
@@ -156,6 +175,13 @@ sort release/SHA256SUMS.txt | diff - release/published.txt || {
 
 - **タグは実行のコミットを指す**（`release/versions.txt` の `commit:`）。タグが無ければ `--target` で作る。既にあれば、指す
   コミット（注釈つきのタグは剥がしたもの）を照合し、違えば止める。タグの指すコミットと配布物が一致する。
+- **選んだ実行と、通常の CI を照合する。** 実行が `release-candidate` の、main への push か手動実行で、そのコミットの、
+  すべて通ったものか。さらに同じコミットで `ci.yml` と `extension.yml` が通ったか。配布候補は専用の検査だけで残るので、
+  通常の CI（Rust・拡張の試験や監査）が落ちていても成果物はできる。
+  文書だけの変更（`docs/manual/` など）では、通常の CI は path の条件で走らない。そこで止まったら、main の先頭がまだ
+  そのコミットなら `gh workflow run ci.yml --ref main` と `gh workflow run extension.yml --ref main` で走らせ、通ってから
+  もう一度実行する。main が先に進んでいたら（`extension.yml` は同じ枝への次の push で前の実行を打ち切る）、先頭の
+  コミットの配布候補を選び直す。
 - **読み手には一式が一度に見える。** `--draft` を付けない `gh release create` は、下書きで資産を上げ、2 つとも上がったときだけ
   公開する。上げるのに失敗したら下書きを消して終わる（片方の資産だけのリリースは公開されない）。下書きを作るコマンドと
   公開するコマンドを分けない（分けると、片方の資産だけ上がった下書きを次のコマンドが公開しうる）。

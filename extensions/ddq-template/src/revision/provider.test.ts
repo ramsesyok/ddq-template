@@ -7,6 +7,8 @@
  * - 閉じたエディタには送らない
  * - 書き戻せなかったら知らせ、画面を文書に戻す
  * - 設定（ddqTemplate.ddqPath）を変えたら次の起動から使う
+ * - 最初のタグの照会が返るまでと、確定済みの改訂には、書き戻し・取り直し・確定を受け付けない（M-01）
+ * - 保存できなかった・保存のあとにまた変わったときは、ddq を動かさない（M-02）
  */
 
 import { readFileSync } from 'node:fs';
@@ -23,7 +25,16 @@ const state = {
     nexts: [] as { command: string; resolve: (v: RevNext) => void; reject: (e: unknown) => void }[],
     runs: [] as { args: string[]; resolve: (out: string) => void }[],
     applyResult: true,
-    ddqPath: undefined as string | undefined
+    ddqPath: undefined as string | undefined,
+    /** 警告（モーダル）で押すボタン */
+    warningAnswer: undefined as string | undefined,
+    /** 出した案内（確定のあとのコマンド） */
+    infos: [] as string[],
+    /** document.save() の代わり */
+    save: async (): Promise<boolean> => {
+        doc.isDirty = false;
+        return true;
+    }
 };
 
 vi.mock('vscode', () => {
@@ -43,8 +54,17 @@ vi.mock('vscode', () => {
         WorkspaceEdit,
         EndOfLine: { LF: 1, CRLF: 2 },
         Uri: { joinPath: (...parts: unknown[]) => parts.join('/') },
-        window: { showWarningMessage: async () => undefined, showErrorMessage: async () => undefined },
+        window: {
+            showWarningMessage: async () => state.warningAnswer,
+            showErrorMessage: async () => undefined,
+            showInformationMessage: async (text: string) => {
+                state.infos.push(text);
+                return undefined;
+            }
+        },
+        env: { clipboard: { writeText: async () => undefined } },
         workspace: {
+            asRelativePath: () => 'docs',
             getConfiguration: () => ({ get: (key: string) => (key === 'ddqPath' ? state.ddqPath : undefined) }),
             onDidChangeTextDocument: (cb: (typeof state.changes)[number]) => {
                 state.changes.push(cb);
@@ -69,6 +89,7 @@ vi.mock('../ddq/run', async (importOriginal) => {
 });
 
 import { RevisionEditorProvider, TAG_REFRESH_DELAY_MS } from './provider';
+import { parse } from './revfile';
 
 const golden = readFileSync(join(__dirname, 'rev-B.golden.yml'), 'utf8');
 // 文書のパスはその OS の形にする（provider は path.basename で改訂記号を取るので、Windows の形の
@@ -81,7 +102,8 @@ const doc = {
     isDirty: false,
     isClosed: false,
     lineCount: golden.split('\n').length,
-    getText: () => doc.text
+    getText: () => doc.text,
+    save: () => state.save()
 };
 
 class FakePanel {
@@ -122,6 +144,24 @@ class FakePanel {
 const next = (tags: string[]): RevNext => ({ rev: 'C', base: 'rev-B', tags, drafts: [] });
 const revisions = (panel: FakePanel) => panel.posted.filter((m) => m.type === 'revision');
 const fixedOf = (m: Message | undefined) => (m?.context as { fixed: boolean } | undefined)?.fixed;
+const checkedOf = (m: Message | undefined) => (m?.context as { checked: boolean } | undefined)?.checked;
+const lastNotice = (panel: FakePanel) => panel.posted.filter((m) => m.type === 'notice').at(-1);
+
+/** メモを 1 つ書き換えた改訂（画面から届く edit の中身） */
+function editedRevision(note: string) {
+    const edited = parse(golden);
+    edited.entries[0].note = note;
+    return edited;
+}
+
+/** 開いて、最初のタグの照会に答える */
+async function openChecked(tags: string[]): Promise<FakePanel> {
+    const panel = await openEditor();
+    const ready = panel.receive!({ type: 'ready' });
+    state.nexts[0].resolve(next(tags));
+    await ready;
+    return panel;
+}
 
 async function flush() {
     for (let i = 0; i < 5; i++) await Promise.resolve();
@@ -146,7 +186,14 @@ beforeEach(() => {
     state.runs = [];
     state.applyResult = true;
     state.ddqPath = undefined;
+    state.warningAnswer = undefined;
+    state.infos = [];
+    state.save = async () => {
+        doc.isDirty = false;
+        return true;
+    };
     doc.text = golden;
+    doc.isDirty = false;
 });
 afterEach(() => vi.useRealTimers());
 
@@ -237,5 +284,128 @@ describe('改訂履歴エディタ', () => {
         typed(golden.replace('目的', '目的3'));
         vi.advanceTimersByTime(TAG_REFRESH_DELAY_MS);
         expect(state.nexts.map((n) => n.command)).toEqual(['ddq', 'C:\\tools\\ddq-new.exe']);
+    });
+});
+
+describe('タグの状態を確かめるまでと、確定済みの改訂（M-01）', () => {
+    it('最初の照会が返るまでは確かめ中として送り、書き戻しを受け付けない。返ったら書ける', async () => {
+        const panel = await openEditor();
+        const ready = panel.receive!({ type: 'ready' });
+        // 本文はすぐ送るが、確かめ中（画面は編集させない）
+        expect(revisions(panel)).toHaveLength(1);
+        expect(checkedOf(revisions(panel)[0])).toBe(false);
+
+        // 画面の制限をすり抜けて届いた書き戻しも当てない
+        await panel.receive!({ type: 'edit', revision: editedRevision('照会の前に書いたメモ') });
+        expect(doc.text).toBe(golden);
+        expect(lastNotice(panel)).toMatchObject({
+            level: 'error',
+            text: expect.stringContaining('タグの状態を確かめています')
+        });
+
+        state.nexts[0].resolve(next(['rev-A']));
+        await ready;
+        expect(checkedOf(revisions(panel).at(-1))).toBe(true);
+        expect(fixedOf(revisions(panel).at(-1))).toBe(false);
+        await panel.receive!({ type: 'edit', revision: editedRevision('照会の後に書いたメモ') });
+        expect(doc.text).toContain('照会の後に書いたメモ');
+    });
+
+    it('確定済みの改訂には、書き戻し・取り直し・確定を拡張でも受け付けない', async () => {
+        const panel = await openChecked(['rev-A', 'rev-B']);
+        expect(fixedOf(revisions(panel).at(-1))).toBe(true);
+
+        await panel.receive!({ type: 'edit', revision: editedRevision('確定後に書いたメモ') });
+        expect(doc.text).toBe(golden);
+        expect(lastNotice(panel)).toMatchObject({
+            level: 'error',
+            text: expect.stringContaining('確定済みの改訂（タグ rev-B がある）は編集できません')
+        });
+        await panel.receive!({ type: 'refresh' });
+        await panel.receive!({ type: 'fix' });
+        expect(state.runs).toEqual([]);
+        expect(state.infos).toEqual([]);
+        // 表を作るのは確定後でもできる
+        const build = panel.receive!({ type: 'build' });
+        expect(state.runs.map((r) => r.args[1])).toEqual(['build']);
+        state.runs[0].resolve('OK');
+        await build;
+    });
+
+    it('照会に失敗しても（Git が無いなど）、確かめ終えたとして編集できる', async () => {
+        const panel = await openEditor();
+        const ready = panel.receive!({ type: 'ready' });
+        state.nexts[0].reject(new Error('git が無い'));
+        await ready;
+        expect(checkedOf(revisions(panel).at(-1))).toBe(true);
+        await panel.receive!({ type: 'edit', revision: editedRevision('Git の無い環境のメモ') });
+        expect(doc.text).toContain('Git の無い環境のメモ');
+    });
+});
+
+describe('保存できないときは ddq を動かさない（M-02）', () => {
+    const refusals: [string, () => Promise<boolean>][] = [
+        ['偽を返す', async () => false],
+        [
+            '例外になる',
+            async () => {
+                throw new Error('ディスクがいっぱいです');
+            }
+        ]
+    ];
+
+    it.each(refusals)('保存が%sなら、差分を取り直さない', async (_, save) => {
+        const panel = await openChecked([]);
+        doc.isDirty = true;
+        state.warningAnswer = '保存して取り直す';
+        state.save = save;
+        await panel.receive!({ type: 'refresh' });
+        expect(state.runs).toEqual([]);
+        expect(lastNotice(panel)).toMatchObject({
+            level: 'error',
+            text: expect.stringContaining('保存できなかったため、差分の取り直しをやめました')
+        });
+    });
+
+    it.each(refusals)('保存が%sなら、確定しない（表を作らず、コマンドも案内しない）', async (_, save) => {
+        const panel = await openChecked([]);
+        doc.isDirty = true;
+        state.warningAnswer = '空のまま確定する';
+        state.save = save;
+        await panel.receive!({ type: 'fix' });
+        expect(state.runs).toEqual([]);
+        expect(state.infos).toEqual([]);
+        expect(lastNotice(panel)).toMatchObject({
+            level: 'error',
+            text: expect.stringContaining('保存できなかったため、確定をやめました')
+        });
+    });
+
+    it('保存したあとにまた変わっていたら、取り直さない', async () => {
+        const panel = await openChecked([]);
+        doc.isDirty = true;
+        state.warningAnswer = '保存して取り直す';
+        // 保存は通ったが、そのあいだに次の入力が入った
+        state.save = async () => true;
+        await panel.receive!({ type: 'refresh' });
+        expect(state.runs).toEqual([]);
+        expect(lastNotice(panel)).toMatchObject({
+            level: 'error',
+            text: expect.stringContaining('保存したあとに改訂履歴の文書が変わったため')
+        });
+    });
+
+    it('保存できたら、取り直す', async () => {
+        const panel = await openChecked([]);
+        doc.isDirty = true;
+        state.warningAnswer = '保存して取り直す';
+        const refresh = panel.receive!({ type: 'refresh' });
+        await flush();
+        expect(state.runs.map((r) => r.args.slice(0, 2).concat(r.args.slice(3)))).toEqual([['rev', 'diff', '--write']]);
+        state.runs[0].resolve('OK');
+        await flush();
+        state.nexts.at(-1)!.resolve(next([]));
+        await refresh;
+        expect(doc.isDirty).toBe(false);
     });
 });

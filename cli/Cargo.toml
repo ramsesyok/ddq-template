@@ -5,6 +5,9 @@ version = "0.0.0"          # 表示する版は ../template/VERSION（build.rs �
 edition = "2024"
 rust-version = "1.95"
 publish = false
+# 保守者用の ddq-release（src/bin/ddq-release/）と 2 つの exe があるので、`cargo run` の既定は配る ddq にする
+# （無いと `cargo run -- --help` がどちらか選べずに止まる。ddq-release は `cargo run --bin ddq-release`）
+default-run = "ddq"
 # リポジトリ直下の LICENSE。同梱・内蔵する第三者のものは THIRD-PARTY-NOTICES.md
 license = "MIT"
 

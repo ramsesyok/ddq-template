@@ -21,6 +21,7 @@ export function RevisionEditor() {
     const [context, setContext] = useState<EditorContext>({
         folder: '',
         fileName: '',
+        checked: false,
         fixed: false,
         tags: []
     });
@@ -52,6 +53,8 @@ export function RevisionEditor() {
         return () => window.removeEventListener('message', onMessage);
     }, []);
 
+    // 確定済み、またはタグの状態をまだ確かめていない（開いた直後。M-01）なら編集させない
+    const locked = context.fixed || !context.checked;
     const empty = useMemo(() => emptyNotes(revision), [revision]);
     const live = revision.entries.filter((e) => !e.stale);
     const stale = revision.entries.filter((e) => e.stale);
@@ -92,7 +95,7 @@ export function RevisionEditor() {
                         改訂日
                         <input
                             value={revision.date}
-                            disabled={context.fixed}
+                            disabled={locked}
                             onChange={(e) => editHeader({ date: e.target.value })}
                         />
                     </label>
@@ -100,7 +103,7 @@ export function RevisionEditor() {
                         基準
                         <input
                             value={base || revision.base}
-                            disabled={context.fixed}
+                            disabled={locked}
                             list="ddq-tags"
                             onChange={(e) => setBase(e.target.value)}
                             title={revision.baseCommit}
@@ -118,7 +121,7 @@ export function RevisionEditor() {
 
                 <div className="toolbar">
                     <button
-                        disabled={busy || context.fixed}
+                        disabled={busy || locked}
                         onClick={() => editorApi().postMessage({ type: 'refresh', base: base || undefined })}
                     >
                         差分を取り直す
@@ -128,7 +131,7 @@ export function RevisionEditor() {
                     </button>
                     <button
                         className="primary"
-                        disabled={busy || context.fixed}
+                        disabled={busy || locked}
                         onClick={() => editorApi().postMessage({ type: 'fix' })}
                     >
                         確定する
@@ -143,6 +146,7 @@ export function RevisionEditor() {
                         <code>git tag -d rev-{revision.rev}</code> でタグを消してください。
                     </p>
                 )}
+                {!context.checked && <p className="muted checking">タグの状態を確かめています…</p>}
                 {notice && <pre className={`notice ${notice.level}`}>{notice.text}</pre>}
             </header>
 
@@ -165,7 +169,7 @@ export function RevisionEditor() {
                             <EntryRow
                                 key={entry.label}
                                 entry={entry}
-                                fixed={context.fixed}
+                                locked={locked}
                                 onNote={(note) => editNote(entry.label, note)}
                             />
                         ))}
@@ -184,7 +188,7 @@ export function RevisionEditor() {
                                     <td>{entry.title || entry.label}</td>
                                     <td className="note">{entry.note}</td>
                                     <td>
-                                        <button disabled={context.fixed} onClick={() => dropStale(entry.label)}>
+                                        <button disabled={locked} onClick={() => dropStale(entry.label)}>
                                             消す
                                         </button>
                                     </td>
@@ -205,8 +209,8 @@ export function RevisionEditor() {
     );
 }
 
-function EntryRow(props: { entry: RevEntry; fixed: boolean; onNote: (note: string) => void }) {
-    const { entry, fixed, onNote } = props;
+function EntryRow(props: { entry: RevEntry; locked: boolean; onNote: (note: string) => void }) {
+    const { entry, locked, onNote } = props;
     const gone = entry.kind === 'removed';
     return (
         <tr>
@@ -234,7 +238,7 @@ function EntryRow(props: { entry: RevEntry; fixed: boolean; onNote: (note: strin
                 <textarea
                     value={entry.note}
                     rows={Math.max(2, entry.note.split('\n').length)}
-                    disabled={fixed}
+                    disabled={locked}
                     placeholder="何のために、どこを直したか"
                     onChange={(e) => onNote(e.target.value)}
                 />

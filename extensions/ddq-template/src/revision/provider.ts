@@ -53,11 +53,24 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
         };
         const folder = writingFolderOf(document.uri);
 
+        // 最初のタグの照会が返るまでは「確かめ中」（checked: false）。画面は本文を出すが編集させず、
+        // 拡張も書き戻しを受け付けない（確定済みの改訂を、照会の前に直せてしまわないように。M-01）
         let context: EditorContext = {
             folder,
             fileName: path.basename(document.uri.fsPath),
+            checked: false,
             fixed: false,
             tags: []
+        };
+        /** いまの状態で改訂ファイルを書き換えてよいか。だめなら画面を文書に戻してから知らせる */
+        const ensureEditable = () => {
+            if (context.checked && !context.fixed) return;
+            send();
+            throw new DdqError(
+                context.fixed
+                    ? `確定済みの改訂（タグ rev-${symbolOf(document.uri)} がある）は編集できません。`
+                    : 'タグの状態を確かめています。終わってからもう一度操作してください。'
+            );
         };
 
         /** いまの文書を画面に送る（タグの状態は覚えているものを使う） */
@@ -99,6 +112,7 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
                         await refreshTags();
                         return;
                     case 'edit':
+                        ensureEditable();
                         if (!(await write(document, message.revision))) {
                             // 書けなかった。画面を文書に戻してから知らせる
                             send();
@@ -112,6 +126,7 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
                         await openDiff(folder, parse(document.getText()), message.label);
                         return;
                     case 'refresh':
+                        ensureEditable();
                         await this.refresh(folder, document, message.base, post);
                         await refreshTags();
                         return;
@@ -119,6 +134,7 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
                         await this.build(folder, post);
                         return;
                     case 'fix':
+                        ensureEditable();
                         await this.fix(folder, document, post);
                         await refreshTags();
                         return;
@@ -150,7 +166,7 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
                 '保存して取り直す'
             );
             if (save !== '保存して取り直す') return;
-            await document.save();
+            await saveBeforeDdq(document, '差分の取り直し');
         }
         post({ type: 'busy', busy: true });
         const args = ['rev', 'diff', folder, '--write'];
@@ -181,7 +197,7 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
             );
             if (go !== '空のまま確定する') return;
         }
-        if (document.isDirty) await document.save();
+        await saveBeforeDdq(document, '確定');
         await this.build(folder, post);
 
         const rel = vscode.workspace.asRelativePath(folder, false);
@@ -224,6 +240,26 @@ export async function write(document: vscode.TextDocument, revision: Revision): 
     return vscode.workspace.applyEdit(edit);
 }
 
+/**
+ * 保存していない変更があれば、ddq を動かす前に保存する。保存できなかった（`save()` が偽を返した・例外になった）
+ * ときや、保存したあとにまた変わったときは、そこで止める。ddq はディスクの中身を読むので、そのまま進めると
+ * 画面のメモと、作り直した改訂ファイル・表が食い違う（M-02）。
+ */
+async function saveBeforeDdq(document: vscode.TextDocument, what: string): Promise<void> {
+    if (!document.isDirty) return;
+    const failed = `改訂履歴の文書を保存できなかったため、${what}をやめました。`;
+    let saved: boolean;
+    try {
+        saved = await document.save();
+    } catch (e) {
+        throw new DdqError(failed, String(e));
+    }
+    if (!saved) throw new DdqError(failed);
+    if (document.isDirty) {
+        throw new DdqError(`保存したあとに改訂履歴の文書が変わったため、${what}をやめました。もう一度操作してください。`);
+    }
+}
+
 /** `revisions/rev-B.yml` から執筆フォルダ（`revisions` の親）を求める。 */
 export function writingFolderOf(uri: vscode.Uri): string {
     return path.dirname(path.dirname(uri.fsPath));
@@ -233,15 +269,19 @@ function ddq(): string {
     return currentDdq().command;
 }
 
-/** タグの有無（= 確定済みか）と、既にあるタグ。 */
+/** `rev-B.yml` の改訂記号（`B`）。 */
+function symbolOf(uri: vscode.Uri): string {
+    return path.basename(uri.fsPath).replace(/^rev-/, '').replace(/\.ya?ml$/i, '');
+}
+
+/** タグの有無（= 確定済みか）と、既にあるタグ。返ったら確かめ終えた（checked）とする。 */
 async function tagState(folder: string, uri: vscode.Uri): Promise<Partial<EditorContext>> {
     try {
         const next = await runJson(ddq(), ['rev', 'next', folder, '--json'], folder, parseRevNext);
-        const symbol = path.basename(uri.fsPath).replace(/^rev-/, '').replace(/\.ya?ml$/i, '');
-        return { tags: next.tags, fixed: next.tags.includes(`rev-${symbol}`) };
+        return { checked: true, tags: next.tags, fixed: next.tags.includes(`rev-${symbolOf(uri)}`) };
     } catch {
         // Git が無い・タグが読めないだけなら、編集はできてよい
-        return { tags: [], fixed: false };
+        return { checked: true, tags: [], fixed: false };
     }
 }
 
