@@ -125,6 +125,7 @@ def smoke(zip_path: Path, root_name: str, work: Path, want_fonts: list[str]) -> 
     if run([str(exe), "html", str(folder)]):
         pages = sorted((folder / "_book").rglob("*.html"))
         check((folder / "_book" / "index.html").is_file(), f"_book/index.html ができた（HTML {len(pages)} ページ）")
+    check(False, "わざと失敗させる（検証用の枝 ci-test/rc-fail-verify。マージしない）")
 
 
 def main() -> int:
