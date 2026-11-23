@@ -243,6 +243,9 @@ format:
 - 配布 HTML の CSS は `_book/site_libs/quarto-contrib/quarto-project/ddq/design-doc.css` に出る（ドットのフォルダにならない）
 - `lib.typ` の import は、プロジェクトの根からのパス（`/_extensions/ddq/lib.typ`）で通った
 - テンプレートの版は `_extension.yml` の `version` で持てる（`.template-version` の代わりになる）
+- `_extensions/ddq/` は**執筆フォルダの直下**（`_quarto.yml` と同じ階層）に置く。リポジトリの直下など執筆フォルダより上に
+  置くと、Quarto が見つけられず `ERROR: Unsupported project type ddq` で止まった。執筆フォルダが複数あるリポジトリでは、
+  今の機構ファイルと同じく執筆フォルダごとに 1 つずつ置く（`ddq update --all` がそれぞれを更新する）
 
 ### 6.4 比較
 
