@@ -215,4 +215,8 @@
   rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1）。そのリリースビルドの ddq で本書を `ddq update`・`ddq html` した。
   部を書いた book（扉ページのファイル・題名だけ・付録の中の部）を `ddq init` の雛形から作って `ddq pdf` すると、Typst の
   `unknown variable: part` で失敗した（`template/` の Typst 側に `part` が無い。前からの制約）。
-  GitHub Actions 上の配布候補の実行は、本書の基準の変更（Action の版・書体の手順）では未実行
+  GitHub Actions：本書の基準をコミットした `1fafcc5`（PR #144、2026-11-23）で、`ci.yml`（cli・mermaid-bundle）・`extension.yml`（テスト 4 構成・
+  実拡張ホスト・脆弱性・VSIX の生成）・`release-candidate.yml`（build・verify-zip・verify-vsix・publishable）の 13 ジョブが成功した。
+  build ではランナーに書体が無く、`phase: start` が dism を裏で走らせて 8 秒で進み、ビルドの後の `phase: wait` が終わり（終了コード）を
+  待って、Meiryo UI・BIZ UDGothic が Typst から見えることを確かめた。build ジョブは 15 分 4 秒（`f2c6e0e`）→ 11 分 44 秒、
+  ワークフロー全体は 28 分 4 秒 → 28 分 12 秒（verify-zip が書体を重ねずに入れ、今回 14 分 39 秒）

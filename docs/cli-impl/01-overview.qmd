@@ -24,7 +24,7 @@
 | 自前のDB・GUI | 適用なし。`cli/src` と直接依存にDB接続・スキーマ・GUIイベント処理はない。外部プロセス内部はこの判断の対象外 |
 | OSS内部、Typst組版詳細、VSCode拡張内部 | 詳細解析対象外。利用API・生成物・設定の境界のみ確認。拡張側は `docs/ddq-template-impl` が扱う |
 | Git | `rev` が子プロセスとして呼ぶ範囲（引数・出力の解釈）のみ。Git自体の挙動は対象外 |
-| ブラウザ／Java／全E2E／リリースの実行 | 2026-11-23 に1台で `DDQ_E2E=1` の全件を実行した（第5章、[E-0038](appendix-evidence.qmd#ev-e-0038)）。ddq-release の本物のリポジトリでの実行は分離の時点のもの（[E-0037](appendix-evidence.qmd#ev-e-0037)）。GitHub Actions 上の配布候補（`release-candidate.yml`）は本書の基準の変更では未実行。静的追跡と既存テストの読解を実行成功と扱わない |
+| ブラウザ／Java／全E2E／リリースの実行 | 2026-11-23 に1台で `DDQ_E2E=1` の全件を実行した（第5章、[E-0038](appendix-evidence.qmd#ev-e-0038)）。ddq-release の本物のリポジトリでの実行は分離の時点のもの（[E-0037](appendix-evidence.qmd#ev-e-0037)）。GitHub Actions では、本書の基準をコミットした `1fafcc5`（PR #144）で ci・extension・配布候補（`release-candidate.yml`）が成功した（[E-0038](appendix-evidence.qmd#ev-e-0038)）。静的追跡と既存テストの読解を実行成功と扱わない |
 
 境界と非該当の判断根拠は [E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0016](appendix-evidence.qmd#ev-e-0016)。外部実装の振る舞いまで網羅した解析ではない。
 

@@ -129,4 +129,7 @@ Cargo 1.98.1、Quarto 1.9.38、Java 17.0.2、PlantUML 1.2026.8（cli/vendor/plan
   package.json を外し、ddq-release・replace.rs・新しい試験・契約の期待値・配布候補の workflow を足した）
 - 部（- part:）を書いた book の ddq pdf は Typst の unknown variable: part で失敗した（template/ の Typst 側に part が無い。前からの制約。
   利用者の判断で記録だけにした）
-- 未実行: tools/regress.py、Linux/macOS、日本語以外のコードページ、GitHub Actions 上の配布候補（本書の基準の Action の版・書体の手順）
+- GitHub Actions: 本書の基準をコミットした 1fafcc5（PR #144）で ci・extension・release-candidate の 13 ジョブが成功した。配布候補の build では
+  書体を裏で入れ始めてビルドと重ね、後で待って Typst から見えることを確かめた（build ジョブ 15 分 4 秒 → 11 分 44 秒。全体は verify-zip の
+  書体の導入で決まり、約 28 分のまま）
+- 未実行: tools/regress.py、Linux/macOS（Rust の試験。拡張の試験は CI の ubuntu で通る）、日本語以外のコードページ
