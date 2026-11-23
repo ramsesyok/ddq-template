@@ -189,15 +189,15 @@
 （`template/VERSION` 3.1.0）。`git log 2a9373e..HEAD -- cli template .github` で変更を棚卸しし、計画外の変更（3.0.1-pre1・3.1.0-pre1）と
 `docs/refactoring-plan.md` の各項目・外部レビュー `docs/refactoring-review.md` の指摘の直しを読んだ。各項目の試験の記録は `docs/refactoring-progress.md`。
 
-- 書込み（IO-01・IO-02、レビュー C-01・C-02・M-03）：`cli/src/replace.rs::replace / replace_unchanged / create_new / refused / Refused / prepare / swap / hold`
+- 書込み（IO-01・IO-02、レビュー C-01・C-02・M-03）：`cli/src/replace.rs::replace / replace_unchanged / create_new / refused / Refused / prepare / replace_bytes / checked_file`
   と単体テスト（障害注入 `FAULT`）、`cli/src/commands/tag.rs::apply / plan / write_all`、`cli/src/commands/rev.rs::write_revision / save_revision / build`、
   `cli/src/assets.rs::write_asset / write_dir_if_absent / write_if_absent / create_if_absent`、`cli/src/commands/update.rs::run / prune_diagram_cache`。
   `cli/tests/tag.rs`・`rev.rs`・`rerun.rs`
-- 章立て（GEN-01・CLI-01、レビュー H-01 とその外の書き方）：`cli/src/doc/project.rs::chapters_of / MapItem / page_rank / item_key / value_of /
+- 章立て（GEN-01・CLI-01、レビュー H-01・H-03・M-08）：`cli/src/doc/project.rs::chapters_of / MapItem / page_rank / item_key / value_of /
   map_key / flow_items / flow_text / unquoted / split_flow / flow_node / key_value / flow_docs / as_doc_path / assemble / order_with_texts /
   Source::exists`、`cli/src/doc/gitsrc.rs::GitFolder::exists`、`cli/src/doc/mod.rs::scan_folder`、`template/postprocess-html.js` の
-  `valueOf / mapKey / flowText / unquoted / splitFlow / flowNode / keyValue / PAGE_RANK / flowDocs / flowItems / docsOf`、
-  `template/scaffold/content/_quarto.yml`。共有の期待値 `cli/tests/fixtures/contract/chapters.json`（13ケース。正解は Quarto 1.9.38 の
+  `valueOf / mapKey / flowText / unquoted / splitFlow / flowNode / keyValue / PAGE_RANK / flowDocs / flowItems / docsOf / appendixNumber`、
+  `template/scaffold/content/_quarto.yml`。共有の期待値 `cli/tests/fixtures/contract/chapters.json`（15ケース。正解は Quarto 1.9.38 の
   `quarto inspect` の `files.input`。部の題名の項目の `href:`・`file:` のページ `part_hrefs` に番号・付録の記号が付かないことは
   `quarto render` で確かめた）、`cli/tests/filter_contract.rs`・`e2e.rs`。フロー形式の対応付けと `href:`・`file:` は `cd00267` の上の
   作業ツリー（2026-11-23。利用者の判断「Quarto に合わせて読む」）

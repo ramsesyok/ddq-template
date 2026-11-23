@@ -117,11 +117,12 @@ python cli/tools/third_party.py
 そのもので VSCode を起動）を検査し、**すべて通った実行にだけ**成果物 `release-<版>`（ZIP・VSIX・SHA-256 の一覧・
 使った版の一覧 `versions.txt`。コミット、ddq.exe の SHA-256、Rust・Quarto・Node・Edge・書体・スモークに使った VSCode の版が
 載る）が残る。手動で起動するときは `gh workflow run release-candidate --ref main`
-（サンプルを同梱するなら `-f with_sample=true`）。同じ枝への実行は 1 つずつ、来た順にすべて走る（待っている要求は
-打ち切らない）。外部の Action はコミットの SHA で固定してある（上げる手順は `release-candidate.yml` の冒頭）。
+（サンプルを同梱するなら `-f with_sample=true`）。同じ枝への実行は 1 つずつ、待機を開始した順に処理する。待機は同じグループで最大100件で、満杯のときに追加された要求は取り消される。
+外部の Action はコミットの SHA で固定してある（上げる手順は `release-candidate.yml` の冒頭）。
 
 まず `gh run list --workflow release-candidate --branch main` で、main の、すべてのジョブが通った実行を選ぶ。
-次の手順を `publish.sh` などに保存し、先頭の 3 行を書き換えてから、リポジトリのルートで `bash publish.sh` を実行する。
+次の手順を `publish.sh` などに保存し、`VER`・`RUN`・`NOTES` を設定してから、リポジトリのルートで `bash publish.sh` を実行する。
+実行ごとに一時フォルダを作って候補を取得するため、手元の `release/` に同じ版の試作物があっても再実行できる。
 **どこかで失敗したら、そこで止まる**（`set -euo pipefail`。端末に貼り付けて流すと、止まったときに端末ごと閉じる）。
 
 ```bash
@@ -130,9 +131,11 @@ VER=3.1.0                       # 配る版（template/VERSION と同じ）
 RUN=<実行の番号>                 # 上で選んだ実行
 NOTES=<リリースノートのファイル>
 
-gh run download "$RUN" -n "release-$VER" -D release
-(cd release && sha256sum -c SHA256SUMS.txt)
-COMMIT=$(sed -n 's/^commit: *//p' release/versions.txt | tr -d '\r')
+ASSETS=$(mktemp -d)
+trap 'rm -rf -- "$ASSETS"' EXIT
+gh run download "$RUN" -n "release-$VER" -D "$ASSETS"
+(cd "$ASSETS" && sha256sum -c SHA256SUMS.txt)
+COMMIT=$(sed -n 's/^commit: *//p' "$ASSETS/versions.txt" | tr -d '\r')
 # 選んだ実行が、main のそのコミットの、すべて通った配布候補か
 RUNINFO=$(gh run view "$RUN" --json workflowName,headBranch,headSha,event,conclusion \
   --jq '"\(.workflowName) \(.headBranch) \(.headSha) \(.event) \(.conclusion)"')
@@ -160,20 +163,20 @@ fi
 PRE=
 case "$VER" in *-*) PRE=--prerelease ;; esac
 # 1 つのコマンドで作る。gh は下書きで資産を上げ、2 つとも上がったときだけ公開する（失敗したら下書きを消す）
-gh release create "v$VER" "release/quarto-template-$VER.zip" "release/ddq-template-win32-x64-$VER.vsix" \
+gh release create "v$VER" "$ASSETS/quarto-template-$VER.zip" "$ASSETS/ddq-template-win32-x64-$VER.vsix" \
   --target "$COMMIT" $PRE \
   --title "v$VER — （変更の要約）" \
   --notes-file "$NOTES"
 # 公開した資産の名前と SHA-256 が、実行の一覧と同じかを確かめる
 gh release view "v$VER" --json assets \
-  --jq '.assets[] | "\(.digest | ltrimstr("sha256:"))  \(.name)"' | sort > release/published.txt
-sort release/SHA256SUMS.txt | diff - release/published.txt || {
+  --jq '.assets[] | "\(.digest | ltrimstr("sha256:"))  \(.name)"' | sort > "$ASSETS/published.txt"
+sort "$ASSETS/SHA256SUMS.txt" | diff - "$ASSETS/published.txt" || {
   echo "公開した資産が実行の一覧と違います。gh release edit v$VER --draft=true で下書きに戻して調べてください" >&2
   exit 1
 }
 ```
 
-- **タグは実行のコミットを指す**（`release/versions.txt` の `commit:`）。タグが無ければ `--target` で作る。既にあれば、指す
+- **タグは実行のコミットを指す**（取得した `versions.txt` の `commit:`）。タグが無ければ `--target` で作る。既にあれば、指す
   コミット（注釈つきのタグは剥がしたもの）を照合し、違えば止める。タグの指すコミットと配布物が一致する。
 - **選んだ実行と、通常の CI を照合する。** 実行が `release-candidate` の、main への push か手動実行で、そのコミットの、
   すべて通ったものか。さらに同じコミットで `ci.yml` と `extension.yml` が通ったか。配布候補は専用の検査だけで残るので、

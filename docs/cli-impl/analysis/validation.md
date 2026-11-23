@@ -138,3 +138,9 @@ Cargo 1.98.1、Quarto 1.9.38、Java 17.0.2、PlantUML 1.2026.8（cli/vendor/plan
   差は図のキャッシュのキー（ddq の版を含む）と、描くたびに線の形が変わる docs の mermaid の図 4 つ（とその 4 ページの画素）だけ。
   キーと版を伏せると index.typ・HTML・search.json が同じで、PDF の文字も同じ
 - 未実行: Linux/macOS（Rust の試験。拡張の試験は CI の ubuntu で通る）、日本語以外のコードページ、regress.py の旧 bat 比較
+
+## PR #144 の追加修正（2026-11-23、1708aaa の上の作業ツリー）
+
+Windows で `DDQ_E2E=1` を指定した `cargo test --locked --offline --no-fail-fast` は17スイート257件成功、失敗・ignored は0。rustfmt と全ターゲットの Clippy（警告をエラーとして実行）も成功した。実CLIで対象外の下書きのバイト列を照合し、番号なし付録の次の付録で、実PDFとHTMLの章直下の表と他章参照がいずれも「表 A-1」になることを確認した。
+
+同じソースから作った ddq で本書を一時フォルダにHTML出力した。`analysis/check_output.py` は9ページ、表15、図3点、リンク切れ0、ソースハッシュ不一致0を確認した。

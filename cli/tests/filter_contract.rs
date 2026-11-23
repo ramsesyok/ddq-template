@@ -465,12 +465,15 @@ fn merge_cols_match_the_shared_cases() {
 
 /// 章ごとに図を 1 つ持つ最小の HTML（Quarto の book が出す形）。`chapter` が None なら付録・部の扉
 /// ページの形（章タイトルに chapter-number が無い）。
-fn chapter_page(n: usize, chapter: Option<&str>) -> String {
+fn chapter_page(n: usize, chapter: Option<&str>, appendix: Option<&str>) -> String {
     let title = match chapter {
         Some(c) => format!(
             r#"<span class="chapter-number">{c}</span>&nbsp; <span class="chapter-title">章{n}</span>"#
         ),
-        None => format!("付録 — 章{n}"),
+        None => match appendix {
+            Some(letter) => format!("付録 {letter} — 章{n}"),
+            None => format!("章{n}"),
+        },
     };
     format!(
         "<!DOCTYPE html>\n<html><body>\n<h1 class=\"title\">{title}</h1>\n\
@@ -569,10 +572,11 @@ fn chapter_lists_match_the_shared_cases() {
             None,
         ));
         let book = dir.path().join("_book");
-        for (n, (html, chapter, _)) in pages.iter().enumerate() {
+        for (n, (html, chapter, prefix)) in pages.iter().enumerate() {
             let path = book.join(html);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
-            fs::write(path, chapter_page(n, chapter.as_deref())).unwrap();
+            let appendix = prefix.as_deref().filter(|p| p.starts_with(char::is_uppercase));
+            fs::write(path, chapter_page(n, chapter.as_deref(), appendix)).unwrap();
         }
         let pages: Vec<(String, Option<String>)> = pages.into_iter().map(|(h, _, p)| (h, p)).collect();
 
@@ -593,7 +597,7 @@ fn chapter_lists_match_the_shared_cases() {
                 ),
                 None => assert_eq!(
                     *text,
-                    chapter_page(n, Some(&(n + 1).to_string())),
+                    chapter_page(n, Some(&(n + 1).to_string()), None),
                     "{name}: 並びに無い {html} を書き換えた"
                 ),
             }

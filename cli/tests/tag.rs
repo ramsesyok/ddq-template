@@ -578,36 +578,20 @@ fn list_unlabeled_shows_only_items_without_a_label() {
 }
 
 #[test]
-fn list_warns_when_chapters_cannot_be_read() {
-    // chapters の無い _quarto.yml では、警告を出して配下の .qmd / .md をパス順に並べる。
-    // 出力・キャッシュ・Git のフォルダは読まない
+fn a_book_without_readable_chapters_leaves_drafts_untouched() {
     let tmp = tempfile::tempdir().unwrap();
     write(
         tmp.path(),
         "_quarto.yml",
-        "project:\n  type: book\nbook:\n  title: x\n",
+        "book:\n  title: x\n  appendices: [draft.qmd]\n",
     );
-    write(tmp.path(), "index.qmd", "# 前書き\n");
-    write(tmp.path(), "chapters/01/index.qmd", "# 第1章\n");
-    write(tmp.path(), "notes.txt", "# 文書ではない\n");
-    for skip in ["_book", ".quarto", "_freeze", "node_modules", ".git"] {
-        write(tmp.path(), &format!("{skip}/x.qmd"), "# 読まない\n");
+    write(tmp.path(), "draft.qmd", "# Draft\n");
+    for (command, option) in [("list", "--json"), ("apply", "--all")] {
+        let out = ddq(&["tag", command, &tmp.path().to_string_lossy(), option]);
+        assert!(!out.status.success());
+        assert!(stderr(&out).contains("book.chapters"));
+        assert_eq!(fs::read(tmp.path().join("draft.qmd")).unwrap(), b"# Draft\n");
     }
-
-    let out = ddq(&["tag", "list", &tmp.path().to_string_lossy(), "--json"]);
-    assert_ok(&out);
-    let v: Value = serde_json::from_str(&stdout(&out)).unwrap();
-    assert_eq!(
-        v["order"],
-        serde_json::json!(["chapters/01/index.qmd", "index.qmd"])
-    );
-    let warnings = v["warnings"].as_array().unwrap();
-    assert!(
-        warnings
-            .iter()
-            .any(|w| w.as_str().unwrap().contains("chapters を読めませんでした")),
-        "{warnings:?}"
-    );
 }
 
 #[test]

@@ -50,7 +50,7 @@ const root = process.argv[2] || process.env.QUARTO_PROJECT_OUTPUT_DIR || '_book'
 
 // 章順は _quarto.yml の chapters をそのまま使う（並びを二重管理しない）。
 // 章ファイルは .qmd と .md のどちらでもよい（実行コードセルを使わない章は .md にできる）。
-const conf = fs.readFileSync('_quarto.yml', 'utf8');
+const conf = fs.readFileSync('_quarto.yml', 'utf8').replace(/^\uFEFF/, '');
 
 /**
  * `- ` の後ろが文書ファイルのパスならそれを返す（`part:` などは undefined）。ddq（Rust）の
@@ -290,6 +290,7 @@ const docsOf = (text, isFile) => {
   const lists = { chapters: [], appendices: [], references: undefined, parts: new Set() };
   let inside;                             // { indent, appendix }
   let items = [];                         // 対応付けの項目: { content（中身の字下げ）, at（始まった列の位置）, page, part }
+  let rootIndent;
   let book;                               // { indent, child（直下のキーの字下げ） }
   const lines = text.split(/\r?\n/)[Symbol.iterator]();
   // 対応付けの項目のキー 1 つ（項目の行か、後ろの行。Rust の `item_key`）
@@ -316,7 +317,8 @@ const docsOf = (text, isFile) => {
   for (const line of lines) {
     const trimmed = line.trimStart();
     const indent = line.length - trimmed.length;
-    if (trimmed === '' || trimmed.startsWith('#')) continue;
+    if (trimmed === '' || trimmed.startsWith('#') || /^(?:---|\.\.\.)\s*$|^%/.test(trimmed)) continue;
+    rootIndent ??= indent;
     if (inside && (indent < inside.indent || (indent === inside.indent && !trimmed.startsWith('- ')))) {
       inside = undefined;
     }
@@ -348,7 +350,7 @@ const docsOf = (text, isFile) => {
       continue;
     }
     const key = /^(chapters|appendices):(?:\s|$)/.exec(trimmed);
-    if (key) {
+    if (key && book?.child === indent) {
       const appendix = Boolean(inside?.appendix) || key[1] === 'appendices';
       const flow = trimmed.slice(key[1].length + 1).trimStart();
       if (flow.startsWith('[')) {
@@ -363,7 +365,23 @@ const docsOf = (text, isFile) => {
       if (!inside && book?.child === indent) lists.references = docPath(refs);
       continue;
     }
-    if (!inside && valueOf(trimmed, 'book') !== undefined) book = { indent, child: undefined };
+    const bookValue = valueOf(trimmed, 'book');
+    if (indent === rootIndent && bookValue !== undefined) {
+      const value = bookValue.trimStart();
+      if (value.startsWith('{')) {
+        const text = flowText(value.slice(1), lines);
+        for (const [key, val] of splitFlow(text).map(keyValue).filter(Boolean)) {
+          const node = flowNode(val);
+          if ((key === 'chapters' || key === 'appendices') && node?.seq !== undefined) {
+            flowDocs(node, isFile, lists[key], lists.parts);
+          } else if (key === 'references' && node?.scalar !== undefined) {
+            lists.references = docPath(node.scalar);
+          }
+        }
+      } else {
+        book = { indent, child: undefined };
+      }
+    }
   }
   return lists;
 };
@@ -382,15 +400,17 @@ const docs = docsOf(conf, isFile);
 // book.references は章の後ろ・付録の前（Quarto の bookRenderItems。番号は本文の章番号から取るので並びの位置だけ）
 const chapters = [...docs.chapters, ...(docs.references ? [docs.references] : [])].map(toHtml);
 const appendices = docs.appendices.map(toHtml);
-// 付録（book.appendices）。Quarto は章番号を A・B… と振るが、**HTML の章タイトルには
-// chapter-number を出さず**「付録 A — 解析根拠」という文にしてしまう（id を付けた章では
-// 特に）。語は言語設定で変わるので、記号は _quarto.yml の並び順から決める。
-// 付録の中の部の扉ページは記号を使わない（Quarto も番号なしで出す。番号なしの章と同じく 0）。
-const appendixLetter = new Map(
-  docs.appendices.filter((f) => !docs.parts.has(f)).map(toHtml).map((f, i) => [f, String.fromCharCode(65 + i)])
-);
+// Quarto が実際に割り当てた付録記号を読む。番号なし付録は後続の番号を消費しない。
+const appendixPages = new Set(docs.appendices.filter((f) => !docs.parts.has(f)).map(toHtml));
+const appendixNumber = (html) => {
+  const active = html.match(/<a\b[^>]*class="[^"]*\bsidebar-link\s+active\b[^"]*"[^>]*>([\s\S]*?)<\/a>/);
+  if (active) return active[1].match(/<span class="chapter-number">([A-Z]+)<\/span>/)?.[1];
+  // ナビゲーションを非表示にした book では章タイトルの「付録 A — 題名」から読む。
+  const title = html.match(/<h1 class="title"[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '');
+  return title?.match(/^.*?\s([A-Z]+)\s+—\s+/)?.[1];
+};
 const order = [...chapters, ...appendices.filter((f) => !chapters.includes(f))];
-if (order.length === 0) {
+if (docs.chapters.length === 0) {
   console.error('_quarto.yml の chapters を読めませんでした');
   process.exit(1);
 }
@@ -438,8 +458,7 @@ for (const rel of order) {
   if (!fs.existsSync(file)) continue;
   const html = fs.readFileSync(file, 'utf8');
   const scan = new RegExp(`${CHAP}|${HEAD}|${CAP}|${SPLIT}`, 'g');
-  // 付録はファイル単位で記号が決まる（章タイトルから拾えないため）
-  const fileChap = appendixLetter.get(rel) ?? '0';
+  const fileChap = (appendixPages.has(rel) && appendixNumber(html)) || '0';
   let chap = fileChap;
   // いま処理中の見出しの番号（data-number）。章直下（節なし）は空文字。
   // 図表番号は PDF と同じく見出しの深さ「章.節.項…」（最大レベル5）に追従する。

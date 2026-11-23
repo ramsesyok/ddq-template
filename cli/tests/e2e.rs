@@ -723,6 +723,56 @@ fn flow_lists_references_and_a_late_index_follow_quartos_order() {
     }
 }
 
+/// book 外の下書きに触れず、番号なし付録が番号付き付録の表と他章からの参照をずらさないこと。
+#[test]
+fn flow_book_keeps_drafts_and_uses_rendered_appendix_numbers() {
+    if skip_without_quarto() {
+        return;
+    }
+    let _lock = QUARTO_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    let docs = repo.join("docs");
+    assert_ok(
+        &ddq(&["init", &repo.to_string_lossy(), "docs", "--no-render"]),
+        "ddq init",
+    );
+    let config = docs.join("_quarto.yml");
+    let conf = fs::read_to_string(&config).unwrap().replace("\r\n", "\n");
+    let (project, rest) = conf.split_once("\nbook:\n").unwrap();
+    let (_, options) = rest.split_once("\nlang:").unwrap();
+    let book = "book: {title: Test, chapters: [index.qmd, content.qmd], appendices: [extra.qmd, data.qmd]}";
+    let conf = format!("\u{feff}metadata:\n  chapters: [draft.qmd]\n{project}\n{book}\nlang:{options}");
+    fs::write(config, conf).unwrap();
+    let draft = "# 下書き\n";
+    for (file, text) in [
+        ("index.qmd", "# はじめに {.unnumbered}\n"),
+        ("draft.qmd", draft),
+        ("content.qmd", "# 本文\n\n@tbl-data を参照。\n"),
+        ("extra.qmd", "# 補足 {.unnumbered}\n"),
+        (
+            "data.qmd",
+            "# データ {#sec-data}\n\n| 値 |\n|---|\n| 1 |\n\n: データ一覧 {#tbl-data}\n",
+        ),
+    ] {
+        fs::write(docs.join(file), text).unwrap();
+    }
+    let chapters = quarto_chapters(&docs);
+    assert_eq!(chapters, ["index.qmd", "content.qmd", "extra.qmd", "data.qmd"]);
+    let dir = docs.to_string_lossy();
+    let out = ddq(&["tag", "list", &dir, "--json"]);
+    assert_ok(&out, "ddq tag list");
+    let list: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(list["order"], serde_json::json!(chapters));
+    assert_ok(&ddq(&["tag", "apply", &dir, "--all"]), "ddq tag apply");
+    assert_eq!(fs::read(docs.join("draft.qmd")).unwrap(), draft.as_bytes());
+    assert_ok(&ddq(&["html", &dir]), "ddq html");
+    let appendix = fs::read_to_string(docs.join("_book/data.html")).unwrap();
+    assert!(appendix.contains("付録 A") && appendix.contains("表 A-1　データ一覧"));
+    let content = fs::read_to_string(docs.join("_book/content.html")).unwrap();
+    assert!(content.contains("data.html#tbl-data") && content.contains("表 A-1"));
+}
+
 /// フロー形式の対応付け `{part: …, chapters: […]}` と `href:`・`file:` の項目も、Quarto の描く順に読む。
 /// 部の題名の項目に `href:` で書いたページは部のページ（Quarto は番号なしで出す。後処理は 0 で、付録の中なら
 /// 記号を使わない）。実 exe の `tag list` の文書順が `quarto inspect` の入力の並びと同じで、`ddq html` の番号も合う

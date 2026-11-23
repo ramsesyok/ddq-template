@@ -9,7 +9,7 @@
 //! その場合だけは、従来と同じく途中で止まると途中のバイト列になりうる。一時ファイルはどの場合も消す。
 //!
 //! 人が書くファイル（原稿・改訂ファイル）は `replace_unchanged` で置き換える。読んだときのバイト列と
-//! 書く直前にもう一度照合し、変わっていれば書かずに止める。Windows では、照合から付け替え（または
+//! 付け替えを試すたびにパスを開き直して照合し、変わっていれば書かずに止める。Windows では、照合から付け替え（または
 //! その場の書き込み）が終わるまで、ほかのプログラムの書き込みを拒む開き方でそのファイルを開いておく。
 //! ほかのプログラムが書き込み用に開いたままなら、1 秒ほど待ち直しても閉じなければ書かずに止める。
 
@@ -57,15 +57,7 @@ pub fn refused(e: &anyhow::Error) -> Option<Refused> {
 /// `path` の中身を `bytes` にする（無ければ作る）。ddq が作るファイル（機構ファイル・版マーカー・
 /// 改訂履歴の表）向け。人が書くファイルは `replace_unchanged`。
 pub fn replace(path: &Path, bytes: &[u8]) -> Result<()> {
-    let target = resolve(path);
-    let meta = writable(path, &target)?;
-    let tmp = prepare(&target, meta.as_ref(), bytes).with_context(|| untouched(path))?;
-    match swap(tmp, &target) {
-        Ok(()) => Ok(()),
-        // 付け替えを拒まれた（一時ファイルは消えている）。従来どおりその場で書く（利用者の判断）
-        Err(e) if in_use(&e) => fs::write(&target, bytes).with_context(|| in_place_failed(path)),
-        Err(e) => Err(e).with_context(|| untouched(path)),
-    }
+    replace_bytes(path, bytes, None)
 }
 
 /// 人が書くファイルを、読んだときのバイト列 `expected`（無かったなら None）から変わっていなければ
@@ -80,27 +72,43 @@ pub fn replace_unchanged(path: &Path, expected: Option<&[u8]>, bytes: &[u8]) -> 
             Err(Refused::Changed.into())
         };
     };
+    replace_bytes(path, bytes, Some(expected))
+}
+
+fn replace_bytes(path: &Path, bytes: &[u8], expected: Option<&[u8]>) -> Result<()> {
     let target = resolve(path);
     let meta = writable(path, &target)?;
     // 一時ファイルは照合の前に書き終えておき、照合から付け替えまでを短くする
     let tmp = prepare(&target, meta.as_ref(), bytes).with_context(|| untouched(path))?;
-    let mut guard = hold(&target, false)?;
-    if read_all(&mut guard).with_context(|| unreadable(path))? != expected {
-        return Err(Refused::Changed.into());
-    }
-    match swap(tmp, &target) {
-        Ok(()) => Ok(()),
-        Err(e) if in_use(&e) => {
-            // 削除を共有しない読み手がいて付け替えを拒まれた。書き込みも拒む開き方で書き込み用に開き直し、
-            // 照合し直してからその場で書く（利用者の判断。待ち直しは付け替えで済ませたので 1 回だけ開く）
-            drop(guard);
-            let mut f = hold_once(&target, true)?;
-            if read_all(&mut f).with_context(|| unreadable(path))? != expected {
-                return Err(Refused::Changed.into());
+    let mut waits = RETRY_MS.into_iter();
+    loop {
+        // 待っている間に同じ名前の別ファイルへ保存されうる。毎回パスを開き直し、照合したハンドルは rename まで保つ。
+        let guard = match expected.map(|old| checked_file(&target, old, false)).transpose() {
+            Err(e) if refused(&e) == Some(Refused::Busy) && wait_next(&mut waits) => continue,
+            result => result?,
+        };
+        let result = fault(Stage::Rename).and_then(|()| fs::rename(&tmp, &target));
+        drop(guard);
+        match result {
+            Ok(()) => {
+                let _ = tmp.keep();
+                return Ok(());
             }
-            write_in_place(&mut f, bytes).with_context(|| in_place_failed(path))
+            Err(e) if in_use(&e) => {
+                if !wait_next(&mut waits) {
+                    break;
+                }
+            }
+            Err(e) => return Err(e).with_context(|| untouched(path)),
         }
-        Err(e) => Err(e).with_context(|| untouched(path)),
+    }
+    drop(tmp);
+    // 削除を共有しない読み手が残っている場合。人が書くファイルは書き込み用のハンドルでも照合する。
+    if let Some(old) = expected {
+        let mut f = checked_file(&target, old, true)?;
+        write_in_place(&mut f, bytes).with_context(|| in_place_failed(path))
+    } else {
+        fs::write(&target, bytes).with_context(|| in_place_failed(path))
     }
 }
 
@@ -163,51 +171,26 @@ fn prepare(target: &Path, meta: Option<&fs::Metadata>, bytes: &[u8]) -> io::Resu
     Ok(tmp.into_temp_path())
 }
 
-/// 一時ファイルを `target` に付け替える。拒まれたら 1 秒ほど待ち直す。失敗したら一時ファイルは消える。
-///
-/// std の rename は Windows でも POSIX の意味で置き換えるので、ほかのプログラムが削除の共有つきで
-/// 開いていても置き換えられる（その読み手には元のバイト列が見え続ける）。
-fn swap(tmp: TempPath, target: &Path) -> io::Result<()> {
-    let mut waits = RETRY_MS.iter();
-    loop {
-        match fault(Stage::Rename).and_then(|()| fs::rename(&tmp, target)) {
-            Ok(()) => {
-                // 付け替え済みなので消すものは無い
-                let _ = tmp.keep();
-                return Ok(());
-            }
-            Err(e) if in_use(&e) => match waits.next() {
-                Some(ms) => thread::sleep(Duration::from_millis(*ms)),
-                None => return Err(e),
-            },
-            Err(e) => return Err(e),
-        }
-    }
+fn wait_next(waits: &mut impl Iterator<Item = u64>) -> bool {
+    let Some(ms) = waits.next() else { return false };
+    thread::sleep(Duration::from_millis(ms));
+    true
 }
 
-/// 照合から書き終えるまで、ほかのプログラムの書き込みを拒む開き方で `target` を開いておく（Windows。
-/// Unix には強制のロックが無いので、ただ開く）。書き込み用に開いているプログラムがあれば 1 秒ほど
-/// 待ち直し、閉じなければ `Refused::Busy`。消えていれば `Refused::Changed`。
-fn hold(target: &Path, write: bool) -> Result<fs::File> {
-    let mut waits = RETRY_MS.iter();
-    loop {
-        match hold_once(target, write) {
-            Err(e) if refused(&e) == Some(Refused::Busy) => match waits.next() {
-                Some(ms) => thread::sleep(Duration::from_millis(*ms)),
-                None => return Err(e),
-            },
-            r => return r,
+fn checked_file(target: &Path, expected: &[u8], write: bool) -> Result<fs::File> {
+    let mut f = match open_guarded(target, write) {
+        Ok(f) => f,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(Refused::Changed.into()),
+        Err(e) if in_use(&e) => return Err(Refused::Busy.into()),
+        Err(e) => {
+            return Err(e)
+                .with_context(|| format!("{} を開けません（書き換えていません）", target.display()));
         }
+    };
+    if read_all(&mut f).with_context(|| unreadable(target))? != expected {
+        return Err(Refused::Changed.into());
     }
-}
-
-fn hold_once(target: &Path, write: bool) -> Result<fs::File> {
-    match open_guarded(target, write) {
-        Ok(f) => Ok(f),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => Err(Refused::Changed.into()),
-        Err(e) if in_use(&e) => Err(Refused::Busy.into()),
-        Err(e) => Err(e).with_context(|| format!("{} を開けません（書き換えていません）", target.display())),
-    }
+    Ok(f)
 }
 
 /// 読みと削除だけを共有して開く。ほかのプログラムが書き込み用に開いていれば共有違反で開けず、
@@ -333,6 +316,33 @@ mod tests {
 
     fn set_fault(f: Option<Fault>) {
         FAULT.with(|c| c.set(f));
+    }
+
+    /// 最初の付け替えが拒まれてから再試行するまでに、別の保存でパスの実体が変わる。
+    /// タイマーに依存せず、共有違反を返す段階で実際にファイルを差し替える。
+    #[cfg(windows)]
+    #[test]
+    fn a_file_replaced_before_the_rename_retry_is_preserved() {
+        thread_local! {
+            static TARGET: std::cell::RefCell<PathBuf> = std::cell::RefCell::default();
+        }
+        fn save_and_refuse() -> io::Error {
+            set_fault(None);
+            TARGET.with_borrow(|target| fs::rename(target.with_extension("saved"), target).unwrap());
+            io::Error::from_raw_os_error(32)
+        }
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("a.qmd");
+        fs::write(&path, "original").unwrap();
+        fs::write(path.with_extension("saved"), "original + saved paragraph").unwrap();
+        TARGET.set(path.clone());
+        set_fault(Some((Stage::Rename, save_and_refuse)));
+
+        let err = replace_unchanged(&path, Some(b"original"), b"tagged").unwrap_err();
+        assert_eq!(refused(&err), Some(Refused::Changed));
+        assert_eq!(fs::read_to_string(&path).unwrap(), "original + saved paragraph");
+        assert_eq!(names(tmp.path()), ["a.qmd"]);
     }
 
     #[test]
