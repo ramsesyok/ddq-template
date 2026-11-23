@@ -89,7 +89,7 @@ C:\work\
 
 ### 1. 保守者がリリースを配る
 
-このリポジトリで `ddq release` を実行すると、`ddq-template-win32-x64-<版>.vsix`（`ddq.exe` 入りの
+このリポジトリで保守者用の `ddq-release` を実行すると、`ddq-template-win32-x64-<版>.vsix`（`ddq.exe` 入りの
 VSCode 拡張）と `quarto-template-<版>.zip`（`ddq.exe`＋利用マニュアルの PDF / HTML など）ができます。
 両方をリリースページに載せます。
 → 利用マニュアル 18章（版の上げ方・リリースの作り方と配り方）

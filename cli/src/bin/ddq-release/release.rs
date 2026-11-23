@@ -1,4 +1,4 @@
-//! `ddq release` — 発行者向けリリース一式を作る（旧 make-release。保守者用）。
+//! ddq-release の本体 — 発行者向けリリース一式を作る（旧 make-release、旧 `ddq release`。保守者用）。
 //! テンプレートのリポジトリのルートで実行する（template/VERSION と docs/manual/ があること）。
 //!
 //! 作るもの（cli/DESIGN.md §3.2）:
@@ -6,11 +6,12 @@
 //!                                        LICENSE / THIRD-PARTY-NOTICES.md / manual/
 //!   <out-dir>/quarto-template-<版>.zip
 //!   <out-dir>/ddq-template-win32-x64-<版>.vsix（VSCode 拡張。zip には入れず、リリースページの別資産にする）
-//! template/ は同梱しない（exe に埋め込み済み）。exe は自分自身（current_exe）をコピーする。
+//! template/ は同梱しない（ddq.exe に埋め込み済み）。exe は `--ddq` で受け取った配る ddq.exe をコピーする
+//! （既定はこの exe と同じフォルダの ddq.exe）。利用マニュアルもその ddq.exe で作る。
 //! VSCode 拡張は extensions/<拡張>/ を npm でパッケージして同梱する（2.1.0 から。
 //! 2.3.0 で extension/ → extensions/<拡張>/ に移して複数の拡張を扱えるようにした。その後
 //! ddq-revision と ddq-table-editor を extensions/ddq-template/ に統合した）。
-//! `package:win32-x64` スクリプトを持つ拡張は ddq.exe を同梱する: この exe を `<拡張>/bin/win32-x64/ddq.exe`
+//! `package:win32-x64` スクリプトを持つ拡張は ddq.exe を同梱する: 配る ddq.exe を `<拡張>/bin/win32-x64/ddq.exe`
 //! に、THIRD-PARTY-NOTICES.md を `<拡張>/` にコピーしてターゲット指定の VSIX を作る（docs/ddq-template-study.md §7。
 //! ライセンス表示は REL-01 から）。VSIX は zip に入れず、
 //! zip の隣に置く（zip は CLI 利用者向け、VSIX は VSCode 利用者向けの別資産）。
@@ -21,16 +22,21 @@
 use std::{
     env, fs,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use anyhow::{Context, Result, bail};
 use walkdir::WalkDir;
 
-use crate::{
-    assets,
-    commands::{html, pdf, update},
-    quarto, zip_archive,
-};
+use crate::{quarto, zip_archive};
+
+/// テンプレートの版（ビルドしたときの ../template/VERSION。build.rs が渡す。ddq の `assets::VERSION` と同じ）
+const VERSION: &str = env!("DDQ_VERSION");
+
+/// リリース一式に入れる「はじめかた」スライド（Typst。PDF にして入れる）
+const RELEASE_GUIDE_TYP: &str = include_str!("../../../../template/release-guide.typ");
+/// 上を PDF にしたときのファイル名（リリース直下）
+const RELEASE_GUIDE_PDF: &str = "はじめかた.pdf";
 
 /// リポジトリ内の利用マニュアルの執筆フォルダ（設計リポジトリ docs/ の下）
 const MANUAL_DIR: &str = "docs/manual";
@@ -75,7 +81,13 @@ const BUNDLED_EXE: &str = "bin/win32-x64/ddq.exe";
 // VSIX だけを受け取る利用者にも、同梱の ddq.exe と Webview の React の表示が届くように）。
 // 拡張のフォルダ直下にコピーしてから梱包するので、VSIX では `extension/THIRD-PARTY-NOTICES.md` になる
 
-pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<()> {
+/// 既定の配る ddq.exe（この exe と同じフォルダ。`cargo build --release` で並んでできる）
+pub fn default_ddq() -> Result<PathBuf> {
+    Ok(quarto::self_exe()?.with_file_name(format!("ddq{}", env::consts::EXE_SUFFIX)))
+}
+
+/// `ddq` は配る ddq.exe（ZIP と同梱の VSIX に入れ、利用マニュアルもこれで作る）。
+pub fn run(ddq: &Path, out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<()> {
     let repo = env::current_dir().context("カレントディレクトリを取得できません")?;
     if !repo.join("template").join("VERSION").is_file()
         || !repo.join(MANUAL_DIR).join("_quarto.yml").is_file()
@@ -85,9 +97,17 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
             repo.display()
         );
     }
-    // 版が揃っていること（REL-03）。名前・同梱物の版はこの exe の版で決まるので、まず確かめる
-    check_versions(&repo)?;
-    let name = format!("quarto-template-{}", assets::VERSION);
+    // 配る ddq.exe。相対パスはカレントディレクトリ（リポジトリのルート）から
+    let ddq = std::path::absolute(ddq)?;
+    if !ddq.is_file() {
+        bail!(
+            "配る ddq.exe がありません: {}（cli で cargo build --release するか、--ddq で渡してください）",
+            ddq.display()
+        );
+    }
+    // 版が揃っていること（REL-03）。名前はこの exe の版、同梱物は配る ddq.exe の版で決まるので、まず確かめる
+    check_versions(&repo, &ddq, &ddq_version(&ddq)?)?;
+    let name = format!("quarto-template-{VERSION}");
     let out_root = match out_dir {
         Some(p) => std::path::absolute(p)?,
         None => repo.join("release"),
@@ -102,11 +122,14 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     let manual = repo.join(MANUAL_DIR);
     if !no_build {
         println!("  利用マニュアルをビルド（PDF → HTML）...");
-        // release は保守者が現在の exe を配る操作なので、同梱マニュアルも同じ版へ
-        // 明示的に更新する。通常の pdf / html は追跡対象を暗黙更新しない。
-        update::run(&manual)?;
-        pdf::run(&manual)?;
-        html::run(&manual)?;
+        // 保守者がいまの ddq を配る操作なので、同梱マニュアルも同じ版へ明示的に更新する
+        // （通常の pdf / html は追跡対象を暗黙更新しない）。どれも配る ddq.exe で行う
+        for (sub, what) in [("update", "機構の更新"), ("pdf", "PDF"), ("html", "HTML")] {
+            quarto::run(
+                Command::new(&ddq).arg(sub).arg(&manual),
+                &format!("利用マニュアルの{what}（ddq {sub} {MANUAL_DIR}）"),
+            )?;
+        }
     }
     let manual_pdf = manual.join("design-doc.pdf");
     let manual_html = quarto::output_dir(&manual, None);
@@ -117,7 +140,12 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     }
 
     // 1b) VSCode 拡張（VSIX）。マニュアルと同じく --no-build なら既にあるものを使う
-    let vsixes = build_extensions(&repo.join(EXTENSIONS_DIR), &repo.join(THIRD_PARTY), no_build)?;
+    let vsixes = build_extensions(
+        &repo.join(EXTENSIONS_DIR),
+        &repo.join(THIRD_PARTY),
+        &ddq,
+        no_build,
+    )?;
 
     // 2) 集める（毎回作り直す）。いったん隣の作業フォルダに集め、全部そろってから前回の配布フォルダと
     //    入れ替える。集める途中で失敗しても（はじめかた.pdf を作れない など）前回の一式は
@@ -126,7 +154,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     if building.exists() {
         fs::remove_dir_all(&building).with_context(|| format!("{} を消せません", building.display()))?;
     }
-    let exe_name = match assemble(&repo, &building, &manual_pdf, &manual_html, with_sample) {
+    let exe_name = match assemble(&repo, &ddq, &building, &manual_pdf, &manual_html, with_sample) {
         Ok(v) => v,
         Err(e) => {
             let _ = fs::remove_dir_all(&building);
@@ -165,7 +193,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
     })?;
 
     println!();
-    println!("完了（テンプレート {}）", assets::VERSION);
+    println!("完了（テンプレート {VERSION}）");
     println!("  フォルダ: {}", stage.display());
     println!("  zip     : {}（{count} ファイル）", zip_path.display());
     println!(
@@ -189,7 +217,7 @@ pub fn run(out_dir: Option<&Path>, with_sample: bool, no_build: bool) -> Result<
 fn discard_notice(outputs: &[PathBuf]) -> String {
     let mut s = String::from(
         "前回の一式と入れ替える途中で失敗しました。前回の一式は守っていないので、この版の出力は前回と今回の分が混ざっています。\
-         次のものは配布せずに消してから、もう一度 ddq release を実行してください",
+         次のものは配布せずに消してから、もう一度 ddq-release を実行してください",
     );
     let left: Vec<&PathBuf> = outputs.iter().filter(|p| p.exists()).collect();
     if left.is_empty() {
@@ -218,20 +246,21 @@ fn rename_patiently(from: &Path, to: &Path, limit: std::time::Duration) -> std::
     }
 }
 
-/// 配布する一式を `stage` に集める。戻り値は exe の名前。
+/// 配布する一式を `stage` に集める。`ddq` は配る ddq.exe。戻り値は exe の名前。
 fn assemble(
     repo: &Path,
+    ddq: &Path,
     stage: &Path,
     manual_pdf: &Path,
     manual_html: &Path,
     with_sample: bool,
 ) -> Result<PathBuf> {
     fs::create_dir_all(stage.join("manual"))?;
-    let exe_name = quarto::self_exe()?
+    let exe_name = ddq
         .file_name()
         .map(PathBuf::from)
         .unwrap_or_else(|| "ddq.exe".into());
-    fs::copy(quarto::self_exe()?, stage.join(&exe_name)).context("exe をコピーできません")?;
+    fs::copy(ddq, stage.join(&exe_name)).context("ddq.exe をコピーできません")?;
     fs::copy(repo.join("README.md"), stage.join("README.md")).context("README.md をコピーできません")?;
     // AI エージェント向けの記法要約。発行者が設計書リポジトリの AGENTS.md / スキルに取り込む
     fs::copy(repo.join(AGENT_GUIDE), stage.join(AGENT_GUIDE))
@@ -240,7 +269,7 @@ fn assemble(
         .with_context(|| format!("{LICENSE} をコピーできません"))?;
     fs::copy(repo.join(THIRD_PARTY), stage.join(THIRD_PARTY))
         .with_context(|| format!("{THIRD_PARTY} をコピーできません"))?;
-    build_release_guide(&stage.join(assets::RELEASE_GUIDE_PDF))?;
+    build_release_guide(&stage.join(RELEASE_GUIDE_PDF))?;
     fs::copy(manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
     copy_tree(manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
     if with_sample {
@@ -258,13 +287,13 @@ fn assemble(
 /// `extensions/` の各拡張をパッケージし、できた VSIX のパスを（フォルダ名順に）返す。
 ///
 /// 1 フォルダ = 1 拡張。フォルダ名は `package.json` の name と一致させる（VSIX 名の先頭になる）。
-fn build_extensions(root: &Path, notices: &Path, no_build: bool) -> Result<Vec<PathBuf>> {
+fn build_extensions(root: &Path, notices: &Path, ddq: &Path, no_build: bool) -> Result<Vec<PathBuf>> {
     let dirs = extension_dirs(root)?;
     if dirs.is_empty() {
         bail!("{} に VSCode 拡張がありません", root.display());
     }
     dirs.iter()
-        .map(|d| build_extension(d, notices, no_build))
+        .map(|d| build_extension(d, notices, ddq, no_build))
         .collect()
 }
 
@@ -274,12 +303,12 @@ fn build_extensions(root: &Path, notices: &Path, no_build: bool) -> Result<Vec<P
 /// - `package.json` の version が template/VERSION と違えば止める
 ///   （拡張の版はテンプレートの版に揃える。利用マニュアル 18 章）
 /// - `no_build` でなければ `npm ci`（node_modules があっても入れ直す）→ `npm run package`
-/// - `package:win32-x64` を持つ拡張（ddq.exe の同梱）は、この exe を `bin/win32-x64/ddq.exe` に、
+/// - `package:win32-x64` を持つ拡張（ddq.exe の同梱）は、配る ddq.exe（`ddq`）を `bin/win32-x64/ddq.exe` に、
 ///   リポジトリ直下の `THIRD-PARTY-NOTICES.md`（`notices`）を拡張のフォルダ直下にコピーしてから
-///   `npm run package:win32-x64`。VSIX の中の ddq.exe がこの exe と、ライセンス表示が `notices` と
+///   `npm run package:win32-x64`。VSIX の中の ddq.exe が `ddq` と、ライセンス表示が `notices` と
 ///   同じことを確かめる（`--no-build` で古い VSIX を配らないため）
 /// - どちらの場合も `<拡張>/<name>[-win32-x64]-<版>.vsix` が無ければエラー
-fn build_extension(ext: &Path, notices: &Path, no_build: bool) -> Result<PathBuf> {
+fn build_extension(ext: &Path, notices: &Path, ddq: &Path, no_build: bool) -> Result<PathBuf> {
     let dir_name = ext
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -298,7 +327,7 @@ fn build_extension(ext: &Path, notices: &Path, no_build: bool) -> Result<PathBuf
             package_json.display()
         );
     }
-    if version != assets::VERSION {
+    if version != VERSION {
         bail!(
             concat!(
                 "VSCode 拡張の版がテンプレートの版と違います: {} の version = {}, template/VERSION = {}
@@ -307,32 +336,32 @@ fn build_extension(ext: &Path, notices: &Path, no_build: bool) -> Result<PathBuf
             ),
             package_json.display(),
             version,
-            assets::VERSION,
+            VERSION,
             rel,
-            assets::VERSION
+            VERSION
         );
     }
 
     let bundle = meta["scripts"][BUNDLE_SCRIPT].is_string();
     let (vsix, script) = if bundle {
         (
-            ext.join(format!("{name}-{BUNDLE_TARGET}-{}.vsix", assets::VERSION)),
+            ext.join(format!("{name}-{BUNDLE_TARGET}-{VERSION}.vsix")),
             BUNDLE_SCRIPT,
         )
     } else {
-        (ext.join(format!("{name}-{}.vsix", assets::VERSION)), "package")
+        (ext.join(format!("{name}-{VERSION}.vsix")), "package")
     };
     if !no_build {
         println!("  VSCode 拡張をパッケージ（{rel}）...");
         if bundle {
             if !cfg!(windows) {
                 bail!(
-                    "{rel} は ddq.exe を同梱する（{BUNDLE_TARGET}）ので、Windows でビルドした ddq で release してください"
+                    "{rel} は ddq.exe を同梱する（{BUNDLE_TARGET}）ので、Windows でビルドした ddq.exe を渡してください"
                 );
             }
             let dest = ext.join(BUNDLED_EXE);
             fs::create_dir_all(dest.parent().expect("bin/win32-x64"))?;
-            fs::copy(quarto::self_exe()?, &dest)
+            fs::copy(ddq, &dest)
                 .with_context(|| format!("ddq.exe を {} にコピーできません", dest.display()))?;
             let dest = ext.join(THIRD_PARTY);
             fs::copy(notices, &dest)
@@ -353,17 +382,17 @@ fn build_extension(ext: &Path, notices: &Path, no_build: bool) -> Result<PathBuf
         );
     }
     if bundle {
-        check_bundled(&vsix, notices)?;
+        check_bundled(&vsix, notices, ddq)?;
     }
     Ok(vsix)
 }
 
 /// 同梱の VSIX の中身を、梱包した VSIX から読んで確かめる。
-/// - ddq.exe が、いま release している exe と同じ。違えば、拡張と CLI で版の違う ddq を配ってしまう
+/// - ddq.exe が、配る ddq.exe（`ddq`。ZIP に入れるもの）と同じ。違えば、拡張と CLI で版の違う ddq を配ってしまう
 ///   （拡張は同梱 ddq の版でテンプレートを照合する）
 /// - 第三者のライセンス表示が、ZIP に入れるもの（リポジトリ直下の `notices`）と同じ（REL-01）。
 ///   無い・違うなら、表示の無い・古い VSIX を配ってしまう
-fn check_bundled(vsix: &Path, notices: &Path) -> Result<()> {
+fn check_bundled(vsix: &Path, notices: &Path, ddq: &Path) -> Result<()> {
     let file = fs::File::open(vsix).with_context(|| format!("{} を開けません", vsix.display()))?;
     let mut archive =
         zip::ZipArchive::new(file).with_context(|| format!("{} を zip として読めません", vsix.display()))?;
@@ -379,11 +408,12 @@ fn check_bundled(vsix: &Path, notices: &Path) -> Result<()> {
         Ok(bytes)
     };
     let entry = format!("extension/{BUNDLED_EXE}");
-    let me = fs::read(quarto::self_exe()?).context("この exe を読めません")?;
-    if read(&entry)? != me {
+    let shipped = fs::read(ddq).with_context(|| format!("{} を読めません", ddq.display()))?;
+    if read(&entry)? != shipped {
         bail!(
-            "{} の {entry} が、いま release している ddq と違います（--no-build を外して作り直してください）",
-            vsix.display()
+            "{} の {entry} が、配る ddq.exe（{}）と違います（--no-build を外して作り直してください）",
+            vsix.display(),
+            ddq.display()
         );
     }
     let entry = format!("extension/{THIRD_PARTY}");
@@ -420,14 +450,14 @@ fn build_release_guide(pdf: &Path) -> Result<()> {
         .tempdir()
         .context("一時フォルダを作れません")?;
     let typ = work.path().join("release-guide.typ");
-    fs::write(&typ, assets::RELEASE_GUIDE_TYP)?;
+    fs::write(&typ, RELEASE_GUIDE_TYP)?;
     let mut cmd = std::process::Command::new("quarto");
     cmd.arg("typst")
         .arg("compile")
         .arg("--root")
         .arg(work.path())
         .arg("--input")
-        .arg(format!("version={}", assets::VERSION))
+        .arg(format!("version={VERSION}"))
         .arg(&typ)
         .arg(pdf);
     quarto::run(&mut cmd, "はじめかた.pdf の作成（quarto typst compile）")?;
@@ -472,24 +502,29 @@ fn copy_tree(
     Ok(())
 }
 
-/// 版の照合（REL-03）。template/VERSION、この exe の版（ビルドしたときの template/VERSION）、
-/// 各拡張の package.json の version、package-lock.json の version と packages[""].version が
-/// すべて同じでなければ、重いビルドの前に止める（`--no-build` でも同じ）。外れたものはまとめて
-/// 並べる。古い exe で release すると、作業ツリーと違う版の名前・同梱物の配布ができてしまう。
+/// 版の照合（REL-03）。template/VERSION、この ddq-release の版と配る ddq.exe の版（`ddq_version`。
+/// どちらもビルドしたときの template/VERSION）、各拡張の package.json の version、package-lock.json の
+/// version と packages[""].version がすべて同じでなければ、重いビルドの前に止める（`--no-build` でも同じ）。
+/// 外れたものはまとめて並べる。古い exe で作ると、作業ツリーと違う版の名前・同梱物の配布ができてしまう。
 ///
 /// 拡張のフォルダが無い、package-lock.json が無い、といった場合はここでは止めない
 /// （これまでどおり、拡張の梱包・npm ci のところで止まる）。lock に packages が無い
 /// （lockfileVersion 1）ときは packages[""].version を見ない。
-fn check_versions(repo: &Path) -> Result<()> {
+fn check_versions(repo: &Path, ddq: &Path, ddq_version: &str) -> Result<()> {
     let want = fs::read_to_string(repo.join("template").join("VERSION"))
         .context("template/VERSION を読めません")?
         .trim()
         .to_string();
     let mut wrong: Vec<String> = Vec::new();
-    if assets::VERSION != want {
+    if VERSION != want {
         wrong.push(format!(
-            "この ddq の版 = {}（cli で cargo build --release し直し、その ddq で release してください）",
-            assets::VERSION
+            "この ddq-release の版 = {VERSION}（cli で cargo build --release し直し、その ddq-release で作ってください）"
+        ));
+    }
+    if ddq_version != want {
+        wrong.push(format!(
+            "配る ddq.exe の版 = {ddq_version}（{}。cli で cargo build --release し直してください）",
+            ddq.display()
         ));
     }
     let mut stale_extensions: Vec<String> = Vec::new();
@@ -542,6 +577,20 @@ fn check_versions(repo: &Path) -> Result<()> {
         ));
     }
     bail!(msg)
+}
+
+/// 配る ddq.exe の版（`ddq --version` の「ddq <版>」の版）。ddq でない exe なら、出た 1 行を添えた印を返す
+/// （版の照合で外れる）。
+fn ddq_version(ddq: &Path) -> Result<String> {
+    let out = Command::new(ddq)
+        .arg("--version")
+        .output()
+        .with_context(|| format!("配る ddq.exe を起動できません: {}", ddq.display()))?;
+    let line = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    Ok(match line.strip_prefix("ddq ") {
+        Some(v) if out.status.success() => v.trim().to_string(),
+        _ => format!("（「{line}」。ddq の版ではない）"),
+    })
 }
 
 /// `extensions/` の下の、package.json のあるフォルダ（フォルダ名順）。
@@ -647,7 +696,7 @@ mod tests {
     fn versions_are_checked_where_they_exist() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path();
-        let v = assets::VERSION;
+        let v = VERSION;
         let put = |rel: &str, body: &str| {
             let p = repo.join(rel);
             fs::create_dir_all(p.parent().unwrap()).unwrap();
@@ -655,7 +704,7 @@ mod tests {
         };
         put("template/VERSION", &format!("{v}\r\n"));
         // 拡張のフォルダが無ければ、ここでは止めない（梱包のところで止まる）
-        check_versions(repo).unwrap();
+        check_versions(repo, Path::new("ddq.exe"), VERSION).unwrap();
         put("extensions/a/package.json", &format!(r#"{{"version":"{v}"}}"#));
         put("extensions/b/package.json", &format!(r#"{{"version":"{v}"}}"#));
         put(
@@ -664,13 +713,16 @@ mod tests {
         );
         // package.json の無いフォルダは拡張ではない
         put("extensions/notes/README.md", "x");
-        check_versions(repo).unwrap();
+        check_versions(repo, Path::new("ddq.exe"), VERSION).unwrap();
 
         put(
             "extensions/b/package-lock.json",
             r#"{"lockfileVersion":3,"packages":{"":{}}}"#,
         );
-        let e = format!("{:#}", check_versions(repo).unwrap_err());
+        let e = format!(
+            "{:#}",
+            check_versions(repo, Path::new("ddq.exe"), VERSION).unwrap_err()
+        );
         assert!(
             e.contains("extensions/b/package-lock.json の version = （無い）"),
             "{e}"
@@ -681,8 +733,18 @@ mod tests {
         );
         assert!(!e.contains("extensions/a"), "{e}");
 
+        // 配る ddq.exe の版も照合する
+        let e = format!(
+            "{:#}",
+            check_versions(repo, Path::new("x/ddq.exe"), "0.0.1").unwrap_err()
+        );
+        assert!(e.contains("配る ddq.exe の版 = 0.0.1（x/ddq.exe"), "{e}");
+
         put("extensions/b/package-lock.json", "{");
-        let e = format!("{:#}", check_versions(repo).unwrap_err());
+        let e = format!(
+            "{:#}",
+            check_versions(repo, Path::new("ddq.exe"), VERSION).unwrap_err()
+        );
         assert!(e.contains("package-lock.json を JSON として読めません"), "{e}");
     }
 

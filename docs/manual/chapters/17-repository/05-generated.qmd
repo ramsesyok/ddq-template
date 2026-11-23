@@ -8,6 +8,6 @@
 | `<執筆フォルダ>/_book/` | ビルド |
 | `<執筆フォルダ>/diagrams/mmd-*.svg` | mermaid の変換キャッシュ |
 | `cli/target/` | `cargo build`（保守者のみ） |
-| `release/` | `ddq release`（保守者のみ） |
+| `release/` | `ddq-release`（保守者のみ） |
 
 **`<執筆フォルダ>/design-doc.pdf` は例外**で、中間版として管理対象にしてある（12章）。

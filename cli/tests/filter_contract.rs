@@ -147,10 +147,6 @@ fn mermaid_keys_match_the_shared_cases() {
             // ```{mermaid} は Quarto が CodeBlock に直してからフィルタへ渡す（素の Pandoc は mermaid と読まない）
             continue;
         }
-        if !cfg!(windows) && case.get("luaWindowsOnly").is_some() {
-            eprintln!("skip（{name}）: {}", s(case, "luaWindowsOnly"));
-            continue;
-        }
         let tmp = folder(version);
         let dir = tmp.path();
         if let Some(config) = case["config"].as_str() {

@@ -58,7 +58,7 @@
 
 ### E-0013：release工程 {#ev-e-0013 .unnumbered}
 
-**確認済み／種別：ソース・設定**。`cli/src/commands/release.rs::run / copy_plantuml_jar / jar_version / build_extensions / build_extension / npm / build_release_guide / copy_tree`、`extensions/ddq-table-editor/package.json` と `extensions/ddq-revision/package.json` のname/version/scripts.package。CWD検査、manual順序、拡張フォルダの列挙とフォルダ名順、name＝フォルダ名と版の照合、stage削除、current_exeコピー、同梱物、除外条件、--no-build、jar版の表示のみという範囲を確認。通常の配布工程の実行はE-0027。
+**確認済み／種別：ソース・設定**。`cli/src/commands/release.rs::run / copy_plantuml_jar / jar_version / build_extensions / build_extension / npm / build_release_guide / copy_tree`、`extensions/ddq-table-editor/package.json` と `extensions/ddq-revision/package.json` のname/version/scripts.package。CWD検査、manual順序、拡張フォルダの列挙とフォルダ名順、name＝フォルダ名と版の照合、stage削除、current_exeコピー、同梱物、除外条件、--no-build、jar版の表示のみという範囲を確認。通常の配布工程の実行はE-0027。2026-11-23 に ddq から外して `cli/src/bin/ddq-release/release.rs` に移した（[E-0037](#ev-e-0037)）。上のシンボルと current_exe のコピーは移す前の観測である。
 
 ### E-0014：ZIP生成と検証 {#ev-e-0014 .unnumbered}
 
@@ -160,3 +160,25 @@
 - ブラウザの後始末（PR #122 の再検証 N-01）：`cli/src/job.rs::Handle::end_all`、`cli/src/mermaid/browser.rs`（一時フォルダ内の `TMP`／`TEMP`、削除失敗の標準エラーへの報告）。`cli/tests/faults.rs::real_browsers_in_parallel_leave_no_temp_folder`（本物のブラウザを並列に起動）
 - 依存：`template/vendor/mermaid.min.js` を npm の `mermaid@11.16.1` の `dist/mermaid.min.js` に差し替え（`npm install --ignore-scripts --omit=dev mermaid@11.16.1` で取得したものとバイト一致。3,566,058 バイト、SHA-256 先頭 `18327bef70d96fb5`）。`pulldown-cmark` 0.13.6。`THIRD-PARTY-NOTICES.md` を作り直した
 - 実行：`cargo build --release`、`cargo test --release`（全件成功）。サンプル文書の写しで `ddq pdf`／`ddq html`（mermaid 22 図すべて 11.16.1 で描画）
+
+### E-0037：release の分離（ddq-release。2026-11-23） {#ev-e-0037 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値・実行観測**。基準は #142 のマージ（`6bb9232`）の後の作業ツリー（ブランチ `refactor/release-split-and-fixes`）、2026-11-23
+（`template/VERSION` 3.1.0-pre1）。本書はこの分離だけを反映した（@sec-update-scope）。
+
+- 入口：`cli/src/bin/ddq-release/main.rs::Cli / main`（`out-dir`・`--with-sample`・`--no-build`・`--ddq`）。`cli/src/main.rs::Command` から
+  `Release` を外した。`cli/src/commands/mod.rs`、`cli/src/assets.rs`（`RELEASE_GUIDE_TYP`・`RELEASE_GUIDE_PDF` は `release.rs` に移した）
+- 配布工程：`cli/src/bin/ddq-release/release.rs::default_ddq / run / ddq_version / check_versions / assemble / build_extensions /
+  build_extension / check_bundled`、`cli/src/bin/ddq-release/zip_archive.rs::create / verify`（中身は変えずに移した）。`quarto.rs` は
+  `#[path]` で ddq と同じファイルを読む。Cargo.toml は変えていない（`src/bin/ddq-release/main.rs` を Cargo が 2 本目のバイナリとして拾う）
+- テスト：`cli/tests/release.rs`（`CARGO_BIN_EXE_ddq-release` を起動する。`a_missing_ddq_stops`、`the_ddq_to_ship_must_report_the_same_version`、
+  `ddq_no_longer_has_release`、`zip_matches_the_stage_byte_for_byte` は配布フォルダの `ddq.exe` が配る ddq.exe と同じことも見る）、
+  `release.rs` の単体テスト
+- CI：`.github/workflows/release-candidate.yml` の build が `cli/target/release/ddq-release.exe "$RUNNER_TEMP/out" --ddq cli/target/release/ddq.exe`
+- 実行：2026-11-23、Windows の手元（Quarto 1.9.38、Node 24.18.0）。作業ツリーの写しで `cargo build --release --locked --offline`
+  （4 分 31 秒。`target/release/` に `ddq.exe` 29,651,968 バイトと `ddq-release.exe` 1,760,768 バイト）。リポジトリルートで
+  `cli\target\release\ddq-release.exe <出力先>`（`--ddq` なし。既定の隣の ddq.exe）が終了 0、55 秒。マニュアルの update → PDF → HTML、
+  拡張の `npm ci` と同梱版 VSIX（14 ファイル、10.56 MB）、`はじめかた.pdf`、ZIP（50 ファイル）ができた。
+  `python cli/tools/check_release.py <出力先> --exe cli/target/release/ddq.exe --smoke <作業フォルダ>` はすべて OK（ZIP と VSIX の `ddq.exe` が
+  配る ddq.exe と同じ。ZIP から取り出した exe で init → pdf → html）。ZIP と VSIX の項目の名前は、分ける前の CI の配布候補（PR #142 の実行の成果物）と
+  同じ（50 件・14 件）。全件の `cargo test`（`docs/refactoring-progress.md` の条件）は 228 件成功（`quarto.rs` の単体 1 件は ddq と ddq-release の両方で走る）

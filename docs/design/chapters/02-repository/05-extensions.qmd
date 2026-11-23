@@ -1,6 +1,6 @@
 ## 拡張の作法 {#sec-extensions}
 
-VSCode 拡張は `extensions/` の下に置く。**1 フォルダ = 1 拡張**で、`ddq release` と CI は
+VSCode 拡張は `extensions/` の下に置く。**1 フォルダ = 1 拡張**で、`ddq-release`（保守者用）と CI は
 `extensions/` を走査して同じ作法で扱う。いまある拡張は **DDQ Template**（`extensions/ddq-template/`）
 1 つである。
 
@@ -19,10 +19,10 @@ exe を 1 つにし、利用者が入れる VSIX を 1 本にするため統合�
 ::: {.tbl caption="拡張が守ること" label="tbl-extensions-rules" widths="30,70"}
 | 決まり | 中身 |
 |--------------------------|--------------------------------------------------|
-| フォルダ名 = `name` | `package.json` の `name` とフォルダ名を一致させる。VSIX 名の先頭になるので、`ddq release` が食い違いを検査して止める |
-| 版はテンプレートに揃える | `package.json` の `version` を `template/VERSION` と同じ値にする。`ddq release` と CI が照合する（@sec-version） |
+| フォルダ名 = `name` | `package.json` の `name` とフォルダ名を一致させる。VSIX 名の先頭になるので、`ddq-release` が食い違いを検査して止める |
+| 版はテンプレートに揃える | `package.json` の `version` を `template/VERSION` と同じ値にする。`ddq-release` と CI が照合する（@sec-version） |
 | npm scripts を揃える | `build` / `test` / `typecheck` / `check:offline` / `check:audit` / `verify` / `package`。CI はこれを呼ぶだけで済む |
-| ddq を同梱するなら `package:win32-x64` | このスクリプトを持つ拡張には、`ddq release` が自分自身を `bin/win32-x64/ddq.exe` にコピーしてターゲット指定の VSIX を作り、中の exe が一致することを確かめる |
+| ddq を同梱するなら `package:win32-x64` | このスクリプトを持つ拡張には、`ddq-release` が配る `ddq.exe` を `bin/win32-x64/ddq.exe` にコピーしてターゲット指定の VSIX を作り、中の exe が一致することを確かめる |
 | 実行時に通信しない | Webview の CSP は `default-src 'none'`（`connect-src` を書かない）。`check:offline` がビルド成果物の通信 API と外部 URL を検査する |
 | 成果物名を固定する | `out/extension.js` と `out/webview/<画面>/assets/main.{js,css}`。拡張ホストが組み立てる HTML と Vite の設定の間の契約である |
 | 文書の解釈は ddq に任せる | qmd の走査・差分・候補の生成・版の検査は `ddq` が行い、拡張はその結果（JSON・終了コード）を扱うだけにする。同じ解釈を 2 か所に持たない |
@@ -44,7 +44,7 @@ exe を 1 つにし、利用者が入れる VSIX を 1 本にするため統合�
    `tsconfig*.json`・`vite.config.mts`・`vitest.config.mts`・`.vscodeignore` を写して直す
 2. `package.json` の `name` をフォルダ名に、`version` を `template/VERSION` に合わせる
 3. `.github/workflows/extension.yml` の `matrix.ext` に名前を足す
-4. `ddq release` は `extensions/` を走査するので**変更不要**。VSIX が 1 本増える
+4. `ddq-release` は `extensions/` を走査するので**変更不要**。VSIX が 1 本増える
 5. 実装仕様書を立てる（`docs/<name>-impl/`）。共通の作法は本節が持ち、
    実装仕様書は**その拡張に固有のこと**だけを書く
 

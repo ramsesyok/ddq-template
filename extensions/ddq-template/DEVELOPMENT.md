@@ -13,7 +13,7 @@ npm run test:host   # 実拡張ホストでの検証
 npm run package     # VSIX を作る（ddq.exe なし。開発・CI 用）
 ```
 
-配布する VSIX は ddq.exe を同梱したターゲット指定の版で、`ddq release` が作ります
+配布する VSIX は ddq.exe を同梱したターゲット指定の版で、保守者用の `ddq-release` が作ります
 （exe を `bin/win32-x64/ddq.exe` にコピーしてから `npm run package:win32-x64`）。手で作るときは:
 
 ```bash
@@ -94,7 +94,7 @@ VSCode を起動して、一覧が開くこと・書き戻しが当たること�
 `../../.github/workflows/extension.yml` で GitHub Actions が動きます
 （`extensions/` 配下の push / pull request、手動実行）。
 
-版はテンプレートの版（`../../template/VERSION`）と揃えます。`ddq release` が照合し、
+版はテンプレートの版（`../../template/VERSION`）と揃えます。`ddq-release` が照合し、
 違っていれば止まります。テンプレートの版を上げたら `npm version <版> --no-git-tag-version`
 でここも上げてください。
 

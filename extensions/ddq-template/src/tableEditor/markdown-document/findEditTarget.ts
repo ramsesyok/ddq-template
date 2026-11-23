@@ -112,12 +112,16 @@ function fromTblBlock(
     model.columns = model.columns.map((col, c) => ({ ...col, width: widths[c] }));
   }
 
-  // merge-cols 付きのパイプ表は、テンプレートと同じアルゴリズムで結合を展開して表示する
+  // merge-cols 付きのパイプ表は、テンプレートと同じアルゴリズムで結合を展開して表示する。
+  // 属性の読み方もテンプレートと同じ（空は結合しない。旧記法の .merge-rows は見ない）
   const mergeColsAttr = attributeValue(block.header, 'merge-cols');
-  const hasMergeRows = block.header.classes.includes('merge-rows');
+  const mergeCols = parseMergeCols(mergeColsAttr);
+  if (mergeCols.kind === 'invalid') {
+    warnings.push(`merge-cols="${mergeColsAttr}" を解釈できません。結合しないものとして扱います。`);
+  }
   let result = model;
-  if ((mergeColsAttr !== undefined || hasMergeRows) && model.outputFormat === 'pipeTable') {
-    result = expandMergeCols(model, parseMergeCols(mergeColsAttr));
+  if (mergeCols.kind === 'merge' && model.outputFormat === 'pipeTable') {
+    result = expandMergeCols(model, mergeCols.cols);
   }
 
   const otherPartColumnCounts = parts

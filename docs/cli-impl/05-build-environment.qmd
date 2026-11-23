@@ -13,18 +13,19 @@ cargo test --locked --offline --test golden merman_engine_renders_all_without_fo
 Set-Location ..
 ```
 
-`--offline` は依存が既に取得済みの場合の再現指定である。上記のテスト2コマンドは今回実行した（`tests/rev.rs` は PATH 上の git、`tests/plantuml.rs` は Java と `cli/vendor/plantuml.jar` を使い、無ければ skip する）。releaseビルドと次の配布物生成は、v2.4.2 の配布で通常の経路（オプション無し）を実行した。オプション付きや異常系の成功を意味しない。[E-0017](appendix-evidence.qmd#ev-e-0017)、[E-0027](appendix-evidence.qmd#ev-e-0027)
+`--offline` は依存が既に取得済みの場合の再現指定である。上記のテスト2コマンドは今回実行した（`tests/rev.rs` は PATH 上の git、`tests/plantuml.rs` は Java と `cli/vendor/plantuml.jar` を使い、無ければ skip する）。releaseビルドと配布物の生成（当時の `ddq release`）は、v2.4.2 の配布で通常の経路（オプション無し）を実行した。オプション付きや異常系の成功を意味しない。2026-11-23 に保守者用の別の exe `ddq-release` へ分けたあとの次の実行は [E-0037](appendix-evidence.qmd#ev-e-0037)。[E-0017](appendix-evidence.qmd#ev-e-0017)、[E-0027](appendix-evidence.qmd#ev-e-0027)
 
 ```powershell
-# release は必ずリポジトリルートで実行する
-cli\target\release\ddq.exe release
+# ddq-release（保守者用の別の exe。cargo build --release で ddq.exe の隣にできる）は必ずリポジトリルートで実行する。
+# 配る ddq.exe は既定で隣の cli\target\release\ddq.exe（--ddq で変えられる）
+cli\target\release\ddq-release.exe
 ```
 
 ## 実行環境の境界 {#sec-3cbf8b}
 
 **確認済み（静的）**：作成・更新は通常のファイルI/Oで実行でき、init/addのHTML疎通確認は `--no-render` で省略できる。pdf/htmlにはPATH上のQuartoが必要。Mermaidは内蔵merman、または外部Edge/Chromeを使う。PlantUMLのローカル起動はJavaとjar、原稿フェンスのHTTP描画はLuaから呼ぶcurlを必要とする。リリースのVSIX作成はNode/npmも使う。`tag` はファイルI/Oだけで動くが、`rev` は執筆フォルダが Git 作業ツリー内にあり、PATH 上に git があることを前提とする。[E-0005](appendix-evidence.qmd#ev-e-0005)、[E-0007](appendix-evidence.qmd#ev-e-0007)～[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0022](appendix-evidence.qmd#ev-e-0022)
 
-**確認済み（設定）**：CLIのCIは `windows-latest`、Rust stable、Quarto **1.9.38**、Temurin **17**、PlantUML MIT版名 **1.2026.8** を設定し、fmt、clippy、cargo test、release buildを実施する定義である。`DDQ_E2E` の設定により外部依存不足を失敗にし、`DDQ_GOLDEN_LOOSE=1` でフォント差を許容する。拡張のCI（`extension.yml`）は `extensions/<拡張>/` を matrix で回し、各 `package.json` の version と `template/VERSION` の一致を release と同じ条件で照合する。これはCI定義の確認であり、特定のCI実行が成功した証拠ではない。[E-0015](appendix-evidence.qmd#ev-e-0015)
+**確認済み（設定）**：CLIのCIは `windows-latest`、Rust stable、Quarto **1.9.38**、Temurin **17**、PlantUML MIT版名 **1.2026.8** を設定し、fmt、clippy、cargo test、release buildを実施する定義である。`DDQ_E2E` の設定により外部依存不足を失敗にし、`DDQ_GOLDEN_LOOSE=1` でフォント差を許容する。拡張のCI（`extension.yml`）は `extensions/<拡張>/` を matrix で回し、各 `package.json` の version と `template/VERSION` の一致を ddq-release と同じ条件で照合する。これはCI定義の確認であり、特定のCI実行が成功した証拠ではない。[E-0015](appendix-evidence.qmd#ev-e-0015)
 
 ## 主要依存と版 {#sec-b750a6}
 
@@ -52,7 +53,7 @@ cli\target\release\ddq.exe release
 | `tests/commands.rs` | init/add/update/setup、版違い拒否、表示版、`.`／`..` の拒否、版上げ時のキャッシュ削除、失敗した静的図の前回SVG削除、`ddq identity`、長すぎるパスの拒否 | **確認済み**：9件成功 |
 | `tests/tag.rs` | 一覧と候補、人が読む表の形（種別・状態の言葉、全角を含む桁揃え、件数）、`--unlabeled`、apply の冪等性、候補の安定、dry-run、CRLF保持、`--from` の受理と拒否（無い行・既存ラベル・挿入位置・ラベル無し・形の違う JSON）、書き戻すものが無いとき、重複警告、include の循環・欠落・重複と chapters を読めないときの警告、引数必須、既存の別形式 ID | **確認済み**：18件成功 |
 | `tests/third_party.rs` | `THIRD-PARTY-NOTICES.md` の入力のハッシュが今のファイルと一致すること（依存の変更に追随しているか） | **確認済み**：1件成功 |
-| `tests/release.rs` | 配布工程（小さなリポジトリで `--no-build`）：ZIP の全展開照合、`--with-sample`、再実行、各種の欠損・不一致で止まり前回を壊さない。実ビルドの経路（`--no-build` なし。Windows）：マニュアルの PDF・HTML を作り、拡張を npm でパッケージする（`npm ci` は node_modules が無いときだけ、同梱の ddq.exe は release する exe と同じ。vsce の代わりに `tests/fixtures/release/pack.js`）、`npm run package` の失敗で止まる | **確認済み**：12件成功 |
+| `tests/release.rs` | ddq-release の配布工程（小さなリポジトリで `--no-build`）：ZIP の全展開照合、`--with-sample`、再実行、各種の欠損・不一致で止まり前回を壊さない。実ビルドの経路（`--no-build` なし。Windows）：マニュアルの PDF・HTML を作り、拡張を npm でパッケージする（`npm ci` は node_modules が無いときだけ、同梱の ddq.exe は配る ddq.exe と同じ。vsce の代わりに `tests/fixtures/release/pack.js`）、`npm run package` の失敗で止まる。2026-11-23 から：配る ddq.exe（`--ddq`）の欠落と版違いで止まる、ZIP の `ddq.exe` が配る ddq.exe と同じ、ddq に `release` が無い（終了コード 2） | **確認済み**：12件成功。ddq-release に分けたあとは 20 件成功（2026-11-23。他の改善項目の試験を含む。[E-0037](appendix-evidence.qmd#ev-e-0037)） |
 | `tests/rev_ops.rs` | 改訂履歴の実運用：日本語パスと autocrlf、浅いクローン、手で直した改訂ファイル、見出し2,041件 | **確認済み**：4件成功 |
 | `tests/rev.rs` | 一時Gitリポジトリでの next、全種別の差分、strict、未ラベル、`--write` の note 引継ぎと stale、build の表と警告・`--check`、`--write --json`、付録、既存の別形式 ID の案内 | **確認済み**：13件成功（git有り、skipなし） |
 | `tests/golden.rs` merman | 22図の生成、コメント、foreignObject不在、text存在 | **確認済み**：1テスト成功 |

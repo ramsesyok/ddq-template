@@ -122,6 +122,30 @@ describe('findEditTarget — 優先度①（.tbl div）', () => {
     expect(m.rows[2][0].hidden).toBe(true);
   });
 
+  it.each([
+    ['merge-cols="ALL"', true],
+    ['merge-cols=""', false],
+    ['.merge-rows', false]
+  ])('文書で結合されない %s は結合せずに開き、書き戻しても merge-cols を足さない', (attr, warns) => {
+    const src = doc(
+      `::: {.tbl ${attr}}`,
+      '| 大分類 | 項目 |',
+      '|--------|------|',
+      '| 受注   | 登録 |',
+      '| 受注   | 登録 |',
+      ':::'
+    );
+    const result = findEditTarget(src, 3, 'id');
+    if (!result.ok) throw new Error(result.message);
+    const m = result.value.model;
+    expect(m.outputFormat).toBe('pipeTable');
+    expect(m.rows.every(row => row.every(cell => !cell.hidden && cell.rowspan === 1))).toBe(true);
+    expect(result.value.warnings.some(w => w.includes('merge-cols'))).toBe(warns);
+    // 以前は全列の結合を展開して開き、そのまま書き戻すと merge-cols="1,2" が付いて文書でも結合されていた
+    const out = serializeTblBlock(m, { colons: result.value.colons, partCount: result.value.partCount });
+    expect(out).not.toContain('merge-cols');
+  });
+
   it('グリッド表のパートも読める', () => {
     const src = doc(
       '::: {.tbl}',

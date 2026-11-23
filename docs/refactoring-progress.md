@@ -6,6 +6,9 @@
 - 基準: `main` `17ed32e`（`template/VERSION` 3.1.0-pre1）。作業開始時の作業ツリーは計画書だけが未追跡
 - 記録日: 2026-11-22
 - 2026-11-22 の指示で、ブランチ `refactor/refactoring-plan` に ID ごとのコミットとして積み、PR（ramsesyok/ddq-template#142）にした。ID ごとの差分は「差分の取り出し方」参照
+- #142 は 2026-11-22 15:45（UTC。日本時間では 11-23 の 0:45）に `f6e27ed` までがマージされた（マージコミット `6bb9232`）。
+  その後の 3 件（GEN-02 の既知の差を直す、ddq から release を外す、既存の不具合 2 件を直す）は、2026-11-23 の指示でブランチ
+  `refactor/release-split-and-fixes` に移した（main の上に載せ替えた。中身は同じ）
 
 ## 環境
 
@@ -87,7 +90,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | QA-01 | 検証済 | `ec7c412` | 実CLI（`contract.rs`・`e2e.rs`）、TS の契約、実Host、期待値を壊す確認 | 成功 |
 | CLI-01 | 検証済 | `94e9691` | 単体（読み取り回数）、新旧の release exe の出力比較 | 成功。新旧同じ出力 |
 | EXT-02 | 検証済 | `0a7a70a`・`ed013ed` | 実プロセス・模擬・実Host、変異 | 成功。孫の停止は Windows だけ（計画の範囲。PR の CI で試験の OS 依存を直した） |
-| GEN-02 | 検証済 | `0d1cd46` | 単体（Rust）、実生成（本物の design-doc.lua）、TS の契約 | 成功 |
+| GEN-02 | 検証済 | `0d1cd46`・2026-11-23 の直し | 単体（Rust）、実生成（本物の design-doc.lua）、TS の契約、変異 | 成功。既知の差のうち 3 組を 2026-11-23 に直した（下の「GEN-02 の既知の差を直す」） |
 | EXT-03 | 検証済 | `782cb08`・`ed013ed` | 模擬（応答の順番を試験が決める）、変異 8 か所 | 成功（PR の CI で試験の OS 依存を直した） |
 | EXT-04 | 検証済 | `f1475d6` | 単体（HTML・CSP・資産の範囲）、模擬、変異 7 か所 | 成功 |
 | GEN-01 | 検証済 | `ff21870` | 単体・実スクリプト（JS）・e2e（`quarto inspect`）、変異、過去の `_quarto.yml` 52 版の比較 | 成功。新規作成の雛形が変わる（VERSION は上げていない） |
@@ -98,9 +101,9 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 | REL-03 | 検証済 | `1051dbc` | 単体、実 exe の release 試験、新旧の比較、変異 9 か所 | 成功 |
 | CI-02 | 検証済 | `1051dbc` | 模擬の監査結果・実ビルド、実 `npm audit`、変異 7 か所、PR の CI | 成功 |
 | REL-01 | 検証済 | `1051dbc` | 実 exe の release 試験、実 vsce、変異 5 か所、配布候補一式 | 成功 |
-| CI-01 | 実装済（GitHub 上で 1 回成功。失敗させた実行の確認は未実施） | `1051dbc`・`810249b` | jar の照合の手元実行、PR の CI、配布候補の流れの手元での再現と GitHub 上の実行、照合の食い違い 5 つ、CI と手元の成果物の比較 | `--locked`・jar の照合・起動対象は PR の CI で成功。配布候補の流れ（`release-candidate.yml`）は PR の CI で全ジョブ成功（38 分）。CI の成果物は手元の出力と見た目が同じ（下の「REL-02・CI-01　配布候補の作成を GitHub Actions に移す」） |
+| CI-01 | 検証済（PR・main への push・手動実行・わざと失敗させた実行を GitHub 上で確かめた。2026-11-23） | `1051dbc`・`810249b` | jar の照合の手元実行、PR の CI、配布候補の流れの手元での再現と GitHub 上の実行、照合の食い違い 5 つ、CI と手元の成果物の比較 | `--locked`・jar の照合・起動対象は PR の CI で成功。配布候補の流れ（`release-candidate.yml`）は PR の CI で全ジョブ成功（38 分）。CI の成果物は手元の出力と見た目が同じ（下の「REL-02・CI-01　配布候補の作成を GitHub Actions に移す」） |
 | DOC-01 | 検証済 | `1051dbc` | パスの照合、manual・設計書のビルド | 成功。旧資料は消していない |
-| REL-02 | 実装済（GitHub 上で 1 回成功。失敗させた実行の確認は未実施） | `5d76c67`・`810249b` | 実CLI（`release.rs` の追加 1）、変異 3 か所、Rust 全件、実生成（マニュアル 18 章）、配布候補の流れの手元での再現と GitHub 上の実行 | 手元の `ddq release` は、入れ替えの途中で失敗した回の出力を捨てて作り直す（暫定の扱いのまま）。正式に配る一式は CI の配布候補だけ（2026-11-22 承認。計画 §7）。失敗した実行に成果物が残らないことと旧資産のハッシュは、まだ確かめていない |
+| REL-02 | 検証済（PR・main への push・手動実行・わざと失敗させた実行を GitHub 上で確かめた。2026-11-23） | `5d76c67`・`810249b` | 実CLI（`release.rs` の追加 1）、変異 3 か所、Rust 全件、実生成（マニュアル 18 章）、配布候補の流れの手元での再現と GitHub 上の実行 | 手元の `ddq release`（2026-11-23 から保守者用の ddq-release）は、入れ替えの途中で失敗した回の出力を捨てて作り直す（暫定の扱いのまま）。正式に配る一式は CI の配布候補だけ（2026-11-22 承認。計画 §7）。失敗した実行に `release-<版>` が残らないことと、公開済みの資産のハッシュが変わらないことは、2026-11-23 にわざと失敗させた 2 本で確かめた（下の「REL-02・CI-01」の「わざと失敗させた実行」） |
 
 ### QA-01　ddq と拡張の契約試験
 
@@ -196,6 +199,9 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   3. CRLF の `mermaid-config.json`: Lua が LF に読むのは Windows だけ。ほかの OS ではキーがずれる（描き直すだけ）
   4. 表エディタの merge-cols 表示: 書式つきのセル・`"ALL"`・`""`・旧 `.merge-rows` で文書の出力と違う
      （docs/ddq-template-impl の表エディタ 7 章に既載の差）
+
+  → 2026-11-23 の指示で 1・3 と、4 のうち `"ALL"`・`""`・旧 `.merge-rows` を直した（下の「GEN-02 の既知の差を直す」）。
+  2 と、4 の書式つきのセルは残した
 - **残存リスク**: `filter_contract.rs` は Quarto が要る（CI の Windows ジョブは `DDQ_E2E=1` なので skip されない）。
   拡張の CI（Linux）は TS 側だけ。PlantUML の URL の判定で、Rust の `is_local_url` はスキームの無い `localhost:8080` を
   ローカルとみなすが Lua はみなさない差があるが、Lua 側を外から試す手段が無いので期待値には入れていない
@@ -789,7 +795,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 
 ### REL-02・CI-01　配布候補の作成を GitHub Actions に移す
 
-- **状況**: **実装済（GitHub 上で 1 回成功。失敗させた実行の確認は未実施）**。実装は `810249b`。手元で workflow の手順を再現して
+- **状況**: **検証済（PR・main への push・手動実行・わざと失敗させた実行を GitHub 上で確かめた。2026-11-23）**。実装は `810249b`。手元で workflow の手順を再現して
   全ジョブが通り、その push で PR の CI として GitHub 上でも全ジョブが通った（下の「GitHub 上の最初の実行」）。PR の起動対象は
   PR 全体の差分で判定されるので、この PR が開いている間は push のたびに走る
 - **判断**（2026-11-22 の指示「推奨どおり」）: 検討書 `docs/release-ci-proposal.md` §2 をすべて推奨どおりに決めた。計画 §7 の表に
@@ -885,21 +891,53 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   - `THIRD-PARTY-NOTICES.md`（ZIP・VSIX とも）: 改行だけが違い、LF にそろえると中身は同じ。CI の版は CRLF（Windows の checkout。
     ZIP に入る README・LICENSE・AGENT-GUIDE と同じ形）。手元の作業コピーが LF なのは、`2dc31e2` で `third_party.py` が作り直した
     ため（git の中身は同じ）
-- **まだ確かめていないこと**
-  - わざと失敗させた実行に `release-<版>` が残らないこと、その前後で公開済みの v3.1.0-pre1 の資産のハッシュが変わらないこと
-    （計画の完了条件「失敗の種類ごとの旧資産のハッシュ」）
-  - 同じブランチへ続けて push したときに実行が重ならないこと（`concurrency`）
-  - main への push と手動実行（`with_sample` を含む）。`workflow_dispatch` は workflow が main に入るまで起動できない
+- **マージの後の実行**（main の `6bb9232`。#142 のマージ。2026-11-22〜23）
+  - main への push（実行 45040063019）: 4 ジョブ成功。全体 39 分 40 秒（`build` 23 分 29 秒、`verify-zip` 15 分 55 秒、
+    `verify-vsix` 2 分 13 秒、`publishable` 9 秒）。`release-3.1.0-pre1`（25,525,940 バイト）が残った
+  - 手動実行を 2 回続けて起動した（2026-11-22 22:40 UTC。`with_sample` なしの 45079044069 と、ありの 45079051895）。どちらも 4 ジョブ成功
+    - なし: ZIP 50 件・VSIX 14 件で、`docs/` は無い。全体 31 分 14 秒（`build` 19 分 51 秒、うち書体 14 分 7 秒）。
+      `release-3.1.0-pre1` は 25,526,024 バイト
+    - あり: `SAMPLE_ARG: --with-sample` が渡り、ZIP 128 件（`docs/` が有る）・VSIX 14 件。全体 36 分 20 秒（待ちを除く）。
+      `release-3.1.0-pre1` は 25,576,533 バイト
+    - 両方とも `build` と `verify-zip` の `check_release.py` が結果 OK。成果物の SHA-256 が、作ったジョブと検査したジョブで一致した。
+      ZIP から取り出した exe で init → pdf → html が通り、配る VSIX で `test:smoke` が通った
+    - `with_sample` の照合は `docs/` が有ることまでで、同梱したサンプルを CI では組まない（手元では完了レビューで組んだ）
+  - `concurrency`: 2 回目は 1 回目の実行中ずっと pending で、1 回目の最後のジョブが終わった 2 秒後（23:11:52）に `build` が始まった。
+    打ち切られずに順に走った。同じブランチへの push も同じ group なので、同じ動きになる
+  - `versions.txt` の `commit:` は `GITHUB_SHA` で、手動実行の head は API で見て `6bb9232`（成果物の中のファイルは開いていない）
+- **わざと失敗させた実行**（2026-11-23。main の `6bb9232` から作った検証用の枝 2 本を手動実行した。マージしない。検討書 §4 の
+  「版をずらした検証用の枝など」）
+  - 作成で失敗（`ci-test/rc-fail-build` の `27030fa`。拡張の `package.json` の version だけを 3.1.0-pre9 にした。実行 45097153978）:
+    `build` の「ddq release」の手順が「版が揃っていません（template/VERSION = 3.1.0-pre1）。ビルドの前に止めました（何も作っていません）」
+    と `package.json` の 3.1.0-pre9 を挙げて exit 1（`build` は 12 分 52 秒。書体とビルドの後で止まる）。`verify-zip`・`verify-vsix`・
+    `publishable` は skipped で、成果物は 1 つも無い
+  - 検査で失敗（`ci-test/rc-fail-verify` の `d61078c`。`check_release.py` の `--smoke` の最後に、必ず NG になる 1 行を足した。
+    実行 45097156955）: `build` と `verify-vsix` は成功し、`verify-zip` の「ZIP の照合と、取り出した exe での init → pdf → html」だけが
+    失敗した（init → pdf → html は最後まで通り、NG はわざと足した 1 行だけ。結果 NG、exit 1）。`publishable` は skipped。成果物は
+    `candidate`（1 日で消える）だけで、`release-3.1.0-pre1` は無い
+  - 公開済みの v3.1.0-pre1: 失敗させる前（01:54 UTC）と後（02:41 UTC）で、タグ（`2742644`）、リリース（id 447651872、プレリリース、
+    2026-11-16 公開）、2 つの資産の大きさ・SHA-256（GitHub の API の `digest`。`quarto-template-3.1.0-pre1.zip` は `99198098…`、
+    `ddq-template-win32-x64-3.1.0-pre1.vsix` は `cc38daef…`）・更新時刻がすべて同じ。下書きのリリースも増えていない
+  - 計画の失敗の種類（VSIX のコピー・ZIP・rename・並行・再実行）との対応: CI は作るのも検査するのも毎回新しいランナーで、公開済みの
+    資産には書き込まない（`contents: read`）。失敗の場所は「作成」と「検査」の 2 つで確かめた。並行は上の `concurrency`。失敗した
+    実行の Re-run は試していない（やり直しても、同じ `needs` で、検査がすべて通った回にだけ `release-<版>` ができる作り）
+  - 検証用の枝 2 本は GitHub に残している（消すかは保守者が決める）
+- **まだ確かめていないこと**: GitHub 上の流れでは無い（2026-11-23 に、`concurrency`・main への push・手動実行（`with_sample` を含む）・
+  わざと失敗させた実行を確かめた）。失敗した実行の Re-run は試していない
 - **計画からの逸脱**
   - 計画の REL-02 の提案（実行ごとの作業場所・`.building` を共有しない・同時実行の制御・退避と復元）は手元の `ddq release` には
     作らず、CI のランナー（毎回新しい）と `concurrency`、検査の後にだけ残す `release-<版>` で満たす形にした（計画 §7 の追記で承認）
-  - 完了条件の旧資産のハッシュの検査は、まだしていない（上の「まだ確かめていないこと」）
+  - 完了条件の「失敗の種類ごとの旧資産のハッシュ」は、作成の失敗と検査の失敗の 2 つで確かめた（上の「わざと失敗させた実行」）。
+    手元の `ddq release`（いまは ddq-release）の、VSIX のコピー・ZIP・rename の失敗ごとの検査はしていない（正式な配布を CI だけに
+    したため）
   - workflow 自身・照合の処理・書体の手順を変えた PR でも走らせる（最初の試走のため。計画 CI-01 の「PR は高速試験」の例外。
     検討書 §6）
 - **戻す方法**: `release-candidate.yml`・`.github/actions/jp-fonts/`・`check_release.py` を消し、ci.yml の vsix-smoke と push の
   起動対象を `098aa3a` に戻す。利用マニュアル 18 章の「リリースを配る」を、マージ後の main から手元で作り直してタグを打つ手順に戻す
 - **残存リスク**
-  - GitHub 上では PR の実行が 1 回成功しただけ（上の「まだ確かめていないこと」）
+  - GitHub 上では PR の実行が 1 回成功しただけ（上の「まだ確かめていないこと」）。
+    → マージの後に、main への push 1 回と手動実行 2 回も成功し、わざと失敗させた 2 本も思ったとおりに止まった
+    （上の「マージの後の実行」「わざと失敗させた実行」）
   - 1 回 38 分のうち 25 分あまりが、2 つのジョブで日本語の追加フォントを入れる時間。PR で毎回走らせるのには向かない
     （検討書 §2 の 3 のとおり main と手動だけにし、PR は workflow などを変えたときだけ）
   - CI の PDF には、ランナーが入れたフォントの版が埋め込まれる（今回は手元より 1 つ古い版で、字形の差は 1 字）。ランナーの
@@ -910,8 +948,192 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   - 日本語のパスでの確認は手元に残る（ランナーは CP1252）
   - ランナーのイメージが更新されると、同じコミットでも Edge などの版が変わる（`versions.txt` に残す）
   - artifact は 90 日で消える。公開したリリースの資産が正の記録になる
-  - 手元の `ddq release` は暫定の扱い（上の節）のまま。ddq.exe から `release` を外すかは、この流れが安定してから別に判断する（検討書 §5）
+  - 手元の `ddq release` は暫定の扱い（上の節）のまま。ddq.exe から `release` を外すかは、この流れが安定してから別に判断する（検討書 §5）。
+    → 2026-11-23 に外した（保守者用の ddq-release。下の「ddq から release を外す」。手元の ddq-release の扱いは同じ）
   - 計画に残るもの: Phase 4 の人の手で行う検証（受入手順 3・4）、Phase 5／6 の完了レビュー（検討書 §8）
+
+### GEN-02 の既知の差を直す（完了レビューの後。2026-11-23）
+
+- **指示**: 2026-11-23「Yes, in this PR」。GEN-02 で印を付けて固定した既知の差のうち、手間の小さいもの（mermaid のタブ、
+  CRLF の設定、表エディタの `merge-cols="ALL"`・`merge-cols=""`・旧 `.merge-rows`）を直す（指示の「この PR」は #142 だが、
+  #142 はすでにマージされていたので、続きのブランチ `refactor/release-split-and-fixes` に入れた。冒頭参照）。PlantUML の `@start` の前の
+  空白（見た目に差が無い）と、書式つきのセルの比較（手間が中くらい）は残す
+- **状況**: 実装・検証済み
+- **変更ファイル**
+  - `cli/src/mermaid/prerender.rs`: `expand_tabs` を足した。`mermaid_blocks` は、各行のタブを Pandoc と同じく次の 4 桁目まで空白に
+    広げてから字下げを測り、フェンスの字下げを外す（桁は行頭からの文字数。全角も 1 桁）
+  - `template/design-doc.lua`（機構ファイル）: `mermaid_target` が `mermaid-config.json` の CRLF を LF にしてからキーに混ぜる
+  - `extensions/ddq-template/src/tableEditor/formats/mergeCols/simulateMergeCols.ts`: `parseMergeCols` を design-doc.lua の `.tbl` の
+    Div と同じ読み方にした（無い・空は結合しない、`all` は小文字そのままだけ、数字の無い値は解釈できない）。戻り値は
+    `none`・`invalid`・`merge` の 3 通り
+  - `extensions/ddq-template/src/tableEditor/markdown-document/findEditTarget.ts`: `.merge-rows` を見る分岐を外した。解釈できない値は
+    警告する（「結合しないものとして扱います」。`widths` の警告と同じ形）
+  - 期待値と試験: `cli/tests/fixtures/contract/diagrams.json`（タブの例の `rustDiffers` と CRLF の例の `luaWindowsOnly` を外し、
+    行の途中のタブと字下げしたフェンスの中のタブの例を 1 つ足した。期待値は Quarto 1.9.38 同梱の Pandoc の `-t json` と hashlib）、
+    `cli/tests/filter_contract.rs`（Windows 以外で CRLF の例を飛ばす分岐を外した）、`merge-cols.json`（3 例の `tsDiffers` を外した）、
+    `contract.test.ts`（`warns` の例で警告が出ることも見る）、`mergeCols.test.ts`（`parseMergeCols` 4 件）、`findEditTarget.test.ts`
+    （3 件。結合せずに開き、書き戻しても `merge-cols` を足さない）、期待値の README の印の表
+  - 資料: `docs/ddq-template-impl/parts/table-editor/07-issues-unknowns.qmd` の「merge-cols の不正値」「旧 `.merge-rows`」の 2 行に、
+    直したことを注記した（調査時点の記述は残した）
+- **試験と結果**
+  - 単体（Rust）: prerender 5/5。変異 4 か所（文字でなくバイトで数える、広げない、いつも空白 4 つ、広げる前に字下げを測る）の
+    すべてで共有の例の試験が落ちる。初めの例（「受注」の 2 文字）ではバイトで数える変異が落ちなかった（2 文字で 2 バイトずつ多く、
+    合わせて 4 桁ずれるのでタブの行き先が同じになる）ので、例を「利用者」の 3 文字に替えた
+  - 実生成（Lua）: `filter_contract.rs` の mermaid の試験が、足した例を含めて本物の design-doc.lua で成功。Windows の文字モードは
+    元から LF にするので、ほかの OS の読み方を `read_file` を一時的にバイナリモードにして再現した: 直したフィルタは成功し、
+    `gsub` を外すと CRLF の例が「置いた SVG を使わなかった」で落ちる
+  - TS: 変異 5 か所（大文字小文字を無視する、空を全列とみなす、`.merge-rows` を見る、警告を出さない、結合しないときも警告する）の
+    すべてで落ちる。直す前の判定に戻すと、足した書き戻しの試験 3 件が落ち、書き戻した見出しに `merge-cols="1,2"` が付くことを確かめた
+  - 実CLI（試験には入れていない）: `ddq init --no-render` で作った執筆フォルダの 1 章に、タブを含む mermaid の図
+    （`\tA[利用者]\t--> B`）を足して `ddq html`（`DDQ_MERMAID_ENGINE=merman`）。直す前の release の exe では `diagrams` に SVG が 6 枚
+    （prerender が雛形の 4 図とタブの図をまとめて 5 枚描き、フィルタがタブの図をもう 1 枚描いた）、直した debug の exe では 5 枚。
+    HTML が参照する図の名前は両方で同じ 5 つ（直す前の余分な 1 枚はどこからも参照されていない）。直した exe が書いた
+    `design-doc.lua` はリポジトリのものとハッシュが一致
+  - 本物のフィルタでの確認（試験には入れていない）:`"ALL"`・`"all "`・`"none"` は警告して結合しない、`""` は警告せず結合しない。
+    `" all"` のように引用の中が空白で始まる値は、Pandoc がその行を div の見出しと読まない（段落になる）ので Lua の判定まで届かない
+  - Rust: `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings` 成功。全件（計画 §6 の条件）: **224 件成功・失敗 0・ignored 0**（試験の時間の合計 8 分 11 秒。件数は前と同じ。足した例は既存の試験の中で回る）
+  - 拡張: `npm run typecheck` 成功、`REQUIRE_PANDOC=1 npm test` **47 ファイル・496 件成功**（前の 491 件から、`parseMergeCols` 2 件と書き戻しの 3 件が増えた）、`build`・`check:offline` 成功
+- **計画からの逸脱**: GEN-02 の「出力を変えない」の外（2026-11-23 に承認）。変わるもの:
+  - prerender のキー（タブを含む mermaid の図だけ）。フィルタのキー・図のファイル名・発行物は変わらない。先回りで描いた SVG を
+    フィルタが使うようになり、1 図ずつの描き直しが無くなる。前にタブのままのキーで描いた SVG は使われずに残る（版を上げたときの
+    `ddq update` が消す）。キャッシュの移行は要らない
+  - フィルタのキー: Windows では変わらない（文字モードで元から LF）。ほかの OS で CRLF の設定を使うときだけ、Windows・prerender と
+    同じキーになる
+  - 表エディタ: `"ALL"`・`""`・旧 `.merge-rows` の表を、文書の出力と同じく結合せずに開く。前は全列の結合を展開して開き、そのまま
+    書き戻すと `merge-cols="1,2"` のような指定が付いて、文書でも結合されるようになっていた。いまは書き戻すと、解釈できない値・空の
+    `merge-cols` は見出しから消える（`widths` の不正値と同じ扱い。分割表は div の見出しに触れないので残る）。`.merge-rows` の
+    クラスは残る
+- **残存リスク**
+  - design-doc.lua は機構ファイルなので、既存の執筆フォルダは `ddq update` が要る。版を上げる必要は前からある（完了レビューの
+    「次のリリースの前に」）
+  - prerender は `preserve-tabs`・`tab-stop` の設定を読まない（既定の、4 桁で広げる、を前提にする）。これを設定した文書では、
+    タブを含む図だけ先回りの SVG が使われず描き直す（直す前と同じ）
+  - 残した差: PlantUML の `@start` の前の空白（Rust はキーを作らないので図・図名に差が無い）、書式つきのセルの比較（表エディタの
+    表示だけ）。どちらも期待値の印は残っている
+  - 引用の中が空白で始まる属性の値（上）は、Pandoc が div と読まないのに表エディタは `.tbl` として開く。別の既存の差で、直していない
+
+### ddq から release を外す（保守者用の ddq-release。完了レビューの後。2026-11-23）
+
+- **指示**: 2026-11-23「つづいて ddqからreleaseを外しましょう。これに合わせて、実装設計書を更新してください。」。
+  置き場所は「保守者用の別 exe（推奨）」（同じ `cli/` パッケージの 2 本目のバイナリ `ddq-release`。配る ddq.exe を `--ddq` で受け取り、
+  既定はその隣の ddq.exe。利用マニュアルはその ddq.exe を呼んで作る）、実装仕様書の更新は「release を外した分だけ」（検討書 §5 の判断）
+- **状況**: 実装・検証済み
+- **変更ファイル**
+  - `cli/src/bin/ddq-release/main.rs`（新規）: clap の `Cli`（`out-dir`・`--with-sample`・`--no-build`・`--ddq <PATH>`）と呼び出し。
+    `quarto.rs` は ddq と同じファイルを `#[path]` で読む（`render` は使わないので `dead_code` を許す）。Cargo.toml は変えていない
+    （`src/bin/<名前>/main.rs` を Cargo が 2 本目のバイナリとして拾う）
+  - `cli/src/commands/release.rs` → `cli/src/bin/ddq-release/release.rs`（`git mv` してから直した）: `default_ddq`（自分と同じフォルダの
+    `ddq.exe`）、`run` が配る ddq.exe の有無を確かめ、`ddq_version`（`--version` を読む）を版の照合に足す。マニュアルの update → pdf → html は
+    配る ddq.exe を子プロセスで呼ぶ。配布フォルダと同梱の VSIX に入れる exe、`check_bundled` の比べる相手を、自分自身から配る ddq.exe に替えた。
+    「はじめかた」の原稿と名前（`RELEASE_GUIDE_TYP`・`RELEASE_GUIDE_PDF`）を `assets.rs` からここへ移した。表示は「ddq-release」に
+  - `cli/src/zip_archive.rs` → `cli/src/bin/ddq-release/zip_archive.rs`（中身は変えていない）
+  - `cli/src/main.rs`・`cli/src/commands/mod.rs`・`cli/src/assets.rs`: `Release` のサブコマンド・`ReleaseArgs`・`mod zip_archive`・
+    `pub mod release`・上の 2 つの定数を外した
+  - `cli/tests/release.rs`: `CARGO_BIN_EXE_ddq-release` を起動する。足した試験 3 件（`a_missing_ddq_stops`、
+    `the_ddq_to_ship_must_report_the_same_version`（ddq でない exe を `--ddq` に渡すと版の照合で止まる）、`ddq_no_longer_has_release`
+    （ddq の `release` は終了コード 2、`--help` に出ない））。`zip_matches_the_stage_byte_for_byte` は配布フォルダの `ddq.exe` が配る ddq.exe と
+    同じことも見る。期待する表示を ddq-release の言葉に替えた
+  - `.github/workflows/release-candidate.yml`: build のビルドの手順名と、一式を作る手順
+    （`cli/target/release/ddq-release.exe "$RUNNER_TEMP/out" --ddq cli/target/release/ddq.exe $SAMPLE_ARG`）。手順の数は変わらない
+    （build 12・verify-zip 6・verify-vsix 8・publishable 3）
+  - コメントと説明: `extension.yml`、`cli/tools/check_release.py`、`cli/tools/third_party.py`、`cli/tests/third_party.rs`、
+    `template/release-guide.typ`、`.gitignore`
+  - 資料（現行のもの）: `cli/DESIGN.md`（決定 1 の注記、§3.1・§3.2、§4 のコマンドの一覧・呼び出し関係、表から release の行を外して
+    「保守者用の ddq-release」の節、§7.4〜§7.6、§8 のコード構成、§10）、利用マニュアル 17 章・18 章（`tbl-release-opts` に `--ddq` の行）、
+    `README.md`、`docs/README.md`、`examples/README.md`、`migration/README.md`、拡張の `AGENTS.md`・`DEVELOPMENT.md`、テンプレート設計書
+    （`docs/design/` の「拡張の作法」）、検討書 §5 に決定の注記
+  - 実装仕様書（release を外した分だけ）: `docs/cli-impl/` の 1〜7 章の配布の箇所と根拠 E-0013 の注記・E-0037（新規）、
+    改版の表に 1 行（**本書はこの分離だけを反映した**こと、3.0.0 から後の他の変更と plantuml.jar を同梱しなくなったことは反映していないこと、
+    `analysis/source-sha256.json` は基準のままであることを書いた）。`docs/ddq-template-impl/` の同梱の箇所（1・5・6 章、改訂履歴の 6 章、
+    根拠の追補）と「統合後に変えた処理」の表に 1 行（拡張の処理は変えていない）
+  - 変えていないもの: 過去の記録（検討書の本文、`docs/studies/`・各 study、変更履歴、実装仕様書の過去の観測 E-0027・E-0031 など、
+    `analysis/validation.md`）。当時の `ddq release` のまま残した
+- **試験と結果**
+  - 実CLI（`cli/tests/release.rs`。模擬の梱包 `pack.js` と、Windows では実ビルドの経路を含む）: 20 件成功（足した 3 件を含む）。実ビルドの経路で、
+    マニュアルの update → pdf → html を配る ddq.exe（ddq-release の隣の ddq）を子プロセスで呼んで作ることを確かめた
+  - 変異 5 か所（試験には入れていない）: 配る ddq.exe の版の照合を外す → 2 件落ちる、配布フォルダに配る ddq.exe でなく ddq-release 自身を入れる →
+    `zip_matches_the_stage_byte_for_byte` が落ちる、配る ddq.exe の有無を見ない → `a_missing_ddq_stops` が落ちる、`check_bundled` の比べる相手を
+    ddq-release 自身にする → `zip_matches…` が落ちる、`--version` が「ddq」で始まれば何でも通す → `the_ddq_to_ship…` が落ちる
+  - Rust: `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings` 成功。全件（計画 §6 の条件）: **228 件成功・失敗 0・
+    ignored 0**（試験の時間の合計 8 分 11 秒）。前の 224 件から、release の試験 3 件と、ddq-release でも走る `quarto.rs` の単体 1 件
+    （`output_dir_follows_the_project_and_the_profile`。`#[path]` で共有するので 2 つのバイナリで走る）が増えた
+  - 実生成・実CLI（試験には入れていない）: 作業ツリーの写し（`%TEMP%\ddqint\relsplit-repo`。ここの未コミットの変更に触れないため）で
+    `cargo build --release --locked --offline`（4 分 31 秒。`ddq.exe` 29,651,968 バイト、`ddq-release.exe` 1,760,768 バイト）→ ルートで
+    `cli\target\release\ddq-release.exe <出力先>`（`--ddq` なし）が終了 0、55 秒。`check_release.py <出力先> --exe cli/target/release/ddq.exe --smoke <作業フォルダ>`
+    がすべて OK（ZIP と VSIX の `ddq.exe` が配る ddq.exe と同じ、取り出した exe で init → pdf → html）。ZIP 50 件・VSIX 14 件の項目の名前は、
+    分ける前の CI の配布候補（PR の実行の成果物）と同じ。同梱のマニュアルの 18 章は新しい記述（`ddq-release`・`--ddq` の行）
+  - 資料のビルド（実生成）: 写しで `docs/cli-impl`・`docs/ddq-template-impl`・`docs/design` を `ddq update` → `ddq html`。どれも終了 0 で
+    フィルタの警告なし。`cli-impl` の構成図（mermaid）に ddq-release の節が出て、E-0037 と `@sec-update-scope` へのリンクが解決する
+  - 拡張: コードは変えていない（`AGENTS.md`・`DEVELOPMENT.md` の文だけ）ので、試験は流し直していない（上の GEN-02 の直しの 496 件が最後）
+  - GitHub 上: まだ（コミット・push していない）
+- **計画からの逸脱**: 計画に無い変更（検討書 §5 の「別の項目として決める」を 2026-11-23 に保守者が決めた）。**互換性が変わる**のは
+  保守者の操作だけ:
+  - `ddq release` は無くなった（未知のサブコマンドで終了コード 2）。保守者は `cli\target\release\ddq-release.exe` を使う。引数とオプションは
+    同じで、`--ddq` が増えた
+  - 発行者・執筆者・VSCode 拡張が使うコマンド（init / add / update / setup / html / pdf / diagrams / plantuml / tag / rev / mermaid）と
+    その出力・終了コードは変わらない。配布の一式（ZIP・VSIX の中身と名前）も変わらない
+  - 配る ddq.exe が、release を実行した exe そのものから、ddq-release が受け取った ddq.exe に替わった。CI は明示して渡す
+- **残存リスク**
+  - 保守者の手元に古い手順（`ddq.exe release`）が残っていると「unrecognized subcommand」で止まる。18 章と DESIGN §7.5 は直した
+  - `zip` クレートは ddq-release だけが使うが、同じパッケージの依存なので ddq.exe のビルドでもコンパイルされ、`THIRD-PARTY-NOTICES.md` にも
+    載ったまま（ddq.exe には入らない。表示が 1 つ多いだけで、足りないわけではない）
+  - `quarto.rs` を 2 つのバイナリが `#[path]` で共有する。ddq-release が使わない関数は `dead_code` を許しているので、ddq 側で使わなくなった
+    関数があっても警告が出ない（ddq 側は従来どおり警告が出る）
+  - 実装仕様書は分離の分だけを直したので、配布工程の他の記述（jar の同梱、版の照合の詳細、入れ替え途中の失敗の扱い）は 3.0.0-pre4 の
+    基準のまま。改版の表にそう書いた
+  - GitHub 上の配布候補の流れは、この変更ではまだ走らせていない（PR に push すると、`release-candidate.yml` を変えているので走る）
+
+### 既存の不具合 2 件を直す（tag list の panic・改訂履歴の表の逆斜線。完了レビューの後。2026-11-23）
+
+- **指示**: 2026-11-23「作業中に見つけた既存の不具合 2 件（ddq tag list の panic、改訂履歴の表で逆斜線が TeX の命令になる）を
+  修正してください。」（下の「計画外で見つけた既存の不具合」の 1・2）
+- **状況**: 実装・検証済み
+- **変更ファイル**
+  - `cli/src/doc/labels.rs`: `candidate` は、候補の長さ（6・8・10・40 桁）を使い切ったら、6 桁の後ろに `-2`・`-3`… と使われていない
+    最初の番号を付ける（前は `unreachable!` で panic して exit 101）。4 つ目までの候補は変わらない。番号つきの候補も `valid` を満たす
+  - `cli/src/commands/rev.rs`: `note_cell` が修正内容を `escape_tex_commands` に通す。Pandoc が TeX の命令と読む逆斜線（後ろが文字。
+    英字だけでなく漢字も命令になる）を `\\` にする。コード（同じ数の ` で閉じるもの）と数式（Pandoc の tex_math_dollars の規則。迷う形は
+    数式とみなす側に倒す）の中と、エスケープの 2 字（`\\`・`\*` など）は変えない。後ろが数字・空白・行末の逆斜線は、もとから書いたとおりに
+    出るので変えない
+  - 試験: `labels.rs` の単体 2 件（同じ見出し 6 つ、書き戻した番号を避ける）、`rev.rs` の単体 2 件（16 例、セルの組み立て）、
+    `cli/tests/tag.rs` の `many_identical_headings_get_distinct_labels`（一覧 → 書き戻し → 一覧で、すべてにラベルが付き重複の警告が無い）、
+    `cli/tests/rev.rs` の `notes_with_backslashes_appear_as_written`（rev build の表を本物の Pandoc で読み、TeX の命令が無く、パス・コード・
+    数式が書いたとおり。quarto が無ければその部分を飛ばし、`DDQ_E2E=1` なら失敗）
+  - 資料: `cli/DESIGN.md` §14.4（番号を付けること）・§15.4（修正内容の扱い）
+- **試験と結果**
+  - 再現（直す前の exe）: 同じ見出し 6 つの文書と `migration/docs` で、`tag list` が exit 101（`labels.rs:50`）
+  - 単体: `labels` 11 件、`commands::rev` 6 件が成功
+  - 実CLI: `tests/tag.rs` 23 件、`tests/rev.rs` 16 件が成功（`DDQ_E2E=1`。Pandoc で読む部分も通った）
+  - Pandoc の読み方（試験には入れていない）: Quarto 1.9.38 同梱の Pandoc 3.8.3 で、単体試験の 16 例の直す前と直した後を表のセルに入れて
+    読んだ。直した後は 16 例とも `RawInline tex` が無く、コードと数式は直す前と同じ。直す前に TeX の命令になっていたのは 13 例
+  - 変異: 9 か所（直す前の形 2 つ＝修正内容を直さない・伸ばしきったら panic、ASCII の英字だけを直す、エスケープの 2 字を 1 字ずつ読む、
+    コードの中も直す、数式の中も直す、閉じる `$` の直後の数字を見ない、開く `$` の直後の空白を見ない、番号を 1 から付ける）がすべて落ちた。
+    初めは「開く `$` の直後の空白を見ない」が落ちなかった（例の `$ \docs $` は閉じる側の空白でも数式にならない）ので、`$ \docs$` の例を
+    足した
+  - 実物（試験には入れていない。直す前の release の exe と、直した debug の exe）
+    - `tag list migration/docs`: 直す前は exit 101、直した後は exit 0 で、番号つきの候補が 80 件
+    - `ddq init --no-render` の文書で見出しを 1 つ改名し、`rev diff --write` の修正内容に
+      ``C:\docs\a.qmd を直した。`C:\x` と $\alpha$ と C:\\keep と \文書`` を書いて `rev build` → `pdf` → `html`。直す前は HTML・PDF とも
+      `C:.qmd を直した。…C:\keep と` で、`\docs\a` と `\文書` が消えた。直した後は HTML のセルが
+      `C:\docs\a.qmd を直した。<code>C:\x</code> と（数式）と C:\keep と \文書`、PDF（PyMuPDF で読んだ文字）も同じ並び。コードと数式は
+      直す前と同じに出る
+  - Rust: `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings` 成功。全件 **234 件成功**
+    （前の 228 件から、上の 6 件が増えた。17 本、全体で 532 秒）
+  - 拡張は変えていないので流していない
+- **計画からの逸脱**: 計画に無い直し（完了レビューで「計画の外・別の判断」に挙げたもの）。番号つきの候補の形（`-2`・`-3`…）は新しく
+  決めた（前は panic して、その文書の候補が 1 つも出なかった）
+- **互換性**
+  - `tag list`・`tag apply`・`rev diff`: 変わるのは、前に panic した文書（同じファイルに種類と文言が同じものが 5 つ以上）だけ。
+    4 つ目までの候補と、ほかの出力は同じ
+  - `rev build`: `history.qmd` は、修正内容の逆斜線の後ろが文字のところだけが変わる。表に出る文字は、前は消えていたところが出るように
+    なるだけ（TeX の命令は HTML・PDF のどちらにも出なかった）。前の回避策（`C:\\docs`・`` `C:\docs` ``）は同じに出る。`history.qmd` は
+    生成物なので、`ddq rev build` をやり直すまでは前の表のまま
+- **残存リスク**
+  - 数式の見分けは Pandoc の規則をなぞったもので、迷う形は数式とみなす。数式とみなした中の命令は前と同じく消える（前より悪くはならない）
+  - 修正内容に TeX の命令をわざと書いていた場合は、文字として出るようになる（前も HTML・PDF には出なかった）
+  - 消えた見出し・図表の名称（「箇所」の列）は原稿の Markdown のままで、直していない（原稿の見出しでも同じに出るため）
+  - 番号つきの候補は、2〜4 つ目の桁と同じく、同じものどうしの文書の順で決まる。間に同じ見出しを足すと、後ろの書き戻していない候補が
+    ずれる（前からの性質。書き戻したラベルは変わらない）
 
 ## 統合の検証（Phase 4）
 
@@ -989,6 +1211,7 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 - OS で通信を遮断した閉域端末、実 LAN の PlantUML サーバ、公開後の資産の再取得、実画面の IME・旧二拡張が同居したときの手操作（計画 §6 の未実施範囲と同じ）
 - 配布候補の流れ（`release-candidate.yml`）の、わざと失敗させた実行と main・手動での実行（PR の実行は成功した。上の「REL-02・CI-01　
   配布候補の作成を GitHub Actions に移す」）。旧 ci.yml の vsix-smoke は PR では走らなかったので、この PR の CI では一度も走らせていない（消した）
+  → 2026-11-23 に、main・手動での実行と、わざと失敗させた実行を確かめた（上の「REL-02・CI-01」）
 
 ## 完了レビュー（Phase 5／6）
 
@@ -1003,7 +1226,7 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 | QA-01 | 現行／旧版の JSON・stdout/stderr・exit・明示 update・Undo を固定し、fixture の更新理由と exe の版を記録 | 満たす（`cli/tests/fixtures/contract/`、旧版は `tag-list.2.4.4.json`、README に採取の手順と exe の版。exit 3 → update → setup の回復は実CLI、Undo は既存の実 Host の項目） | — |
 | CLI-01 | 読込回数・大文書の実行時間、警告・相対パス・ラベル・diff の順序が一致 | 満たす（新旧の release exe の出力が同じ） | — |
 | EXT-02 | 引数・cwd・PATH、UTF-8 のチャンク境界、exit 3、ENOENT、別フォルダの並行、取消時の子孫の終了、deactivate 後の出力 | 満たす（孫の停止は Windows だけ。計画の範囲） | — |
-| GEN-02 | 出力を変えず、3 組の重複を同じ入力で検証 | 満たす（既知の差 4 つは直さず期待値に印を付けた） | 4 つの差を直すか（キャッシュの移行判断が要る） |
+| GEN-02 | 出力を変えず、3 組の重複を同じ入力で検証 | 満たす（既知の差は期待値に印を付けた。そのうち 3 組は、レビューの後の 2026-11-23 の指示で直した。キャッシュの移行は要らなかった） | 残した 2 つ（PlantUML の `@start` の前の空白、書式つきのセルの比較） |
 | EXT-03 | 応答順の逆転・close→reopen・未保存・設定変更・多ルート・deactivate 後を模擬と実 Host で | 満たす（多ルートと deactivate 後は模擬だけ。理由は節に記録） | ステータスバーの逆転（計画の対象外。表示だけ） |
 | EXT-04 | 2 バンドルの配信・起動・メッセージ・CSP・旧データを実 Host と `check:offline` で | 満たす（逸脱 3 件を記録） | — |
 | GEN-01 | 新規／既存／過去の Git 版、増分 HTML と再実行で章・付録が一致し、従来の fixture の出力が一致 | 満たす（過去の `_quarto.yml` 52 版、サンプルの版間比較 141 一致） | 版を上げていない（下の「次のリリースの前に」） |
@@ -1014,9 +1237,9 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 | REL-03 | 重い処理の前に 4 つの版を照合。CI は同じ checkout のビルドを使い、配布検証の記録にコミットと exe の SHA-256 を残す | 満たす（手元）。照合と同じ checkout のビルドは `810249b`。exe の SHA-256 は `check_release.py` のログにだけ出て成果物に入っていなかったので、このレビューで `versions.txt` に足した（`ddq.exe sha256:` の行。ZIP・VSIX の exe がこれと同じことは次の手順の `check_release.py --exe` が確かめる） | GitHub 上は次の実行で確かめる |
 | CI-02 | 模擬の監査結果で、配布対象が失敗し開発用だけの指摘は参考になる | 満たす | — |
 | REL-01 | 両アーカイブの表示・ライセンス本文・同梱 exe・版・target を照合 | 満たす（手元と CI の両方） | 次のリリースノートに両資産のファイル一覧差 |
-| CI-01 | 配布候補の作成者を 1 つにし artifact で渡す。PR は高速試験、main・手動は実候補の検査。既存の検査を保つ | 満たす（PR の実行で 4 ジョブ成功。ci・extension の既存ジョブは vsix-smoke 以外そのまま） | main・手動・`concurrency` はマージの後 |
+| CI-01 | 配布候補の作成者を 1 つにし artifact で渡す。PR は高速試験、main・手動は実候補の検査。既存の検査を保つ | 満たす（PR の実行で 4 ジョブ成功。ci・extension の既存ジョブは vsix-smoke 以外そのまま） | main・手動・`concurrency` はマージの後に確かめた（2026-11-23） |
 | DOC-01 | リンク・旧 ID の注記・配布用マニュアルの PDF/HTML を確認。旧資料の削除は個別承認 | 満たす（削除はしていない）。拡張の開発文書の追随はこのレビューで直した（下の「資料の整合」） | — |
-| REL-02 | 保証する範囲を決め、失敗の種類ごとに旧資産のハッシュを検査 | **一部**。範囲は決めた（計画 §7 に追記）。旧資産のハッシュの検査はしていない | わざと失敗させた実行と、公開済みの資産のハッシュ |
+| REL-02 | 保証する範囲を決め、失敗の種類ごとに旧資産のハッシュを検査 | **一部** → 2026-11-23 に満たす。範囲は決めた（計画 §7 に追記）。わざと失敗させた 2 本（作成・検査）で `release-<版>` が残らず、公開済みの資産のハッシュが変わらないことを確かめた | なし（失敗した実行の Re-run は試していない） |
 
 ### 外部契約の照合（計画 §2）
 
@@ -1061,8 +1284,9 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 
 ### 残りと次に決めること
 
-1. **マージの後に確かめること**（CI-01・REL-02）: main への push での実行、手動実行（`with_sample` を含む）、続けて push したときの
-   `concurrency`、わざと失敗させた実行に `release-<版>` が残らないこと、その前後で公開済みの v3.1.0-pre1 の資産のハッシュが変わらないこと
+1. **マージの後に確かめること**（CI-01・REL-02）: 2026-11-23 にすべて確かめた（REL-02・CI-01 の「マージの後の実行」「わざと失敗させた
+   実行」）。main への push・手動実行（`with_sample` を含む）・`concurrency` は成功し、わざと失敗させた 2 本は `release-<版>` を残さず、
+   公開済みの v3.1.0-pre1 の資産は変わらなかった。検証用の枝 2 本（`ci-test/rc-fail-build`・`ci-test/rc-fail-verify`）は GitHub に残っている
 2. **人の手で行う検証**（Phase 4 の受入手順 3 の後半と 4）: 公開した ZIP・VSIX を利用環境に持ち出してのスモーク、外部通信を OS で
    遮断した端末（ローカルの Java＋jar・LAN のサーバ・PlantUML なし）、実画面での IME・セル結合・未保存の編集・パネルの切り替え・
    旧二拡張からの移行、版の違う ddq での案内（EXT-01 は模擬だけ）
@@ -1074,22 +1298,27 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
    - **変更履歴とリリースノート**に書く利用者に見える差: 章の並びの読み方（GEN-01。行末コメント・引用・空白入りのパス・part・同じ字下げの列）、
      新規作成の雛形の章立て、版の比較と update の案内（EXT-01）、改訂ファイルの引用付きの値（DATA-01）、BOM の保持と書く前の照合（IO-01）、
      init/add が既存のファイルを上書きしない・update の順（IO-02）、VSIX に `THIRD-PARTY-NOTICES.md` が入る（REL-01。両資産のファイル一覧差）、
-     機構ファイルが変わるので `ddq update` が要ること
+     表エディタの merge-cols の読み方（`"ALL"`・`""`・旧 `.merge-rows` を結合せずに開く。解釈できない値の警告）、タブを含む mermaid の図を
+     先回りの SVG で描く（GEN-02 の直し）、機構ファイル（`postprocess-html.js`・`design-doc.lua`）が変わるので `ddq update` が要ること、
+     `tag list` が同じ見出しの多い文書で落ちない（5 つ目からの候補は `-2`・`-3`…）、改訂履歴の表で修正内容の逆斜線が書いたとおりに出る
+     （既存の不具合 2 件の直し。表は `ddq rev build` をやり直すと新しくなる）
    - PR で release-candidate を毎回走らせるか（計画 §7「PR でのフル配布検査の所要時間を確認してジョブ配置を決める」）: 所要時間は 38 分
      （うち書体を入れる時間が 25 分あまり）。検討書 §2 の 3 の形（main と手動。PR は workflow などを変えたときだけ）のままを勧める
 4. **計画の中の小さな直し**（2026-11-22 の指示で、このレビューで直した）
    - REL-03: CI の成果物に exe の SHA-256 を残す（`versions.txt` に 1 行）。workflow から手順を取り出して手元で流し、書いた値が
      exe と ZIP の中の exe の SHA-256 と一致することを確かめた。workflow は YAML として読め、手順の数は変わらない（build 12）
    - 拡張の開発文書の追随（上の「資料の整合」のずれ）
-5. **計画の外・別の判断**: GEN-02 の既知の差 4 つ、ddq.exe から `release` を外すか（検討書 §5）、既存の不具合 2 件（下）、
-   実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文の更新、書体を入れる時間の短縮、`actions/*@v4` の Node.js 20 の警告、
+5. **計画の外・別の判断**: GEN-02 の既知の差のうち残した 2 つ（3 組は 2026-11-23 に直した）、ddq.exe から `release` を外すか（検討書 §5。2026-11-23 に外した。上の「ddq から release を外す」）、既存の不具合 2 件（下。2026-11-23 に直した）、
+   実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文の更新（release の分離の分だけは 2026-11-23 に直した）、書体を入れる時間の短縮、`actions/*@v4` の Node.js 20 の警告、
    `versions.txt` に書体の版を残すか、EXT-03 のステータスバー
 
-## 計画外で見つけた既存の不具合（直していない）
+## 計画外で見つけた既存の不具合（2026-11-23 に直した）
 
 1. `ddq tag list` が、同じファイルにラベル無しで種類と題名が同じ項目が 5 つ以上あると panic する（exit 101、
    `cli/src/doc/labels.rs:50`「sha1 40 桁が衝突することはない」。候補の長さ `[6, 8, 10, 40]` を使い切る）。
    HEAD でも `migration/docs` で起きる。CLI-01 の差分比較でも新旧同じ panic
+   → 2026-11-23 に直した（6 桁の後ろに `-2`・`-3`… を付ける。上の「既存の不具合 2 件を直す」）
 2. 改訂履歴の表（`ddq rev build` が書く `history.qmd`）は修正内容（note）を Markdown としてそのまま載せる。メモに `C:\docs\a.qmd` と
    書くと `\docs`・`\a` が TeX の命令とみなされ、表には `C:.qmd` と出る（新旧同じ。DATA-01 の相互確認で見つけた）。
    パスは `` `C:\docs\a.qmd` `` か `C:\\docs` と書けば出る
+   → 2026-11-23 に直した（TeX の命令になる逆斜線を `\\` にする。上の「既存の不具合 2 件を直す」）

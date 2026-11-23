@@ -1,4 +1,6 @@
-//! `ddq release` の配布工程（docs/cli-impl U-0004）。
+//! 保守者用の ddq-release（旧 `ddq release`。2026-11-23 に ddq から分けた）の配布工程（docs/cli-impl U-0004）。
+//!
+//! 配る ddq.exe は、既定のとおり ddq-release と同じフォルダの ddq.exe（この試験のビルドの ddq）。
 //!
 //! 本物のリポジトリで回すとマニュアルと拡張を毎回ビルドするので、同じ形の小さなリポジトリを
 //! 一時フォルダに組み立て、`--no-build` で通す。はじめかた.pdf は本物の `quarto typst compile`
@@ -78,7 +80,7 @@ fn entry_of(vsix: &Path, name: &str) -> Vec<u8> {
     bytes
 }
 
-/// release を走らせる exe（= VSIX に同梱されるべき exe）の中身
+/// 配る ddq.exe（= ZIP と同梱の VSIX に入るべき exe。ddq-release の既定）の中身
 fn ddq_bytes() -> Vec<u8> {
     fs::read(env!("CARGO_BIN_EXE_ddq")).unwrap()
 }
@@ -149,8 +151,7 @@ fn lock(name: &str, root: &str, package: &str) -> String {
 }
 
 fn release(repo: &Path, out: &Path, extra: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_ddq"))
-        .arg("release")
+    Command::new(env!("CARGO_BIN_EXE_ddq-release"))
         .arg(out)
         .arg("--no-build")
         .args(extra)
@@ -236,6 +237,11 @@ fn zip_matches_the_stage_byte_for_byte() {
     assert!(
         !names.iter().any(|n| n.starts_with("docs/")),
         "--with-sample 無しでサンプルが入った"
+    );
+    // 入れた exe は配る ddq.exe（ddq-release 自身ではない）
+    assert!(
+        staged.iter().any(|(n, b)| n == "ddq.exe" && *b == ddq_bytes()),
+        "配布フォルダの ddq.exe が配る ddq と違う"
     );
 
     // ZIP を全部展開し、名前・中身とも配布フォルダと一致すること（件数だけの照合ではない）
@@ -353,7 +359,7 @@ fn a_failure_after_the_swap_lists_what_to_discard() {
         "どのファイルか出ない: {t}"
     );
     assert!(
-        t.contains("配布せずに消してから、もう一度 ddq release を実行してください"),
+        t.contains("配布せずに消してから、もう一度 ddq-release を実行してください"),
         "{t}"
     );
     let listed = |p: &Path| t.lines().any(|l| l == format!("  {}", p.display()));
@@ -405,13 +411,13 @@ fn extension_version_must_match_the_template() {
 
 /// 版の照合（REL-03）で止まったときの共通の確かめ。前回の配布物に手を付けず、重い処理
 /// （マニュアルの機構更新・ビルド、拡張の梱包）を始めていない。`--no-build` の有無の両方で見る
-fn assert_versions_stop(repo: &Path, out: &Path, expected: &[&str]) {
+fn assert_versions_stop(repo: &Path, out: &Path, extra: &[&str], expected: &[&str]) {
     for build in [false, true] {
         write(&stage_of(out), "previous.txt", b"previous");
         let r = if build {
-            release_with_build(repo, out)
+            release_with_build(repo, out, extra)
         } else {
-            release(repo, out, &[])
+            release(repo, out, extra)
         };
         assert_eq!(r.status.code(), Some(1), "{}", text(&r));
         let t = text(&r);
@@ -421,13 +427,13 @@ fn assert_versions_stop(repo: &Path, out: &Path, expected: &[&str]) {
         }
         assert!(!t.contains("リリースを作成"), "照合の前に始めた: {t}");
         assert!(stage_of(out).join("previous.txt").exists());
-        // release は（--no-build でなければ）まずマニュアルの機構ファイルを更新する。それも始めていない
+        // ddq-release は（--no-build でなければ）まずマニュアルの機構ファイルを更新する。それも始めていない
         assert!(!repo.join("docs/manual/.template-version").exists(), "{t}");
         assert!(!repo.join("extensions/ddq-a/bin").exists(), "{t}");
     }
 }
 
-/// 作業ツリーの template/VERSION が、release する ddq の版と違う（古い exe で release した）
+/// 作業ツリーの template/VERSION が、ddq-release と配る ddq の版と違う（古い exe で作った）
 #[test]
 fn an_old_ddq_stops_before_anything_is_built() {
     let tmp = tempfile::tempdir().unwrap();
@@ -437,12 +443,14 @@ fn an_old_ddq_stops_before_anything_is_built() {
     assert_versions_stop(
         &repo,
         &tmp.path().join("out"),
+        &[],
         &[
             "template/VERSION = 99.0.0",
             &format!(
-                "この ddq の版 = {}（cli で cargo build --release し直し",
+                "この ddq-release の版 = {}（cli で cargo build --release し直し",
                 version()
             ),
+            &format!("配る ddq.exe の版 = {}（", version()),
             // 拡張はこの ddq の版に揃っているが、作業ツリーの版とは違う
             &format!("extensions/ddq-a/package.json の version = {}", version()),
             "extensions/ddq-a で `npm version 99.0.0 --no-git-tag-version`",
@@ -469,6 +477,7 @@ fn every_version_that_differs_is_listed_at_once() {
     assert_versions_stop(
         &repo,
         &tmp.path().join("out"),
+        &[],
         &[
             "extensions/ddq-a/package.json の version = 99.0.0",
             "extensions/ddq-b/package.json の version = 0.0.1",
@@ -508,7 +517,7 @@ fn the_lock_must_carry_the_same_version() {
             "extensions/ddq-a/package-lock.json",
             lock("ddq-a", root, package).as_bytes(),
         );
-        assert_versions_stop(&repo, &tmp.path().join("out"), &[expected, "npm version"]);
+        assert_versions_stop(&repo, &tmp.path().join("out"), &[], &[expected, "npm version"]);
         let r = release(&repo, &tmp.path().join("out"), &[]);
         assert!(!text(&r).contains("package.json の version"), "{}", text(&r));
     }
@@ -539,7 +548,7 @@ fn bundled_exe_must_be_the_released_ddq() {
         &repo,
         &tmp.path().join("out"),
         &[],
-        "いま release している ddq と違います",
+        "extension/bin/win32-x64/ddq.exe が、配る ddq.exe（",
     );
 }
 
@@ -594,6 +603,63 @@ fn no_build_without_the_manual_stops() {
     fake_repo(&repo);
     fs::remove_file(repo.join("docs/manual/_book/index.html")).unwrap();
     assert_fails_untouched(&repo, &tmp.path().join("out"), &[], "--no-build を外して");
+}
+
+/// 配る ddq.exe は --ddq で渡せる（相対パスはリポジトリのルートから）。無ければ何も始めずに止まる
+#[test]
+fn a_missing_ddq_stops() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    fake_repo(&repo);
+    assert_fails_untouched(
+        &repo,
+        &tmp.path().join("out"),
+        &["--ddq", "cli/target/release/ddq.exe"],
+        "配る ddq.exe がありません",
+    );
+}
+
+/// 配る ddq.exe も版を照合する。ddq でない exe（ここでは ddq-release 自身）を渡しても止まる
+#[test]
+fn the_ddq_to_ship_must_report_the_same_version() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    fake_repo(&repo);
+    let not_ddq = env!("CARGO_BIN_EXE_ddq-release");
+    assert_versions_stop(
+        &repo,
+        &tmp.path().join("out"),
+        &["--ddq", not_ddq],
+        &[&format!(
+            "配る ddq.exe の版 = （「ddq-release {}」。ddq の版ではない）",
+            version()
+        )],
+    );
+}
+
+/// release は ddq から外した（発行者に配る ddq.exe には無い）
+#[test]
+fn ddq_no_longer_has_release() {
+    let out = Command::new(env!("CARGO_BIN_EXE_ddq"))
+        .args(["release", "--no-build"])
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2), "{}", text(&out));
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("unrecognized subcommand 'release'"),
+        "{}",
+        text(&out)
+    );
+    let help = Command::new(env!("CARGO_BIN_EXE_ddq"))
+        .arg("--help")
+        .output()
+        .unwrap();
+    assert!(help.status.success());
+    assert!(
+        !String::from_utf8_lossy(&help.stdout).contains("release"),
+        "{}",
+        text(&help)
+    );
 }
 
 #[test]
@@ -691,10 +757,10 @@ fn real_build_repo(root: &Path, package_b: &str) {
     );
 }
 
-fn release_with_build(repo: &Path, out: &Path) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_ddq"))
-        .arg("release")
+fn release_with_build(repo: &Path, out: &Path, extra: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_ddq-release"))
         .arg(out)
+        .args(extra)
         .current_dir(repo)
         .output()
         .unwrap()
@@ -710,7 +776,7 @@ fn real_build_makes_the_manual_and_packages_the_extensions() {
     let repo = tmp.path().join("repo");
     real_build_repo(&repo, "node pack.js ddq-b-{v}.vsix");
     let out = tmp.path().join("out");
-    let r = release_with_build(&repo, &out);
+    let r = release_with_build(&repo, &out, &[]);
     assert!(r.status.success(), "{}", text(&r));
 
     // マニュアルはこの場でビルドしたもの（PDF と HTML）
@@ -735,7 +801,7 @@ fn real_build_makes_the_manual_and_packages_the_extensions() {
         "ddq-a の古い node_modules が残っている"
     );
 
-    // 同梱の拡張には、release している ddq をコピーしてからパッケージした
+    // 同梱の拡張には、配る ddq をコピーしてからパッケージした
     let v = version();
     let vsix = out.join(format!("ddq-a-win32-x64-{v}.vsix"));
     let mut zip = zip::ZipArchive::new(fs::File::open(&vsix).unwrap()).unwrap();
@@ -744,10 +810,7 @@ fn real_build_makes_the_manual_and_packages_the_extensions() {
         .unwrap()
         .read_to_end(&mut bundled)
         .unwrap();
-    assert!(
-        bundled == ddq_bytes(),
-        "VSIX の ddq.exe が release した ddq と違う"
-    );
+    assert!(bundled == ddq_bytes(), "VSIX の ddq.exe が配る ddq と違う");
     // ライセンス表示もコピーしてからパッケージした（ZIP に入れたものと同じ）
     let in_zip = fs::read(stage.join("THIRD-PARTY-NOTICES.md")).unwrap();
     assert!(ext.join("ddq-a/THIRD-PARTY-NOTICES.md").is_file());
@@ -770,7 +833,7 @@ fn failing_npm_package_stops_before_touching_the_stage() {
     real_build_repo(&repo, "node -e process.exit(7)");
     let out = tmp.path().join("out");
     write(&stage_of(&out), "previous.txt", b"previous");
-    let r = release_with_build(&repo, &out);
+    let r = release_with_build(&repo, &out, &[]);
     assert!(!r.status.success(), "成功してしまった");
     assert!(
         text(&r).contains("npm run package（extensions/ddq-b） が失敗しました"),

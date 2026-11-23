@@ -5,7 +5,7 @@
 `design-doc-quarto-template`（ddq）の VSCode 拡張 **ddq-template**。旧 `ddq-revision`（見出し・表・図の
 ラベル付けと改訂履歴）と旧 `ddq-table-editor`（統一テーブル記法 `::: {.tbl …}` の編集。さらに旧名
 `quarto-table-support`）を 1 本に統合したもの。このリポジトリの `extensions/ddq-template/` に置き、
-`ddq release` がリリース一式へ VSIX として同梱する（`../../cli/src/commands/release.rs`）。
+保守者用の `ddq-release` がリリース一式へ VSIX として同梱する（`../../cli/src/bin/ddq-release/release.rs`）。
 
 **設計の正:**
 
@@ -34,7 +34,7 @@ ID は `ddqTemplate.*` に統一する（コマンド・設定・viewType）。�
 - **通信しない。** 完全オフライン・エアギャップ環境で動くこと。`npm run check:offline` が成果物を
   検査する。Webview の CSP は `default-src 'none'`（`connect-src` を書かない）。CDN の JS / CSS /
   フォント / 画像を使わず、フロントエンド資産はすべて拡張に同梱する
-- `package.json` の `version` は `../../template/VERSION` と同じ値にする（`ddq release` が照合する）
+- `package.json` の `version` は `../../template/VERSION` と同じ値にする（`ddq-release` が照合する）
 - 画面の配色は VSCode のテーマ変数（`--vscode-*`）だけを使う
 - Webview は画面ごとに別の IIFE（`vite build --mode revision` / `--mode tableEditor`）で、
   出力は `out/webview/<画面>/assets/main.{js,css}`
@@ -155,7 +155,7 @@ npm run test:host   # 実拡張ホストで一覧・書き戻し・Undo・改訂
 ```
 
 配布する VSIX は ddq.exe を同梱したもの（`npm run package:win32-x64`。`bin/win32-x64/ddq.exe` は
-`ddq release` がコピーする。git 管理外）。同梱版は `npm run test:smoke` で、展開した VSIX の中身のまま
+`ddq-release` が配る ddq.exe をコピーする。git 管理外）。同梱版は `npm run test:smoke` で、展開した VSIX の中身のまま
 init → html を通して確かめる（CI では release-candidate.yml の verify-vsix が、配る VSIX そのもので。main への push と手動実行）。
 
 `test:host` の VSCode は「インストール済み → 無ければ `@vscode/test-electron` で取得」、

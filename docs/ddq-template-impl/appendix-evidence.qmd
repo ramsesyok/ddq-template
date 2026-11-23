@@ -22,6 +22,10 @@
   `cargo test --release`（全件）。グリッド表の縦結合は `pandoc.test.ts` が本物の pandoc で読み書きを確かめる
 - 今回は実行していない: `npm run test:host`・`npm run test:smoke`（上の記録は段階 1a〜1d の時点のもの）
 
+追補（2026-11-23）。ddq.exe の同梱は、`ddq release` から分けた保守者用の別の exe `ddq-release` の
+`cli/src/bin/ddq-release/release.rs` に移った（`cli/DESIGN.md` §4「保守者用の ddq-release」、`docs/cli-impl` の E-0037）。
+拡張のソースは変えていない。上の `cli/src/commands/release.rs` は移す前の観測である。
+
 ## ラベル付け・改訂履歴（旧 DDQ Revision 2.3.0）
 
 {{< include parts/revision/appendix-evidence.qmd >}}

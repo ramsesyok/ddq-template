@@ -2,7 +2,7 @@
  * `design-doc.lua` の `merge_body` と同じ結合アルゴリズムを再現する。
  *
  * テンプレート側の実際の挙動（`template/design-doc.lua` L152-278 を参照）:
- * - `merge-cols` 省略時は全列を左から順に階層とみなす（prevcol[c] = c-1）
+ * - `merge-cols="all"` は全列を左から順に階層とみなす（prevcol[c] = c-1）
  * - `merge-cols="2,3"` のように指定した場合、**指定した順**が階層の左→右になる
  * - 列 c が上の行に吸収されるのは
  *     「その列が上の行と同じテキスト」かつ「prevcol[c] が同じ行で吸収済み」のとき
@@ -12,13 +12,25 @@
  * - 既に結合を持つ表（グリッド表）は `is_plain_grid` ガードで対象外
  */
 
-/** `merge-cols` 属性の文字列を 1 始まりの列リストへ。`"all"` や未指定は null（＝全列）。 */
-export function parseMergeCols(value: string | undefined): number[] | null {
-  if (value === undefined || value.trim() === '') return null;
-  if (value.trim().toLowerCase() === 'all') return null;
+/** `merge-cols` 属性の読み取り結果。`cols` が null なら全列。 */
+export type MergeColsAttr =
+  | { kind: 'none' }
+  | { kind: 'invalid' }
+  | { kind: 'merge'; cols: number[] | null };
+
+/**
+ * `merge-cols` 属性を `design-doc.lua` の `.tbl` の Div と同じく読む
+ * （cli/tests/fixtures/contract/merge-cols.json が両方を同じ期待値で確かめる）:
+ * - 無い・空 … 結合しない
+ * - `"all"`（小文字そのまま。大文字や後ろの空白は別の値）… 全列
+ * - それ以外 … 中の数字の並び（1 始まりの列番号）。数字が無ければ解釈できない値で、Lua は警告して結合しない
+ */
+export function parseMergeCols(value: string | undefined): MergeColsAttr {
+  if (value === undefined || value === '') return { kind: 'none' };
+  if (value === 'all') return { kind: 'merge', cols: null };
   const cols: number[] = [];
   for (const m of value.matchAll(/\d+/g)) cols.push(Number(m[0]));
-  return cols.length > 0 ? cols : null;
+  return cols.length > 0 ? { kind: 'merge', cols } : { kind: 'invalid' };
 }
 
 export function serializeMergeCols(cols: number[] | null): string {

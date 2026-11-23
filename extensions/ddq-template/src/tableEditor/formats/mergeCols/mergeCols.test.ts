@@ -6,14 +6,22 @@ import { parsePipeTable } from '../pipeTable/parsePipeTable';
 import { mergeCells } from '../../model/mergeCells';
 import type { TableModel } from '../../model/TableModel';
 
-describe('parseMergeCols', () => {
-  it('"all" と未指定は全列（null）', () => {
-    expect(parseMergeCols('all')).toBeNull();
-    expect(parseMergeCols(undefined)).toBeNull();
-    expect(parseMergeCols('')).toBeNull();
+describe('parseMergeCols（design-doc.lua の Div と同じ読み方）', () => {
+  it('"all" は全列（null）', () => {
+    expect(parseMergeCols('all')).toEqual({ kind: 'merge', cols: null });
   });
-  it('列番号の並びを読む', () => {
-    expect(parseMergeCols('2,3')).toEqual([2, 3]);
+  it('未指定と空は結合しない', () => {
+    expect(parseMergeCols(undefined)).toEqual({ kind: 'none' });
+    expect(parseMergeCols('')).toEqual({ kind: 'none' });
+  });
+  it('列番号の並びを読む（数字以外は区切りとして読み飛ばす）', () => {
+    expect(parseMergeCols('2,3')).toEqual({ kind: 'merge', cols: [2, 3] });
+    expect(parseMergeCols('3 , 2')).toEqual({ kind: 'merge', cols: [3, 2] });
+  });
+  it('数字の無い値は解釈できない（大文字の ALL・後ろに空白のある all も。Lua は警告して結合しない）', () => {
+    for (const v of ['ALL', 'All', 'all ', 'none']) {
+      expect(parseMergeCols(v), v).toEqual({ kind: 'invalid' });
+    }
   });
 });
 

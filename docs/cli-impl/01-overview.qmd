@@ -30,7 +30,7 @@
 
 ## 読み始める場所と確度 {#sec-045a84}
 
-コマンド追加は `main.rs::Command`、`main`、`commands/mod.rs` から始める。配置規則は `assets.rs` と `commands/setup.rs`、図変換は `mermaid/mod.rs` と `plantuml/mod.rs`、配布は `commands/release.rs`、ラベルと改訂履歴は `commands/tag.rs`・`commands/rev.rs` と `doc/` が入口になる。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0020](appendix-evidence.qmd#ev-e-0020)
+コマンド追加は `main.rs::Command`、`main`、`commands/mod.rs` から始める。配置規則は `assets.rs` と `commands/setup.rs`、図変換は `mermaid/mod.rs` と `plantuml/mod.rs`、配布は保守者用の別の exe ddq-release の `bin/ddq-release/release.rs`（2026-11-23 に ddq から分けた）、ラベルと改訂履歴は `commands/tag.rs`・`commands/rev.rs` と `doc/` が入口になる。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0020](appendix-evidence.qmd#ev-e-0020)
 
 本文の根拠IDは [解析根拠](appendix-evidence.qmd#sec-evidence) のパス・シンボルに対応する。パスはリポジトリルート基準で記載するため、HTMLだけを配布しても対象を特定できる。既存の `cli/DESIGN.md` は設計方針と過去の測定の資料として扱い、現行コードとの差は [既知の問題と未解明事項](07-issues-unknowns.qmd#sec-issues-unknowns) に残す。
 
@@ -51,7 +51,8 @@
 | 3.0.0-pre1 | 版不一致を終了コード 3 で返す（`setup::TemplateMismatch`）。init が `.vscode/extensions.json` を置く。release が自身を同梱した VSIX（`win32-x64`）を作り、zip の隣に置く。`tag list` の編集指示に `original` を持たせ、`tag apply --from` が照合する。ブラウザの後始末を待ち、一時フォルダを作業フォルダ内にする（PR #122 の再検証 N-01） | 第2～4・6章 |
 | 3.0.0-pre3 | `ddq diagrams` が入力ゼロでキャッシュだけ残るとき `警告:` を出す | 第3・4章 |
 | 3.0.0 | `template/vendor/mermaid.min.js` を 11.16.1 に、`pulldown-cmark` を 0.13.6 に更新（脆弱性対応） | 第5・7章 |
+| 3.1.0-pre1 の作業中（2026-11-23） | `release` を ddq から外し、保守者用の別の exe `ddq-release`（`cli/src/bin/ddq-release/`。同じ Cargo パッケージの 2 本目のバイナリ）にした。配る ddq.exe を `--ddq` で受け取り（既定は ddq-release と同じフォルダの `ddq.exe`）、利用マニュアルの update→PDF→HTML もその ddq.exe を子プロセスで呼んで作り、ZIP と VSIX にもそれを入れる。`ddq release` は未知のサブコマンドとして終了コード 2 になる。**本書はこの分離だけを反映した**。3.0.0 から後の他の変更（`docs/refactoring-plan.md` の各項目。配布工程では版の照合、ライセンス表示の VSIX への同梱、入れ替え途中の失敗の扱い、配布候補の CI での作成）と、3.0.0 で plantuml.jar を同梱しなくなったことは反映していない。`analysis/source-sha256.json` も 3.0.0-pre4 の基準のまま | 第1～7章の配布の箇所 |
 
-3.0.0 までの変更の根拠は [E-0036](appendix-evidence.qmd#ev-e-0036)。VSCode 拡張側の受け手は `docs/ddq-template-impl` が扱う。
+3.0.0 までの変更の根拠は [E-0036](appendix-evidence.qmd#ev-e-0036)、release の分離は [E-0037](appendix-evidence.qmd#ev-e-0037)。VSCode 拡張側の受け手は `docs/ddq-template-impl` が扱う。
 
 2.4.0 までの範囲では、Mermaid・PlantUML・Quarto起動・パス検査・機構照合の Rust 実装に変更はない（Mermaid は 2.4.4 と 3.0.0-pre1 で上表のとおり変わった）。これらを記述した節は、版表記と参照先の更新にとどめた。

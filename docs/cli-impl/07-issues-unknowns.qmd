@@ -45,7 +45,7 @@
 
 | 資料の記述 | 現行コードでの確認 | 本書の扱い |
 |---|---|---|
-| `cli/DESIGN.md` §7.5：`cd cli`後にrelease実行 | `release::run` はCWDにtemplateとdocs/manualを要求 | リポジトリルートに戻す手順を掲載 |
+| `cli/DESIGN.md` §7.5：`cd cli`後にrelease実行 | `release::run`（2026-11-23 から ddq-release）はCWDにtemplateとdocs/manualを要求 | リポジトリルートに戻す手順を掲載 |
 | 同§7.2：依存の想定にthiserror | Cargo.tomlの直接依存にない。Cargo.lockの推移依存とは別 | 直接依存一覧へ追加しない |
 | 同§5.4：SVGコメントの版表記 | merman経路は `merman=<版>` | `Engine::label` の実装を正本とする |
 
@@ -68,13 +68,13 @@
 - `cli/vendor/plantuml.jar`（v2.4.2 の配布物の jar も同じ）は、PlantUML 公式リリース v1.2026.8 の `plantuml-mit-1.2026.8.jar` と SHA-256（`3629c9cd…`）・大きさが一致し、`-license` の表示も MIT である。jar 自身が同梱物（Graphviz の一部、OpenIconic、Brotli、Twemoji など）の表示を持つ
 - `template/vendor/mermaid.min.js` は npm の `mermaid@11.16.1` の `dist/mermaid.min.js` とバイト一致する（改変なし。3.0.0 で 11.16.0 から更新し、2026-11-14 に照合。[E-0036](appendix-evidence.qmd#ev-e-0036)）
 - 配布物に入る第三者のソフトウェアは、ddq.exe に静的リンクする Rust のクレート188件（proc-macro 等のビルド時だけのものは除く）、mermaid とそのバンドルの依存77件（11.16.1 時点。11.16.0 では78件）、VSIX の Webview にバンドルする React 3件である（plantuml.jar は 3.0.0 から同梱しない）。いずれも許容的なライセンスで、MPL-2.0 は3件（cssparser・dtoa-short・selectors。改変なし、入手先を明記）、DOMPurify は MPL-2.0 と Apache-2.0 から Apache-2.0 を選ぶ。merman の各クレートは移植元のライセンスを `THIRD_PARTY_LICENSES/` に持ち、ratex-katex-fonts は KaTeX のフォント（SIL OFL 1.1）を ddq.exe に埋め込む
-- **従来の配布物にはこれらのライセンス表示が無かった**。`cli/tools/third_party.py` が `THIRD-PARTY-NOTICES.md` を作り、`ddq release` が同梱する（入力のハッシュが合わなければ止まる）。`tests/third_party.rs` が CI で古さを検出する
+- **従来の配布物にはこれらのライセンス表示が無かった**。`cli/tools/third_party.py` が `THIRD-PARTY-NOTICES.md` を作り、ddq-release（旧 `ddq release`）が同梱する（入力のハッシュが合わなければ止まる）。`tests/third_party.rs` が CI で古さを検出する
 
-このリポジトリ自身（ddq 本体・テンプレート）のライセンスは未定だったが、保守者の判断で **MIT** とした（ルートの `LICENSE`、`cli/Cargo.toml` の `license`。VSCode 拡張と同じ）。配布物に入る第三者のもの（上記）は MIT の本体と組み合わせて配布でき（MPL-2.0 はファイル単位で元のライセンスのまま、OFL のフォントはソフトウェアへの同梱を認める）、それぞれのライセンスに従う。`ddq release` は `LICENSE` も同梱する。弁護士等による法的評価は行っていない。
+このリポジトリ自身（ddq 本体・テンプレート）のライセンスは未定だったが、保守者の判断で **MIT** とした（ルートの `LICENSE`、`cli/Cargo.toml` の `license`。VSCode 拡張と同じ）。配布物に入る第三者のもの（上記）は MIT の本体と組み合わせて配布でき（MPL-2.0 はファイル単位で元のライセンスのまま、OFL のフォントはソフトウェアへの同梱を認める）、それぞれのライセンスに従う。ddq-release は `LICENSE` も同梱する。弁護士等による法的評価は行っていない。
 
 ### U-0004：配布工程の動的確認 {#u-0004 .unnumbered}
 
-**一部確認／優先度：低**。2026-09-23に v2.4.2 の配布で、通常の `ddq release` を実行して確認した（[E-0027](appendix-evidence.qmd#ev-e-0027)）。加えて `tests/release.rs` が、同じ形の小さなリポジトリで `--no-build` を通し、ZIP の全エントリを展開して名前と中身が配布フォルダと一致すること（日本語・空白を含む出力先、日本語名の UTF-8 フラグ）、`--with-sample` が生成物・PDF側補助・図キャッシュを除くこと、再実行で前回の中身が残らないこと、jar 欠損・拡張の name／版の不一致・VSIX 欠損・マニュアル欠損・ライセンス表示の古さで止まり前回の配布フォルダを壊さないことを確かめる（[E-0031](appendix-evidence.qmd#ev-e-0031)）。この過程で、jar が無いと前回の配布フォルダを消してから止まり中途半端な配布フォルダが残る不具合を見つけ、隣の作業フォルダに集めてから入れ替えるよう直した。残るのは、本物のリポジトリでの `--no-build` 無しの実行（マニュアルと拡張のビルドを含む。配布のたびに行う）だけである。
+**一部確認／優先度：低**。2026-09-23に v2.4.2 の配布で、通常の `ddq release` を実行して確認した（[E-0027](appendix-evidence.qmd#ev-e-0027)）。加えて `tests/release.rs` が、同じ形の小さなリポジトリで `--no-build` を通し、ZIP の全エントリを展開して名前と中身が配布フォルダと一致すること（日本語・空白を含む出力先、日本語名の UTF-8 フラグ）、`--with-sample` が生成物・PDF側補助・図キャッシュを除くこと、再実行で前回の中身が残らないこと、jar 欠損・拡張の name／版の不一致・VSIX 欠損・マニュアル欠損・ライセンス表示の古さで止まり前回の配布フォルダを壊さないことを確かめる（[E-0031](appendix-evidence.qmd#ev-e-0031)）。この過程で、jar が無いと前回の配布フォルダを消してから止まり中途半端な配布フォルダが残る不具合を見つけ、隣の作業フォルダに集めてから入れ替えるよう直した。残るのは、本物のリポジトリでの `--no-build` 無しの実行（マニュアルと拡張のビルドを含む。配布のたびに行う）だけである。2026-11-23 に release を保守者用の別の exe ddq-release に分けたあと、`tests/release.rs` は ddq-release を対象にし、配る ddq.exe（`--ddq`）の欠落・版違いで止まること、ZIP に入る `ddq.exe` が配る ddq.exe と同じこと、ddq に `release` が無いことも確かめる。本物のリポジトリでの ddq-release の実行は [E-0037](appendix-evidence.qmd#ev-e-0037) に記録した。
 
 ### U-0005：性能・最大規模 {#u-0005 .unnumbered}
 
