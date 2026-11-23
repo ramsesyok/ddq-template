@@ -14,7 +14,7 @@ ddq（Rust）が出し、拡張（TypeScript）が読むものの期待値を、
 
 | `diagrams.json` | 図のキャッシュ（GEN-02）。mermaid は原稿 → フィルタが受け取るコード → キー、PlantUML は図＋共通設定 → サーバに送るソース → キー。SVG の先頭コメントでの照合（`fresh` / `pumlEnv`）と、先頭に書く 1 行の形 | `cli/src/mermaid/prerender.rs`・`cli/src/plantuml/mod.rs` の単体試験、`cli/tests/filter_contract.rs`（本物の design-doc.lua） |
 | `merge-cols.json` | `.tbl` の merge-cols の結合（GEN-02）。原稿とボディ行ごとの rowspan | `cli/tests/filter_contract.rs`、`extensions/ddq-template/src/tableEditor/formats/mergeCols/contract.test.ts` |
-| `chapters.json` | `_quarto.yml` の章の並び（GEN-01・H-01）。`cases` は `_quarto.yml` 全体と、そこから読む章・付録の並び（行末コメントで章が落ちた 17ed32e の雛形そのもの。リリースには入っていない）と、部の扉ページとして置くファイル `part_files`。`items` は `- ` の後ろ 1 件の書き方 | `cli/src/doc/project.rs` の単体試験、`cli/tests/filter_contract.rs`（本物の postprocess-html.js を `quarto run` で） |
+| `chapters.json` | `_quarto.yml` の章の並び（GEN-01・H-01）。`cases` は `_quarto.yml` 全体と、そこから読む章・references・付録の並び（行末コメントで章が落ちた 17ed32e の雛形そのもの。リリースには入っていない）と、部の扉ページとして置くファイル `part_files`。`items` は `- ` の後ろ 1 件の書き方 | `cli/src/doc/project.rs` の単体試験、`cli/tests/filter_contract.rs`（本物の postprocess-html.js を `quarto run` で） |
 | `rev-values.json` | 改訂ファイル（`revisions/rev-*.yml`）の 1 行の値（DATA-01）。`read` は書かれた形 → 読んだ値、`write` は値 → 書き出す形（その形を読むと元の値） | `cli/src/doc/revfile.rs`・`extensions/ddq-template/src/revision/revfile.ts` の単体試験（`parse` / `to_yaml`・`toYaml` を通して） |
 
 `{{FOLDER}}` は、ddq が引数の執筆フォルダを `std::path::absolute` で解決したパス（Windows では
@@ -29,6 +29,7 @@ ddq（Rust）が出し、拡張（TypeScript）が読むものの期待値を、
 | 2026-11-22 | （exe は使わない。下の「図・表の期待値の決め方」） | `diagrams.json`・`merge-cols.json` の初回作成 |
 | 2026-11-22 | （exe は使わない。下の「章の並びの期待値の決め方」） | `chapters.json` の初回作成 |
 | 2026-11-23 | （exe は使わない。下の「章の並びの期待値の決め方」） | `chapters.json` に部の扉ページ・付録を先に書く・付録の中の部のケースと `part_files` を足し、全ケースの正解を `quarto inspect` の `files.input` に照らし直した（すべて一致。外部レビュー H-01） |
+| 2026-11-23 | （exe は使わない。同上） | `chapters.json` にフロー形式・`book.references`・後ろに書いた index のケースと、対応付けの項目で `chapters:` を `part:` より先に書くケースを足し、`references` を足した。全 9 ケースが `files.input` と一致 |
 | 2026-11-22 | （exe は使わない。下の「改訂ファイルの値の期待値の決め方」） | `rev-values.json` の初回作成 |
 | 2026-11-22 | （exe は使わない。IO-01 で BOM を保持すると決めた（利用者の承認）ので規則から足した） | `tag-applied.json` の `chapters/02/index.qmd`（原稿に BOM がある）の先頭に BOM を足した。ほかは採取したまま |
 
@@ -67,8 +68,8 @@ mermaid のタブ（`rustDiffers`）・CRLF の設定（`luaWindowsOnly`）・me
 ddq（Rust）・postprocess-html.js のどちらの出力も期待値に使わない。
 
 - `cases` … 各 `_quarto.yml` を一時フォルダに置き、並びに出てくるファイルと `part_files` を見出しだけの中身で作って
-  `quarto inspect` を通し、`files.input`（Quarto が描く入力の並び）を、章（`chapters`）と付録（`appendices`）に
-  分けたもの。逆斜線は `/` に揃える（両実装ともパスの区切りを `/` にする）。2026-11-22 の初回は
+  `quarto inspect` を通し、`files.input`（Quarto が描く入力の並び）を、章（`chapters`。index が先頭）・
+  `book.references` のページ（`references`。あるケースだけ）・付録（`appendices`）に分けたもの。逆斜線は `/` に揃える（両実装ともパスの区切りを `/` にする）。2026-11-22 の初回は
   `config.book` を書かれた順に並べた（PyYAML の読みとも一致）が、それでは部の扉ページが抜け、付録を先に書くと
   付録が先になる（外部レビュー H-01）。2026-11-23 に全ケースを `files.input` に照らし直した
 - `part_files` … `part:` の値のうち、部の扉ページとしてファイルを置くもの。Quarto は値がファイルなら扉ページ

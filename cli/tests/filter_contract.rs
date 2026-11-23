@@ -527,7 +527,13 @@ fn chapter_lists_match_the_shared_cases() {
         let html_of = |p: &str| format!("{}.html", p.rsplit_once('.').unwrap().0);
         // （HTML, HTML の章番号（None は付録・扉ページの形）, 期待する番号の接頭辞（None は触れないこと））
         let mut pages: Vec<(String, Option<String>, Option<String>)> = Vec::new();
-        for ch in case["chapters"].as_array().unwrap() {
+        // book.references も章の 1 つ（Quarto は章の後ろ・付録の前に描く）
+        for ch in case["chapters"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .chain(case.get("references"))
+        {
             let ch = ch.as_str().unwrap();
             let n = (pages.len() + 1).to_string();
             pages.push(if parts.contains(&ch) {

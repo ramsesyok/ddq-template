@@ -81,36 +81,146 @@ const docPath = (item) => {
   return /\.(?:qmd|md)$/i.test(value) ? value.replace(/\\/g, '/') : undefined;
 };
 
+/** `<key>: <値>` の値（`key:` の後ろが空白か行末のとき。`part:x` は YAML では 1 つの文字列） */
+const valueOf = (s, key) => (s.startsWith(`${key}:`) && /^(?:\s|$)/.test(s.slice(key.length + 1))
+  ? s.slice(key.length + 1)
+  : undefined);
+
+/**
+ * フロー形式の列 `[a, "b c", 'd']` の要素のうち、文書ファイルのパス（`[` の後ろから読む。Rust の
+ * `flow_items` と同じ）。閉じるまで次の行も読む（`rest` は残りの行の反復子）。空白の後の `#` から行末は
+ * コメント。入れ子の `[…]`・`{…}` は外す。
+ */
+const flowItems = (first, rest) => {
+  const found = [];
+  let item = '';
+  let nested = false;
+  let depth = 1;
+  let quote;
+  const finish = () => {
+    const p = nested ? undefined : docPath(item);
+    if (p !== undefined) found.push(p);
+    item = '';
+    nested = false;
+  };
+  for (let text = first; ; ) {
+    let afterSpace = true;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (quote) {
+        item += c;
+        if (quote === '"' && c === '\\' && i + 1 < text.length) item += text[++i];
+        else if (quote === "'" && c === "'" && text[i + 1] === "'") item += text[++i];   // `''` は `'`
+        else if (c === quote) quote = undefined;
+      } else if (c === '#' && afterSpace) {
+        break;
+      } else if ((c === '"' || c === "'") && (item.trim() === '' || /[[{,:]$/.test(item.trimEnd()))) {
+        quote = c;
+        item += c;
+      } else if (c === '[' || c === '{') {
+        depth += 1;
+        nested = true;
+        item += c;
+      } else if (c === ']' || c === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          finish();
+          return found;
+        }
+        item += c;
+      } else if (c === ',' && depth === 1) {
+        finish();
+      } else {
+        item += c;
+      }
+      afterSpace = /\s/.test(c);
+    }
+    item += ' ';
+    const next = rest.next();
+    if (next.done) {
+      finish();                           // 閉じないまま終わった。読めた分は返す
+      return found;
+    }
+    text = next.value;
+  }
+};
+
 /**
  * `chapters:` と `appendices:` の下に続く「その行より深い字下げ」の範囲から、文書のパスを
  * 拾う（Rust の `chapters_of` と同じ規則）。キーと同じ字下げの `- ` もそのキーの列。
  * `part:` で束ねた入れ子の `chapters:` も同じ範囲に入るので、外側の列に続けて拾う。
  * `- part: <値>` は、値がファイル（`isFile`）なら部の扉ページとしてその位置（子の章の前）に入れ、
- * `parts` にも入れる。無ければ部の題名なので入れない（Quarto と同じ。H-01）。章と付録は別の列で、
- * 使う側が章 → 付録の順に並べる（書いた順にかかわらず）。
+ * `parts` にも入れる。無ければ部の題名なので入れない（Quarto と同じ。H-01）。対応付けの項目で
+ * `chapters:` を `part:` より先に書いても、扉ページは子の章の前。値はフロー形式 `[a, b]` でもよい。
+ * `book.references` は `references` に入れる。章・references・付録は別々に返し、使う側が
+ * 章 → references → 付録の順に並べる（書いた順にかかわらず）。
  */
 const docsOf = (text, isFile) => {
-  const lists = { chapters: [], appendices: [], parts: new Set() };
-  let inside;                             // { indent, list }
-  for (const line of text.split(/\r?\n/)) {
+  const lists = { chapters: [], appendices: [], references: undefined, parts: new Set() };
+  let inside;                             // { indent, appendix }
+  let items = [];                         // 対応付けの項目: { content（中身の字下げ）, at（始まった列の位置） }
+  let book;                               // { indent, child（直下のキーの字下げ） }
+  const lines = text.split(/\r?\n/)[Symbol.iterator]();
+  for (const line of lines) {
     const trimmed = line.trimStart();
     const indent = line.length - trimmed.length;
     if (trimmed === '' || trimmed.startsWith('#')) continue;
     if (inside && (indent < inside.indent || (indent === inside.indent && !trimmed.startsWith('- ')))) {
       inside = undefined;
     }
-    if (!inside) {
-      const key = /^(chapters|appendices):/.exec(trimmed);
-      if (key) inside = { indent, list: lists[key[1]] };
+    items = items.filter((it) => it.content <= indent);
+    if (book && indent <= book.indent) book = undefined;
+    else if (book && book.child === undefined) book.child = indent;
+    const list = inside?.appendix ? lists.appendices : lists.chapters;
+    const part = (value, at) => {
+      const p = docPath(value);
+      if (p === undefined || !isFile(p)) return;
+      list.splice(at ?? list.length, 0, p);
+      lists.parts.add(p);
+    };
+
+    if (inside && trimmed.startsWith('- ')) {
+      const body = trimmed.slice(2).trimStart();
+      const content = indent + trimmed.length - body.length;
+      const partValue = valueOf(body, 'part');
+      const chaptersValue = valueOf(body, 'chapters');
+      if (partValue !== undefined) {
+        part(partValue);
+      } else if (chaptersValue !== undefined) {
+        // 対応付けの項目を `chapters:` から書いた（`part:` は後ろの行に来うる）
+        items.push({ content, at: list.length });
+        const flow = chaptersValue.trimStart();
+        if (flow.startsWith('[')) list.push(...flowItems(flow.slice(1), lines));
+      } else {
+        const p = docPath(body);
+        if (p !== undefined) list.push(p);
+      }
       continue;
     }
-    if (!trimmed.startsWith('- ')) continue;
-    const item = trimmed.slice(2);
-    const part = /^part:(?:\s|$)/.test(item);   // `part:x` は YAML では 1 つの文字列
-    const p = docPath(part ? item.slice('part:'.length) : item);
-    if (p === undefined || (part && !isFile(p))) continue;
-    inside.list.push(p);
-    if (part) lists.parts.add(p);
+    const key = /^(chapters|appendices):(?:\s|$)/.exec(trimmed);
+    if (key) {
+      const appendix = Boolean(inside?.appendix) || key[1] === 'appendices';
+      const flow = trimmed.slice(key[1].length + 1).trimStart();
+      if (flow.startsWith('[')) {
+        (appendix ? lists.appendices : lists.chapters).push(...flowItems(flow.slice(1), lines));
+      } else if (!inside) {
+        inside = { indent, appendix };
+      }
+      continue;
+    }
+    const partValue = valueOf(trimmed, 'part');
+    if (partValue !== undefined) {
+      // 対応付けの項目の後ろのキーとして書いた `part:`。扉ページは項目の始まり（子の章の前）
+      const owner = items[items.length - 1];
+      if (inside && owner?.content === indent) part(partValue, owner.at);
+      continue;
+    }
+    const refs = valueOf(trimmed, 'references');
+    if (refs !== undefined) {
+      if (!inside && book?.child === indent) lists.references = docPath(refs);
+      continue;
+    }
+    if (!inside && valueOf(trimmed, 'book') !== undefined) book = { indent, child: undefined };
   }
   return lists;
 };
@@ -126,7 +236,8 @@ const isFile = (p) => {
 
 const toHtml = (f) => f.replace(/\.(?:qmd|md)$/i, '.html');
 const docs = docsOf(conf, isFile);
-const chapters = docs.chapters.map(toHtml);
+// book.references は章の後ろ・付録の前（Quarto の bookRenderItems。番号は本文の章番号から取るので並びの位置だけ）
+const chapters = [...docs.chapters, ...(docs.references ? [docs.references] : [])].map(toHtml);
 const appendices = docs.appendices.map(toHtml);
 // 付録（book.appendices）。Quarto は章番号を A・B… と振るが、**HTML の章タイトルには
 // chapter-number を出さず**「付録 A — 解析根拠」という文にしてしまう（id を付けた章では

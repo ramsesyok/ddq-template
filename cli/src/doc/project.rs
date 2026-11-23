@@ -253,16 +253,26 @@ fn include_path(line: &str) -> Option<String> {
 /// これで両方拾える。並びは Quarto（`bookRenderItems`）と同じにする（H-01）:
 ///
 /// - `- part: <値>` は、値が執筆フォルダにあるファイル（`is_file`）なら部の扉ページとして、その位置
-///   （子の章の前）に入れる。無ければ部の題名なので入れない（Quarto の `normalizeSidebarItem`）
-/// - 付録は、`_quarto.yml` に書いた順にかかわらず章の後ろ
+///   （子の章の前）に入れる。無ければ部の題名なので入れない（Quarto の `normalizeSidebarItem`）。
+///   対応付けの項目で `chapters:` を `part:` より先に書いても、扉ページは子の章の前
+/// - 値はフロー形式 `[a, b]` でもよい（複数行も。部の中の `chapters:` も）
+/// - `book.references` は章の後ろ・付録の前。付録は、`_quarto.yml` に書いた順にかかわらず章の後ろ
+/// - ホームページ（`index.` で始まる名前）は、どこに書いても先頭
 ///
 /// 1 件の書き方は `as_doc_path` を参照（GEN-01）。postprocess-html.js の `docsOf` は同じ規則で、
 /// 両方を tests/fixtures/contract/chapters.json（正解は `quarto inspect` の入力の並び）に照らす。
 fn chapters_of(conf: &str, is_file: impl Fn(&str) -> bool) -> Vec<String> {
     let (mut chapters, mut appendices) = (Vec::new(), Vec::new());
+    let mut references = None;
     // いまの範囲の字下げと、付録の範囲か
     let mut inside = None::<(usize, bool)>;
-    for line in conf.lines() {
+    // 範囲の中の対応付けの項目（`- chapters:` など）の中身の字下げと、その項目が始まった列の位置
+    // （後から出る `part:` の扉ページをそこに入れる）
+    let mut items: Vec<(usize, usize)> = Vec::new();
+    // `book:` の字下げと、その下のキーの字下げ（`references:` を拾う）
+    let mut book = None::<(usize, Option<usize>)>;
+    let mut lines = conf.lines();
+    while let Some(line) = lines.next() {
         let trimmed = line.trim_start();
         let indent = line.len() - trimmed.len();
         // 空行・コメントは範囲の一部として読み飛ばす。
@@ -274,36 +284,147 @@ fn chapters_of(conf: &str, is_file: impl Fn(&str) -> bool) -> Vec<String> {
         {
             inside = None;
         }
-        match inside {
-            None => {
-                if trimmed.starts_with("chapters:") {
-                    inside = Some((indent, false));
-                } else if trimmed.starts_with("appendices:") {
-                    inside = Some((indent, true));
+        items.retain(|&(content, _)| content <= indent);
+        match &mut book {
+            Some((start, _)) if indent <= *start => book = None,
+            Some((_, child @ None)) => *child = Some(indent),
+            _ => {}
+        }
+        let appendix = inside.is_some_and(|(_, a)| a);
+        let list = if appendix { &mut appendices } else { &mut chapters };
+
+        // 範囲の中の `- 項目`
+        if let (Some(_), Some(item)) = (inside, trimmed.strip_prefix("- ")) {
+            let body = item.trim_start();
+            let content = indent + trimmed.len() - body.len();
+            if let Some(value) = value_of(body, "part") {
+                list.extend(as_doc_path(value).filter(|p| is_file(p)));
+            } else if let Some(value) = value_of(body, "chapters") {
+                // 対応付けの項目を `chapters:` から書いた（`part:` は後ろの行に来うる）
+                items.push((content, list.len()));
+                if let Some(flow) = value.trim_start().strip_prefix('[') {
+                    list.extend(flow_items(flow, &mut lines));
                 }
+            } else {
+                list.extend(as_doc_path(body));
             }
-            Some((_, appendix)) => {
-                let Some(item) = trimmed.strip_prefix("- ") else {
-                    continue;
-                };
-                let path = match part_value(item) {
-                    Some(value) => as_doc_path(value).filter(|p| is_file(p)),
-                    None => as_doc_path(item),
-                };
-                if let Some(p) = path {
-                    if appendix { &mut appendices } else { &mut chapters }.push(p);
-                }
+            continue;
+        }
+        if let Some(value) = value_of(trimmed, "chapters").or_else(|| value_of(trimmed, "appendices")) {
+            let appendix = appendix || trimmed.starts_with("appendices");
+            if let Some(flow) = value.trim_start().strip_prefix('[') {
+                let found = flow_items(flow, &mut lines);
+                if appendix { &mut appendices } else { &mut chapters }.extend(found);
+            } else if inside.is_none() {
+                inside = Some((indent, appendix));
             }
+            // 範囲の中の `chapters:`（部で束ねた子の章）は、続く `- ` を外側の列に続けて拾う
+            continue;
+        }
+        if let Some(value) = value_of(trimmed, "part") {
+            // 対応付けの項目の後ろのキーとして書いた `part:`。扉ページは項目の始まり（子の章の前）
+            if let Some(&(_, at)) = items
+                .last()
+                .filter(|&&(content, _)| inside.is_some() && content == indent)
+                && let Some(p) = as_doc_path(value).filter(|p| is_file(p))
+            {
+                list.insert(at, p);
+            }
+            continue;
+        }
+        if let Some(value) = value_of(trimmed, "references") {
+            if inside.is_none() && book.is_some_and(|(_, child)| child == Some(indent)) {
+                references = as_doc_path(value);
+            }
+            continue;
+        }
+        if value_of(trimmed, "book").is_some() && inside.is_none() {
+            book = Some((indent, None));
         }
     }
+    chapters.extend(references);
     chapters.extend(appendices);
+    // Quarto はホームページを先頭に回す（`bookRenderItems` の `isBookIndexPage`）
+    if let Some(i) = chapters.iter().position(|f| f.starts_with("index.")) {
+        let home = chapters.remove(i);
+        chapters.insert(0, home);
+    }
     chapters
 }
 
-/// `part: <値>` の値（`part:` の後ろが空白か行末のとき。`part:x` は YAML では 1 つの文字列）
-fn part_value(item: &str) -> Option<&str> {
-    item.strip_prefix("part:")
+/// `<key>: <値>` の値（`key:` の後ろが空白か行末のとき。`part:x` は YAML では 1 つの文字列）
+fn value_of<'a>(s: &'a str, key: &str) -> Option<&'a str> {
+    s.strip_prefix(key)?
+        .strip_prefix(':')
         .filter(|v| v.is_empty() || v.starts_with(char::is_whitespace))
+}
+
+/// フロー形式の列 `[a, "b c", 'd']` の要素のうち、文書ファイルのパス（`[` の後ろから読む）。
+/// 閉じるまで次の行も読む。空白の後の `#` から行末はコメント。入れ子の `[…]`・`{…}` は外す。
+fn flow_items<'a>(first: &str, rest: &mut impl Iterator<Item = &'a str>) -> Vec<String> {
+    // 要素 1 つ分（入れ子を含んでいれば捨てる）
+    fn finish(found: &mut Vec<String>, item: &mut String, nested: &mut bool) {
+        if !*nested {
+            found.extend(as_doc_path(item));
+        }
+        item.clear();
+        *nested = false;
+    }
+    let mut found = Vec::new();
+    let (mut item, mut nested, mut depth, mut quote) = (String::new(), false, 1usize, None::<char>);
+    let mut text = first;
+    loop {
+        let mut chars = text.chars().peekable();
+        let mut after_space = true;
+        while let Some(c) = chars.next() {
+            match quote {
+                Some(q) => {
+                    item.push(c);
+                    if q == '"' && c == '\\' {
+                        item.extend(chars.next());
+                    } else if q == '\'' && c == q && chars.peek() == Some(&'\'') {
+                        item.extend(chars.next()); // `''` は `'`
+                    } else if c == q {
+                        quote = None;
+                    }
+                }
+                None => match c {
+                    '#' if after_space => break,
+                    '"' | '\''
+                        if item.trim().is_empty() || item.trim_end().ends_with(['[', '{', ',', ':']) =>
+                    {
+                        quote = Some(c);
+                        item.push(c);
+                    }
+                    '[' | '{' => {
+                        depth += 1;
+                        nested = true;
+                        item.push(c);
+                    }
+                    ']' | '}' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            finish(&mut found, &mut item, &mut nested);
+                            return found;
+                        }
+                        item.push(c);
+                    }
+                    ',' if depth == 1 => finish(&mut found, &mut item, &mut nested),
+                    c => item.push(c),
+                },
+            }
+            after_space = c.is_whitespace();
+        }
+        item.push(' ');
+        match rest.next() {
+            Some(line) => text = line,
+            None => {
+                // 閉じないまま終わった（正しい YAML ではない）。読めた分は返す
+                finish(&mut found, &mut item, &mut nested);
+                return found;
+            }
+        }
+    }
 }
 
 /// `- ` の後ろが文書ファイルのパスならそれを返す（`part:` などは None）。
@@ -442,9 +563,13 @@ mod tests {
         let shared: serde_json::Value =
             serde_json::from_str(include_str!("../../tests/fixtures/contract/chapters.json")).unwrap();
         for case in shared["cases"].as_array().unwrap() {
-            let want: Vec<&str> = ["chapters", "appendices"]
+            // 章 → references → 付録（index は chapters の先頭に書いてある）
+            let want: Vec<&str> = case["chapters"]
+                .as_array()
+                .unwrap()
                 .iter()
-                .flat_map(|key| case[key].as_array().unwrap())
+                .chain(case.get("references"))
+                .chain(case["appendices"].as_array().unwrap())
                 .map(|v| v.as_str().unwrap())
                 .collect();
             let parts: Vec<&str> = case["part_files"]
@@ -484,6 +609,37 @@ mod tests {
         let conf =
             "book:\n  chapters:\n    - index.qmd\n    - a.qmd\n  appendices:\n    - app-a.qmd\n\nlang: ja\n";
         assert_eq!(chapters_of(conf, |_| false), ["index.qmd", "a.qmd", "app-a.qmd"]);
+    }
+
+    /// フロー形式の要素: 引用の中の `,`・`]`・`#`、入れ子は外す、複数行とコメント、閉じない列
+    #[test]
+    fn flow_items_read_quoted_nested_and_multiline_values() {
+        let mut none = std::iter::empty();
+        assert_eq!(
+            flow_items(
+                r#" "a, b.qmd", 'it''s.qmd', [x.qmd], {part: p.qmd}, c.qmd]"#,
+                &mut none
+            ),
+            ["a, b.qmd", "it's.qmd", "c.qmd"]
+        );
+        assert_eq!(
+            flow_items(r#""d#]e.qmd" , f.qmd # g.qmd]"#, &mut none),
+            ["d#]e.qmd", "f.qmd"],
+            "コメントの中の `]` で閉じない"
+        );
+        let mut rest = ["  b.qmd,  # コメント ]", "  c.qmd", "]", "after.qmd"].into_iter();
+        assert_eq!(flow_items("a.qmd,", &mut rest), ["a.qmd", "b.qmd", "c.qmd"]);
+        assert_eq!(rest.next(), Some("after.qmd"), "閉じた後の行は読まない");
+        let mut unclosed = ["  b.qmd"].into_iter();
+        assert_eq!(flow_items("a.qmd,", &mut unclosed), ["a.qmd", "b.qmd"]);
+    }
+
+    /// `references:` は `book:` の直下のキーだけ（Pandoc のメタデータの `references:` などは拾わない）
+    #[test]
+    fn references_are_read_only_under_book() {
+        let conf = "references: top.qmd\nbook:\n  title: t\n  chapters:\n    - index.qmd\n  references: refs.qmd\n  \
+                    sidebar:\n    references: deep.qmd\nformat:\n  references: fmt.qmd\n";
+        assert_eq!(chapters_of(conf, |_| false), ["index.qmd", "refs.qmd"]);
     }
 
     #[test]

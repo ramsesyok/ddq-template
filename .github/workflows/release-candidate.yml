@@ -71,26 +71,32 @@ jobs:
       - id: version
         shell: bash
         run: echo "version=$(tr -d '[:space:]' < template/VERSION)" >> "$GITHUB_OUTPUT"
+      # 手元の検証環境と同じ版（ci.yml・extension.yml と同じ）。書体を確かめるのに使うので先に入れる
+      - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b # v2.2.0
+        with:
+          version: 1.9.38
+      # 書体は入れるのに 10〜15 分かかるので、裏で入れ始めてビルドと重ね、使う前（使った版を書く手順）に待つ
+      - uses: ./.github/actions/jp-fonts
+        with:
+          phase: start
       - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable の枝（2026-11-23）
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: cli
-      # 手元の検証環境と同じ版（ci.yml・extension.yml と同じ）
-      - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b # v2.2.0
-        with:
-          version: 1.9.38
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: extensions/ddq-template/package-lock.json
-      - uses: ./.github/actions/jp-fonts
       # ddq.exe（配るもの）と ddq-release.exe（保守者用。配らない）が target/release に並んでできる
       - name: ddq と ddq-release をビルド
         working-directory: cli
         run: cargo build --release --locked
+      - uses: ./.github/actions/jp-fonts
+        with:
+          phase: wait
       # 配布検証の記録（計画 REL-03）: どのコミットから、どの exe で作ったか。ZIP・VSIX の exe がこれと同じことは
       # 次の手順の check_release.py --exe が確かめる
       - name: 使った版を書く
@@ -132,7 +138,7 @@ jobs:
       - name: 出力を照合し、SHA-256 の一覧を作る
         shell: bash
         run: python cli/tools/check_release.py "$RUNNER_TEMP/out" --exe cli/target/release/ddq.exe --sums "$RUNNER_TEMP/out/SHA256SUMS.txt" $SAMPLE_ARG
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: candidate
           retention-days: 1
@@ -153,7 +159,7 @@ jobs:
         with:
           version: 1.9.38
       - uses: ./.github/actions/jp-fonts
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: candidate
           path: ${{ runner.temp }}/out
@@ -183,7 +189,7 @@ jobs:
       - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b # v2.2.0
         with:
           version: 1.9.38
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: candidate
           path: ${{ runner.temp }}/out
@@ -193,7 +199,7 @@ jobs:
         run: sha256sum -c SHA256SUMS.txt
       - run: npm ci
       - name: 検証用の VSCode をキャッシュ
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: extensions/ddq-template/.vscode-test
           key: vscode-test-${{ runner.os }}
@@ -204,7 +210,7 @@ jobs:
         run: npm run test:smoke -- "$RUNNER_TEMP/out/ddq-template-win32-x64-${{ needs.build.outputs.version }}.vsix"
         env:
           SMOKE_VERSIONS: ${{ runner.temp }}/smoke-versions.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: smoke-versions
           retention-days: 1
@@ -216,21 +222,21 @@ jobs:
     needs: [build, verify-zip, verify-vsix]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: candidate
           path: out
       - name: SHA-256 の一覧と照合
         working-directory: out
         run: sha256sum -c SHA256SUMS.txt
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: smoke-versions
           path: smoke
       # versions.txt は SHA-256 の一覧に入らない（一覧は ZIP と VSIX だけ）ので、足しても照合は変わらない
       - name: スモークに使った版を、使った版の一覧に足す
         run: cat smoke/smoke-versions.txt >> out/versions.txt && cat out/versions.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: release-${{ needs.build.outputs.version }}
           if-no-files-found: error

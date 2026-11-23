@@ -111,7 +111,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: 検証用の VSCode をキャッシュ
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: extensions/${{ matrix.ext }}/.vscode-test
           key: vscode-test-${{ runner.os }}
@@ -180,7 +180,7 @@ jobs:
       - name: パッケージ
         run: npm run package
       - name: 成果物を保存
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.ext }}-vsix
           path: 'extensions/${{ matrix.ext }}/*.vsix'

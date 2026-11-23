@@ -9,7 +9,7 @@ C:\tools\quarto-template-2.2.1\
 ├── ddq.exe          ← 様式・変換・ビルドの実体
 ├── はじめかた.pdf    ← 発行者向け 8 枚
 ├── AGENT-GUIDE.md   ← AI 向け執筆ガイド
-├── ddq-template-win32-x64-3.1.0-pre1.vsix
+├── ddq-template-win32-x64-3.1.0.vsix
 └── manual\          ← 利用マニュアル
 ```
 :::

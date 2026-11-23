@@ -615,3 +615,110 @@ fn part_pages_and_appendices_follow_quartos_order() {
         assert!(page(ch).contains(want), "{ch} に「{want}」が無い");
     }
 }
+
+/// フロー形式・`book.references`・後ろに書いた index・`chapters:` を先に書いた部も、Quarto の描く順に読む。
+/// 実 exe の `tag list` の文書順が `quarto inspect` の入力の並びと同じで、`ddq html` がどの章の表にも番号を振る
+#[test]
+fn flow_lists_references_and_a_late_index_follow_quartos_order() {
+    if skip_without_quarto() {
+        return;
+    }
+    let _lock = QUARTO_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = tmp.path().join("repo");
+    let docs = repo.join("docs");
+    assert_ok(
+        &ddq(&["init", &repo.to_string_lossy(), "docs", "--no-render"]),
+        "ddq init",
+    );
+    let conf = fs::read_to_string(docs.join("_quarto.yml")).unwrap();
+    let nl = if conf.contains("\r\n") { "\r\n" } else { "\n" };
+    let lines: Vec<&str> = conf.split(nl).collect();
+    let start = lines
+        .iter()
+        .position(|l| *l == "  chapters:")
+        .expect("雛形に chapters: が無い");
+    let end = start
+        + 1
+        + lines[start + 1..]
+            .iter()
+            .position(|l| !l.starts_with("    "))
+            .unwrap();
+    let book = [
+        "  chapters:",
+        "    - a.qmd",
+        "    - chapters: [b.qmd]   # chapters を part より先に書く",
+        "      part: part.qmd",
+        "    - index.qmd",
+        "  references: refs.qmd",
+        "  appendices: [",
+        "    app.qmd,",
+        "    app2.qmd",
+        "  ]",
+    ];
+    let conf = [&lines[..start], &book[..], &lines[end..]].concat().join(nl);
+    fs::write(docs.join("_quarto.yml"), conf).unwrap();
+    for (file, title) in [
+        ("a.qmd", "概要"),
+        ("part.qmd", "総論"),
+        ("b.qmd", "詳細"),
+        ("refs.qmd", "参考"),
+        ("app.qmd", "付録の一"),
+        ("app2.qmd", "付録の二"),
+    ] {
+        let id = file.trim_end_matches(".qmd");
+        fs::write(
+            docs.join(file),
+            format!("# {title}\n\n| 項目 | 内容 |\n|---|---|\n| a | b |\n\n: {title}の表 {{#tbl-{id}}}\n"),
+        )
+        .unwrap();
+    }
+
+    let chapters = quarto_chapters(&docs);
+    assert_eq!(
+        chapters,
+        [
+            "index.qmd",
+            "a.qmd",
+            "part.qmd",
+            "b.qmd",
+            "refs.qmd",
+            "app.qmd",
+            "app2.qmd"
+        ],
+        "Quarto の描く順が想定と違う"
+    );
+    let d = docs.to_string_lossy().into_owned();
+    let out = ddq(&["tag", "list", &d, "--json"]);
+    assert_ok(&out, "ddq tag list");
+    let list: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let order: Vec<&str> = list["order"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .filter(|o| chapters.iter().any(|c| c == o))
+        .collect();
+    assert_eq!(order, chapters, "ddq の文書順が Quarto と違う");
+    assert_eq!(list["warnings"], serde_json::json!([]), "章立ての警告");
+
+    assert_ok(&ddq(&["html", &d]), "ddq html");
+    let page = |ch: &str| {
+        fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html")))
+            .unwrap_or_else(|_| panic!("{ch} の HTML が無い"))
+    };
+    for ch in &chapters {
+        let bad = unnumbered_captions(&page(ch));
+        assert!(bad.is_empty(), "{ch} に番号の無いキャプション: {bad:#?}");
+    }
+    for (ch, want) in [
+        ("a.qmd", "表 1-1　概要の表"),
+        ("part.qmd", "表 0-1　総論の表"),
+        ("b.qmd", "表 2-1　詳細の表"),
+        ("refs.qmd", "表 3-1　参考の表"),
+        ("app.qmd", "表 A-1　付録の一の表"),
+        ("app2.qmd", "表 B-1　付録の二の表"),
+    ] {
+        assert!(page(ch).contains(want), "{ch} に「{want}」が無い");
+    }
+}

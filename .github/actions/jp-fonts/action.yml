@@ -3,25 +3,73 @@
 # 英語版の Windows には入っていないことがあり、無いと別の書体に落ちて紙面が変わるので、無ければ Windows の
 # 「日本語の追加フォント」（Language.Fonts.Jpan）を入れる。入れても見えなければ失敗する。
 # 前提: リポジトリを checkout 済み、Quarto（quarto typst）と Python がある。
+#
+# 入れるのに 10〜15 分かかるので、ほかの手順と重ねられるように 2 段に分けられる（phase）:
+# - all（既定）: 確かめ、無ければ入れて、終わるまで待つ
+# - start: 確かめ、無ければ入れ始めて（裏で走らせて）すぐ戻る。同じジョブの後の手順で wait を呼ぶこと
+# - wait: start で入れ始めたものを待ち、Typst から見えることを確かめる（start で入れなかったときは確かめるだけ）
 name: 日本語の書体
 description: template/lib.typ の書体を Typst から見えるようにする（Windows）
+inputs:
+  phase:
+    description: all・start・wait（上の説明）
+    required: false
+    default: all
 runs:
   using: composite
   steps:
-    - name: 日本語の書体を確かめる（無ければ入れる）
+    - name: 日本語の書体（${{ inputs.phase }}）
       shell: pwsh
+      env:
+        PHASE: ${{ inputs.phase }}
       run: |
         [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
+        if ($env:PHASE -notin @('all', 'start', 'wait')) { throw "phase は all・start・wait のどれか: $env:PHASE" }
         $want = @(python cli/tools/check_release.py --expected-fonts)
         if ($LASTEXITCODE -ne 0 -or $want.Count -eq 0) { throw "求める書体を読めません" }
         # quarto typst fonts は一覧を標準エラーに出すので、cmd で標準出力にまとめて受け取る
         function Get-MissingFont { $have = @(cmd /c "quarto typst fonts 2>&1" | ForEach-Object { $_.Trim() }); $want | Where-Object { $have -notcontains $_ } }
-        $missing = @(Get-MissingFont)
-        if ($missing.Count -gt 0) {
-          Write-Host "Typst から見えない書体: $($missing -join ', ')。日本語の追加フォントを入れる"
-          dism.exe /Online /Add-Capability /CapabilityName:Language.Fonts.Jpan~~~und-JPAN~0.0.1.0 /NoRestart
-          if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) { throw "dism が失敗しました（$LASTEXITCODE）" }
+        # 裏で入れるときの記録（dism の出力と終了コード）
+        $state = Join-Path $env:RUNNER_TEMP 'jp-fonts'
+        if ($env:PHASE -ne 'wait') {
           $missing = @(Get-MissingFont)
+          if ($missing.Count -gt 0) {
+            Write-Host "Typst から見えない書体: $($missing -join ', ')。日本語の追加フォントを入れる"
+            New-Item -ItemType Directory -Force $state | Out-Null
+            # 終了コードは書き終えてから名前を変えて置く（待つ側が書きかけを読まないように）
+            $job = @"
+        & dism.exe /Online /Add-Capability /CapabilityName:Language.Fonts.Jpan~~~und-JPAN~0.0.1.0 /NoRestart *> '$state\dism.log'
+        Set-Content -LiteralPath '$state\exit.tmp' -Value `$LASTEXITCODE
+        Move-Item -LiteralPath '$state\exit.tmp' -Destination '$state\exit.txt'
+        "@
+            $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($job))
+            $p = Start-Process pwsh -ArgumentList '-NoProfile', '-NonInteractive', '-EncodedCommand', $encoded -WindowStyle Hidden -PassThru
+            Set-Content -LiteralPath "$state\pid" -Value $p.Id
+          }
+          if ($env:PHASE -eq 'start') {
+            if ($missing.Count -gt 0) { Write-Host "裏で入れ始めた。後の手順（phase: wait）で待つ" } else { Write-Host "書体: $($want -join ', ')（Typst から見える）" }
+            exit 0
+          }
         }
+        if (Test-Path -LiteralPath $state) {
+          # 入れ始めたものを待つ（長くても 45 分）
+          $deadline = (Get-Date).AddMinutes(45)
+          $runner = [int](Get-Content -LiteralPath "$state\pid" -Raw).Trim()
+          while (-not (Test-Path -LiteralPath "$state\exit.txt")) {
+            if ((Get-Date) -gt $deadline) { throw "日本語の追加フォントが 45 分で入り終わりません" }
+            # 裏の処理が終了コードを残さずに消えた（手順の終わりで止められたなど）なら、待たずに止める
+            if (-not (Get-Process -Id $runner -ErrorAction SilentlyContinue) -and -not (Test-Path -LiteralPath "$state\exit.txt")) {
+              Get-Content -LiteralPath "$state\dism.log" -ErrorAction SilentlyContinue | Write-Host
+              throw "裏で入れていた処理が、終了コードを残さずに終わりました"
+            }
+            Start-Sleep -Seconds 10
+          }
+          Get-Content -LiteralPath "$state\dism.log" -ErrorAction SilentlyContinue | Write-Host
+          $code = [int](Get-Content -LiteralPath "$state\exit.txt" -Raw).Trim()
+          if ($code -ne 0 -and $code -ne 3010) { throw "dism が失敗しました（$code）" }
+          # 同じジョブでもう一度 wait を呼んでも待たない
+          Remove-Item -LiteralPath $state -Recurse -Force
+        }
+        $missing = @(Get-MissingFont)
         if ($missing.Count -gt 0) { throw "書体が見つかりません: $($missing -join ', ')" }
         Write-Host "書体: $($want -join ', ')（Typst から見える）"

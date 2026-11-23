@@ -1,5 +1,5 @@
 {
-  "about": "GEN-01・H-01。_quarto.yml の book.chapters / appendices を、ddq（cli/src/doc/project.rs の chapters_of）と postprocess-html.js（docsOf）が Quarto と同じ並びに読むか。正解は quarto inspect の files.input（Quarto が描く入力の並び。部の扉ページを含み、章 → 付録）を chapters と appendices に分けたもの。part_files は部の扉ページとして置くファイル（part: の値でファイルの無いものは部の題名）。逆斜線は / に揃える。作り方は README.md",
+  "about": "GEN-01・H-01。_quarto.yml の book.chapters / references / appendices を、ddq（cli/src/doc/project.rs の chapters_of）と postprocess-html.js（docsOf）が Quarto と同じ並びに読むか。正解は quarto inspect の files.input（Quarto が描く入力の並び。index が先頭、部の扉ページを含み、章 → references → 付録）を chapters・references・appendices に分けたもの。part_files は部の扉ページとして置くファイル（part: の値でファイルの無いものは部の題名）。逆斜線は / に揃える。作り方は README.md",
   "cases": [
     {
       "name": "雛形（17ed32e。第2〜7章に行末コメント。CRLF。リリース前）",
@@ -96,6 +96,43 @@
       "appendices": [
         "app.qmd",
         "app-part.qmd",
+        "app2.qmd"
+      ]
+    },
+    {
+      "name": "フロー形式・book.references・index を先頭以外に書く",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters: [a.qmd, \"b c.qmd\", index.qmd]   # フロー形式。index は先頭に回る\n  references: refs.qmd\n  appendices: [\n    app.qmd,   # 複数行のフロー形式\n    'app2.qmd'\n  ]\nlang: ja\n",
+      "chapters": [
+        "index.qmd",
+        "a.qmd",
+        "b c.qmd"
+      ],
+      "references": "refs.qmd",
+      "appendices": [
+        "app.qmd",
+        "app2.qmd"
+      ]
+    },
+    {
+      "name": "対応付けの項目で chapters を part より先に書く・部の中のフロー形式",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - chapters:     # chapters を part より先に書く\n        - a.qmd\n      part: part.qmd\n    - part: p2.qmd\n      chapters: [b.qmd, c.qmd]\n    - chapters: [d.qmd]\n      part: 第III部\n  appendices:\n    - chapters:\n      - app.qmd\n      part: app-part.qmd\n    - app2.qmd\nlang: ja\n",
+      "part_files": [
+        "part.qmd",
+        "p2.qmd",
+        "app-part.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "part.qmd",
+        "a.qmd",
+        "p2.qmd",
+        "b.qmd",
+        "c.qmd",
+        "d.qmd"
+      ],
+      "appendices": [
+        "app-part.qmd",
+        "app.qmd",
         "app2.qmd"
       ]
     }

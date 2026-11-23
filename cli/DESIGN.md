@@ -5,7 +5,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 利用手順は利用マニュアル（`docs/manual/`）、様式・変換の内部はテンプレート設計書（`docs/design/`）。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
-- 対象版: テンプレート 3.1.0-pre1（PlantUML 対応。§13）
+- 対象版: テンプレート 3.1.0
 
 ---
 
@@ -503,7 +503,8 @@ runner のロケールは変えられない（`Set-WinSystemLocale` は再起動
 
 runner には日本語フォントが無いので、`build` と `verify-zip` は `.github/actions/jp-fonts` で、`template/lib.typ` の本文・等幅の
 最初の候補（Meiryo UI・BIZ UDGothic）が Typst から見えることを確かめ、無ければ Windows の日本語の追加フォント
-（`Language.Fonts.Jpan`）を入れる。PDF に埋め込まれた書体は `check_release.py` が確かめる。
+（`Language.Fonts.Jpan`）を入れる。PDF に埋め込まれた書体は `check_release.py` が確かめる。入れるのに 10〜15 分かかるので、
+`build` では裏で入れ始め（`phase: start`）、ビルドと重ねてから、使う前に待つ（`phase: wait`。2026-11-23）。
 
 ---
 
@@ -840,9 +841,13 @@ design-doc.lua ──┤                                        … POST /render
 ### 14.3 文書順（`doc::project`）
 
 `_quarto.yml` の `book.chapters`（`part:` の入れ子も含む）と `book.appendices`（付録。2.4.0 から）を起点として `{{< include >}}` を再帰展開する。
-並びは Quarto が描く順（`quarto inspect` の `files.input`）と同じにする: 章 → 付録（`_quarto.yml` に書いた順にかかわらず）。
+並びは Quarto が描く順（`quarto inspect` の `files.input`）と同じにする: 章 → `book.references` → 付録（`_quarto.yml` に
+書いた順にかかわらず）。ホームページ（`index.` で始まる名前）はどこに書いても先頭。値はフロー形式 `[a, b]` でもよい
+（複数行も。部の中の `chapters:` も）。
 `- part: <値>` は、値が執筆フォルダにあるファイルなら部の扉ページとして子の章の前に入れ、無ければ部の題名として入れない
 （Quarto と同じ判定。作業ツリーはファイルか、旧版は `git ls-tree` の一覧にあるか。2026-11-23、外部レビュー H-01）。
+対応付けの項目で `chapters:` を `part:` より先に書いても、扉ページは子の章の前（フロー形式・references・index・この書き方は
+同じ日に、レビューの範囲の外として直した）。読まないのは、フロー形式の対応付け `{part: …}`、`href:`・`file:` で書いた項目。
 postprocess-html.js の `docsOf` も同じ並びを作り、付録の中の扉ページには付録の記号を振らない。
 **include のパスの基準は「`chapters:` に並べた章ファイルのあるディレクトリ」で、入れ子の include でも
 変わらない**（include 元ファイルの位置ではない）。執筆フォルダの `_quarto.yml` にも同じ注意書きがある。
@@ -894,7 +899,7 @@ postprocess-html.js の `docsOf` も同じ並びを作り、付録の中の扉�
 
 ### 14.6 テスト
 
-- `src/doc/*` の単体テスト: `chapters:` の読み取り（`part:` 入れ子・部の扉ページ・付録の位置・字下げの終わり）、入れ子 include の
+- `src/doc/*` の単体テスト: `chapters:` の読み取り（`part:` 入れ子・部の扉ページ・付録の位置・フロー形式・`references`・index の位置・字下げの終わり）、入れ子 include の
   パス解決、行頭パターン（見出し・`.tbl`・`.ipo`・`#fig-`・pipe 表）、ユニット内側の見出しを外すこと、
   候補ラベルの決定性と衝突回避、挿入位置（既存属性あり／なし、CRLF）。
 - `tests/tag.rs`: 2 段の入れ子 include を持つ執筆フォルダを組み立て、`tag list --json` の
