@@ -1575,8 +1575,8 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 
 ## 2026-11-23 の残作業（版 3.1.0・章の書き方・CI・実装仕様書。ブランチ `fix/review-critical`）
 
-- **状況**: **実装済**（単体・実 Quarto・実 exe・実拡張ホストで確かめた）。コミットしていない（High の直し `f2c6e0e`・PR の上の作業ツリー）。
-  GitHub Actions では走らせていない
+- **状況**: **実装済**（単体・実 Quarto・実 exe・実拡張ホスト・GitHub Actions で確かめた）。2026-11-23 の指示（「コミットしてプッシュ」）で
+  `31c0f18`（コード・CI・版）と `1fafcc5`（実装仕様書・記録）にし、PR #144 の枝にプッシュした。PR の CI は 13 件すべて成功（下）
 - **利用者の指示（2026-11-23）**: 「外部レビューおよび人の手で行う検証以外で実行できるものは実施してください。判断が必要なものは
   確認を実施してください」。尋ねた判断と答え:
   - GitHub: 「コミットしてPRを出す (推奨)」（High の直しのコミットと PR。検証用の枝 `ci-test/*` は消さず、失敗した実行も走らせ直さない）
@@ -1617,13 +1617,21 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
   - 実拡張ホスト: `DDQ_HOST_REAL=1`、3.1.0 のリリースビルドの ddq で 30 項目に合格
   - 書体の 2 段: workflow を YAML として読めることと、`phase` の手順を手元の PowerShell で流した結果（workflow 3 本と jp-fonts を YAML として読めた。偽の dism と「書体が無い」状態を差し込んで 7 通りを流し、すべて期待どおり（start → wait、2 回目の wait は待たない、書体があれば入れ始めない、dism の失敗で止まる、裏の処理が消えたら待たずに止まる、既定の all、知らない phase は止まる）。実際の dism は流していない（システムを変えるため））
   - 実装仕様書: 新しい ddq で `ddq update` → `ddq html`（cli-impl: 警告なし。`analysis/check_output.py` で 9 ページ・図 3 つ・壊れたリンク 0・ハッシュの不一致 0、ddq-template-impl: update → pdf（55 ページ）→ html、警告・未解決の参照なし）
+  - PR の CI（`1fafcc5`、2026-11-23）: ci・extension・release-candidate の 13 件すべて成功。release-candidate の build では、
+    ランナーに書体が無く `phase: start` が裏で入れ始めて 8 秒で進み、ビルドの後の `phase: wait` が dism の終わり
+    （The operation completed successfully.）を待って、Meiryo UI・BIZ UDGothic が Typst から見えることを確かめた。上げた版の
+    Action（checkout・setup-node・cache・upload-artifact・download-artifact など）もすべて動いた。build ジョブは 15 分 4 秒 → 11 分 44 秒
+    （書体とビルドで 12 分 43 秒 → 9 分 14 秒。重ねたぶんビルドは 2 分 7 秒 → 4 分 25 秒に延びた）。ワークフロー全体は 28 分 4 秒 →
+    28 分 12 秒で縮まなかった（下の残存リスク）
   - PDF の部の扉ページ: E2E と同じ部立ての book（扉ページのファイル・題名だけの部・付録の中の部）を `ddq init` で作って `ddq pdf` すると、Typst の `unknown variable: part` で失敗した。Quarto 1.9.38 は部を `#part[…]` と出すが、`template/` の Typst 側は `part` を定義していない（前からの制約。今日の変更は Typst 側に触れていない）。利用者の判断で記録だけにした（下の残存リスク）
 - **利用者に見える差**: `extensions/ddq-template/CHANGELOG.md` の 3.1.0 の節。今日の分は、フロー形式・`book.references`・後ろに書いた
   index・`chapters:` を先に書いた部の章が tag・rev・HTML の番号の対象になること、ステータスバーが前のフォルダに戻らないこと
 - **計画からの逸脱**: なし（利用者の判断に沿った残りの片付け）
 - **戻す方法**: 上の変更のファイルを `f2c6e0e` に戻し、`extensions/ddq-template/src/build.status.test.ts` を消す
 - **残存リスク**
-  - CI の変更（Action の版・書体の 2 段）は GitHub で走らせていない。PR に push した後の実行で確かめる
+  - 配布候補のワークフロー全体の時間は約 28 分のまま。後に続く verify-zip が書体を重ねずに入れていて（`phase: all`。今回 14 分 39 秒、
+    前回 11 分 36 秒）、これが全体を決める。verify-zip には書体と重ねられる重い手順が無い（取り出した exe で init → pdf → html するには
+    書体が要る）。書体を入れる時間はランナーによって 3 分ほど揺れる
   - 変更履歴の日付は 2026-11-23。公開する日が違えば直す。タグ・リリースは作っていない
   - 章立てでフロー形式の対応付け `{part: …}` と `href:`・`file:` の項目は読まない（Quarto とは並びが違う）
   - GEN-02 の既知の差 2 つは残した（利用者の判断）
