@@ -50,7 +50,7 @@ const root = process.argv[2] || process.env.QUARTO_PROJECT_OUTPUT_DIR || '_book'
 
 // 章順は _quarto.yml の chapters をそのまま使う（並びを二重管理しない）。
 // 章ファイルは .qmd と .md のどちらでもよい（実行コードセルを使わない章は .md にできる）。
-const conf = fs.readFileSync('_quarto.yml', 'utf8');
+const conf = fs.readFileSync('_quarto.yml', 'utf8').replace(/^\uFEFF/, '');
 
 /**
  * `- ` の後ろが文書ファイルのパスならそれを返す（`part:` などは undefined）。ddq（Rust）の
@@ -81,43 +81,336 @@ const docPath = (item) => {
   return /\.(?:qmd|md)$/i.test(value) ? value.replace(/\\/g, '/') : undefined;
 };
 
+/** `<key>: <値>` の値（`key:` の後ろが空白か行末のとき。`part:x` は YAML では 1 つの文字列） */
+const valueOf = (s, key) => (s.startsWith(`${key}:`) && /^(?:\s|$)/.test(s.slice(key.length + 1))
+  ? s.slice(key.length + 1)
+  : undefined);
+
+/** 対応付けの行 `キー: 値` の [キー, 値]（キーは英数字・`-`・`_`。`valueOf` と同じく `part:x` は 1 つの文字列） */
+const mapKey = (s) => {
+  const m = /^([A-Za-z0-9_-]+):(?:\s|$)/.exec(s);
+  return m ? [m[1], s.slice(m[1].length + 1)] : undefined;
+};
+
+/** 引用が始まれるか（その前の、引用の外の空白でない文字が無いか `[`・`{`・`,`・`:`。Rust の `quote_may_open`） */
+const quoteMayOpen = (last) => last === undefined || '[{,:'.includes(last);
+
+/**
+ * フロー形式の値の中身（開きの `[`・`{` の後ろから、対応する閉じの前まで。Rust の `flow_text` と同じ）。
+ * 閉じるまで次の行も読み（`rest` は残りの行の反復子。行の継ぎ目は空白）、空白の後の `#` から行末のコメントは
+ * 落とす。閉じないまま終わったら（正しい YAML ではない）、読めた分に入れ子の閉じを補って返す。
+ */
+const flowText = (first, rest) => {
+  let text = '';
+  const nested = [];                      // 開いている入れ子の閉じ（外側の閉じは含めない）
+  let quote;
+  let last;
+  for (let line = first; ; ) {
+    let afterSpace = true;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (quote) {
+        text += c;
+        if (quote === '"' && c === '\\' && i + 1 < line.length) text += line[++i];
+        else if (quote === "'" && c === "'" && line[i + 1] === "'") text += line[++i];   // `''` は `'`
+        else if (c === quote) {
+          quote = undefined;
+          last = c;
+        }
+      } else {
+        if (c === '#' && afterSpace) break;
+        if ((c === '"' || c === "'") && quoteMayOpen(last)) quote = c;
+        else if (c === '[') nested.push(']');
+        else if (c === '{') nested.push('}');
+        else if ((c === ']' || c === '}') && nested.length === 0) return text;
+        else if (c === ']' || c === '}') nested.pop();
+        text += c;
+        if (!/\s/.test(c)) last = c;
+      }
+      afterSpace = /\s/.test(c);
+    }
+    text += ' ';
+    const next = rest.next();
+    if (next.done) break;
+    line = next.value;
+  }
+  return text + nested.reverse().join('');
+};
+
+/** 引用の外の文字の位置（Rust の `unquoted`）。二重引用の中の `\x` と単一引用の中の `''` は閉じではない */
+const unquoted = (s) => {
+  const out = [];
+  let quote;
+  let last;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (quote === '"' && c === '\\') {
+      i++;
+    } else if (quote && c === quote) {
+      if (quote === "'" && s[i + 1] === "'") {
+        i++;                              // `''` は `'`
+      } else {
+        quote = undefined;
+        last = c;
+      }
+    } else if (quote) {
+      // 引用の中
+    } else if ((c === '"' || c === "'") && quoteMayOpen(last)) {
+      quote = c;
+    } else {
+      out.push(i);
+      if (!/\s/.test(c)) last = c;
+    }
+  }
+  return out;
+};
+
+/** フロー形式の値の中身を、引用と入れ子の外の `,` で区切る（Rust の `split_flow`） */
+const splitFlow = (s) => {
+  const pieces = [];
+  let from = 0;
+  let depth = 0;
+  for (const i of unquoted(s)) {
+    const c = s[i];
+    if (c === '[' || c === '{') depth += 1;
+    else if (c === ']' || c === '}') depth -= 1;
+    else if (c === ',' && depth === 0) {
+      pieces.push(s.slice(from, i));
+      from = i + 1;
+    }
+  }
+  pieces.push(s.slice(from));
+  return pieces;
+};
+
+/**
+ * フロー形式の 1 つの値の形（Rust の `flow_node`）: 文字列 { scalar }（引用は付いたまま）・列 { seq: 中身 }・
+ * 対応付け { map: 中身 }。括弧を含むのに 1 つの列・対応付けになっていないもの（`a [b]` など）は undefined
+ */
+const flowNode = (s) => {
+  const t = s.trim();
+  let depth = 0;
+  let bracket = false;
+  let closed;
+  for (const i of unquoted(t)) {
+    const c = t[i];
+    if (c === '[' || c === '{') {
+      depth += 1;
+      bracket = true;
+    } else if (c === ']' || c === '}') {
+      depth -= 1;
+      bracket = true;
+      if (depth === 0 && closed === undefined) closed = i;
+    }
+  }
+  if (!bracket) return { scalar: t };
+  if (closed !== t.length - 1) return undefined;
+  const inner = t.slice(1, -1);
+  if (t[0] === '[') return { seq: inner };
+  return t[0] === '{' ? { map: inner } : undefined;
+};
+
+/** 対応付けの 1 項目 `キー: 値` の [キー, 値]（`:` の後ろが空白か終わりか括弧。Rust の `key_value`） */
+const keyValue = (s) => {
+  let depth = 0;
+  for (const i of unquoted(s)) {
+    const c = s[i];
+    if (c === '[' || c === '{') depth += 1;
+    else if (c === ']' || c === '}') depth -= 1;
+    else if (c === ':' && depth === 0 && /^(?:[\s[\]{}]|$)/.test(s.slice(i + 1, i + 2))) {
+      return [s.slice(0, i).trim(), s.slice(i + 1)];
+    }
+  }
+  return undefined;
+};
+
+/**
+ * 項目のページになるキーの強さ（Rust の `page_rank`）。Quarto は 1 つの項目から、部の扉ページ（`part:` の値が
+ * ファイル）→ `href:` → `file:` の順に 1 つだけ使う。部の項目（`part:` がある）のページは、部の題名の項目で
+ * `href:`・`file:` から取ったものも部のページ（番号・付録の記号を付けない）
+ */
+const PAGE_RANK = new Map([['part', 3], ['href', 2], ['file', 1]]);
+
+/**
+ * フロー形式の値が並べる文書ファイルのパスを `out` に足す（Rust の `flow_docs` と同じ）。列は要素を順に読み、
+ * 入れ子の列と括弧の混じった値は外す。対応付け（`{part: …, chapters: […]}`・`{href: …}`）は、項目のページ
+ * （`PAGE_RANK` の順に 1 つ）→ `chapters:` の列の順（キーを書いた順にかかわらない）。部の項目のページは `parts` にも入れる
+ */
+const flowDocs = (node, isFile, out, parts) => {
+  if (node?.seq !== undefined) {
+    for (const piece of splitFlow(node.seq)) {
+      const item = flowNode(piece);
+      if (item?.scalar !== undefined) {
+        const p = docPath(item.scalar);
+        if (p !== undefined) out.push(p);
+      } else if (item?.map !== undefined) {
+        flowDocs(item, isFile, out, parts);
+      }
+    }
+  } else if (node?.map !== undefined) {
+    const entries = splitFlow(node.map).map(keyValue).filter(Boolean);
+    const get = (key) => {
+      const entry = entries.find(([k]) => k === key);
+      return entry ? flowNode(entry[1]) : undefined;
+    };
+    for (const key of PAGE_RANK.keys()) {
+      const value = get(key)?.scalar;
+      const p = value === undefined ? undefined : docPath(value);
+      if (p !== undefined && (key !== 'part' || isFile(p))) {
+        out.push(p);
+        if (entries.some(([k]) => k === 'part')) parts.add(p);
+        break;
+      }
+    }
+    const chapters = get('chapters');
+    if (chapters?.seq !== undefined) flowDocs(chapters, isFile, out, parts);
+  }
+};
+
+/** フロー形式の値（`[`・`{` の後ろから）が並べる文書ファイルのパス（Rust の `flow_items`） */
+const flowItems = (open, first, rest, isFile, parts) => {
+  const text = flowText(first, rest);
+  const out = [];
+  flowDocs(open === '[' ? { seq: text } : { map: text }, isFile, out, parts);
+  return out;
+};
+
 /**
  * `chapters:` と `appendices:` の下に続く「その行より深い字下げ」の範囲から、文書のパスを
- * 書かれた順に拾う（Rust の `chapters_of` と同じ規則）。キーと同じ字下げの `- ` もそのキーの列。
+ * 拾う（Rust の `chapters_of` と同じ規則）。キーと同じ字下げの `- ` もそのキーの列。
  * `part:` で束ねた入れ子の `chapters:` も同じ範囲に入るので、外側の列に続けて拾う。
+ * 対応付けの項目（`- part:`・`- href:`・`- file:`・`- text:` など。後ろの行のキーも同じ項目）からは、項目の
+ * ページを `PAGE_RANK` の順に 1 つ、どの行に書いても項目の始まり（子の章の前）に入れる。`part:` の値は
+ * ファイル（`isFile`）なら部の扉ページで、無ければ部の題名なので入れない（Quarto と同じ。H-01）。部の項目の
+ * ページは `parts` にも入れる。値はフロー形式 `[a, b]` でもよく、項目もフロー形式の対応付け
+ * `{part: …, chapters: […]}` で書ける（`flowDocs`）。`book.references` は `references` に入れる。
+ * 章・references・付録は別々に返し、使う側が章 → references → 付録の順に並べる（書いた順にかかわらず）。
  */
-const docsOf = (text) => {
-  const lists = { chapters: [], appendices: [] };
-  let inside;                             // { indent, list }
-  for (const line of text.split(/\r?\n/)) {
+const docsOf = (text, isFile) => {
+  const lists = { chapters: [], appendices: [], references: undefined, parts: new Set() };
+  let inside;                             // { indent, appendix }
+  let items = [];                         // 対応付けの項目: { content（中身の字下げ）, at（始まった列の位置）, page, part }
+  let rootIndent;
+  let book;                               // { indent, child（直下のキーの字下げ） }
+  const lines = text.split(/\r?\n/)[Symbol.iterator]();
+  // 対応付けの項目のキー 1 つ（項目の行か、後ろの行。Rust の `item_key`）
+  const itemKey = (key, value, item, list) => {
+    if (key === 'chapters') {
+      const flow = value.trimStart();
+      if (flow.startsWith('[')) list.push(...flowItems('[', flow.slice(1), lines, isFile, lists.parts));
+      return;
+    }
+    if (key === 'part') item.part = true;
+    const rank = PAGE_RANK.get(key);
+    const p = rank > item.page ? docPath(value) : undefined;
+    if (p !== undefined && (key !== 'part' || isFile(p))) {
+      if (item.page === 0) {
+        list.splice(item.at, 0, p);
+      } else {
+        lists.parts.delete(list[item.at]);
+        list[item.at] = p;
+      }
+      item.page = rank;
+    }
+    if (item.part && item.page > 0) lists.parts.add(list[item.at]);
+  };
+  for (const line of lines) {
     const trimmed = line.trimStart();
     const indent = line.length - trimmed.length;
-    if (trimmed === '' || trimmed.startsWith('#')) continue;
+    if (trimmed === '' || trimmed.startsWith('#') || /^(?:---|\.\.\.)\s*$|^%/.test(trimmed)) continue;
+    rootIndent ??= indent;
     if (inside && (indent < inside.indent || (indent === inside.indent && !trimmed.startsWith('- ')))) {
       inside = undefined;
     }
-    if (!inside) {
-      const key = /^(chapters|appendices):/.exec(trimmed);
-      if (key) inside = { indent, list: lists[key[1]] };
+    items = items.filter((it) => it.content <= indent);
+    if (book && indent <= book.indent) book = undefined;
+    else if (book && book.child === undefined) book.child = indent;
+    const list = inside?.appendix ? lists.appendices : lists.chapters;
+
+    if (inside && trimmed.startsWith('- ')) {
+      const body = trimmed.slice(2).trimStart();
+      const entry = mapKey(body);
+      if (entry) {
+        const item = { content: indent + trimmed.length - body.length, at: list.length, page: 0, part: false };
+        itemKey(entry[0], entry[1], item, list);
+        items.push(item);
+      } else if (body.startsWith('{')) {
+        list.push(...flowItems('{', body.slice(1), lines, isFile, lists.parts));
+      } else {
+        const p = docPath(body);
+        if (p !== undefined) list.push(p);
+      }
       continue;
     }
-    const p = trimmed.startsWith('- ') ? docPath(trimmed.slice(2)) : undefined;
-    if (p) inside.list.push(p);
+    // 対応付けの項目の後ろの行のキー（`part:`・`href:`・`chapters:` など）
+    const owner = items[items.length - 1];
+    const entry = mapKey(trimmed);
+    if (inside && owner?.content === indent && entry) {
+      itemKey(entry[0], entry[1], owner, list);
+      continue;
+    }
+    const key = /^(chapters|appendices):(?:\s|$)/.exec(trimmed);
+    if (key && book?.child === indent) {
+      const appendix = Boolean(inside?.appendix) || key[1] === 'appendices';
+      const flow = trimmed.slice(key[1].length + 1).trimStart();
+      if (flow.startsWith('[')) {
+        (appendix ? lists.appendices : lists.chapters).push(...flowItems('[', flow.slice(1), lines, isFile, lists.parts));
+      } else if (!inside) {
+        inside = { indent, appendix };
+      }
+      continue;
+    }
+    const refs = valueOf(trimmed, 'references');
+    if (refs !== undefined) {
+      if (!inside && book?.child === indent) lists.references = docPath(refs);
+      continue;
+    }
+    const bookValue = valueOf(trimmed, 'book');
+    if (indent === rootIndent && bookValue !== undefined) {
+      const value = bookValue.trimStart();
+      if (value.startsWith('{')) {
+        const text = flowText(value.slice(1), lines);
+        for (const [key, val] of splitFlow(text).map(keyValue).filter(Boolean)) {
+          const node = flowNode(val);
+          if ((key === 'chapters' || key === 'appendices') && node?.seq !== undefined) {
+            flowDocs(node, isFile, lists[key], lists.parts);
+          } else if (key === 'references' && node?.scalar !== undefined) {
+            lists.references = docPath(node.scalar);
+          }
+        }
+      } else {
+        book = { indent, child: undefined };
+      }
+    }
   }
   return lists;
 };
 
+// Quarto と同じく、ファイルであれば部の扉ページ（フォルダや無い名前は部の題名）。cwd は執筆フォルダ
+const isFile = (p) => {
+  try {
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
+};
+
 const toHtml = (f) => f.replace(/\.(?:qmd|md)$/i, '.html');
-const docs = docsOf(conf);
-const chapters = docs.chapters.map(toHtml);
-// 付録（book.appendices）。Quarto は章番号を A・B… と振るが、**HTML の章タイトルには
-// chapter-number を出さず**「付録 A — 解析根拠」という文にしてしまう（id を付けた章では
-// 特に）。語は言語設定で変わるので、記号は _quarto.yml の並び順から決める。
-const appendixLetter = new Map(
-  docs.appendices.map(toHtml).map((f, i) => [f, String.fromCharCode(65 + i)])
-);
-const order = [...chapters, ...[...appendixLetter.keys()].filter((f) => !chapters.includes(f))];
-if (order.length === 0) {
+const docs = docsOf(conf, isFile);
+// book.references は章の後ろ・付録の前（Quarto の bookRenderItems。番号は本文の章番号から取るので並びの位置だけ）
+const chapters = [...docs.chapters, ...(docs.references ? [docs.references] : [])].map(toHtml);
+const appendices = docs.appendices.map(toHtml);
+// Quarto が実際に割り当てた付録記号を読む。番号なし付録は後続の番号を消費しない。
+const appendixPages = new Set(docs.appendices.filter((f) => !docs.parts.has(f)).map(toHtml));
+const appendixNumber = (html) => {
+  const active = html.match(/<a\b[^>]*class="[^"]*\bsidebar-link\s+active\b[^"]*"[^>]*>([\s\S]*?)<\/a>/);
+  if (active) return active[1].match(/<span class="chapter-number">([A-Z]+)<\/span>/)?.[1];
+  // ナビゲーションを非表示にした book では章タイトルの「付録 A — 題名」から読む。
+  const title = html.match(/<h1 class="title"[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '');
+  return title?.match(/^.*?\s([A-Z]+)\s+—\s+/)?.[1];
+};
+const order = [...chapters, ...appendices.filter((f) => !chapters.includes(f))];
+if (docs.chapters.length === 0) {
   console.error('_quarto.yml の chapters を読めませんでした');
   process.exit(1);
 }
@@ -165,8 +458,7 @@ for (const rel of order) {
   if (!fs.existsSync(file)) continue;
   const html = fs.readFileSync(file, 'utf8');
   const scan = new RegExp(`${CHAP}|${HEAD}|${CAP}|${SPLIT}`, 'g');
-  // 付録はファイル単位で記号が決まる（章タイトルから拾えないため）
-  const fileChap = appendixLetter.get(rel) ?? '0';
+  const fileChap = (appendixPages.has(rel) && appendixNumber(html)) || '0';
   let chap = fileChap;
   // いま処理中の見出しの番号（data-number）。章直下（節なし）は空文字。
   // 図表番号は PDF と同じく見出しの深さ「章.節.項…」（最大レベル5）に追従する。

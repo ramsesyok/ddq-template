@@ -5,7 +5,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 利用手順は利用マニュアル（`docs/manual/`）、様式・変換の内部はテンプレート設計書（`docs/design/`）。
 
 - 状態: **実装済み・移行検証済み**（2026-09-19。§12.5 に結果）
-- 対象版: テンプレート 3.1.0-pre1（PlantUML 対応。§13）
+- 対象版: テンプレート 3.1.0
 
 ---
 
@@ -117,7 +117,8 @@ ddq-release は残っている出力（その版のフォルダ・作業フォ�
 （`cli/tests/release.rs` の `a_failure_after_the_swap_lists_what_to_discard`）。
 前回の一式を退避して戻す、読み手から見て一度に切り替える、といった保証は手元では作らない。**正式に配る一式は CI が作る**
 （§7.5・§7.6。`docs/refactoring-plan.md` §7、2026-11-22 決定）。CI のランナーは毎回新しく、公開に使う成果物はすべての検査に通った
-実行にだけ残り、公開は保守者が下書きのリリースに載せてから行う。手元の ddq-release は試作・確認用。
+実行にだけ残り、公開は保守者が 1 つの `gh release create` で行う（gh が下書きで資産を上げ終えてから公開する。利用マニュアル
+18 章「リリースを配る」）。手元の ddq-release は試作・確認用。
 
 **plantuml.jar は同梱しない（3.0.0 から）**。2.2.0〜3.0.0-pre4 は `cli/vendor/plantuml.jar`（MIT 版）を同梱していたが、PlantUML の版・ライセンス・脆弱性への対応を利用者の組織の判断に任せるため外した。ローカルで描く利用者は PlantUML の公式リリースからjar を取得し、`DDQ_PLANTUML_JAR` か exe の隣に置く（§13.3 の探索順は変えていない）。
 
@@ -217,7 +218,7 @@ tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出�
 
 リリース一式は、保守者用の別の exe `ddq-release` が作る（2026-11-23 に `ddq release` から分けた。`docs/release-ci-proposal.md` §5）。
 ソースは `cli/src/bin/ddq-release/`（同じ Cargo パッケージの 2 本目のバイナリ）で、`cargo build --release` で `ddq.exe` と同じ
-`target/release/` にできる。発行者に配る ddq.exe には入らず、配布物にも入れない。`ddq release` は 2026-11-23 から
+`target/release/` にできる。`cargo run` の既定は ddq（`Cargo.toml` の `default-run`。ddq-release は `cargo run --bin ddq-release`）。発行者に配る ddq.exe には入らず、配布物にも入れない。`ddq release` は 2026-11-23 から
 「unrecognized subcommand」（終了コード 2）になる。
 
 ```
@@ -355,7 +356,9 @@ auto:
 2 か所にあり、同じでなければならない（E2E の図の数の照合が、ずれを検出する）。キーは SHA-1 の先頭 16 桁で、図のソースに加えて
 **テンプレートの版・`mermaid-config.json` の中身・`DDQ_MERMAID_ENGINE`（未設定なら `auto`）**を混ぜる
 （2.4.1 から。以前は図のソースだけの 8 桁で、設定やエンジンを変えても古い絵を使い回した）。
-版の違うキャッシュは `ddq update` が版を上げるときに消す（`update::prune_diagram_cache`）。
+版の違うキャッシュは `ddq update` が版を上げるときに消す（`update::prune_diagram_cache`）。`diagrams/` が無いときだけ
+「消すものが無い」とし、フォルダでない・読めない・途中の項目を読めないときは、版マーカーを古いまま残して止まる（消しきれたか
+分からないまま版を上げると、再実行が同じ版の修復に見えて古いキャッシュが残る。2026-11-23、レビュー M-03）。
 存在だけでなく先頭に `<svg` があることを見るので、書きかけ・空のファイルは描き直す。
 
 **環境の照合（2.4.2 から）**。ブラウザの実体・端末のフォント・PlantUML サーバの版は図を変えるが、
@@ -485,14 +488,23 @@ runner のロケールは変えられない（`Set-WinSystemLocale` は再起動
 （workflow 自身や `cli/tools/check_release.py` を変えた PR でも走る）。
 
 - `build`（Windows）: ddq.exe と ddq-release.exe を `--locked` でビルドし、ddq-release でその ddq.exe を配る一式を作る。`cli/tools/check_release.py` で
-  照合し、ZIP・VSIX の SHA-256 の一覧と、使った版（コミット・ランナー・ddq.exe の SHA-256・Quarto・Node・Edge・書体）の一覧を作る
+  照合し、ZIP・VSIX の SHA-256 の一覧と、使った版（コミット・ランナー・Rust・ddq.exe の SHA-256・Quarto・Node・Edge・書体とその版）の
+  一覧 `versions.txt` を作る
 - `verify-zip`（Windows）: 別のランナーで、ZIP を照合し、取り出した exe で init → pdf → html を通す
-- `verify-vsix`（Windows）: 別のランナーで、配る VSIX そのものを `npm run test:smoke` で起動する（旧 ci.yml の vsix-smoke の役目）
-- `publishable`（Linux）: 上がすべて通ったら、`release-<版>` を残す（公開に使うのはこれだけ）
+- `verify-vsix`（Windows）: 別のランナーで、配る VSIX そのものを `npm run test:smoke` で起動する（旧 ci.yml の vsix-smoke の役目）。
+  使った VSCode の版を書き出す
+- `publishable`（Linux）: 上がすべて通ったら、スモークの VSCode の版を `versions.txt` に足して、`release-<版>` を残す（公開に使うのは
+  これだけ）
+
+外部の Action はコミットの SHA で固定する（版はコメント。上げる手順は workflow の冒頭）。入る Rust は固定せず、その時点の stable
+の版を `versions.txt` に残す（2026-11-23、レビュー L-02）。同じ枝の実行は 1 つずつ、`queue: max` で来た順にすべて待たせる
+（既定の `single` では 3 件目の要求が待っている要求を取り消す。L-03）。配布候補は専用の検査だけで残るので、公開の手順が、同じ
+コミットの `ci.yml`・`extension.yml` の成功を照合する（M-04。利用マニュアル 18 章）。
 
 runner には日本語フォントが無いので、`build` と `verify-zip` は `.github/actions/jp-fonts` で、`template/lib.typ` の本文・等幅の
 最初の候補（Meiryo UI・BIZ UDGothic）が Typst から見えることを確かめ、無ければ Windows の日本語の追加フォント
-（`Language.Fonts.Jpan`）を入れる。PDF に埋め込まれた書体は `check_release.py` が確かめる。
+（`Language.Fonts.Jpan`）を入れる。PDF に埋め込まれた書体は `check_release.py` が確かめる。入れるのに 10〜15 分かかるので、
+`build` では裏で入れ始め（`phase: start`）、ビルドと重ねてから、使う前に待つ（`phase: wait`。2026-11-23）。
 
 ---
 
@@ -515,7 +527,7 @@ cli/src/
 ├── fonts.rs           … 端末のフォントの指紋（図キャッシュの照合）
 ├── writing_folder.rs  … 執筆フォルダの検証・列挙（_quarto.yml の有無、コードページで表せない文字の検査）
 ├── quarto.rs          … quarto の起動（env 付与、終了コード → anyhow::Error）
-├── replace.rs         … 原稿・改訂ファイル・改訂履歴の表の置き換え（書く前の再照合、同じフォルダの一時ファイルから置換。§14.5）
+├── replace.rs         … 原稿・改訂ファイル・改訂履歴の表の置き換え（同じフォルダの一時ファイルから置換。人が書くファイルは置き換えるときに照合し直す。§14.5）
 ├── mermaid/
 │   ├── mod.rs         … Engine 選択と共通インタフェース（Vec<(input, output)> → Result）
 │   ├── browser.rs     … 探索・HTML 生成・起動・CDP（DevToolsActivePort → WebSocket）
@@ -828,7 +840,19 @@ design-doc.lua ──┤                                        … POST /render
 
 ### 14.3 文書順（`doc::project`）
 
-`_quarto.yml` の `book.chapters`（`part:` の入れ子も含む）と `book.appendices`（付録。2.4.0 から）を書かれた順に起点として `{{< include >}}` を再帰展開する。
+`_quarto.yml` の `book.chapters`（`part:` の入れ子も含む）と `book.appendices`（付録。2.4.0 から）を起点として `{{< include >}}` を再帰展開する。
+並びは Quarto が描く順（`quarto inspect` の `files.input`）と同じにする: 章 → `book.references` → 付録（`_quarto.yml` に
+書いた順にかかわらず）。ホームページ（`index.` で始まる名前）はどこに書いても先頭。値はフロー形式 `[a, b]` でもよい
+（複数行も。部の中の `chapters:` も）。
+`- part: <値>` は、値が執筆フォルダにあるファイルなら部の扉ページとして子の章の前に入れ、無ければ部の題名として入れない
+（Quarto と同じ判定。作業ツリーはファイルか、旧版は `git ls-tree` の一覧にあるか。2026-11-23、外部レビュー H-01）。
+対応付けの項目で `chapters:` を `part:` より先に書いても、扉ページは子の章の前（フロー形式・references・index・この書き方は
+同じ日に、レビューの範囲の外として直した）。項目はフロー形式の対応付け `{part: …, chapters: […]}`（列の中も）でも、
+`href:`・`file:` で書いても読む（`text:` は前後のどちらの行でもよい。同じ日に、利用者の判断「Quarto に合わせて読む」で直した）。
+1 つの項目のページは 1 つで、部の扉ページ（`part:` の値がファイル）→ `href:` → `file:` の順に使い、どの行に書いても子の章の前に入れる
+（部の題名の項目では `href:`・`file:` のページが部のページになり、番号も付録の記号も付かない。`quarto inspect`・`quarto render` で
+確かめた）。読まないのは、引用したキー（`"part": …`）・アンカーと別名・ブロックスカラー・タグのような YAML の珍しい書き方。
+postprocess-html.js の `docsOf` も同じ並びを作り、付録の中の部のページには付録の記号を振らない。
 **include のパスの基準は「`chapters:` に並べた章ファイルのあるディレクトリ」で、入れ子の include でも
 変わらない**（include 元ファイルの位置ではない）。執筆フォルダの `_quarto.yml` にも同じ注意書きがある。
 ここを取り違えると章の大半を取りこぼす（実際に踏んだ）。
@@ -860,12 +884,26 @@ design-doc.lua ──┤                                        … POST /render
   他と重複する、のいずれかなら**何も書かずに止める**
 - 書く前に全ファイルの書き戻し後の中身を決め、書く直前に対象を読み直す。走査の後に変わった・消えた・
   読み取り専用のファイルが 1 つでもあれば**何も書かずに止める**（IO-01）。書くのはパスの順で、各ファイルは
-  同じフォルダの一時ファイルから置き換える（`replace.rs`。ほかのプログラムが開いていて置き換えられなければ
-  1 秒ほど待ち、それでもだめならその場で書く）。途中で失敗したら、書いたファイルと書いていないファイルを挙げて止める
+  同じフォルダの一時ファイルから置き換える（`replace.rs`。下）。途中で失敗したら、書いたファイルと書いていないファイルを
+  挙げて止める
+- 置き換え（`replace.rs`）の規則（2026-11-23 に、レビュー `docs/refactoring-review.md` の C-01・C-02 で直した）
+  - 一時ファイルを作れない・書けない（容量不足など）・同期できない・付け替えが共有違反以外で失敗する、のどれでも、
+    元のファイルに触れずに止める（「元のファイルは変えていません」）。その場で書き直すのは、最後の付け替えが Windows の
+    共有違反で拒まれたとき（削除を共有しない読み手。1 秒ほど待ち直してから）だけ
+  - 人が書くファイル（原稿・`rev diff --write` の改訂ファイル）は `replace_unchanged` で置き換える。置き換えるときにもう一度、
+    読んだときのバイト列と照合し、変わった・消えた・作られたなら書かずに止める（照合の後に保存されたものを上書きしない）。
+    Windows では、照合から書き終えるまで、ほかのプログラムの書き込みを拒む開き方（読みと削除だけを共有）でそのファイルを
+    開いておく
+  - ほかのプログラムが書き込み用に開いたままなら、1 秒ほど待ち直しても閉じなければ書かずに止める（その場で書かない。
+    2026-11-22 の「1 秒ほど待ち、それでもだめならその場で書く」を、2026-11-23 の利用者判断で変えた）。読むだけで開いている
+    プログラムしかいなければ、書き込みを拒む開き方で開き直して照合し直してから、その場で書く（従来どおり）
+  - Unix には強制のロックが無いので、付け替えの直前に照合し直すだけ（その間に保存されたものは検出できない。配る exe は
+    Windows だけ）
+  - ddq が作るファイル（機構ファイル・版マーカー・改訂履歴の表）は照合しない（`replace`）
 
 ### 14.6 テスト
 
-- `src/doc/*` の単体テスト: `chapters:` の読み取り（`part:` 入れ子・字下げの終わり）、入れ子 include の
+- `src/doc/*` の単体テスト: `chapters:` の読み取り（`part:` 入れ子・部の扉ページ・付録の位置・フロー形式・フロー形式の対応付け・`href:`・`file:`・`references`・index の位置・字下げの終わり）、入れ子 include の
   パス解決、行頭パターン（見出し・`.tbl`・`.ipo`・`#fig-`・pipe 表）、ユニット内側の見出しを外すこと、
   候補ラベルの決定性と衝突回避、挿入位置（既存属性あり／なし、CRLF）。
 - `tests/tag.rs`: 2 段の入れ子 include を持つ執筆フォルダを組み立て、`tag list --json` の
@@ -937,7 +975,8 @@ libgit2 は使わず `git` の子プロセスで済ませる。踏んだ落と�
 `base_commit`（解決した SHA）の両方を持つ。タグは付け替えられるので名前だけでは再取得の
 結果が変わり、SHA だけではそのコミットが到達不能になったときに復元できないためである。
 `--write` は既存のメモを label をキーに引き継ぎ、差分から消えたのにメモが残っているものは
-`stale: true` にして残す（人が消すまで捨てない）。各行の `line` は拡張が場所・差分を開くときの
+`stale: true` にして残す（人が消すまで捨てない）。改訂ファイルは、読んだときのバイト列と書くときに照合し、
+拡張などで保存されていたら書かずに止める（§14.5 の `replace_unchanged`）。各行の `line` は拡張が場所・差分を開くときの
 移り先で、removed は旧版での行を書く（`rev diff --json` の `line_old` から）。
 
 YAML は決まった形だけを読み書きする（依存を増やさないための割り切り。受け付ける形は

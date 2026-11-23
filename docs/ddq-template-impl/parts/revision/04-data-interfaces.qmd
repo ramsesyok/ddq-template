@@ -86,6 +86,10 @@
 
 `apply` は行の配列（`item` と人が直した `label`、チェックの有無）を、`edit` は**改訂まるごと**を送る。拡張側はそれを YAML に直して文書へ書くだけで、差分の計算はしない。
 
+2026-11-23 から（外部レビュー H-02）、`edit` は改訂まるごとではなく、通し番号 `id` と直した 1 か所（`change`。メモ・改訂日・stale の削除のどれかと、直す前の値 `before`・直した後の値 `after`）を送る。拡張は文書のいまの内容に当て、処理した番号を `revision` の `applied` で返す。直す前の値が文書と違えば当てず、`reset` を付けた `revision` で画面を文書に戻す。
+同じ日に、`revision` にタグの状態を確かめ終えたかの `checked`（M-01）、ラベル一覧の `list`・`apply` に取り直しの番号
+`generation`（番号が違う書き戻しは当てない。EXT-04）を足した。
+
 ### Webview の HTML {#sec-rev-data-html}
 
-確認済み（静的）：HTML は `html(webview, extensionUri, view)` が組み立てる。CSP は `default-src 'none'` で `connect-src` を書かないため、**実行時に通信できない**。スクリプトとスタイルは nonce 付き、参照先は `out/webview/assets/main.js` と `main.css` の固定名である（Vite の設定と対になる契約）。`<body data-view="tags|revision">` でどちらの画面を描くかを決める。[E-0006](appendix-evidence.qmd#ev-rev-e-0006)、[E-0008](appendix-evidence.qmd#ev-rev-e-0008)
+確認済み（静的）：HTML は `html(webview, extensionUri, view)` が組み立てる（2026-11-23 から共有の `src/webviewHtml.ts` の `webviewHtml` が組み立て、`localResourceRoots` はそのバンドルの出力先だけ。EXT-04）。CSP は `default-src 'none'` で `connect-src` を書かないため、**実行時に通信できない**。スクリプトとスタイルは nonce 付き、参照先は `out/webview/assets/main.js` と `main.css` の固定名である（Vite の設定と対になる契約）。`<body data-view="tags|revision">` でどちらの画面を描くかを決める。[E-0006](appendix-evidence.qmd#ev-rev-e-0006)、[E-0008](appendix-evidence.qmd#ev-rev-e-0008)

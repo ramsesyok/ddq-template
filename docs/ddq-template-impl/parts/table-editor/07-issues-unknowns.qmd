@@ -30,7 +30,7 @@ I-01 は `findEditTarget.ts` が `outputFormat === 'pipeTable'` の場合だけ 
 
 #### U-0001：実ホストの状態遷移 {#u-te-0001 .unnumbered}
 
-未確認：VSCode の IME、フォーカス移動直後の Apply、多重 Apply、警告モーダル中の別表起動、パネル再表示。静的には単一グローバル Session と非同期処理があり、セッション ID の照合や処理中ロックがない。`sample/tables.qmd` を Extension Development Host で開き、文書版と Session の変化を記録して確認する。推定される競合影響と、通常の版不一致拒否は分けて評価する。[E-0002](appendix-evidence.qmd#ev-te-e-0002)、[E-0017](appendix-evidence.qmd#ev-te-e-0017)
+未確認：VSCode の IME、フォーカス移動直後の Apply、多重 Apply、警告モーダル中の別表起動、パネル再表示。静的には単一グローバル Session と非同期処理があり、セッション ID の照合や処理中ロックがない（→ 2026-11-23 に編集セッションの番号の照合と、確認ダイアログの後・反映の後の照合を入れた。処理中ロックは無い。EXT-03・EXT-04）。`sample/tables.qmd` を Extension Development Host で開き、文書版と Session の変化を記録して確認する。推定される競合影響と、通常の版不一致拒否は分けて評価する。[E-0002](appendix-evidence.qmd#ev-te-e-0002)、[E-0017](appendix-evidence.qmd#ev-te-e-0017)
 
 #### U-0002：保存と改行 {#u-te-0002 .unnumbered}
 

@@ -4,11 +4,12 @@
 
 ### 対象・版・解析範囲
 
-対象は `extensions/ddq-template/`（版 3.1.0-pre1。`template/VERSION` と同じ）と、拡張との契約に関わる
+対象は `extensions/ddq-template/`（版 3.1.0。`template/VERSION` と同じ）と、拡張との契約に関わる
 `ddq` 側（`cli/src/commands/setup.rs` の終了コード、`cli/src/bin/ddq-release/release.rs` の同梱。2026-11-23 に
 `ddq release` から保守者用の別の exe `ddq-release` に分けた）である。
 確認済み（静的・実行）の範囲は段階 1a〜1d（`docs/ddq-template-study.md` §9）の実装と、
-その後 3.0.0-pre4 までに入った変更（@tbl-post-merge-changes）である。`update` のコマンドパレット対応・
+その後 3.1.0（ブランチ `fix/review-critical` の `f2c6e0e` とその上の作業ツリー、2026-11-23）までに入った変更
+（@tbl-post-merge-changes）である。`update` のコマンドパレット対応・
 `plantuml` は実装していない。
 
 ::: {.tbl caption="拡張の構成" label="tbl-components" widths="30,70"}
@@ -61,6 +62,14 @@
 | 3.0.0-pre3 | 図の変換で ddq が `警告:` を出したら（変換する図が無いなど）、完了ではなく警告を出す | @sec-behavior-build |
 | 3.0.0-pre4 | 表エディタのグリッド表で、縦結合の途中の区切り行を pandoc と同じ形で読み書きする | @sec-data-te |
 | 3.1.0-pre1 の作業中（2026-11-23） | 拡張の処理は変えていない。ddq.exe を同梱した VSIX を作るのが、`ddq release` から保守者用の別の exe `ddq-release` に変わり、同梱するのは ddq-release に渡した配る ddq.exe（`--ddq`。既定は ddq-release と同じフォルダの `ddq.exe`）になった | @sec-build-common |
+| 3.1.0 | ddq の起動口を `src/ddq/launch.ts` にまとめた（設定・起動する ddq・出力チャネル・進捗通知・終了処理）。実行中の子を記録し、取消と拡張の終了で止める（Windows は孫まで。EXT-02） | @sec-architecture-common |
+| 3.1.0 | 版を `preN` まで番号順に比べ、版ファイルが無い・版の形でない・ddq の版が読めないときは update を勧めない（`unknown`。EXT-01） | @sec-behavior-build |
+| 3.1.0 | 非同期の結果を始めたときの対象と照合する（右クリック用の執筆フォルダ一覧の作り直し、ステータスバーの執筆フォルダ、表エディタの書き戻し、改訂履歴のタグの取り直し。EXT-03） | @sec-behavior-folder、@sec-behavior-build、@sec-te-apply-flow、@sec-rev-behavior-editor |
+| 3.1.0 | Webview の HTML・CSP・資産の範囲を `src/webviewHtml.ts` で共有し、届いた書き戻しを番号（表エディタの編集セッション・ラベル一覧の取り直し）で照合する（EXT-04） | @sec-architecture-common、@sec-rev-data-html |
+| 3.1.0 | ddq の JSON（`tag list --json`・`rev next --json`）を `src/ddq/contract.ts` で形を確かめてから使う。ddq 側と共有の期待値で照らす（QA-01） | @sec-data-ddq-contract |
+| 3.1.0 | 改訂ファイルの引用付きの値を ddq と同じ規則で読む（DATA-01）。改訂履歴の画面は、タグの状態を確かめ終わるまで編集できず（外部レビュー M-01）、保存できなければ取り直し・確定に進まず（M-02）、直した 1 か所だけを送って文書のいまの内容に当てる（H-02） | @sec-rev-behavior-editor |
+| 3.1.0 | 表エディタが `merge-cols="ALL"`・`merge-cols=""`・旧 `.merge-rows` の表を、文書の出力と同じく結合せずに開き、解釈できない値を警告する（GEN-02） | 表エディタの 7 章 |
+| 3.1.0 | 同梱の VSIX に `THIRD-PARTY-NOTICES.md` を入れる（REL-01）。`check:audit` は配布物に入る依存を必須の監査の対象にする（CI-02）。配る VSIX は GitHub Actions の配布候補（`release-candidate.yml`）が作り、`ci.yml` の vsix-smoke は無くなった（CI-01） | @sec-build-common |
 :::
 
 ### 読み始める場所

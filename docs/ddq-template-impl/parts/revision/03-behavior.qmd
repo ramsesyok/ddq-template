@@ -65,14 +65,14 @@ sequenceDiagram
 
 確認済み（静的）：`resolveCustomTextEditor` が呼ばれると、Webview を `data-view="revision"` で組み立て、次を行う。[E-0006](appendix-evidence.qmd#ev-rev-e-0006)
 
-- `parse(document.getText())` で改訂を読み、`ddq rev next --json` でタグの一覧を取り、**`rev-<記号>` タグがあれば確定済み**として画面を読み取り専用にする
-- `onDidChangeTextDocument` を購読し、**外から書き換わっても画面を合わせる**（`ddq rev diff --write` が同じファイルを書くため）
-- 画面からの `edit` は `toYaml` で YAML 全体を作り直し、`WorkspaceEdit` で置き換える。**文書の改行（`document.eol`）に合わせて書く**ので、CRLF のファイルで全行が書き換わらない
+- `parse(document.getText())` で改訂を読み、`ddq rev next --json` でタグの一覧を取り、**`rev-<記号>` タグがあれば確定済み**として画面を読み取り専用にする（2026-11-23 から、最初の `ddq rev next` が返るまでは `checked: false` で本文を送り、画面は確定済みと同じく編集欄・取り直し・確定を使えなくして「タグの状態を確かめています…」と出す。拡張も確かめ終えていない改訂への書き戻し・取り直し・確定を受け付けない。照会に失敗したときは従来どおり未確定とする。外部レビュー M-01）
+- `onDidChangeTextDocument` を購読し、**外から書き換わっても画面を合わせる**（`ddq rev diff --write` が同じファイルを書くため。2026-11-23 から本文はすぐ送り、タグの取り直しは入力が止まってから 800 ミリ秒後に 1 回だけ。閉じたエディタには送らない。EXT-03）
+- 画面からの `edit` は `toYaml` で YAML 全体を作り直し、`WorkspaceEdit` で置き換える（2026-11-23 から、`edit` は直した 1 か所と直す前の値で、拡張は文書のいまの内容に当て、直す前の値が文書と違えば当てずに画面を文書に戻す。外部レビュー H-02）。**文書の改行（`document.eol`）に合わせて書く**ので、CRLF のファイルで全行が書き換わらない
 
 ::: {.tbl caption="画面のボタンが行うこと" label="tbl-rev-editor-buttons" widths="20,80"}
 | ボタン | 行うこと |
 |---|---|
-| 差分を取り直す | 未保存なら確認して保存 → `ddq rev diff <folder> --write [--base <ref>]`。ddq が yml を書き、外部変更として画面へ戻る |
+| 差分を取り直す | 未保存なら確認して保存（2026-11-23 から、保存できなかった・保存の後にまた変わったときは ddq を起動しない。M-02。確定も同じ） → `ddq rev diff <folder> --write [--base <ref>]`。ddq が yml を書き、外部変更として画面へ戻る |
 | 表を作る | `ddq rev build <folder>`。標準出力をそのまま画面の通知欄に出す |
 | 確定する | メモが空なら確認 → 保存 → `rev build` → **次に人が打つ Git コマンドを案内**（実行はしない）。「コマンドをコピー」でクリップボードへ |
 :::

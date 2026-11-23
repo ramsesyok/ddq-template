@@ -10,7 +10,8 @@
  *    その ddq で init → html が通ることを見る
  *
  * 前提: Windows x64・Quarto がある・VSIX は `npm run package:win32-x64` で作ってある。
- * VSCode の用意は run.mjs と同じ（インストール済み → 無ければ取得）。
+ * VSCode の用意は run.mjs と同じ（インストール済み → 無ければ取得）。環境変数 SMOKE_VERSIONS にファイルを
+ * 渡すと、使った VSCode の版をそこに書く（CI の配布候補の記録用）。
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -76,7 +77,13 @@ try {
     const report = path.join(work, 'host-result.txt');
     if (fs.existsSync(report)) console.log(`\n${fs.readFileSync(report, 'utf8')}`);
 }
-console.log('\n同梱版のスモークに合格しました。');
+const used = fs.readFileSync(path.join(work, 'vscode-version.txt'), 'utf8').trim();
+console.log(`\n同梱版のスモークに合格しました（VSCode ${used}）。`);
+// 環境変数 SMOKE_VERSIONS があれば、使った版をそのファイルに書く（release-candidate.yml が配布候補の versions.txt に
+// 足す。versions.txt は Windows で書くので、改行もそれに合わせる）
+if (process.env.SMOKE_VERSIONS) {
+    fs.writeFileSync(process.env.SMOKE_VERSIONS, `vscode (smoke): ${used} (${vscodeExecutablePath})${os.EOL}`, 'utf8');
+}
 
 /** run.mjs と同じ: インストール済みの VSCode を優先し、無ければダウンロードする。 */
 async function resolveVsCode() {

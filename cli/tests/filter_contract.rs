@@ -463,14 +463,17 @@ fn merge_cols_match_the_shared_cases() {
     }
 }
 
-/// 章ごとに図を 1 つ持つ最小の HTML（Quarto の book が出す形）。`chapter` が None なら付録の形
-/// （章タイトルに chapter-number が無い）。
-fn chapter_page(n: usize, chapter: Option<&str>) -> String {
+/// 章ごとに図を 1 つ持つ最小の HTML（Quarto の book が出す形）。`chapter` が None なら付録・部の扉
+/// ページの形（章タイトルに chapter-number が無い）。
+fn chapter_page(n: usize, chapter: Option<&str>, appendix: Option<&str>) -> String {
     let title = match chapter {
         Some(c) => format!(
             r#"<span class="chapter-number">{c}</span>&nbsp; <span class="chapter-title">章{n}</span>"#
         ),
-        None => format!("付録 — 章{n}"),
+        None => match appendix {
+            Some(letter) => format!("付録 {letter} — 章{n}"),
+            None => format!("章{n}"),
+        },
     };
     format!(
         "<!DOCTYPE html>\n<html><body>\n<h1 class=\"title\">{title}</h1>\n\
@@ -498,10 +501,11 @@ fn postprocess(dir: &Path, output_files: Option<&str>) -> String {
     stdout
 }
 
-/// 章の並び（GEN-01）。chapters.json の各ケースの `_quarto.yml` と章ごとの最小の HTML を置き、
-/// 本物の postprocess-html.js に通す。並びに入った章だけが番号を振り直され（図 3-1）、付録は
-/// 並び順に A・B…（図 A-1）。並びに無い HTML には触れない。もう一度通しても同じ（preview の
-/// 保存ごとの再実行）、出力が 1 つだけと渡されても同じ（増分の再描画）。Rust 側は
+/// 章の並び（GEN-01・H-01）。chapters.json の各ケースの `_quarto.yml`、部の扉ページの原稿（`part_files`）と
+/// 章ごとの最小の HTML を置き、本物の postprocess-html.js に通す。並びに入った章だけが番号を振り直され
+/// （図 3-1）、付録は部のページ（扉ページと `part_hrefs`）を除いた並び順に A・B…（図 A-1）、部のページは
+/// 番号なしの章と同じく 0（図 0-1。Quarto は部のページに章番号を出さない）。並びに無い HTML には触れない。もう一度通しても同じ
+/// （preview の保存ごとの再実行）、出力が 1 つだけと渡されても同じ（増分の再描画）。Rust 側は
 /// src/doc/project.rs の単体試験が同じケースを読む。
 #[test]
 fn chapter_lists_match_the_shared_cases() {
@@ -512,25 +516,69 @@ fn chapter_lists_match_the_shared_cases() {
         let name = s(case, "name");
         let dir = tempfile::tempdir().unwrap();
         fs::write(dir.path().join("_quarto.yml"), s(case, "yaml")).unwrap();
-        let html_of = |v: &Value| format!("{}.html", v.as_str().unwrap().rsplit_once('.').unwrap().0);
-        // （HTML, 期待する番号の接頭辞。None は触れないこと）
-        let mut pages: Vec<(String, Option<String>)> = Vec::new();
-        for (i, ch) in case["chapters"].as_array().unwrap().iter().enumerate() {
-            pages.push((html_of(ch), Some((i + 1).to_string())));
+        let parts: Vec<&str> = case["part_files"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        for part in &parts {
+            let path = dir.path().join(part);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, "# 部\n").unwrap();
         }
-        for (i, ap) in case["appendices"].as_array().unwrap().iter().enumerate() {
-            pages.push((html_of(ap), Some(char::from(b'A' + i as u8).to_string())));
+        // 部のページ: 扉ページのファイルと、部の題名の項目に href:・file: で書いたページ（`part_hrefs`）
+        let parts: Vec<&str> = parts
+            .into_iter()
+            .chain(
+                case["part_hrefs"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|v| v.as_str().unwrap()),
+            )
+            .collect();
+        let html_of = |p: &str| format!("{}.html", p.rsplit_once('.').unwrap().0);
+        // （HTML, HTML の章番号（None は付録・扉ページの形）, 期待する番号の接頭辞（None は触れないこと））
+        let mut pages: Vec<(String, Option<String>, Option<String>)> = Vec::new();
+        // book.references も章の 1 つ（Quarto は章の後ろ・付録の前に描く）
+        for ch in case["chapters"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .chain(case.get("references"))
+        {
+            let ch = ch.as_str().unwrap();
+            let n = (pages.len() + 1).to_string();
+            pages.push(if parts.contains(&ch) {
+                (html_of(ch), None, Some("0".into()))
+            } else {
+                (html_of(ch), Some(n.clone()), Some(n))
+            });
         }
-        pages.push(("not-listed.html".into(), None));
+        let mut letters = (b'A'..=b'Z').map(char::from);
+        for ap in case["appendices"].as_array().unwrap() {
+            let ap = ap.as_str().unwrap();
+            let prefix = if parts.contains(&ap) {
+                "0".to_string()
+            } else {
+                letters.next().unwrap().to_string()
+            };
+            pages.push((html_of(ap), None, Some(prefix)));
+        }
+        pages.push((
+            "not-listed.html".into(),
+            Some((pages.len() + 1).to_string()),
+            None,
+        ));
         let book = dir.path().join("_book");
-        let appendices = case["appendices"].as_array().unwrap().len();
-        let first_appendix = pages.len() - 1 - appendices;
-        for (n, (html, _)) in pages.iter().enumerate() {
+        for (n, (html, chapter, prefix)) in pages.iter().enumerate() {
             let path = book.join(html);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
-            let chapter = (n < first_appendix || n == pages.len() - 1).then(|| (n + 1).to_string());
-            fs::write(path, chapter_page(n, chapter.as_deref())).unwrap();
+            let appendix = prefix.as_deref().filter(|p| p.starts_with(char::is_uppercase));
+            fs::write(path, chapter_page(n, chapter.as_deref(), appendix)).unwrap();
         }
+        let pages: Vec<(String, Option<String>)> = pages.into_iter().map(|(h, _, p)| (h, p)).collect();
 
         let stdout = postprocess(dir.path(), None);
         assert!(
@@ -549,7 +597,7 @@ fn chapter_lists_match_the_shared_cases() {
                 ),
                 None => assert_eq!(
                     *text,
-                    chapter_page(n, Some(&(n + 1).to_string())),
+                    chapter_page(n, Some(&(n + 1).to_string()), None),
                     "{name}: 並びに無い {html} を書き換えた"
                 ),
             }

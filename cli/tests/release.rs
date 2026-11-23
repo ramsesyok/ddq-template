@@ -694,8 +694,8 @@ fn npm_available() -> bool {
 
 /// fake_repo のマニュアルと拡張を、ビルドできる本物に差し替える。
 /// - マニュアル: ddq init の雛形（図が無いのでブラウザ・Java は要らない）。PDF・HTML は無い
-/// - ddq-a（ddq.exe を同梱）: node_modules があるので npm ci はしない
-/// - ddq-b: node_modules が無いので npm ci（package-lock.json のとおり。依存は無い）をする
+/// - ddq-a（ddq.exe を同梱）: 古い node_modules があるが、npm ci で入れ直される（2026-11-15 から毎回 npm ci する）
+/// - ddq-b: node_modules が無い。npm ci（package-lock.json のとおり。依存は無い）をする
 fn real_build_repo(root: &Path, package_b: &str) {
     fake_repo(root);
     let v = version();

@@ -8,13 +8,17 @@
 |---|---|---|
 | 検出できない環境変化 | フォントの指紋はファイル名とバイト数、LANのPlantUMLサーバは版とURLだけを見る | 同じ大きさでのフォント差し替えや、LANサーバ側のフォント変更では古い図を再利用する可能性。必要ならキャッシュを消す |
 | サーバの到達判定 | probeはHTTP状態にかかわらず応答を到達と扱う | 無関係なHTTPサーバも選択し、描画時に初めて失敗する可能性。公式 plantuml-server に `/serverinfo` が無い場合に備えた判定で、Lua 側と揃えてある |
-| 配布の鮮度 | `--no-build` は既存の manual／VSIX を使う | 古い成果物を同梱し得る。ZIP の照合は書いた内容との一致であり、成果物の新しさは保証しない |
+| 配布の鮮度 | `--no-build` は既存の manual／VSIX を使う。VSIX は中の ddq.exe とライセンス表示を照らし、版も照らす（3.1.0） | マニュアルは古いものを同梱し得る。ZIP の照合は書いた内容との一致であり、成果物の新しさは保証しない。正式に配る一式は CI の配布候補が新しい checkout で作る |
+| 書き込みの競合（3.1.0） | 照合と付け替えの間（ミリ秒より短い）は開いておけず、ほかのプログラムの安全な保存（一時ファイルからの付け替え）は拒めない。Unix は付け替えの直前に照らし直すだけ。付け替えを拒まれてその場で書いたときは途中のバイト列になりうる | その窓に保存されたものは消えうる（従来は待ち直しの1秒の間でも消えた）。Unix の経路は CI（Rust は Windows だけ）でも実行していない |
+| 置き換えで変わるもの（3.1.0） | 置き換えは別のファイルになる | ハードリンクの他方は元の中身のまま。Windows の個別の ACL・代替データストリーム・作成日時は引き継がない |
+| 章立てで読まない書き方 | `_quarto.yml` を行ごとに読む。引用したキー（`"part": …`）・アンカーと別名（`&a`・`*a`）・ブロックスカラー・タグ（`!!str`）は読まない（フロー形式の対応付けと `href:`・`file:` は 2026-11-23 から読む。[E-0038](appendix-evidence.qmd#ev-e-0038)） | その章の見出し・図表がラベル候補・改訂差分・HTML の番号の対象から抜ける。章立ての書き方としては珍しい |
+| 部のある book の PDF（前からの制約） | Quarto 1.9.38 は部（`- part:`）を Typst に `#part[…]` と出すが、`template/lib.typ`・`typst-template.typ` は `part` を定義しない。扉ページのファイルでも題名だけの部でも、`ddq pdf` は Typst の `unknown variable: part` で失敗する（2026-11-23 に確かめた。[E-0038](appendix-evidence.qmd#ev-e-0038)） | 部を使う book は PDF にできない。HTML・`tag`・`rev` は扉ページを含めて読む。部は利用マニュアルに書いていない。扉の体裁を決めてから直す（利用者の判断。2026-11-23） |
 
-根拠：[E-0010](appendix-evidence.qmd#ev-e-0010)、[E-0012](appendix-evidence.qmd#ev-e-0012)、[E-0013](appendix-evidence.qmd#ev-e-0013)。
+根拠：[E-0010](appendix-evidence.qmd#ev-e-0010)、[E-0012](appendix-evidence.qmd#ev-e-0012)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0038](appendix-evidence.qmd#ev-e-0038)。
 
 ## 修正した点 {#sec-fixed}
 
-初版と第2版（2.4.0）で本章に挙げた注意点のうち、次のものは修正した。修正後の挙動は各章に反映している。[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0021](appendix-evidence.qmd#ev-e-0021)、[E-0024](appendix-evidence.qmd#ev-e-0024)、[E-0025](appendix-evidence.qmd#ev-e-0025)、[E-0026](appendix-evidence.qmd#ev-e-0026)、[E-0029](appendix-evidence.qmd#ev-e-0029)、[E-0031](appendix-evidence.qmd#ev-e-0031)～[E-0033](appendix-evidence.qmd#ev-e-0033)
+初版と第2版（2.4.0）で本章に挙げた注意点と、3.1.0 の作業（`docs/refactoring-plan.md` と外部レビュー `docs/refactoring-review.md` の指摘）で直したもののうち、次のものは修正した。修正後の挙動は各章に反映している。[E-0011](appendix-evidence.qmd#ev-e-0011)、[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)、[E-0021](appendix-evidence.qmd#ev-e-0021)、[E-0024](appendix-evidence.qmd#ev-e-0024)、[E-0025](appendix-evidence.qmd#ev-e-0025)、[E-0026](appendix-evidence.qmd#ev-e-0026)、[E-0029](appendix-evidence.qmd#ev-e-0029)、[E-0031](appendix-evidence.qmd#ev-e-0031)～[E-0033](appendix-evidence.qmd#ev-e-0033)
 
 | 論点 | 以前の実装 | 修正後 |
 |---|---|---|
@@ -40,14 +44,28 @@
 | output-dir（U-0006） | `_book` 決め打ちで、変えると PDF を取り出せなかった | `_quarto.yml`（PDF は `_quarto-publish.yml` を優先）の `output-dir` を読む |
 | 長いパス（U-0006） | 約211文字から Quarto のビルドが分かりにくく失敗した | 200文字を超える執筆フォルダを理由付きで止める |
 | キャッシュに現れない環境（2.4.2） | ブラウザの実体・フォント・PlantUMLサーバの版はキーにも照合にも無い | 先頭コメントに記録し、発行時に `ddq identity` の結果と比べて違えば描き直す |
+| `tag apply` の BOM（3.1.0、IO-01） | 書き戻すと原稿の BOM が落ちた | 書く直前のファイルの BOM を残す |
+| `tag apply` の途中失敗（3.1.0、IO-01） | 読み取り専用のファイルがあっても先にほかのファイルを書き、何を書いたかは出なかった（書く順も実行ごとに違った） | 書く前に全ファイルを照合し、書けないと分かっていれば何も書かない。パスの順に書き、途中で失敗したら書いた・書いていないファイルを挙げる |
+| 書き戻しの間の保存（3.1.0、C-01） | 待ち直しの間にほかで足した行を消して成功を返した | 読んだバイト列と照らし直して止め、足した行を残す。書き込み用に開いたままなら書かずに止める |
+| 一時ファイルの失敗（3.1.0、C-02） | 一時ファイルを書けないと元のファイルを切り詰めて書き直した | 元のファイルに触れずに止める（その場で書くのは付け替えの共有違反だけ） |
+| 改訂ファイルの上書き（3.1.0、IO-01） | `rev diff --write` の途中に拡張で保存したメモを上書きして失いえた | 読んだときと違えば書かずに止める |
+| 同時の作成（3.1.0、IO-02） | 無いことを確かめてから書くので、同時に走った init/add が互いのファイルを上書きしうる | 上書きしない新規作成で置く |
+| update の途中失敗（3.1.0、IO-02・M-03） | 版マーカーを先に書くので、キャッシュを消しきれずに失敗した後の再実行が同じ版の修復に見え、古いキャッシュが残った。`diagrams` を読めなくても成功して版を上げた | 版マーカーを最後に書き、`diagrams` を読めなければ版マーカーを前の版のまま残して止める |
+| 章立ての読み落とし（3.1.0、GEN-01・H-01） | 行末コメント・引用・空白入りのパス・`part:` の扉ページ・フロー形式・`book.references` を読み落とし、付録を先に書くと付録が先に並んだ | Quarto の入力の並び（章 → references → 付録、index は先頭）と同じに読む |
+| 改訂ファイルの逆斜線（3.1.0、DATA-01） | 引用付きの値の `\\` を戻さず、拡張で保存するたびに逆斜線が倍になった | 拡張と同じ規則で読む（書き手は変えていない） |
+| 同じ見出しが5つ以上（3.1.0） | `tag list` が候補を使い切って panic した（終了コード101） | 6桁の後ろに `-2`・`-3`… を付ける |
+| 改訂履歴の表の逆斜線（3.1.0） | 修正内容の `C:\docs` の `\docs` が TeX の命令として消えた | Pandoc が命令と読む逆斜線を逃がす（コード・数式の中は変えない） |
+| タブを含む mermaid の図（3.1.0、GEN-02） | 先回りの描画がタブのままキーを作り、フィルタが1図ずつ描き直した | Pandoc と同じくタブを4桁ごとに広げてからキーを作る |
+| 古い exe での release（3.1.0、REL-03） | 古い exe・揃っていない lock でも配布一式を作れた | 重いビルドの前に版を照合して止める |
+| VSIX のライセンス表示（3.1.0、REL-01） | 同梱の VSIX に `THIRD-PARTY-NOTICES.md` が無かった | 拡張に表示を入れて梱包し、VSIX の中の表示を照合する |
 
 ## 既存文書との相違 {#sec-11b158}
 
 | 資料の記述 | 現行コードでの確認 | 本書の扱い |
 |---|---|---|
-| `cli/DESIGN.md` §7.5：`cd cli`後にrelease実行 | `release::run`（2026-11-23 から ddq-release）はCWDにtemplateとdocs/manualを要求 | リポジトリルートに戻す手順を掲載 |
+| `cli/DESIGN.md` §7.5：`cd cli`後にrelease実行 | `release::run`（2026-11-23 から ddq-release）はCWDにtemplateとdocs/manualを要求 | リポジトリルートに戻す手順を掲載。3.1.0 の時点の §7.5 はルートで実行する手順に直っている |
 | 同§7.2：依存の想定にthiserror | Cargo.tomlの直接依存にない。Cargo.lockの推移依存とは別 | 直接依存一覧へ追加しない |
-| 同§5.4：SVGコメントの版表記 | merman経路は `merman=<版>` | `Engine::label` の実装を正本とする |
+| 同§5.4：SVGコメントの版表記 | merman経路は `merman=<版>` | `Engine::label` の実装を正本とする。3.1.0 の時点の §5.4 は `merman=<版>` を書いている |
 
 この比較は静的確認済み。[E-0019](appendix-evidence.qmd#ev-e-0019) に対応資料を示す。過去のPoC時間や設計判断の説明を、今回の性能測定や全環境保証として転用しない。
 
@@ -67,14 +85,14 @@
 
 - `cli/vendor/plantuml.jar`（v2.4.2 の配布物の jar も同じ）は、PlantUML 公式リリース v1.2026.8 の `plantuml-mit-1.2026.8.jar` と SHA-256（`3629c9cd…`）・大きさが一致し、`-license` の表示も MIT である。jar 自身が同梱物（Graphviz の一部、OpenIconic、Brotli、Twemoji など）の表示を持つ
 - `template/vendor/mermaid.min.js` は npm の `mermaid@11.16.1` の `dist/mermaid.min.js` とバイト一致する（改変なし。3.0.0 で 11.16.0 から更新し、2026-11-14 に照合。[E-0036](appendix-evidence.qmd#ev-e-0036)）
-- 配布物に入る第三者のソフトウェアは、ddq.exe に静的リンクする Rust のクレート188件（proc-macro 等のビルド時だけのものは除く）、mermaid とそのバンドルの依存77件（11.16.1 時点。11.16.0 では78件）、VSIX の Webview にバンドルする React 3件である（plantuml.jar は 3.0.0 から同梱しない）。いずれも許容的なライセンスで、MPL-2.0 は3件（cssparser・dtoa-short・selectors。改変なし、入手先を明記）、DOMPurify は MPL-2.0 と Apache-2.0 から Apache-2.0 を選ぶ。merman の各クレートは移植元のライセンスを `THIRD_PARTY_LICENSES/` に持ち、ratex-katex-fonts は KaTeX のフォント（SIL OFL 1.1）を ddq.exe に埋め込む
-- **従来の配布物にはこれらのライセンス表示が無かった**。`cli/tools/third_party.py` が `THIRD-PARTY-NOTICES.md` を作り、ddq-release（旧 `ddq release`）が同梱する（入力のハッシュが合わなければ止まる）。`tests/third_party.rs` が CI で古さを検出する
+- 配布物に入る第三者のソフトウェアは、ddq.exe に静的リンクする Rust のクレート188件（proc-macro 等のビルド時だけのものは除く）、mermaid とそのバンドルの依存77件（11.16.1 時点。11.16.0 では78件）、VSIX の Webview にバンドルする React 3件である（plantuml.jar は 3.0.0 から同梱しない）。3.1.0 の時点では Rust 190件、mermaid が実際に束ねた依存65件（3.0.1-pre1 から `cli/tools/mermaid-bundle/bundled.json` に載るものだけを挙げる）、React 3件いずれも許容的なライセンスで、MPL-2.0 は3件（cssparser・dtoa-short・selectors。改変なし、入手先を明記）、DOMPurify は MPL-2.0 と Apache-2.0 から Apache-2.0 を選ぶ。merman の各クレートは移植元のライセンスを `THIRD_PARTY_LICENSES/` に持ち、ratex-katex-fonts は KaTeX のフォント（SIL OFL 1.1）を ddq.exe に埋め込む
+- **従来の配布物にはこれらのライセンス表示が無かった**。`cli/tools/third_party.py` が `THIRD-PARTY-NOTICES.md` を作り、ddq-release（旧 `ddq release`）が ZIP と、3.1.0 から同梱版の VSIX にも入れる（入力のハッシュが合わなければ止まり、VSIX の中の表示も照合する）。`tests/third_party.rs` が CI で古さを検出する
 
 このリポジトリ自身（ddq 本体・テンプレート）のライセンスは未定だったが、保守者の判断で **MIT** とした（ルートの `LICENSE`、`cli/Cargo.toml` の `license`。VSCode 拡張と同じ）。配布物に入る第三者のもの（上記）は MIT の本体と組み合わせて配布でき（MPL-2.0 はファイル単位で元のライセンスのまま、OFL のフォントはソフトウェアへの同梱を認める）、それぞれのライセンスに従う。ddq-release は `LICENSE` も同梱する。弁護士等による法的評価は行っていない。
 
 ### U-0004：配布工程の動的確認 {#u-0004 .unnumbered}
 
-**一部確認／優先度：低**。2026-09-23に v2.4.2 の配布で、通常の `ddq release` を実行して確認した（[E-0027](appendix-evidence.qmd#ev-e-0027)）。加えて `tests/release.rs` が、同じ形の小さなリポジトリで `--no-build` を通し、ZIP の全エントリを展開して名前と中身が配布フォルダと一致すること（日本語・空白を含む出力先、日本語名の UTF-8 フラグ）、`--with-sample` が生成物・PDF側補助・図キャッシュを除くこと、再実行で前回の中身が残らないこと、jar 欠損・拡張の name／版の不一致・VSIX 欠損・マニュアル欠損・ライセンス表示の古さで止まり前回の配布フォルダを壊さないことを確かめる（[E-0031](appendix-evidence.qmd#ev-e-0031)）。この過程で、jar が無いと前回の配布フォルダを消してから止まり中途半端な配布フォルダが残る不具合を見つけ、隣の作業フォルダに集めてから入れ替えるよう直した。残るのは、本物のリポジトリでの `--no-build` 無しの実行（マニュアルと拡張のビルドを含む。配布のたびに行う）だけである。2026-11-23 に release を保守者用の別の exe ddq-release に分けたあと、`tests/release.rs` は ddq-release を対象にし、配る ddq.exe（`--ddq`）の欠落・版違いで止まること、ZIP に入る `ddq.exe` が配る ddq.exe と同じこと、ddq に `release` が無いことも確かめる。本物のリポジトリでの ddq-release の実行は [E-0037](appendix-evidence.qmd#ev-e-0037) に記録した。
+**一部確認／優先度：低**。2026-09-23に v2.4.2 の配布で、通常の `ddq release` を実行して確認した（[E-0027](appendix-evidence.qmd#ev-e-0027)）。加えて `tests/release.rs` が、同じ形の小さなリポジトリで `--no-build` を通し、ZIP の全エントリを展開して名前と中身が配布フォルダと一致すること（日本語・空白を含む出力先、日本語名の UTF-8 フラグ）、`--with-sample` が生成物・PDF側補助・図キャッシュを除くこと、再実行で前回の中身が残らないこと、拡張の name／版の不一致・VSIX 欠損・マニュアル欠損・ライセンス表示の古さで止まり前回の配布フォルダを壊さないことを確かめる（jar の欠損は 3.0.0 で jar を同梱しなくなったので外した）（[E-0031](appendix-evidence.qmd#ev-e-0031)）。この過程で、jar が無いと前回の配布フォルダを消してから止まり中途半端な配布フォルダが残る不具合を見つけ、隣の作業フォルダに集めてから入れ替えるよう直した。残るのは、本物のリポジトリでの `--no-build` 無しの実行（マニュアルと拡張のビルドを含む。配布のたびに行う）だけである。2026-11-23 に release を保守者用の別の exe ddq-release に分けたあと、`tests/release.rs` は ddq-release を対象にし、配る ddq.exe（`--ddq`）の欠落・版違いで止まること、ZIP に入る `ddq.exe` が配る ddq.exe と同じこと、ddq に `release` が無いことも確かめる。本物のリポジトリでの ddq-release の実行は [E-0037](appendix-evidence.qmd#ev-e-0037) に記録した。3.1.0 では、版の照合（古い exe・拡張の版・lock の版）、VSIX のライセンス表示の欠落と違い、入れ替え以降の失敗の案内も `tests/release.rs` で確かめる。正式に配る一式は GitHub Actions の配布候補（`release-candidate.yml`）が新しい checkout で作り、別のランナーで ZIP と VSIX を検査する（PR・main への push・手動実行・わざと失敗させた実行の記録は `docs/refactoring-progress.md`）。
 
 ### U-0005：性能・最大規模 {#u-0005 .unnumbered}
 
@@ -82,7 +100,7 @@
 
 ### U-0006：OS・設定・HTTPの境界条件 {#u-0006 .unnumbered}
 
-**一部確認／優先度：中**。2026-09-23に次を確かめた（[E-0033](appendix-evidence.qmd#ev-e-0033)）。PlantUML の HTTP は偽のサーバで異常応答（閉じない接続・chunked・500・図のエラー・SVGでない応答・途中で切れた応答・100 Continue・無応答・拒否）を試験し、**閉じないサーバで時間切れまで待つ不具合**を直した。プロキシは、`http_proxy` のある端末で**フィルタの curl がローカルのサーバ宛てもプロキシへ送って描けない不具合**を見つけ、`--noproxy` で直した。`output-dir` を `_book` 以外にすると **`ddq pdf` が PDF を取り出せない不具合**を直した。長いパスは、Windows の既定で執筆フォルダが約211文字から Quarto のビルドが分かりにくく失敗することを測り、200文字を超えるパスを理由付きで止めるようにした。**残るのは** Linux／macOS、日本語以外のコードページ（ACP）、Quarto の profile の他の組合せで、この端末では試せない（CIはWindowsのみ）。
+**一部確認／優先度：中**。2026-09-23に次を確かめた（[E-0033](appendix-evidence.qmd#ev-e-0033)）。PlantUML の HTTP は偽のサーバで異常応答（閉じない接続・chunked・500・図のエラー・SVGでない応答・途中で切れた応答・100 Continue・無応答・拒否）を試験し、**閉じないサーバで時間切れまで待つ不具合**を直した。プロキシは、`http_proxy` のある端末で**フィルタの curl がローカルのサーバ宛てもプロキシへ送って描けない不具合**を見つけ、`--noproxy` で直した。`output-dir` を `_book` 以外にすると **`ddq pdf` が PDF を取り出せない不具合**を直した。長いパスは、Windows の既定で執筆フォルダが約211文字から Quarto のビルドが分かりにくく失敗することを測り、200文字を超えるパスを理由付きで止めるようにした。**残るのは** Linux／macOS、日本語以外のコードページ（ACP）、Quarto の profile の他の組合せで、この端末では試せない（Rust の CI は Windows のみ）。3.1.0 の書き込み（`replace`）の Unix 専用の経路（権限の引き継ぎ・シンボリックリンク・フォルダに書けないときのその場の書き込み）も同じく未実行である。
 
 ### U-0007：キャッシュ更新と残存出力 {#u-0007 .unnumbered}
 
@@ -90,7 +108,7 @@
 
 ### U-0008：改訂履歴の実運用条件 {#u-0008 .unnumbered}
 
-**確認済み／優先度：低**。`tests/rev_ops.rs` で、日本語・空白を含むパスと `core.autocrlf=true`（CRLFの作業ツリー）、手で直した改訂ファイル（コメント・引用符・コロン・複数行・CRLF・知らないキー）、見出し2,041件の文書（約1.5秒）を試験した（[E-0032](appendix-evidence.qmd#ev-e-0032)）。**浅いクローン**では `rev-*` タグと過去の版が無く、`rev next` が「最初の改訂」と誤って判断して既にある記号（A）をもう一度出していた不具合を見つけ、浅いクローンを検出して止めるよう直した。既知の性質として、`rev diff --write` は改訂ファイルを決まった形で書き直すので、人が書き足したコメントと知らないキーは消える（note・date は引き継ぐ）。
+**確認済み／優先度：低**。`tests/rev_ops.rs` で、日本語・空白を含むパスと `core.autocrlf=true`（CRLFの作業ツリー）、手で直した改訂ファイル（コメント・引用符・コロン・複数行・CRLF・知らないキー）、見出し2,041件の文書（約1.5秒）を試験した（[E-0032](appendix-evidence.qmd#ev-e-0032)）。**浅いクローン**では `rev-*` タグと過去の版が無く、`rev next` が「最初の改訂」と誤って判断して既にある記号（A）をもう一度出していた不具合を見つけ、浅いクローンを検出して止めるよう直した。既知の性質として、`rev diff --write` は改訂ファイルを決まった形で書き直すので、人が書き足したコメントと知らないキーは消える（note・date は引き継ぐ）。3.1.0 から、読んだ後にほかで保存・作成・削除された改訂ファイルには書かずに止まる。
 
 ## 次の調査の順序 {#sec-0c040a}
 

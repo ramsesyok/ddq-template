@@ -2,9 +2,9 @@
 
 ## 共通の識別条件
 
-基準はコミット `281d62f1338d1de7f6660c1a47e1e84e72edda1b`（テンプレート2.4.0）、ブランチmain、2026-09-23時点のワークツリー。初版の基準 `02672eb3054d0f6b7139e21b31d91aba7dd57595`（2.2.1）からの差分を確認して更新した。その後の 2.4.1〜2.4.4 の変更は E-0025〜E-0035、3.0.0（`main` の `2a9373e`、2026-11-14）までの変更は [E-0036](#ev-e-0036) にまとめた。調査開始時に追跡ファイル差分はなく、`.claude/` は未追跡かつ対象外だった。以下のパスはリポジトリ相対である。静的根拠はソースに記述された処理を支え、実際の全入力での成功を支えるものではない。
+基準はコミット `281d62f1338d1de7f6660c1a47e1e84e72edda1b`（テンプレート2.4.0）、ブランチmain、2026-09-23時点のワークツリー。初版の基準 `02672eb3054d0f6b7139e21b31d91aba7dd57595`（2.2.1）からの差分を確認して更新した。その後の 2.4.1〜2.4.4 の変更は E-0025〜E-0035、3.0.0（`main` の `2a9373e`、2026-11-14）までの変更は [E-0036](#ev-e-0036)、release の分離は [E-0037](#ev-e-0037)、3.1.0（ブランチ `fix/review-critical` の `f2c6e0e` とその上の作業ツリー、2026-11-23）までの変更は [E-0038](#ev-e-0038) にまとめた。調査開始時に追跡ファイル差分はなく、`.claude/` は未追跡かつ対象外だった。以下のパスはリポジトリ相対である。静的根拠はソースに記述された処理を支え、実際の全入力での成功を支えるものではない。
 
-`analysis/source-sha256.json` にCLIソース、テスト、主要境界ファイルおよびローカルjarのSHA-256を記録した。依存のlicense宣言は `analysis/dependencies.json`、実行条件は `analysis/validation.md` に記録している。正式文書の主張の再確認に必要なパスとシンボルは以下に収録する。
+`analysis/source-sha256.json` にCLIソース、テスト、主要境界ファイルおよびローカルjarのSHA-256を記録した（2026-11-23 に 3.1.0 の作業ツリーで取り直した）。依存のlicense宣言は `analysis/dependencies.json`、実行条件は `analysis/validation.md` に記録している。正式文書の主張の再確認に必要なパスとシンボルは以下に収録する。
 
 ## 本文で参照した根拠
 
@@ -18,7 +18,7 @@
 
 ### E-0003：埋込み資産と生成物 {#ev-e-0003 .unnumbered}
 
-**確認済み／種別：ソース・設定**。`cli/src/assets.rs::VERSION / MECHANISM / PDF_SIDE / SCAFFOLD / MERMAID_JS / RELEASE_GUIDE_TYP / write_dir_if_absent / write_if_absent`、`cli/build.rs::main`、`cli/.cargo/config.toml`、`template/scaffold/repo` と `content`。埋込み元と書出し先、上書き／保持、CRT設定を確認。`template/quarto-publish.yml` は執筆先で `_quarto-publish.yml` という名前になる。
+**確認済み／種別：ソース・設定**。`cli/src/assets.rs::VERSION / MECHANISM / PDF_SIDE / SCAFFOLD / MERMAID_JS / RELEASE_GUIDE_TYP / write_dir_if_absent / write_if_absent`（`RELEASE_GUIDE_TYP` は 2026-11-23 に ddq-release の `release.rs` へ移した。3.1.0 の書き出しは `write_asset / create_if_absent` → `replace`。[E-0038](#ev-e-0038)）、`cli/build.rs::main`、`cli/.cargo/config.toml`、`template/scaffold/repo` と `content`。埋込み元と書出し先、上書き／保持、CRT設定を確認。`template/quarto-publish.yml` は執筆先で `_quarto-publish.yml` という名前になる。
 
 ### E-0004：パス・フォルダ探索 {#ev-e-0004 .unnumbered}
 
@@ -30,7 +30,7 @@
 
 ### E-0006：更新・整合性検査 {#ev-e-0006 .unnumbered}
 
-**確認済み／種別：ソース・テスト期待値**。`cli/src/commands/update.rs::run / run_all`、`setup.rs::run / ensure_current`、`cli/tests/commands.rs`。機構5本→版ファイルの書込み順、版が変わるときの `prune_diagram_cache`（2.4.1）、版のtrim比較と機構の完全比較、PDF4本の配置を確認。対応する限定実行結果はE-0017。
+**確認済み／種別：ソース・テスト期待値**。`cli/src/commands/update.rs::run / run_all`、`setup.rs::run / ensure_current`、`cli/tests/commands.rs`。機構5本→版ファイルの書込み順（3.1.0 から機構5本→キャッシュ→版ファイル。[E-0038](#ev-e-0038)）、版が変わるときの `prune_diagram_cache`（2.4.1）、版のtrim比較と機構の完全比較、PDF4本の配置を確認。対応する限定実行結果はE-0017。
 
 ### E-0007：Quartoと発行成果物 {#ev-e-0007 .unnumbered}
 
@@ -182,3 +182,49 @@
   `python cli/tools/check_release.py <出力先> --exe cli/target/release/ddq.exe --smoke <作業フォルダ>` はすべて OK（ZIP と VSIX の `ddq.exe` が
   配る ddq.exe と同じ。ZIP から取り出した exe で init → pdf → html）。ZIP と VSIX の項目の名前は、分ける前の CI の配布候補（PR #142 の実行の成果物）と
   同じ（50 件・14 件）。全件の `cargo test`（`docs/refactoring-progress.md` の条件）は 228 件成功（`quarto.rs` の単体 1 件は ddq と ddq-release の両方で走る）
+
+### E-0038：3.0.1-pre1〜3.1.0 の変更（2026-11-23） {#ev-e-0038 .unnumbered}
+
+**確認済み／種別：ソース・テスト期待値・実行観測**。基準はブランチ `fix/review-critical` の `f2c6e0e` とその上の作業ツリー、2026-11-23
+（`template/VERSION` 3.1.0）。`git log 2a9373e..HEAD -- cli template .github` で変更を棚卸しし、計画外の変更（3.0.1-pre1・3.1.0-pre1）と
+`docs/refactoring-plan.md` の各項目・外部レビュー `docs/refactoring-review.md` の指摘の直しを読んだ。各項目の試験の記録は `docs/refactoring-progress.md`。
+
+- 書込み（IO-01・IO-02、レビュー C-01・C-02・M-03）：`cli/src/replace.rs::replace / replace_unchanged / create_new / refused / Refused / prepare / replace_bytes / checked_file`
+  と単体テスト（障害注入 `FAULT`）、`cli/src/commands/tag.rs::apply / plan / write_all`、`cli/src/commands/rev.rs::write_revision / save_revision / build`、
+  `cli/src/assets.rs::write_asset / write_dir_if_absent / write_if_absent / create_if_absent`、`cli/src/commands/update.rs::run / prune_diagram_cache`。
+  `cli/tests/tag.rs`・`rev.rs`・`rerun.rs`
+- 章立て（GEN-01・CLI-01、レビュー H-01・H-03・M-08）：`cli/src/doc/project.rs::chapters_of / MapItem / page_rank / item_key / value_of /
+  map_key / flow_items / flow_text / unquoted / split_flow / flow_node / key_value / flow_docs / as_doc_path / assemble / order_with_texts /
+  Source::exists`、`cli/src/doc/gitsrc.rs::GitFolder::exists`、`cli/src/doc/mod.rs::scan_folder`、`template/postprocess-html.js` の
+  `valueOf / mapKey / flowText / unquoted / splitFlow / flowNode / keyValue / PAGE_RANK / flowDocs / flowItems / docsOf / appendixNumber`、
+  `template/scaffold/content/_quarto.yml`。共有の期待値 `cli/tests/fixtures/contract/chapters.json`（15ケース。正解は Quarto 1.9.38 の
+  `quarto inspect` の `files.input`。部の題名の項目の `href:`・`file:` のページ `part_hrefs` に番号・付録の記号が付かないことは
+  `quarto render` で確かめた）、`cli/tests/filter_contract.rs`・`e2e.rs`。フロー形式の対応付けと `href:`・`file:` は `cd00267` の上の
+  作業ツリー（2026-11-23。利用者の判断「Quarto に合わせて読む」）
+- 改訂ファイルと履歴表（DATA-01 と既存の不具合）：`cli/src/doc/revfile.rs::unquote`（共有の期待値 `rev-values.json`）、
+  `cli/src/commands/rev.rs::Row::note_cell / escape_tex_commands / code_span_end / math_end`
+- ラベル（既存の不具合）：`cli/src/doc/labels.rs::candidate`（`LEN` を使い切ったら `-2`・`-3`…）
+- 図（GEN-02）：`cli/src/mermaid/prerender.rs::expand_tabs / mermaid_blocks`、`template/design-doc.lua::mermaid_target`（設定の CRLF）。
+  共有の期待値 `diagrams.json`
+- 配布（REL-01・REL-02・REL-03、CI-01、レビュー C-03・M-04・M-05・L-02・L-03）：`cli/src/bin/ddq-release/release.rs::run / check_versions /
+  ddq_version / extension_dirs / read_json / build_extension / check_bundled / discard_notice / assemble / check_third_party`、`cli/tests/release.rs`、
+  `.github/workflows/release-candidate.yml`、`.github/actions/jp-fonts/action.yml`（`phase` の start・wait）、`cli/tools/check_release.py`、
+  `docs/manual/chapters/18-maintainer/06-release.qmd`（公開の手順）
+- CI・依存：`.github/workflows/ci.yml`（`cargo audit`・`mermaid-bundle`、Node 24 の Action）、`.github/workflows/extension.yml`、
+  `cli/tools/mermaid-bundle/{package.json,build.mjs,bundled.json}`、`cli/tools/third_party.py`、`cli/Cargo.toml`（`zip` 9、`default-run`）、`cli/Cargo.lock`
+- 実行：2026-11-23、Windows 11（ACP 932）、Cargo 1.98.1、Quarto 1.9.38、Java 17.0.2、PlantUML 1.2026.8、git 2.44.0、Edge 158.0.4370.33。
+  `cli/` で `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings`・`cargo build --release --locked --offline` が成功し、
+  `DDQ_E2E=1`・`DDQ_PLANTUML_JAR` を付けた `cargo test --locked --offline --no-fail-fast -- --test-threads=1` は253件成功・失敗0・ignored 0
+  （unit 125 / ddq-release 6 / commands 10 / contract 5 / e2e 7 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 /
+  rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1）。そのリリースビルドの ddq で本書を `ddq update`・`ddq html` した。
+  部を書いた book（扉ページのファイル・題名だけ・付録の中の部）を `ddq init` の雛形から作って `ddq pdf` すると、Typst の
+  `unknown variable: part` で失敗した（`template/` の Typst 側に `part` が無い。前からの制約）。
+  GitHub Actions：本書の基準をコミットした `1fafcc5`（PR #144、2026-11-23）で、`ci.yml`（cli・mermaid-bundle）・`extension.yml`（テスト 4 構成・
+  実拡張ホスト・脆弱性・VSIX の生成）・`release-candidate.yml`（build・verify-zip・verify-vsix・publishable）の 13 ジョブが成功した。
+  build ではランナーに書体が無く、`phase: start` が dism を裏で走らせて 8 秒で進み、ビルドの後の `phase: wait` が終わり（終了コード）を
+  待って、Meiryo UI・BIZ UDGothic が Typst から見えることを確かめた。build ジョブは 15 分 4 秒（`f2c6e0e`）→ 11 分 44 秒、
+  ワークフロー全体は 28 分 4 秒 → 28 分 12 秒（verify-zip が書体を重ねずに入れ、今回 14 分 39 秒）
+  2 回目（`cd00267` の上の作業ツリー。章立てのフロー形式の対応付けと `href:`・`file:`）：Rust 全件 255 件成功・失敗 0・ignored 0
+  （unit 126 / ddq-release 6 / commands 10 / contract 5 / e2e 8 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1）。`cli/tools/regress.py` で v3.1.0-pre1 の ddq と比べ、`examples/docs`・`examples/plantuml`・`docs/manual` の
+  差が図のキャッシュのキー（ddq の版を含む）と、描くたびに線の形が変わる docs の mermaid の図 4 つ（とその 4 ページの画素）だけ
+  であることを確かめた（キーと版を伏せると `index.typ`・HTML・`search.json` が同じ。PDF の文字も同じ）

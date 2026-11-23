@@ -23,11 +23,13 @@ flowchart TB
   RL[ddq-release（保守者用の別の exe）] -->|配る ddq.exe を起動| M
   RL -->|配布フォルダ| Z[zip_archive]
   C -->|tag / rev| O[doc モジュール]
+  C -->|書込み| X[replace]
+  X -->|一時ファイルから付け替え| W
   O -->|原稿をテキストで読む| W
   O -->|子プロセス| G[git]
 ```
 
-図の辺は静的確認済みの呼出し・データ供給を示す。`assets`・`doc` 等は ddq 内のモジュール、Quarto・ブラウザ・Java・git は別プロセスである。`ddq-release` とその `zip_archive` は 2026-11-23 から ddq とは別の exe で、配る ddq.exe を子プロセスとして起動する。`doc` は Quarto を起動せず、`tag`／`rev` は描画経路と独立している。全コマンドが全経路を使うわけではない。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0012](appendix-evidence.qmd#ev-e-0012)、[E-0020](appendix-evidence.qmd#ev-e-0020)
+図の辺は静的確認済みの呼出し・データ供給を示す。`assets`・`doc` 等は ddq 内のモジュール、Quarto・ブラウザ・Java・git は別プロセスである。`ddq-release` とその `zip_archive` は 2026-11-23 から ddq とは別の exe で、配る ddq.exe を子プロセスとして起動する。`doc` は Quarto を起動せず、`tag`／`rev` は描画経路と独立している。執筆フォルダへの書き込み（`replace`）は 3.1.0 から。全コマンドが全経路を使うわけではない。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)、[E-0012](appendix-evidence.qmd#ev-e-0012)、[E-0020](appendix-evidence.qmd#ev-e-0020)
 
 ## 主要コンポーネント {#sec-02d92f}
 
@@ -37,14 +39,15 @@ flowchart TB
 |---|---|---|
 | コマンド入口 | `main.rs::Cli / Command / main / run`（`main` が終了コードを決める。版不一致 `setup::TemplateMismatch` は 3、他の失敗は 1） | `commands::*::run`、`plantuml::serve` |
 | 配置・版管理 | `assets::MECHANISM / PDF_SIDE / SCAFFOLD`、`setup::ensure_current` | init/add/update/setup/html/pdf |
+| 書込み（3.1.0） | `replace::replace / replace_unchanged / create_new / refused`、`assets::write_asset / write_if_absent / write_dir_if_absent` | update・setup（機構・PDF側・版マーカー）、init/add（雛形）、tag apply・rev diff --write・rev build |
 | パス・探索 | `writing_folder::resolve / find_all / ensure_encodable` | main、作成・発行コマンド |
 | Quarto起動 | `quarto::render / run / self_exe` | CWD、DDQ_BIN、終了状態の統一 |
 | Mermaid変換 | `mermaid::choose_engine / render_jobs`、`browser::Cdp`、`merman_engine::render` | hidden CLI と diagrams |
 | PlantUML連携 | `plantuml::ensure / Session / LocalServer / render` | html/pdf/diagrams/serve |
-| 配布（別の exe ddq-release。`cli/src/bin/ddq-release/`） | `main.rs::Cli`、`release::default_ddq / run / ddq_version / check_versions / build_extensions / build_extension / check_bundled / rename_patiently / copy_tree`、`zip_archive::create` | manual（配る ddq.exe で作る）、VSIX（拡張ごと。配る ddq.exe を同梱した `win32-x64` 版）、jar、ZIP |
-| 論理文書 | `doc::project::order / logical / Source`、`doc::units::scan`、`doc::scan_folder` | tag、rev |
-| ラベル付与 | `commands::tag::list / apply / from_file`、`doc::labels::suggest / candidate / valid` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |
-| 改訂履歴 | `commands::rev::next / diff_cmd / build`、`doc::diff::units_of / compare`、`doc::revfile`、`doc::gitsrc::Repo / GitFolder` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |
+| 配布（別の exe ddq-release。`cli/src/bin/ddq-release/`） | `main.rs::Cli`、`release::default_ddq / run / ddq_version / check_versions / extension_dirs / check_third_party / build_extensions / build_extension / check_bundled / discard_notice / rename_patiently / copy_tree`、`zip_archive::create` | manual（配る ddq.exe で作る）、VSIX（拡張ごと。配る ddq.exe とライセンス表示を同梱した `win32-x64` 版）、ZIP |
+| 論理文書 | `doc::project::order / order_with_texts / logical / Source`、`doc::units::scan`、`doc::scan_folder` | tag、rev |
+| ラベル付与 | `commands::tag::list / apply / plan / write_all / from_file`、`doc::labels::suggest / candidate / valid` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |
+| 改訂履歴 | `commands::rev::next / diff_cmd / save_revision / build / escape_tex_commands`、`doc::diff::units_of / compare`、`doc::revfile`、`doc::gitsrc::Repo / GitFolder` | 執筆者、VSCode拡張 ddq-template（旧 ddq-revision） |
 
 根拠：[E-0002](appendix-evidence.qmd#ev-e-0002)～[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)～[E-0022](appendix-evidence.qmd#ev-e-0022)。
 
@@ -56,4 +59,4 @@ flowchart TB
 
 **確認済み（静的）**：`doc::gitsrc` は `git` を同期の子プロセスとして一回ずつ起動し、標準出力を読み切ってから次へ進む。旧版の各ファイルは `git show` を一ファイル一回呼び、結果を `GitFolder` 内の `RefCell<HashMap>` に保持する。スレッドは作らない。[E-0022](appendix-evidence.qmd#ev-e-0022)
 
-**確認済み（静的）**：自前コードには同じ執筆フォルダを操作する複数 ddq 間の排他がない。`tag apply` と `rev diff --write`／`rev build` も原稿・改訂ファイルを直接書き換えるため、VSCode 拡張と CLI を同時に動かす場合の整合は利用側に委ねられる。テスト内の `QUARTO_LOCK` は E2E テストの二経路を直列化するもので、製品のロックではない。[E-0016](appendix-evidence.qmd#ev-e-0016)
+**確認済み（静的）**：自前コードには同じ執筆フォルダを操作する複数 ddq 間のロックがない。3.1.0 から、書き込みは次のように競合の窓を狭める。`tag apply` と `rev diff --write` は、読んだときのバイト列と書く直前を照らし（`replace_unchanged`）、違えば書かずに止める。Windows では照合から付け替えまで、ほかのプログラムの書き込みを拒む開き方でそのファイルを開いておき、ほかのプログラムが書き込み用に開いたままなら1秒ほど待ち直しても閉じなければ止める。init/add の雛形は上書きしない新規作成で置くので、同時に走っても同じファイルを両方が作ることはない。`rev build` の表と機構・版マーカーは ddq が作るファイルとして、照合せずに置き換える。ほかのプログラムが一時ファイルからの付け替え（安全な保存）で原稿を置き換えるのは拒めず、照合と付け替えの間に起きると検出できない。Unix では付け替えの直前に照らし直すだけである。この範囲を超える整合（VSCode 拡張と CLI を同時に動かす場合など）は利用側に委ねられる。テスト内の `QUARTO_LOCK` は E2E テストの二経路を直列化するもので、製品のロックではない。[E-0016](appendix-evidence.qmd#ev-e-0016)、[E-0038](appendix-evidence.qmd#ev-e-0038)

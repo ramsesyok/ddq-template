@@ -115,15 +115,17 @@ const BOM: &[u8] = b"\xEF\xBB\xBF";
 /// 書く直前に対象を全部読み直し、走査したときと同じ中身か（と読み取り専用でないか）を確かめてから
 /// 1 ファイルずつ置き換える（IO-01）。
 /// - 1 つでも変わっていれば、どれも書かずに止める（どのファイルかを挙げる）
+/// - 各ファイルは置き換えるときにも、ここで読んだバイト列と照合し直す（`replace_unchanged`。C-01）。
+///   その後に保存された・ほかのプログラムが書き込み用に開いたまま、なら書かずにそこで止める
 /// - 置き換えの途中で失敗したら、そこで止め、書き換えたファイルと書き換えていないファイルを挙げる
 /// - BOM は書く直前のファイルのまま。改行（CRLF / LF）と末尾の改行の有無は行ごとに元のまま
 fn write_all(dir: &Path, doc: &doc::Doc, plan: &[Planned]) -> Result<()> {
     let mut blocked = Vec::new();
-    let mut boms = Vec::new();
+    // 照合したバイト列（置き換えるときに、これと照合し直す）
+    let mut read = Vec::new();
     for p in plan {
         let path = dir.join(&p.rel);
         let now = fs::read(&path).ok();
-        let bom = now.as_deref().is_some_and(|b| b.starts_with(BOM));
         let scanned = doc.lines.get(&p.rel).map(|l| l.join("\n"));
         let same = now
             .as_deref()
@@ -134,7 +136,7 @@ fn write_all(dir: &Path, doc: &doc::Doc, plan: &[Planned]) -> Result<()> {
         } else if fs::metadata(&path).is_ok_and(|m| m.permissions().readonly()) {
             blocked.push(format!("  {}: 読み取り専用です", p.rel));
         }
-        boms.push(bom);
+        read.push(now.unwrap_or_default());
     }
     if !blocked.is_empty() {
         bail!(
@@ -145,10 +147,14 @@ fn write_all(dir: &Path, doc: &doc::Doc, plan: &[Planned]) -> Result<()> {
     }
 
     let mut done: Vec<String> = Vec::new();
-    for (i, (p, bom)) in plan.iter().zip(boms).enumerate() {
-        let mut bytes = if bom { BOM.to_vec() } else { Vec::new() };
+    for (i, (p, orig)) in plan.iter().zip(&read).enumerate() {
+        let mut bytes = if orig.starts_with(BOM) {
+            BOM.to_vec()
+        } else {
+            Vec::new()
+        };
         bytes.extend_from_slice(p.lines.join("\n").as_bytes());
-        if let Err(e) = replace::replace(&dir.join(&p.rel), &bytes) {
+        if let Err(e) = replace::replace_unchanged(&dir.join(&p.rel), Some(orig), &bytes) {
             let n: usize = plan[..i].iter().map(|p| p.edits.len()).sum();
             let rest: Vec<&str> = plan[i..].iter().map(|p| p.rel.as_str()).collect();
             return Err(e.context(format!(
@@ -472,7 +478,11 @@ mod tests {
             err.contains("  書き換えていないファイル: b.qmd, index.qmd"),
             "{err}"
         );
-        assert!(err.contains("を置き換えられません"), "{err}");
+        // 読みだけを共有する開き方なので、照合し直してその場で書くこともできない（C-01 の後の理由の文言）
+        assert!(
+            err.contains("ほかのプログラムが開いているため、書き換えていません"),
+            "{err}"
+        );
         let after = files(tmp.path());
         assert_ne!(after[0], before[0], "a.qmd は書き換えた");
         assert_eq!(after[1..], before[1..], "b.qmd・index.qmd はそのまま");

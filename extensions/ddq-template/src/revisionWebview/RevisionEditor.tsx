@@ -3,11 +3,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     emptyNotes,
     kindText,
+    shown,
     unitText,
+    withChange,
+    withDocument,
     type EditorContext,
+    type EditorView,
+    type RevisionChange,
     type ToEditorMessage
 } from '../revision/messages';
-import { emptyRevision, type RevEntry, type Revision } from '../revision/revfile';
+import { emptyRevision, type RevEntry } from '../revision/revfile';
 import { editorApi } from './vscodeApi';
 
 /**
@@ -15,20 +20,24 @@ import { editorApi } from './vscodeApi';
  *
  * 差分そのものは描かない（VSCode 標準の差分エディタに渡す）。ここが担うのは
  * 「どこが変わったか」の一覧と、その 1 行ずつに**修正内容を書く欄**である。
+ *
+ * 直したら、その 1 か所と直す前に出していた値を拡張へ送る（改訂全体は送らない。H-02）。文書から届いた内容には、
+ * 拡張がまだ処理していない画面の変更を重ねて出す（打っている最中の値を巻き戻さず、ほかの行の変更は出す）。
  */
 export function RevisionEditor() {
-    const [revision, setRevision] = useState<Revision>(emptyRevision);
+    const [view, setView] = useState<EditorView>(() => ({ doc: emptyRevision(), pending: new Map() }));
     const [context, setContext] = useState<EditorContext>({
         folder: '',
         fileName: '',
+        checked: false,
         fixed: false,
         tags: []
     });
     const [busy, setBusy] = useState(false);
     const [notice, setNotice] = useState<{ text: string; level: string } | undefined>();
     const [base, setBase] = useState('');
-    // 自分の編集が文書に返ってきたときに、入力中のカーソルを飛ばさないための番兵
-    const editing = useRef(false);
+    // 拡張へ送る edit の通し番号（拡張は、処理し終えた番号を返してくる）
+    const lastId = useRef(0);
 
     useEffect(() => {
         const onMessage = (event: MessageEvent<ToEditorMessage>) => {
@@ -36,8 +45,7 @@ export function RevisionEditor() {
             switch (message.type) {
                 case 'revision':
                     setContext(message.context);
-                    if (!editing.current) setRevision(message.revision);
-                    editing.current = false;
+                    setView((v) => withDocument(v, message.revision, message.applied, message.reset));
                     return;
                 case 'busy':
                     setBusy(message.busy);
@@ -52,32 +60,24 @@ export function RevisionEditor() {
         return () => window.removeEventListener('message', onMessage);
     }, []);
 
+    // 確定済み、またはタグの状態をまだ確かめていない（開いた直後。M-01）なら編集させない
+    const locked = context.fixed || !context.checked;
+    const revision = useMemo(() => shown(view), [view]);
     const empty = useMemo(() => emptyNotes(revision), [revision]);
     const live = revision.entries.filter((e) => !e.stale);
     const stale = revision.entries.filter((e) => e.stale);
 
-    const editNote = (label: string, note: string) => {
-        editing.current = true;
-        const next = {
-            ...revision,
-            entries: revision.entries.map((e) => (e.label === label ? { ...e, note } : e))
-        };
-        setRevision(next);
-        editorApi().postMessage({ type: 'edit', revision: next });
+    /** 1 か所を直した。画面にはすぐ出し、拡張へは番号を付けて送る */
+    const change = (c: RevisionChange) => {
+        const id = ++lastId.current;
+        setView((v) => withChange(v, id, c));
+        editorApi().postMessage({ type: 'edit', id, change: c });
     };
-
-    const editHeader = (patch: Partial<Revision>) => {
-        editing.current = true;
-        const next = { ...revision, ...patch };
-        setRevision(next);
-        editorApi().postMessage({ type: 'edit', revision: next });
-    };
-
-    const dropStale = (label: string) => {
-        const next = { ...revision, entries: revision.entries.filter((e) => e.label !== label) };
-        setRevision(next);
-        editorApi().postMessage({ type: 'edit', revision: next });
-    };
+    // 直す前の値は、いま画面に出している値（拡張は送った順に当てるので、前に送った変更の後の値になる）
+    const editNote = (label: string, note: string) =>
+        change({ field: 'note', label, before: revision.entries.find((e) => e.label === label)?.note ?? '', after: note });
+    const editDate = (date: string) => change({ field: 'date', before: revision.date, after: date });
+    const dropStale = (entry: RevEntry) => change({ field: 'drop', label: entry.label, before: entry.note });
 
     return (
         <div className="pane">
@@ -92,15 +92,15 @@ export function RevisionEditor() {
                         改訂日
                         <input
                             value={revision.date}
-                            disabled={context.fixed}
-                            onChange={(e) => editHeader({ date: e.target.value })}
+                            disabled={locked}
+                            onChange={(e) => editDate(e.target.value)}
                         />
                     </label>
                     <label>
                         基準
                         <input
                             value={base || revision.base}
-                            disabled={context.fixed}
+                            disabled={locked}
                             list="ddq-tags"
                             onChange={(e) => setBase(e.target.value)}
                             title={revision.baseCommit}
@@ -118,7 +118,7 @@ export function RevisionEditor() {
 
                 <div className="toolbar">
                     <button
-                        disabled={busy || context.fixed}
+                        disabled={busy || locked}
                         onClick={() => editorApi().postMessage({ type: 'refresh', base: base || undefined })}
                     >
                         差分を取り直す
@@ -128,7 +128,7 @@ export function RevisionEditor() {
                     </button>
                     <button
                         className="primary"
-                        disabled={busy || context.fixed}
+                        disabled={busy || locked}
                         onClick={() => editorApi().postMessage({ type: 'fix' })}
                     >
                         確定する
@@ -143,6 +143,7 @@ export function RevisionEditor() {
                         <code>git tag -d rev-{revision.rev}</code> でタグを消してください。
                     </p>
                 )}
+                {!context.checked && <p className="muted checking">タグの状態を確かめています…</p>}
                 {notice && <pre className={`notice ${notice.level}`}>{notice.text}</pre>}
             </header>
 
@@ -165,7 +166,7 @@ export function RevisionEditor() {
                             <EntryRow
                                 key={entry.label}
                                 entry={entry}
-                                fixed={context.fixed}
+                                locked={locked}
                                 onNote={(note) => editNote(entry.label, note)}
                             />
                         ))}
@@ -184,7 +185,7 @@ export function RevisionEditor() {
                                     <td>{entry.title || entry.label}</td>
                                     <td className="note">{entry.note}</td>
                                     <td>
-                                        <button disabled={context.fixed} onClick={() => dropStale(entry.label)}>
+                                        <button disabled={locked} onClick={() => dropStale(entry)}>
                                             消す
                                         </button>
                                     </td>
@@ -205,8 +206,8 @@ export function RevisionEditor() {
     );
 }
 
-function EntryRow(props: { entry: RevEntry; fixed: boolean; onNote: (note: string) => void }) {
-    const { entry, fixed, onNote } = props;
+function EntryRow(props: { entry: RevEntry; locked: boolean; onNote: (note: string) => void }) {
+    const { entry, locked, onNote } = props;
     const gone = entry.kind === 'removed';
     return (
         <tr>
@@ -234,7 +235,7 @@ function EntryRow(props: { entry: RevEntry; fixed: boolean; onNote: (note: strin
                 <textarea
                     value={entry.note}
                     rows={Math.max(2, entry.note.split('\n').length)}
-                    disabled={fixed}
+                    disabled={locked}
                     placeholder="何のために、どこを直したか"
                     onChange={(e) => onNote(e.target.value)}
                 />

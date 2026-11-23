@@ -44,7 +44,7 @@
   `ddq release` の出力先に対して同じものを流せる
 - `--with-sample` は手動実行の入力で選べるようにする（既定は付けない）
 
-保守者の公開の手順（マニュアル 18 章を書き換える）:
+以下は提案時の手順。現行の公開手順は[利用マニュアル「リリースを配る」](manual/chapters/18-maintainer/06-release.qmd#sec-release-publish)にある。
 
 ```bash
 # main の、すべてのジョブが通った実行から取る
@@ -54,6 +54,15 @@ gh release create v<版> release/quarto-template-<版>.zip release/ddq-template-
   --draft --target <その実行のコミット> --title "…" --notes-file <リリースノート>
 gh release edit v<版> --draft=false
 ```
+
+> 2026-11-23 追記: 下書きを作るコマンドと公開するコマンドを分けると、片方の資産だけ上がった下書きを次のコマンドが
+> 公開しうる（レビュー `docs/refactoring-review.md` の C-03）。マニュアル 18 章「リリースを配る」の手順は、`--draft` を
+> 付けない 1 つの `gh release create`（gh が下書きで資産を上げ、2 つとも上がったときだけ公開し、失敗したら下書きを消す）に
+> 戻し、既にあるタグの指すコミットの照合と `--prerelease` を足した（M-05）。同じ日、選んだ実行と同じコミットの
+> `ci.yml`・`extension.yml` が通ったかの照合も足した（M-04。配布候補は専用の検査だけで残るため）。配布候補の workflow は
+> 外部の Action をコミットの SHA で固定し、Rust・書体の版・スモークの VSCode の版も記録し（L-02）、同じ枝への要求を待機開始順に
+> 最大100件まで待たせる（`queue: max`。満杯時の追加要求は取り消される）。マニュアルでは取得のたびに新しい一時フォルダを使い、
+> CI 待ちの後も、手元の試作物がある場合も同じ手順で再実行できる。
 
 `release/` の下のファイル名は今と同じなので、今の手順の `gh release create` の行はそのまま使える。
 タグは実行のコミットを指すので、タグと配布物のコミットが必ず一致する（今は「マージ後の main から作り直してからタグを打つ」を

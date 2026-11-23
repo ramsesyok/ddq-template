@@ -1,6 +1,19 @@
 {
-  "about": "GEN-01。_quarto.yml の book.chapters / appendices を、ddq（cli/src/doc/project.rs の chapters_of）と postprocess-html.js（docsOf）が Quarto と同じに読むか。正解は quarto inspect の config.book を part を展開して並べたもの（PyYAML の読みと一致を確かめた）。逆斜線は / に揃える。作り方は README.md",
+  "about": "GEN-01・H-01。_quarto.yml の book.chapters / references / appendices を、ddq（cli/src/doc/project.rs の chapters_of）と postprocess-html.js（docsOf）が Quarto と同じ並びに読むか。正解は quarto inspect の files.input（Quarto が描く入力の並び。index が先頭、部の扉ページを含み、章 → references → 付録）を chapters・references・appendices に分けたもの。part_files は部の扉ページとして置くファイル（part: の値でファイルの無いものは部の題名）。逆斜線は / に揃える。作り方は README.md",
   "cases": [
+    {
+      "name": "book と別の metadata にある章は読まない",
+      "yaml": "metadata:\n  chapters: [not-listed.qmd]\n  book:\n    chapters: [not-listed.qmd]\nbook:\n  chapters: [index.qmd, a.qmd]\n  sidebar:\n    chapters: [not-listed.qmd]\n",
+      "chapters": ["index.qmd", "a.qmd"],
+      "appendices": []
+    },
+    {
+      "name": "book 全体がフロー形式",
+      "yaml": "book: {title: Example, appendices: [z.qmd], references: refs.qmd, chapters: [index.qmd, {href: a.qmd}]}\n",
+      "chapters": ["index.qmd", "a.qmd"],
+      "references": "refs.qmd",
+      "appendices": ["z.qmd"]
+    },
     {
       "name": "雛形（17ed32e。第2〜7章に行末コメント。CRLF。リリース前）",
       "yaml": "# ============================================================\n#  設計書 book プロジェクト（Quarto → HTML / PDF）\n#\n#  このファイルは ddq init / ddq add が置いた雛形である。発行者が文書に合わせて\n#  書き換える（表題・資料番号・会社名・章の並び）。\n#\n#  1ファイル = 1章。章の中をさらに節・項に割るときは {{< include >}} を使う。\n#  400〜1000ページ級の設計書を想定し、HTML は章ごとの別ページに分割して出す\n#  （単一 HTML は図の base64 内包で数十 MB になり実用に耐えないため）。\n#  PDF は1ファイルで、章番号・図表番号・相互参照は章をまたいで連続する。\n#\n#  執筆者は Quarto と VSCode 拡張だけで HTML を出せる（ddq は不要）。\n#  PDF（発行版）は発行者が ddq を使って出す。PDF 用の設定は\n#  _quarto-publish.yml（発行者の setup が置く）にあり、このファイルには無い。\n#\n#  注意（book 特有の落とし穴）:\n#   - include のパスは「その章ファイルのあるディレクトリ」基準（入れ子でも同じ）\n#   - chapters に並べたファイルの先頭見出しは h1（章）に昇格される。\n#     長い章を分割するときは章ファイルを1つ立て、そこから include すること。\n#   - 画像はプロジェクトルート基準の /diagrams/... で書く（../ は Windows で\n#     バックスラッシュ結合され typst 0.15 以降が拒否するため）\n# ============================================================\nproject:\n  type: book\n  output-dir: _book\n  # 図表番号を PDF と同じ「章.節-連番」に振り直す後処理。\n  # quarto render / quarto preview のたびに Quarto 同梱の Deno で走る（node 不要）。\n  post-render:\n    - postprocess-html.js\n\nbook:\n  title: ○○システム 基本設計書\n  subtitle: \"\"\n  author: ○○チーム\n  # 発行版 PDF のファイル名（拡張子 .pdf は付けない）。_book/ に この名前.pdf ができる。\n  # 省略すると Quarto が title から付ける。資料番号を入れておくと配布物の取り違えが減る。\n  # ddq pdf が取り出す中間版は名前を変えず design-doc.pdf のまま。\n  output-file: XX-2026-001_○○システム基本設計書\n  # 章の並び。1ファイル = 1章。増やしたらここに追記する。\n  # 2〜7章は記法の見本。本文を書き始めたら行を消し、フォルダも消す。\n  chapters:\n    - index.qmd\n    - chapters/01/index.qmd\n    - chapters/02/index.qmd   # 記法見本: 基本的な書き方\n    - chapters/03/index.qmd   # 記法見本: 文書の組み立て\n    - chapters/04/index.qmd   # 記法見本: 表\n    - chapters/05/index.qmd   # 記法見本: 図\n    - chapters/06/index.qmd   # 記法見本: 横向きページと IPO 図\n    - chapters/07/index.qmd   # 記法見本: 相互参照・コード・数式\n\nlang: ja\n# PlantUML 図（```plantuml）を描く LAN 内のサーバ。設定すると執筆者・発行者とも、\n# 自分の端末に Java や plantuml.jar が無くても図が出る（利用マニュアル 8 章・11 章）。\n# 例: plantuml-server: http://plantuml.example.local:8080\n# 空なら、ローカルの `ddq plantuml serve`（既定 http://127.0.0.1:18080）を探す。\nplantuml-server: \"\"\ndoc-number: XX-2026-001\ndoc-revision: \"\"       # 改訂記号（A〜Z / NC）。doc-number の末尾に結合して資料番号に表示。空=改訂記号なし\nspec: false            # スペック様式（全ページ上部に表題欄）にするか。true でスペック様式\ncompany-ja: ○○株式会社            # 様式フッターの会社名（日本語）\ncompany-en: ○○ Co., Ltd.          # 様式フッターの会社名（英語）\npage-start: 1          # PDF の開始ページ番号。表紙・前書きを別文書で作り、その続きとして綴じるときに使う（前付けが4ページなら 5）\npagebreak-level: 1     # PDF で見出しの先頭に自動改ページを入れる最深レベル。0=入れない、1=章(#)、2=章と節(##。各章で2つ目以降の節のみ)\n\ntoc: true\ntoc-location: left     # ページ内目次を右マージンから左へ移す（本文を広く取る）\ntoc-title: 目 次\ntoc-depth: 3\n\nformat:\n  # 執筆者が内容を確認するための HTML。章ごとに別ページ・共通アセットは\n  # site_libs/ に1回だけ。全文検索（search.json）も自動で付くが、利用には HTTP 配信が必要。\n  # 発行版の HTML も同じ設定で出る（違うのは mermaid の描き方だけ）。\n  html:\n    number-sections: true\n    css: design-doc.css\n    embed-resources: false\n    # 画面幅の基準を 1920px にする（Quarto 既定は sidebar 250 + body 800 +\n    # margin 250 ≒ 1280px）。左ペイン（sidebar）は「章番号 + 見出し15文字」＋\n    # ページ内目次（toc-location: left で左に移動）が折り返さずに収まる幅。\n    # 合計 300 + 1560 + 60 = 1920px。\n    grid:\n      sidebar-width: 300px\n      body-width: 1560px\n      margin-width: 60px\n\nfilters:\n  - design-doc.lua\n",
@@ -75,6 +88,170 @@
         "chapters/05/index.qmd"
       ],
       "appendices": []
+    },
+    {
+      "name": "付録を先に書く・部の扉ページ（ファイル）と部の題名・付録の中の部（H-01）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  appendices:   # 付録を章より先に書く\n    - app.qmd\n    - part: app-part.qmd\n      chapters:\n        - app2.qmd\n  chapters:\n    - index.qmd\n    - part: part.qmd   # 部の扉（ファイル）\n      chapters:\n        - a.qmd\n    - part: \"第II部\"\n      chapters:\n        - b.qmd\n    - part: 'parts/p3.qmd'\n      chapters:\n        - c.qmd\n    - part: 総論.qmd     # ファイルが無いので部の題名\n      chapters:\n        - d.qmd\nlang: ja\n",
+      "part_files": [
+        "part.qmd",
+        "parts/p3.qmd",
+        "app-part.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "part.qmd",
+        "a.qmd",
+        "b.qmd",
+        "parts/p3.qmd",
+        "c.qmd",
+        "d.qmd"
+      ],
+      "appendices": [
+        "app.qmd",
+        "app-part.qmd",
+        "app2.qmd"
+      ]
+    },
+    {
+      "name": "フロー形式・book.references・index を先頭以外に書く",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters: [a.qmd, \"b c.qmd\", index.qmd]   # フロー形式。index は先頭に回る\n  references: refs.qmd\n  appendices: [\n    app.qmd,   # 複数行のフロー形式\n    'app2.qmd'\n  ]\nlang: ja\n",
+      "chapters": [
+        "index.qmd",
+        "a.qmd",
+        "b c.qmd"
+      ],
+      "references": "refs.qmd",
+      "appendices": [
+        "app.qmd",
+        "app2.qmd"
+      ]
+    },
+    {
+      "name": "対応付けの項目で chapters を part より先に書く・部の中のフロー形式",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - chapters:     # chapters を part より先に書く\n        - a.qmd\n      part: part.qmd\n    - part: p2.qmd\n      chapters: [b.qmd, c.qmd]\n    - chapters: [d.qmd]\n      part: 第III部\n  appendices:\n    - chapters:\n      - app.qmd\n      part: app-part.qmd\n    - app2.qmd\nlang: ja\n",
+      "part_files": [
+        "part.qmd",
+        "p2.qmd",
+        "app-part.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "part.qmd",
+        "a.qmd",
+        "p2.qmd",
+        "b.qmd",
+        "c.qmd",
+        "d.qmd"
+      ],
+      "appendices": [
+        "app-part.qmd",
+        "app.qmd",
+        "app2.qmd"
+      ]
+    },
+    {
+      "name": "フロー形式の対応付け {part: …, chapters: […]}（キーの順・部の題名・複数行・付録の中）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - {part: p1.qmd, chapters: [a.qmd, b.qmd]}\n    - {part: \"題名だけ\", chapters: [c.qmd]}\n    - {chapters: [d.qmd], part: p2.qmd}   # chapters を先に書いても扉ページが先\n    - { part: p3.qmd,   # 複数行の対応付け\n        chapters: [e.qmd,\n                   f.qmd] }\n  appendices:\n    - app1.qmd\n    - {part: ap.qmd, chapters: [app2.qmd]}\nlang: ja\n",
+      "part_files": [
+        "p1.qmd",
+        "p2.qmd",
+        "p3.qmd",
+        "ap.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "p1.qmd",
+        "a.qmd",
+        "b.qmd",
+        "c.qmd",
+        "p2.qmd",
+        "d.qmd",
+        "p3.qmd",
+        "e.qmd",
+        "f.qmd"
+      ],
+      "appendices": [
+        "app1.qmd",
+        "ap.qmd",
+        "app2.qmd"
+      ]
+    },
+    {
+      "name": "href:・file: の項目（text: の前後・フロー形式・部の中・付録）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - href: a.qmd\n    - file: b.qmd   # file: は href: と同じ\n    - text: Cの題\n      href: c.qmd\n    - href: d.qmd\n      text: Dの題\n    - {href: e.qmd}\n    - {file: f.qmd, text: \"F\"}\n    - part: p1.qmd\n      chapters:\n        - href: g.qmd\n        - file: h.qmd\n  appendices:\n    - href: app1.qmd\n    - text: 付録2\n      file: app2.qmd\nlang: ja\n",
+      "part_files": [
+        "p1.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "a.qmd",
+        "b.qmd",
+        "c.qmd",
+        "d.qmd",
+        "e.qmd",
+        "f.qmd",
+        "p1.qmd",
+        "g.qmd",
+        "h.qmd"
+      ],
+      "appendices": [
+        "app1.qmd",
+        "app2.qmd"
+      ]
+    },
+    {
+      "name": "フロー形式の列の中の対応付け（引用の中の , と :・コメント・部の中の列）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters: [index.qmd, {part: p1.qmd, chapters: [a.qmd, \"b, c.qmd\"]},   # コメント\n             {href: 'd.qmd', text: \"D, の題\"}, {part: 総論.qmd, chapters: [e.qmd]}]\n  appendices:\n    - part: p2.qmd\n      chapters: [app1.qmd, {file: app2.qmd}]\n    - {text: \"付録: 三\", href: app3.qmd}\nlang: ja\n",
+      "part_files": [
+        "p1.qmd",
+        "p2.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "p1.qmd",
+        "a.qmd",
+        "b, c.qmd",
+        "d.qmd",
+        "e.qmd"
+      ],
+      "appendices": [
+        "p2.qmd",
+        "app1.qmd",
+        "app2.qmd",
+        "app3.qmd"
+      ]
+    },
+    {
+      "name": "部の項目に href:・file: も書く（項目のページは 1 つ: 扉ページ → href: → file:）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  chapters:\n    - index.qmd\n    - href: d.qmd   # 部の扉ページ（ファイル）があれば href: は使わない\n      part: q.qmd\n    - part: r.qmd\n      href: e.qmd\n      chapters:\n        - f.qmd\n    - {part: \"題\", href: g.qmd, chapters: [a.qmd]}   # 部の題名なら href: が部のページ\n    - {part: \"題2\", file: h.qmd}\n    - chapters: [b.qmd]\n      href: c.qmd\n      part: 題3\n    - {file: x.qmd, href: y.qmd}   # 両方なら href:\n    - file: z.qmd\n      href: w.qmd\n  appendices:\n    - {part: \"付録の部\", href: ap.qmd, chapters: [app1.qmd]}\n    - app2.qmd\nlang: ja\n",
+      "part_files": [
+        "q.qmd",
+        "r.qmd"
+      ],
+      "part_hrefs": [
+        "g.qmd",
+        "h.qmd",
+        "c.qmd",
+        "ap.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "q.qmd",
+        "r.qmd",
+        "f.qmd",
+        "g.qmd",
+        "a.qmd",
+        "h.qmd",
+        "c.qmd",
+        "b.qmd",
+        "y.qmd",
+        "w.qmd"
+      ],
+      "appendices": [
+        "ap.qmd",
+        "app1.qmd",
+        "app2.qmd"
+      ]
     }
   ],
   "items": {

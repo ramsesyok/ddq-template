@@ -22,7 +22,7 @@
 | 方向・type | payload | 受信後の処理 |
 |---|---|---|
 | Webview → host：`ready` | なし | Session のモデルと context を返す |
-| Webview → host：`apply` | `model` | 検証して文書へ反映 |
+| Webview → host：`apply` | `model`（2026-11-23 から `session`。`init` で渡した編集セッションの番号） | 検証して文書へ反映（番号が違えば書かない） |
 | Webview → host：`close` | なし | パネルと Session を破棄 |
 | host → Webview：`init` | `model`、`context` | 履歴を初期化、警告表示 |
 | host → Webview：`applied` | なし | 反映完了メッセージ |

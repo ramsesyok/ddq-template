@@ -113,3 +113,34 @@ tests/release.rs（9）・tests/rev_ops.rs（4）・PlantUML の HTTP 単体テ�
 ddq html / pdf が Quarto の前に文書全体の mermaid を 1 回で描くようにした。サンプル文書の HTML（キャッシュ無し）は
 36.7 秒 → 22.4 秒。DDQ_E2E=1 の cargo test 全 139 件が成功（E2E の図の数の照合を含む）。
 PlantUML の HTTP 試験の偽のサーバが要求を読み残して閉じ、RST で時々失敗していたのを直した（15 回連続で成功）。
+
+## 2026-11-23 の追補（3.1.0）
+
+基準はブランチ fix/review-critical の f2c6e0e とその上の作業ツリー（template/VERSION 3.1.0）。Windows 11（ACP 932）、
+Cargo 1.98.1、Quarto 1.9.38、Java 17.0.2、PlantUML 1.2026.8（cli/vendor/plantuml.jar）、git 2.44.0、Edge 158.0.4370.33。
+
+- cli/ で cargo fmt --check・cargo clippy --locked --offline --all-targets -- -D warnings・cargo build --release --locked --offline が成功
+- DDQ_E2E=1・DDQ_PLANTUML_JAR を付けた cargo test --locked --offline --no-fail-fast -- --test-threads=1 は 253 件成功・
+  失敗 0・ignored 0（562 秒）。unit 125 / ddq-release 6 / commands 10 / contract 5 / e2e 7 / faults 8 / filter_contract 7 /
+  golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1。
+  golden の browser は厳格比較（DDQ_GOLDEN_LOOSE なし）で 22 組
+- そのリリースビルドの ddq.exe で本書（docs/cli-impl）を ddq update → ddq html した（警告なし。`analysis/check_output.py` で 9 ページ・図 3 つ・壊れたリンク 0・ハッシュの不一致 0）
+- source-sha256.json を 3.1.0 の作業ツリーで取り直した（91 ファイル。消えた commands/release.rs・zip_archive.rs・旧二拡張の
+  package.json を外し、ddq-release・replace.rs・新しい試験・契約の期待値・配布候補の workflow を足した）
+- 部（- part:）を書いた book の ddq pdf は Typst の unknown variable: part で失敗した（template/ の Typst 側に part が無い。前からの制約。
+  利用者の判断で記録だけにした）
+- GitHub Actions: 本書の基準をコミットした 1fafcc5（PR #144）で ci・extension・release-candidate の 13 ジョブが成功した。配布候補の build では
+  書体を裏で入れ始めてビルドと重ね、後で待って Typst から見えることを確かめた（build ジョブ 15 分 4 秒 → 11 分 44 秒。全体は verify-zip の
+  書体の導入で決まり、約 28 分のまま）
+- 2 回目（cd00267 の上の作業ツリー。章立てのフロー形式の対応付けと href:・file:）: Rust 全件 255 件成功・失敗 0・ignored 0
+  （unit 126 / ddq-release 6 / commands 10 / contract 5 / e2e 8 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1）。fmt・clippy・release ビルドも成功
+- tools/regress.py: v3.1.0-pre1 のソースから作った ddq と 3.1.0 の ddq で examples/docs・examples/plantuml・docs/manual を比べた。
+  差は図のキャッシュのキー（ddq の版を含む）と、描くたびに線の形が変わる docs の mermaid の図 4 つ（とその 4 ページの画素）だけ。
+  キーと版を伏せると index.typ・HTML・search.json が同じで、PDF の文字も同じ
+- 未実行: Linux/macOS（Rust の試験。拡張の試験は CI の ubuntu で通る）、日本語以外のコードページ、regress.py の旧 bat 比較
+
+## PR #144 の追加修正（2026-11-23、1708aaa の上の作業ツリー）
+
+Windows で `DDQ_E2E=1` を指定した `cargo test --locked --offline --no-fail-fast` は17スイート257件成功、失敗・ignored は0。rustfmt と全ターゲットの Clippy（警告をエラーとして実行）も成功した。実CLIで対象外の下書きのバイト列を照合し、番号なし付録の次の付録で、実PDFとHTMLの章直下の表と他章参照がいずれも「表 A-1」になることを確認した。
+
+同じソースから作った ddq で本書を一時フォルダにHTML出力した。`analysis/check_output.py` は9ページ、表15、図3点、リンク切れ0、ソースハッシュ不一致0を確認した。

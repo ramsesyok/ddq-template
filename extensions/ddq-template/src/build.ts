@@ -75,10 +75,19 @@ async function buildCommand(kind: BuildKind, resource?: vscode.Uri): Promise<Bui
     return execute(kind, folder, { interactive: true });
 }
 
-/** ステータスバー: 開いているファイルの執筆フォルダと [PDF]。執筆フォルダの外では隠す。 */
+/** ステータスバーの表示の通し番号（後から始めた表示があれば、先に始めた問い合わせの結果は捨てる） */
+let statusGeneration = 0;
+
+/**
+ * ステータスバー: 開いているファイルの執筆フォルダと [PDF]。執筆フォルダの外では隠す。
+ * 執筆フォルダの問い合わせは非同期なので、エディタを続けて切り替えると答えが逆の順に返りうる。
+ * 古い答えで新しい表示（発行中の表示を含む）を上書きしない。
+ */
 async function updateStatus(busyFolder?: string) {
     if (!statusItem) return;
+    const mine = ++statusGeneration;
     const folder = busyFolder ?? (await activeWritingFolder());
+    if (mine !== statusGeneration) return;
     if (!folder) {
         statusItem.hide();
         return;

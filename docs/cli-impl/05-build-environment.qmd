@@ -2,18 +2,20 @@
 
 ## 再現の入口 {#sec-545e53}
 
-**確認済み（静的）**：ビルドは `cli/` を作業ディレクトリにする。`template/` はコンパイル入力なので、CLIディレクトリだけを切り出しても同じビルドにはならない。`build.rs` はテンプレート全体の変更を再ビルド条件とし、lockfileからmerman版も抽出する。release設定は `strip=true`、`lto=thin`、`codegen-units=1`、Windows MSVC x64 のみ `.cargo/config.toml` でCRT静的リンクを指定する。[E-0003](appendix-evidence.qmd#ev-e-0003)
+**確認済み（静的）**：ビルドは `cli/` を作業ディレクトリにする。`template/` はコンパイル入力なので、CLIディレクトリだけを切り出しても同じビルドにはならない。`build.rs` はテンプレート全体の変更を再ビルド条件とし、lockfileからmerman版も抽出する。release設定は `strip=true`、`lto=thin`、`codegen-units=1`、Windows MSVC x64 のみ `.cargo/config.toml` でCRT静的リンクを指定する。同じパッケージから `ddq` と保守者用の `ddq-release`（`src/bin/ddq-release/main.rs` を Cargo が2本目のバイナリとして拾う）ができ、`cargo run` の既定は `default-run = "ddq"`（3.1.0、L-01）。[E-0003](appendix-evidence.qmd#ev-e-0003)
 
 ```powershell
 # リポジトリルートから
 Set-Location cli
 cargo build --locked --release
-cargo test --locked --offline --bin ddq --test commands --test tag --test rev --test plantuml
-cargo test --locked --offline --test golden merman_engine_renders_all_without_foreign_object -- --exact
+# 外部依存（Quarto・Java・ブラウザ）が無ければ skip せずに失敗させ、PlantUML はローカルの jar で描く
+$env:DDQ_E2E = '1'
+$env:DDQ_PLANTUML_JAR = (Resolve-Path vendor\plantuml.jar).Path
+cargo test --locked --offline --no-fail-fast -- --test-threads=1
 Set-Location ..
 ```
 
-`--offline` は依存が既に取得済みの場合の再現指定である。上記のテスト2コマンドは今回実行した（`tests/rev.rs` は PATH 上の git、`tests/plantuml.rs` は Java と `cli/vendor/plantuml.jar` を使い、無ければ skip する）。releaseビルドと配布物の生成（当時の `ddq release`）は、v2.4.2 の配布で通常の経路（オプション無し）を実行した。オプション付きや異常系の成功を意味しない。2026-11-23 に保守者用の別の exe `ddq-release` へ分けたあとの次の実行は [E-0037](appendix-evidence.qmd#ev-e-0037)。[E-0017](appendix-evidence.qmd#ev-e-0017)、[E-0027](appendix-evidence.qmd#ev-e-0027)
+`--offline` は依存が既に取得済みの場合の再現指定である。上記の全件は 2026-11-23 に実行した（[E-0038](appendix-evidence.qmd#ev-e-0038)。`tests/rev.rs` は PATH 上の git、`tests/plantuml.rs` は Java と jar を使い、`DDQ_E2E` が無ければ外部依存の無い試験を skip する。`--test-threads=1` は E2E・故障注入が同じ一時フォルダとプロセスを使うため）。releaseビルドと配布物の生成は、v2.4.2 の配布で通常の経路（当時の `ddq release`、オプション無し）を、2026-11-23 に保守者用の別の exe `ddq-release` で実行した（[E-0037](appendix-evidence.qmd#ev-e-0037)）。オプション付きや異常系の成功を意味しない。[E-0017](appendix-evidence.qmd#ev-e-0017)、[E-0027](appendix-evidence.qmd#ev-e-0027)
 
 ```powershell
 # ddq-release（保守者用の別の exe。cargo build --release で ddq.exe の隣にできる）は必ずリポジトリルートで実行する。
@@ -25,7 +27,7 @@ cli\target\release\ddq-release.exe
 
 **確認済み（静的）**：作成・更新は通常のファイルI/Oで実行でき、init/addのHTML疎通確認は `--no-render` で省略できる。pdf/htmlにはPATH上のQuartoが必要。Mermaidは内蔵merman、または外部Edge/Chromeを使う。PlantUMLのローカル起動はJavaとjar、原稿フェンスのHTTP描画はLuaから呼ぶcurlを必要とする。リリースのVSIX作成はNode/npmも使う。`tag` はファイルI/Oだけで動くが、`rev` は執筆フォルダが Git 作業ツリー内にあり、PATH 上に git があることを前提とする。[E-0005](appendix-evidence.qmd#ev-e-0005)、[E-0007](appendix-evidence.qmd#ev-e-0007)～[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0022](appendix-evidence.qmd#ev-e-0022)
 
-**確認済み（設定）**：CLIのCIは `windows-latest`、Rust stable、Quarto **1.9.38**、Temurin **17**、PlantUML MIT版名 **1.2026.8** を設定し、fmt、clippy、cargo test、release buildを実施する定義である。`DDQ_E2E` の設定により外部依存不足を失敗にし、`DDQ_GOLDEN_LOOSE=1` でフォント差を許容する。拡張のCI（`extension.yml`）は `extensions/<拡張>/` を matrix で回し、各 `package.json` の version と `template/VERSION` の一致を ddq-release と同じ条件で照合する。これはCI定義の確認であり、特定のCI実行が成功した証拠ではない。[E-0015](appendix-evidence.qmd#ev-e-0015)
+**確認済み（設定）**：CLIのCI（`ci.yml` の `cli`）は `windows-latest`、Rust stable、Quarto **1.9.38**、Temurin **17**、PlantUML MIT版名 **1.2026.8**（jar は公式リリースから取り、`cli/vendor/README.md` の SHA-256 と照合）を設定し、fmt、clippy、cargo test、release build、`cargo audit` を実施する定義である。`mermaid-bundle` は埋め込みの `mermaid.min.js` を組み直す `cli/tools/mermaid-bundle` の `npm audit` と、コミット済みのバンドル・`bundled.json` が再現することを確かめる。3.1.0 から Action の版を Node 24 で動くもの（`actions/checkout@v5` など）に上げた。配布候補は `release-candidate.yml`（3.1.0、CI-01）が作る：build（Windows）で ddq.exe と ddq-release をビルドして一式を作り、日本語の書体（`.github/actions/jp-fonts`。Windows の「日本語の追加フォント」を、無ければ裏で入れ始めてビルドの後で待つ）を確かめて `check_release.py` で照合し、verify-zip と verify-vsix（どちらも別の Windows のランナー）で取り出した exe の init → pdf → html と同梱版 VSIX のスモークを行い、publishable がすべて通った実行の成果物と `versions.txt`（コミット・exe の SHA-256・rustc・書体・VSCode の版）をまとめる。外部の Action はコミットの SHA に固定する。**確認済み（実行）**：2026-11-23 に、本書の基準をコミットした `1fafcc5`（PR #144）で ci・extension・release-candidate の 13 ジョブが成功した。配布候補の build ではランナーに日本語の書体が無く、裏で入れ始めてビルドと重ね、ビルドの後に入り終わりを待って Typst から見えることを確かめた（build ジョブは 11 分 44 秒、ワークフロー全体は約 28 分。全体は verify-zip の書体の導入で決まる。[E-0038](appendix-evidence.qmd#ev-e-0038)）。`DDQ_E2E` の設定により外部依存不足を失敗にし、`DDQ_GOLDEN_LOOSE=1` でフォント差を許容する。拡張のCI（`extension.yml`）は `extensions/<拡張>/` を matrix で回し、各 `package.json` の version と `template/VERSION` の一致を ddq-release と同じ条件で照合する。これはCI定義の確認であり、特定のCI実行が成功した証拠ではない。[E-0015](appendix-evidence.qmd#ev-e-0015)
 
 ## 主要依存と版 {#sec-b750a6}
 
@@ -38,32 +40,38 @@ cli\target\release\ddq-release.exe
 | merman | 0.8.0-alpha.6（要求も完全固定） | default-features無効、complete-svg有効。`resvg_safe` と図IDを維持 |
 | tungstenite | 0.30.0 | handshakeのみ、CDPのローカルWebSocket。TLS機能なし |
 | sha1 | 0.11.0 | 2.3.0で直接依存に追加。`tag` の候補ラベル。変えると未付与分の候補文字列が変わる（付与済みラベルは不変） |
-| zip | 8.6.0 | deflateのみ。配布ZIP作成（3.0.0 で jar を同梱しなくなり、jar の版読込みは無くなった） |
+| zip | 9.5.1 | deflateのみ。配布ZIP作成（ddq-release だけが使うが、同じパッケージの依存なので ddq.exe のビルドでもコンパイルされる）。3.0.0 で jar を同梱しなくなり、jar の版読込みは無くなった。2026-11-15 に 8.6.0 から更新（脆弱性対応） |
+| tempfile | 3.27.0 | 3.1.0 から本体でも使う：`replace` の同じフォルダの一時ファイル（`TempPath`）と、上書きしない付け替え（`persist_noclobber`）。試験の一時フォルダにも使う |
 | windows-sys／winreg | 0.61.2／0.56.0 | ACP検査、Job Object、レジストリ探索。Windows限定 |
-| Mermaid JS | 11.16.1（埋込み文字列から抽出。3.0.0 で 11.16.0 から更新） | `template/vendor/mermaid.min.js`。ブラウザ描画の固定入力 |
+| Mermaid JS | 11.16.1（埋込み文字列から抽出。3.0.0 で 11.16.0 から更新） | `template/vendor/mermaid.min.js`。ブラウザ描画の固定入力。3.0.1-pre1 から `cli/tools/mermaid-bundle`（esbuild）で mermaid の ESM から組み直したもので、中の DOMPurify は 3.4.18、KaTeX は 0.18.10（3,497,926 バイト） |
 | PlantUML jar | 1.2026.8（ローカルMANIFEST） | `cli/vendor/plantuml.jar` はGit管理外。試験・確認用で、3.0.0 から配布物には同梱しない |
 
-**確認済み（ローカル資料）**：直接依存のlicense宣言はローカルCargo registryのmanifestから採取し、`analysis/dependencies.json` に残した。CLI本体のmanifestには `[patch]` 指定がない。jarは公式リリースの `plantuml-mit-1.2026.8.jar` と SHA-256 が一致し、`mermaid.min.js` は npm の `mermaid@11.16.1` の `dist/mermaid.min.js` とバイト一致した（3.0.0 で更新。[E-0036](appendix-evidence.qmd#ev-e-0036)）。配布物に入る第三者のソフトウェアのライセンス表示は `THIRD-PARTY-NOTICES.md`（`cli/tools/third_party.py` の生成物）にまとめた。推移依存の法的評価とEOL調査は行っていない。[E-0018](appendix-evidence.qmd#ev-e-0018)、[E-0030](appendix-evidence.qmd#ev-e-0030)、[U-0003](07-issues-unknowns.qmd#u-0003)
+**確認済み（ローカル資料）**：直接依存のlicense宣言はローカルCargo registryのmanifestから採取し、`analysis/dependencies.json` に残した。CLI本体のmanifestには `[patch]` 指定がない。jarは公式リリースの `plantuml-mit-1.2026.8.jar` と SHA-256 が一致し、`mermaid.min.js` は npm の `mermaid@11.16.1` の `dist/mermaid.min.js` とバイト一致した（3.0.0 で更新。[E-0036](appendix-evidence.qmd#ev-e-0036)）。3.0.1-pre1 からは組み直したもので npm の dist とは一致せず、再現は CI の `mermaid-bundle` が確かめる（[E-0038](appendix-evidence.qmd#ev-e-0038)）。配布物に入る第三者のソフトウェアのライセンス表示は `THIRD-PARTY-NOTICES.md`（`cli/tools/third_party.py` の生成物）にまとめた。推移依存の法的評価とEOL調査は行っていない。[E-0018](appendix-evidence.qmd#ev-e-0018)、[E-0030](appendix-evidence.qmd#ev-e-0030)、[U-0003](07-issues-unknowns.qmd#u-0003)
 
 ## テストの期待値と今回の結果 {#sec-79af3b}
 
 | 検証 | 既存コードでの期待 | 今回の観測 |
 |---|---|---|
-| binary内unit | 背景style、file URL、script escape、PlantUML設定・HTTP（`localhost` の IPv4／IPv6 を順に試す）・フェンス、mermaid の図のキャッシュの使い回し（`DDQ_DIAGRAM_CACHE=keep`）、`pdf` の出力 PDF の取り出し（0 件・複数件）、Windows ACP、`doc` の走査・include展開（循環・欠落・chapters が無いときの代わりの並べ方を含む）・候補・差分帰属・改訂ファイル往復・記号採番、日付計算 | **確認済み**：88件成功（初版時10件）。ACP固有テストはCP932以外で早期return |
-| `tests/commands.rs` | init/add/update/setup、版違い拒否、表示版、`.`／`..` の拒否、版上げ時のキャッシュ削除、失敗した静的図の前回SVG削除、`ddq identity`、長すぎるパスの拒否 | **確認済み**：9件成功 |
-| `tests/tag.rs` | 一覧と候補、人が読む表の形（種別・状態の言葉、全角を含む桁揃え、件数）、`--unlabeled`、apply の冪等性、候補の安定、dry-run、CRLF保持、`--from` の受理と拒否（無い行・既存ラベル・挿入位置・ラベル無し・形の違う JSON）、書き戻すものが無いとき、重複警告、include の循環・欠落・重複と chapters を読めないときの警告、引数必須、既存の別形式 ID | **確認済み**：18件成功 |
+| binary内unit（`ddq`） | 背景style、file URL、script escape、PlantUML設定・HTTP（`localhost` の IPv4／IPv6 を順に試す）・フェンス、mermaid の図のキャッシュの使い回し（`DDQ_DIAGRAM_CACHE=keep`）と先回りの描画のキー（タブ）、`pdf` の出力 PDF の取り出し（0 件・複数件）、Windows ACP、`doc` の走査・include展開（循環・欠落・設定が無いときのパス順走査と章を特定できないときの停止を含む）・章立ての読み方（共有のケース・扉ページ・フロー形式・フロー形式の対応付け・`href:`・`file:`・references）・1ファイル1回の読み取り・候補（使い切ったときの `-2`）・差分帰属・改訂ファイル往復（引用の読み方）・記号採番、日付計算、修正内容の TeX の逃がし。3.1.0 から置き換え（`replace.rs`。障害注入で作成・書き込み・同期・付け替えの失敗、書き込み用に開いた手、削除を共有する読み手、上書きしない新規作成の8スレッド）と `tag apply` の書く前の照合 | **確認済み**：127件成功（2.4.0 の解析時は88件、初版時10件）。ACP固有テストはCP932以外で早期return |
+| binary内unit（`ddq-release`） | ライセンス表示の入力のハッシュ（テキストは LF で）、版の照合（拡張・lock の有無と形）、作業フォルダの改名の待ち直し、`quarto::output_dir`（`#[path]` で ddq と共有） | **確認済み**：6件成功 |
+| `tests/commands.rs` | init/add/update/setup、版違い拒否、表示版、`.`／`..` の拒否、版上げ時のキャッシュ削除、失敗した静的図の前回SVG削除、`ddq identity`、長すぎるパスの拒否 | **確認済み**：10件成功（改版前の本書では9件） |
+| `tests/tag.rs` | 一覧と候補、人が読む表の形（種別・状態の言葉、全角を含む桁揃え、件数）、`--unlabeled`、apply の冪等性、候補の安定、dry-run、CRLF保持、`--from` の受理と拒否（無い行・既存ラベル・挿入位置・ラベル無し・形の違う JSON・`original` の無い指示）、書き戻すものが無いとき、重複警告、include の循環・欠落・重複への警告、章を特定できない設定での一覧・適用の停止、引数必須、既存の別形式 ID。3.1.0 から BOM・改行・末尾の改行の保持、読み取り専用のファイルで全体を止めて名前を挙げる、開いたままのファイルで止まって再実行で同じ結果、待っている間に足した行を残す、書き込み用に開いたままなら書かない、同じ見出し6つ | **確認済み**：25件成功（改版前の本書では18件） |
+| `tests/contract.rs` | VSCode 拡張との契約（3.1.0、QA-01）：`tag list --json`・`tag apply --all`・`rev next --json` を共有の期待値（`cli/tests/fixtures/contract/`。拡張の `src/ddq/contract.test.ts` も読む）と照合、結果行と終了コード（3 → `ddq update` → `ddq setup` の回復）、入力の無い diagrams の警告 | **確認済み**：5件成功 |
+| `tests/filter_contract.rs` | 本物の `design-doc.lua`・`postprocess-html.js` と Rust の規則の照合（3.1.0、GEN-01・GEN-02）：章の並びと項目（正解は `quarto inspect`）、mermaid／PlantUML のキャッシュのキーと再利用、`merge-cols` | **確認済み**：7件成功 |
 | `tests/third_party.rs` | `THIRD-PARTY-NOTICES.md` の入力のハッシュが今のファイルと一致すること（依存の変更に追随しているか） | **確認済み**：1件成功 |
-| `tests/release.rs` | ddq-release の配布工程（小さなリポジトリで `--no-build`）：ZIP の全展開照合、`--with-sample`、再実行、各種の欠損・不一致で止まり前回を壊さない。実ビルドの経路（`--no-build` なし。Windows）：マニュアルの PDF・HTML を作り、拡張を npm でパッケージする（`npm ci` は node_modules が無いときだけ、同梱の ddq.exe は配る ddq.exe と同じ。vsce の代わりに `tests/fixtures/release/pack.js`）、`npm run package` の失敗で止まる。2026-11-23 から：配る ddq.exe（`--ddq`）の欠落と版違いで止まる、ZIP の `ddq.exe` が配る ddq.exe と同じ、ddq に `release` が無い（終了コード 2） | **確認済み**：12件成功。ddq-release に分けたあとは 20 件成功（2026-11-23。他の改善項目の試験を含む。[E-0037](appendix-evidence.qmd#ev-e-0037)） |
+| `tests/release.rs` | ddq-release の配布工程（小さなリポジトリで `--no-build`）：ZIP の全展開照合、`--with-sample`、再実行、各種の欠損・不一致で止まり前回を壊さない。実ビルドの経路（`--no-build` なし。Windows）：マニュアルの PDF・HTML を作り、拡張を npm でパッケージする（`npm ci` は node_modules があっても毎回入れ直す。2026-11-15 までは node_modules が無いときだけだった。同梱の ddq.exe は配る ddq.exe と同じ。vsce の代わりに `tests/fixtures/release/pack.js`）、`npm run package` の失敗で止まる。配る ddq.exe（`--ddq`）の欠落と版違いで止まる、ZIP の `ddq.exe` が配る ddq.exe と同じ、ddq に `release` が無い（終了コード 2）。3.1.0 から版の照合（古い exe・拡張・lock の版。違うものをまとめて挙げる）、VSIX のライセンス表示の欠落・違いで止まり ZIP のものと一致、入れ替えの後の失敗で捨てるものを挙げる | **確認済み**：20件成功（ddq-release に分ける前は12件。[E-0037](appendix-evidence.qmd#ev-e-0037)） |
+| `tests/rerun.rs` | 失敗した後の再実行（3.1.0、IO-02・M-03）：図のキャッシュ・機構ファイルを掴まれて止まった update が再実行で終わる、版マーカーを書きかけで読ませない、`diagrams` がファイル・読めないときは止まり無いときは進む、同じフォルダへの `ddq add` を同時に走らせても同じファイルを両方が作らない | **確認済み**：7件成功 |
 | `tests/rev_ops.rs` | 改訂履歴の実運用：日本語パスと autocrlf、浅いクローン、手で直した改訂ファイル、見出し2,041件 | **確認済み**：4件成功 |
-| `tests/rev.rs` | 一時Gitリポジトリでの next、全種別の差分、strict、未ラベル、`--write` の note 引継ぎと stale、build の表と警告・`--check`、`--write --json`、付録、既存の別形式 ID の案内 | **確認済み**：13件成功（git有り、skipなし） |
+| `tests/rev.rs` | 一時Gitリポジトリでの next、全種別の差分、strict、未ラベル、`--write` の note 引継ぎと stale、build の表と警告・`--check`、`--write --json`、付録、既存の別形式 ID の案内。3.1.0 から改訂ファイルが読み取り専用・書き込み用に開いたままなら書かない、表を開いたままなら元のまま、部の扉ページ（旧版でも）、修正内容の逆斜線（表を本物の Pandoc で読む） | **確認済み**：18件成功（git有り、skipなし。改版前の本書では13件） |
 | `tests/golden.rs` merman | 22図の生成、コメント、foreignObject不在、text存在 | **確認済み**：1テスト成功 |
-| golden browser | pathの乱数成分等を除いた数値列の比較。loose時は数値個数とviewBox 25%以内 | **確認済み**：1件成功（厳格比較、Edge 153.0.4234.48、22組） |
+| golden browser | pathの乱数成分等を除いた数値列の比較。loose時は数値個数とviewBox 25%以内 | **確認済み**：1件成功（厳格比較、Edge 158.0.4370.33、22組。改版前の本書では Edge 153.0.4234.48） |
 | `tests/faults.rs` | 故障注入（Windows）：無出力のJVM・すぐ落ちるJVM・起動中のddqの強制終了、すぐ落ちるブラウザ・無応答のブラウザ・起動中のddqの強制終了、本物のブラウザでの一時フォルダ（単独と 8 並列） | **確認済み**：8件成功 |
 | `tests/plantuml.rs` | 静的puml、構文エラー、serve起動・親終了後の停止、`--bind localhost`（URL と `PLANTUML_SERVER` の案内）、使えない `--bind` | **確認済み**：4件成功（Java 17、ローカルjar） |
-| `tests/e2e.rs` | ASCII／非ASCIIパス、PDF、SVG件数、HTML内参照と検索索引。サンプルの `revisions/` も複写。図のキャッシュの環境照合（別の環境で描いた SVG は発行時に描き直し、`DDQ_DIAGRAM_CACHE=keep` ならフィルタも ddq も描き直さない） | **確認済み**：`DDQ_E2E=1` で4件成功 |
-| `tests/mechanism.rs` | 機構の出力の正解比較（3.0.0 で追加）：小さな文書の HTML（見出し・キャプション・相互参照・列幅・結合・IPO 図の欄）と PDF の描画文字（文書順。ページ区切りとヘッダは除く）。フィルタの警告と `did not converge` も失敗 | **確認済み**：2件成功。機構を 7 通りに壊してすべて検出 |
-| `tools/regress.py` | 機構hash、Typst、ページ画像、PDF文字、HTML、SVGの比較 | **未確認**：今回未実行。旧bat比較には過去版資産も必要 |
+| `tests/e2e.rs` | ASCII／非ASCIIパス、PDF、SVG件数、HTML内参照と検索索引。サンプルの `revisions/` も複写。図のキャッシュの環境照合（別の環境で描いた SVG は発行時に描き直し、`DDQ_DIAGRAM_CACHE=keep` ならフィルタも ddq も描き直さない）。3.1.0 から、雛形の章がすべて読まれる、部の扉ページと付録の並び、フロー形式・`book.references`・後ろに書いた index の並び、フロー形式の対応付けと `href:`・`file:` の並び（部の題名の項目の `href:` のページは番号なし）、book 外の下書きの保全、番号なし付録に続く表番号と他章参照（`quarto inspect` の入力の並びと `tag list` の文書順を照らし、`ddq html` の番号も見る） | **確認済み**：`DDQ_E2E=1` で9件成功（改版前の本書では4件） |
+| `tests/mechanism.rs` | 機構の出力の正解比較（3.0.0 で追加）：小さな文書の HTML（見出し・キャプション・相互参照・列幅・結合・IPO 図の欄）と PDF の描画文字（文書順。ページ区切りとヘッダは除く）。フィルタの警告と `did not converge` も失敗 | **確認済み**：2件成功。機構を 7 通りに壊してすべて検出（3.0.0） |
+| `tests/table_pagination.rs` | PDF で複数ページにわたる表の、どの本文ページにもキャプション（続き）が出ること、フォントの警告を含む `typst query` の JSON を読めること | **確認済み**：2件成功 |
+| `tools/regress.py` | 機構hash、Typst、ページ画像、PDF文字、HTML、SVGの比較 | **確認済み（実行）**：2026-11-23 に v3.1.0-pre1 と 3.1.0 の ddq で docs・plantuml・manual を比べた。差は図のキャッシュのキー（ddq の版を含む）と、描くたびに線の形が変わる mermaid の図 4 つ（docs）だけ（[E-0038](appendix-evidence.qmd#ev-e-0038)）。旧bat比較は未実行（過去版資産が要る） |
 
-期待値は静的確認、実行結果は2026-09-23、Windows／Cargo **1.98.1**、Python **3.12.0**、Quarto **1.9.38** の調査環境での観測である。unit・commands・tag・rev・plantuml は同一のcargo testコマンドで実行し、mermanを別コマンドで確認した。全件成功は全E2E成功やブラウザとの幾何一致を意味しない。[E-0016](appendix-evidence.qmd#ev-e-0016)、[E-0017](appendix-evidence.qmd#ev-e-0017)
+期待値は静的確認、実行結果は2026-11-23、Windows 11／Cargo **1.98.1**（rustc 1.98.1）、Python **3.12.0**、Quarto **1.9.38**、Java **17.0.2**、git **2.44.0**、Edge **158.0.4370.33** の調査環境での観測である。`DDQ_E2E=1` と `DDQ_PLANTUML_JAR`（`cli/vendor/plantuml.jar`）を付けた `cargo test --locked --offline --no-fail-fast` の全件で、257件成功・失敗0・ignored 0（17本）。改版前の観測は [E-0017](appendix-evidence.qmd#ev-e-0017)・[E-0028](appendix-evidence.qmd#ev-e-0028)。全件成功は全E2E成功やブラウザとの幾何一致を意味しない。[E-0016](appendix-evidence.qmd#ev-e-0016)、[E-0017](appendix-evidence.qmd#ev-e-0017)、[E-0038](appendix-evidence.qmd#ev-e-0038)
 
 **確認済み（静的）**：E2E／PlantUMLテストの厳格化は `DDQ_E2E` の値が `1` かではなく、環境変数が存在するかで判定する。browser goldenはブラウザ未検出時に早期returnするため、通常のテスト成功表示だけでブラウザ経路を検証済みと判断しない。[E-0016](appendix-evidence.qmd#ev-e-0016)

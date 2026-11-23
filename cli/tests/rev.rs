@@ -199,6 +199,52 @@ fn appendices_are_part_of_the_document() {
     assert_eq!(labels, ["sec-evidence"]);
 }
 
+/// 部の扉ページ（`part:` の値がファイル）も文書の一部で、旧版（git）でも同じに読む（H-01）。付録を章より
+/// 先に書いても、付録は章の後ろ（改訂の並びは文書順）
+#[test]
+fn part_pages_are_part_of_the_document_in_both_versions() {
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    write(
+        tmp.path(),
+        "docs/_quarto.yml",
+        "project:\n  type: book\nbook:\n  appendices:\n    - appendix.qmd\n  chapters:\n    - index.qmd\n    \
+         - part: part.qmd\n      chapters:\n        - chapters/01-overview/index.qmd\n",
+    );
+    write(tmp.path(), "docs/part.qmd", "# 総論 {#sec-part}\n\n扉の本文。\n");
+    write(
+        tmp.path(),
+        "docs/appendix.qmd",
+        "# 解析根拠 {#sec-evidence}\n\n根拠の本文。\n",
+    );
+    assert!(git(tmp.path(), &["add", "-A"]));
+    assert!(git(tmp.path(), &["commit", "-qm", "部と付録"]));
+    assert!(git(tmp.path(), &["tag", "-f", "rev-A"]));
+    write(
+        tmp.path(),
+        "docs/part.qmd",
+        "# 総論 {#sec-part}\n\n扉の本文を直した。\n",
+    );
+    write(
+        tmp.path(),
+        "docs/appendix.qmd",
+        "# 解析根拠 {#sec-evidence}\n\n根拠を直した。\n",
+    );
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+
+    let v: Value = serde_json::from_str(&stdout(&ddq(&["rev", "diff", &docs, "--json"]))).unwrap();
+    let got: Vec<(&str, &str)> = v["entries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (e["label"].as_str().unwrap(), e["kind"].as_str().unwrap()))
+        .collect();
+    assert_eq!(got, [("sec-part", "changed"), ("sec-evidence", "changed")]);
+}
+
 #[test]
 fn next_without_tags_has_no_base() {
     if !git_available() {
@@ -569,6 +615,49 @@ fn a_read_only_revision_file_is_not_overwritten() {
     #[allow(clippy::permissions_set_readonly_false)]
     p.set_readonly(false);
     fs::set_permissions(&yml, p).unwrap();
+}
+
+/// 改訂ファイルをほかのプログラムが書き込み用に開いたままなら、待ち直したあと書かずに止める
+/// （その場で書かない。照合の後に保存された人のメモを上書きしない。C-01）。閉じれば書ける
+#[cfg(windows)]
+#[test]
+fn a_revision_file_kept_open_for_writing_is_not_overwritten() {
+    use std::os::windows::fs::OpenOptionsExt;
+    const FILE_SHARE_READ_WRITE: u32 = 3;
+
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    edit(tmp.path());
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+    assert_ok(&ddq(&["rev", "diff", &docs, "--write"]));
+    let yml = tmp.path().join("docs/revisions/rev-B.yml");
+    let before = fs::read(&yml).unwrap();
+    let writer = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .share_mode(FILE_SHARE_READ_WRITE)
+        .open(&yml)
+        .unwrap();
+
+    let out = ddq(&["rev", "diff", &docs, "--write"]);
+    drop(writer);
+    assert_eq!(out.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("rev-B.yml を書けません") && err.contains("閉じてから、もう一度実行してください"),
+        "{err}"
+    );
+    assert_eq!(fs::read(&yml).unwrap(), before);
+    let names: Vec<String> = fs::read_dir(yml.parent().unwrap())
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, ["rev-B.yml"], "一時ファイルを残さない");
+
+    assert_ok(&ddq(&["rev", "diff", &docs, "--write"]));
 }
 
 /// 改訂履歴の表を開いたまま（削除の共有なし）だと置き換えられない。表は元のまま、閉じれば作れる

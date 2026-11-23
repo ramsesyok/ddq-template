@@ -12,6 +12,10 @@
 | ターゲット（`win32-x64`） | `package.json` の `package:win32-x64`、`release.rs` の `BUNDLE_SCRIPT` / `BUNDLE_TARGET`（VSIX 名に入る） |
 | `ddq html` の完了行（`OK: …index.html`） | `src/build.ts` の `htmlIndexOf`（読めなければ「HTML を開く」が出ないだけ） |
 | ddq の警告行（`警告: …`） | `cli/src/commands/diagrams.rs` の出力と `src/build.ts` の `warningOf`（読めなければ、図が無くても「終わりました」と出る） |
+| ddq の JSON の形（`tag list --json`・`rev next --json`） | `src/ddq/contract.ts` と、ddq 側と共有の期待値 `cli/tests/fixtures/contract/`（ddq の出力を意図して変えたら同じフォルダの README の手順で採り直し、表に理由を残す） |
+| 版名の形（`3.1.0`・`3.0.0-pre4`） | `src/ddq/version.ts` の `parseVersion`（`-preN` 以外の付記は版とみなさない。`-rc1` などを出すなら先に直す） |
+| Webview の HTML・CSP・資産の範囲 | `src/webviewHtml.ts`（3 画面で共有）と `vite.config.mts` の出力先 |
+| 配布物に入る依存 | `scripts/check-audit.mjs` と `cli/tools/third_party.py` の `EXTENSION_BUNDLED`（Webview に入るパッケージを足したら両方。`THIRD-PARTY-NOTICES.md` も作り直す） |
 | `ddq tag list` の編集指示の `original` | `cli/src/doc/units.rs` の `Edit`・`cli/src/commands/tag.rs` の `from_file` と `src/tagging/labels.ts` の `staleReason` / `lacksOriginal`（無くすと書き戻しがすべて止まる） |
 | 出力を開く方法 | `src/openFile.ts`。Windows で `openExternal(Uri.file(…))` に戻すと日本語パスで開けなくなる |
 | 執筆フォルダの目印 | `src/folders.ts` の `QUARTO_YML` / `TEMPLATE_VERSION_FILE`、`tests/host/run.mjs`（検証用フォルダに版ファイルを置いている） |
@@ -20,13 +24,16 @@
 
 ### 守る作法
 
-- **ddq は `locateDdq` を通して決める。** 直接 `'ddq'` を起動しない（設定と同梱が効かなくなる）。
+- **ddq は `locateDdq` を通して決める。** 直接 `'ddq'` を起動しない（設定と同梱が効かなくなる）。3.1.0 から、起動は
+  `launch.ts` の `currentDdq` と `runWithProgress`、`run.ts` の `run` / `runJson` だけから行う。
+- **非同期の結果は、始めたときの対象と照合してから使う。** 番号（走査・問い合わせ・編集セッション・一覧の取り直し）か、
+  始めたときのパネル・文書と比べる（EXT-03・EXT-04）。
 - **拡張は版不一致を事前に照合しない。** ddq の終了コード 3 を受けてから版を比べる。版の判定を
   二重に持たないため（`docs/ddq-template-study.md` Q4）。
 - **追跡対象の機構ファイルを黙って更新しない。** update は通知のボタン（人の了承）から行う。
 - **外部 URL を成果物に入れない。** `check:offline` が失敗する。Quarto のダウンロードページも出さない
   （オフライン前提。利用マニュアルの環境構築の章へ誘導する）。
-- **子プロセスは `running` に登録し、`deactivate` で止める。** Windows は実行中の exe を上書きできないので、
+- **子プロセスは `run.ts` が記録し、`deactivate` で止める（`stopAll`）。** Windows は実行中の exe を上書きできないので、
   残ると VSIX の入れ直しが失敗する。止めるときは `taskkill /T`（quarto・pandoc・typst の孫まで）。
 
 ### 検証の仕方

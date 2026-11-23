@@ -2,20 +2,20 @@
 
 ## 執筆フォルダに置かれるデータ {#sec-d17912}
 
-以下の生成側・参照側・上書き規則は静的確認済み。通常のテキスト読込みは `read_to_string` によりUTF-8を要求する。機構の照合では改行を正規化しない。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0006](appendix-evidence.qmd#ev-e-0006)
+以下の生成側・参照側・上書き規則は静的確認済み。通常のテキスト読込みは `read_to_string` によりUTF-8を要求する。機構の照合では改行を正規化しない。3.1.0 から、ddq が執筆フォルダに書くファイルはどれも `replace` を通る（「置き換え」は同じフォルダの一時ファイルに書いて同期してから付け替えること。付け替えを共有違反で拒まれたときだけ1秒ほど待ち直してその場で書く）。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0006](appendix-evidence.qmd#ev-e-0006)
 
 | データ | 生成側 → 参照側 | 保存・互換性の契約 |
 |---|---|---|
-| `_quarto.yml`、`index.qmd`、`chapters/` | init/addの雛形 → 執筆者／Quarto | 既存ファイルは保持。updateの上書き対象外 |
-| 機構5本 | update → setup照合／Quarto・Lua | `design-doc.lua`、`design-doc.css`、`postprocess-html.js`、`mermaid-config.json`、`plantuml-config.puml` を常に上書き |
-| `.template-version` | update → setup照合／LuaのSVGコメント | 埋込み版と末尾LF。照合はtrim後の文字列 |
-| PDF側4本 | setup → Quarto publish／Typst | `lib.typ`、`typst-template.typ`、`typst-show.typ`、`_quarto-publish.yml` を上書き |
+| `_quarto.yml`、`index.qmd`、`chapters/` | init/addの雛形 → 執筆者／Quarto | 既存ファイルは保持（無いものは上書きしない新規作成で置く。3.1.0）。updateの上書き対象外 |
+| 機構5本 | update → setup照合／Quarto・Lua | `design-doc.lua`、`design-doc.css`、`postprocess-html.js`、`mermaid-config.json`、`plantuml-config.puml` を常に置き換える |
+| `.template-version` | update → setup照合／LuaのSVGコメント | 埋込み版と末尾LF。照合はtrim後の文字列。update の最後（機構とキャッシュの後）に置き換える（3.1.0） |
+| PDF側4本 | setup → Quarto publish／Typst | `lib.typ`、`typst-template.typ`、`typst-show.typ`、`_quarto-publish.yml` を置き換える |
 | 静的図 | 執筆者の `.mmd/.puml` → diagrams → `.svg` | 同名SVGを上書き。失敗した図の前回SVGは削除する |
 | フェンス図キャッシュ | Lua → `diagrams/mmd-*`、`puml-*` → Lua／Quarto | ソースとSVGを保存。下記の内容キーで再利用。版を上げる update が削除する |
 | 出力先（既定 `_book/`）、`design-doc.pdf` | Quarto → pdfのコピー／ddq-release | 出力先は `output-dir`（PDF は publish の profile を優先）。PDFはその直下に一件。HTMLとPDFは同じ出力領域を利用 |
-| 原稿中のラベル | 執筆者／`tag apply` → tag・rev・Quarto相互参照 | `{#sec-…}`、`label="tbl-…"`、`{#tbl-…}`、`{#fig-…}`。一度付けたら改訂履歴のキーとして不変に扱う |
-| `revisions/rev-<記号>.yml` | `rev diff --write` → 執筆者（note記入）→ `rev build`／VSCode拡張 | 改訂履歴の正本。確定は `rev-<記号>` タグの有無で判断。下記の固定形式 |
-| `revisions/history.qmd` | 雛形（空）／`rev build` → `index.qmd` の include → Quarto | 生成物。常に上書き。手で編集しない |
+| 原稿中のラベル | 執筆者／`tag apply` → tag・rev・Quarto相互参照 | `{#sec-…}`、`label="tbl-…"`、`{#tbl-…}`、`{#fig-…}`。一度付けたら改訂履歴のキーとして不変に扱う。`tag apply` は走査したときのバイト列と照らしてから置き換え、BOM・改行は元のまま（3.1.0） |
+| `revisions/rev-<記号>.yml` | `rev diff --write` → 執筆者（note記入）→ `rev build`／VSCode拡張 | 改訂履歴の正本。確定は `rev-<記号>` タグの有無で判断。下記の固定形式。`rev diff --write` は読んだときのバイト列と照らしてから置き換える（3.1.0） |
+| `revisions/history.qmd` | 雛形（空）／`rev build` → `index.qmd` の include → Quarto | 生成物。常に置き換える。手で編集しない |
 
 実際の文書リポジトリでは機構ファイルとPDF成果物の版管理方針を `template/scaffold/repo/gitignore` が定める。一方、このテンプレートリポジトリ自身は原本との重複を避けるため配置済み機構をルート `.gitignore` で除外する。両者を混同しない。[E-0003](appendix-evidence.qmd#ev-e-0003)、[E-0015](appendix-evidence.qmd#ev-e-0015)
 
@@ -26,12 +26,12 @@
 | ID | 送信／呼出元 → 受信／実行先 | 入力と結果 | 失敗の扱い |
 |---|---|---|---|
 | IF-01 | `quarto::render` → Quarto | `render`引数、CWD、環境変数。stdout/stderrは継承 | 子の非成功をanyhowへ変換 |
-| IF-02 | Lua `prerender_mermaid`／`render_mermaid`、Rust `mermaid::prerender` → `ddq mermaid` | 入力・出力パス（一括は複数組）、JSON設定、背景色。一括のキーは Lua と Rust で同じ規則 | 一括の失敗は無視し、図ごとの呼び出しでプロセス成功とSVG存在の両方を要求 |
+| IF-02 | Lua `prerender_mermaid`／`render_mermaid`、Rust `mermaid::prerender` → `ddq mermaid` | 入力・出力パス（一括は複数組）、JSON設定、背景色。一括のキーは Lua と Rust で同じ規則（タブを含む図・CRLF の設定も。3.1.0。共有の期待値 `cli/tests/fixtures/contract/diagrams.json`） | 一括の失敗は無視し、図ごとの呼び出しでプロセス成功とSVG存在の両方を要求 |
 | IF-03 | `browser::Cdp` → Edge/Chrome | ローカルWebSocket上のJSON、図ソース→JSON中のSVG | 通信／ページ例外はバッチ全体のエラー、図構文エラーは図単位 |
 | IF-04 | Rust `plantuml`／Lua → PlantUML | HTTP GET `/serverinfo`、POST `/render`。UTF-8 JSON→SVG | HTTP状態・エラーヘッダ・本文を確認 |
-| IF-05 | ddq-release の `release` → 配る ddq.exe／npm／Quarto Typst／ZIP | 配る ddq.exe の `--version` とマニュアルの `update`・`pdf`・`html`（子プロセス）、拡張ごとのVSIXビルド（`package:win32-x64` を持つ拡張には配る ddq.exe を `bin/win32-x64/ddq.exe` として渡す）、案内PDFコンパイル、ファイル群の圧縮 | 各段階で停止。配る ddq.exe が無い、または版が違えば何も作らずに停止。同梱 exe が配る ddq.exe とバイト一致しなければ停止。組み立て中の `.building` は失敗時に消す |
+| IF-05 | ddq-release の `release` → 配る ddq.exe／npm／Quarto Typst／ZIP | 配る ddq.exe の `--version` とマニュアルの `update`・`pdf`・`html`（子プロセス）、拡張ごとのVSIXビルド（`package:win32-x64` を持つ拡張には配る ddq.exe を `bin/win32-x64/ddq.exe` として渡す）、案内PDFコンパイル、ファイル群の圧縮 | 各段階で停止。配る ddq.exe が無い、または版（`template/VERSION`・ddq-release・配る ddq.exe・拡張の package.json と package-lock.json）が違えば何も作らずに停止。同梱 exe とライセンス表示が配る ddq.exe とリポジトリ直下の表示にバイト一致しなければ停止。組み立て中の `.building` は失敗時に消す。入れ替え以降の失敗では残った出力を挙げて停止 |
 | IF-06 | `doc::gitsrc` → git | `rev-parse`、`tag --list rev-*`、`ls-tree -r --name-only`、`show <commit>:<path>`。常に `-c core.quotepath=off` | 非成功はstderr付きのエラー。旧版に無いファイルは `ls-tree` の一覧で先に除外 |
-| IF-07 | VSCode拡張 ddq-template → `ddq` | `init`・`add`・`update`・`pdf`・`html`・`diagrams` の終了コードと標準出力（`OK: …index.html`、`警告: …`）、`tag list --json`（編集指示の `original` を拡張が書き戻し前の照合に使う）、`rev next/diff --json`、`rev diff --write`、`rev build` | 終了コード 3（版不一致）を拡張が update の案内に使う。拡張側の扱いは `docs/ddq-template-impl` |
+| IF-07 | VSCode拡張 ddq-template → `ddq` | `init`・`add`・`update`・`pdf`・`html`・`diagrams` の終了コードと標準出力（`OK: …index.html`、`警告: …`）、`tag list --json`（編集指示の `original` を拡張が書き戻し前の照合に使う）、`rev next/diff --json`、`rev diff --write`、`rev build` | 終了コード 3（版不一致）を拡張が update の案内に使う。書き戻しを止めた理由は stderr の文言で、拡張は終了コードで判断する（3.1.0 の文言の変更は契約に影響しない）。形は `cli/tests/contract.rs` と拡張の `src/ddq/contract.ts` が共有の期待値（`cli/tests/fixtures/contract/`）で照らす。拡張側の扱いは `docs/ddq-template-impl` |
 | IF-08 | `rev build` の生成qmd → `lib.typ` | 「頁」列の `` `#_xref-page("ラベル")`{=typst} `` | 参照先が無ければTypst側が赤い「?」を出す |
 
 根拠：[E-0007](appendix-evidence.qmd#ev-e-0007)、[E-0009](appendix-evidence.qmd#ev-e-0009)～[E-0014](appendix-evidence.qmd#ev-e-0014)、[E-0020](appendix-evidence.qmd#ev-e-0020)～[E-0023](appendix-evidence.qmd#ev-e-0023)。
@@ -91,7 +91,7 @@
 
 **確認済み（静的）**：`rev diff --json` は `base`、`base_commit`、`strict`、`entries`、`unlabeled`、`warnings` を出す。`entries` の要素は `label`、`kind`（`changed`／`added`／`removed`／`renamed`）、`unit`、`title`、改名時の `title_old`、新版の `file`／`line`、旧版の `file_old`／`line_old`、ファイル間移動時の `moved_from` である。`unlabeled` の要素は `kind`、`file`、`line`、`title` と、ラベルを自動で付けられない理由 `warning`（`foreign-id` など。無ければ省略）を持つ。`rev next --json` は `rev`、`base`、`base_commit`、`scheme`、`tags`、`drafts` を出す。[E-0021](appendix-evidence.qmd#ev-e-0021)
 
-**確認済み（静的）**：改訂ファイルは汎用の YAML パーサではなく `doc::revfile` の固定形式で読み書きする。トップレベルの `rev`、`date`、`base`、`base_commit`、`scheme`、`entries`、要素の `label`、`kind`、`unit`、`title`、`file`、`line`、`note`、`stale` だけを解釈し、値は素の値、引用符付きの値、`|` のブロックスカラーに限る。解釈できない行は捨てる。`rev` が空の場合はファイル名から補う。書出しは同じ形式に固定され、`removed` の `file`／`line` には旧版の位置を書く。フロー形式・アンカー・複数文書など、形式外の YAML は保持されない。[E-0021](appendix-evidence.qmd#ev-e-0021)
+**確認済み（静的）**：改訂ファイルは汎用の YAML パーサではなく `doc::revfile` の固定形式で読み書きする。トップレベルの `rev`、`date`、`base`、`base_commit`、`scheme`、`entries`、要素の `label`、`kind`、`unit`、`title`、`file`、`line`、`note`、`stale` だけを解釈し、値は素の値、引用符付きの値、`|` のブロックスカラーに限る。引用付きの値は、二重引用なら `\\` → `\`・`\"` → `"`（ほかの `\x` はそのまま）、単一引用なら `''` → `'`（逆斜線は文字）と読む（3.1.0、DATA-01。拡張の `revfile.ts` と同じ規則で、共有の期待値は `cli/tests/fixtures/contract/rev-values.json`。以前は逆斜線を戻さず、拡張で保存するたびに増えた）。書き手（`quote`）は変えていない。解釈できない行は捨てる。`rev` が空の場合はファイル名から補う。書出しは同じ形式に固定され、`removed` の `file`／`line` には旧版の位置を書く。フロー形式・アンカー・複数文書など、形式外の YAML は保持されない。[E-0021](appendix-evidence.qmd#ev-e-0021)
 
 ```yaml
 rev: C

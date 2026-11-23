@@ -39,7 +39,7 @@ fn as_display<S: serde::Serializer>(p: &Path, s: S) -> Result<S::Ok, S::Error> {
 /// 執筆フォルダを走査し、文書順の見出し・表・図を集める。
 pub fn scan_folder(dir: &Path) -> Result<Doc> {
     // 文書順と本文は同じ走査で得る（各ファイルを 1 回だけ読む。CLI-01）
-    let (order, texts) = project::order_with_texts(&project::Folder(dir));
+    let (order, texts) = project::order_with_texts(&project::Folder(dir))?;
     let mut doc = Doc {
         folder: dir.to_path_buf(),
         order: order.files,

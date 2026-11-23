@@ -1,7 +1,8 @@
 //! 失敗した後の再実行と、同時に走った init / add（IO-02）。quarto は起動しない。
 //!
 //! - `ddq update` は機構ファイル → 図のキャッシュ → 版マーカーの順に確定する。途中で失敗しても
-//!   版マーカーは前の版のままで、もう一度実行すれば最後まで終わる
+//!   版マーカーは前の版のままで、もう一度実行すれば最後まで終わる。図のキャッシュのフォルダを
+//!   読めないときも失敗にする（無いときだけ、消すものが無いとする。M-03）
 //! - init / add は「無いものだけ置く」を、上書きしない新規作成で行う。同時に走っても、
 //!   1 つのファイルを作るのはどちらか 1 つだけ
 
@@ -114,6 +115,89 @@ fn a_failed_cache_prune_is_finished_by_the_next_update() {
     assert_ne!(marker(&docs), "0.0.0\n");
     assert_ok(&ddq(&["setup", &d]));
     assert_no_temporary_files(&docs);
+}
+
+/// 図のキャッシュのフォルダ（diagrams）がフォルダでなければ、消しきれたか分からないので止まる。版マーカーは
+/// 古いままで、フォルダに戻してから実行し直せばキャッシュを消して版を上げる（以前は「無い」と同じに扱い、
+/// 何も消さずに版だけ上げていた。そのあとは同じ版の修復に見えて、古いキャッシュが残る。M-03）
+#[test]
+fn a_cache_folder_that_is_not_a_folder_stops_the_update() {
+    let tmp = tempfile::tempdir().unwrap();
+    let docs = older_folder(tmp.path());
+    let d = docs.to_string_lossy().into_owned();
+    let diagrams = docs.join("diagrams");
+    let saved = tmp.path().join("saved-diagrams");
+    fs::rename(&diagrams, &saved).unwrap();
+    fs::write(&diagrams, "フォルダではない\n").unwrap();
+
+    let out = ddq(&["update", &d]);
+    assert_eq!(out.status.code(), Some(1), "{}", text(&out));
+    assert!(
+        text(&out).contains("図のキャッシュを消しきれません（版マーカーは 0.0.0 のまま")
+            && text(&out).contains("がフォルダではありません"),
+        "{}",
+        text(&out)
+    );
+    assert_eq!(marker(&docs), "0.0.0\n");
+
+    fs::remove_file(&diagrams).unwrap();
+    fs::rename(&saved, &diagrams).unwrap();
+    let out = ddq(&["update", &d]);
+    assert_ok(&out);
+    assert!(text(&out).contains("キャッシュ 2 件を削除"), "{}", text(&out));
+    assert_eq!(caches(&docs), Vec::<String>::new());
+    assert_ne!(marker(&docs), "0.0.0\n");
+    assert_no_temporary_files(&docs);
+}
+
+/// 図のキャッシュのフォルダを読めない（ほかのプログラムが共有せずに開いている）ときも止まる。閉じてから実行し
+/// 直せば終わる（M-03）
+#[cfg(windows)]
+#[test]
+fn a_cache_folder_that_cannot_be_read_stops_the_update() {
+    use std::os::windows::fs::OpenOptionsExt;
+    const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let docs = older_folder(tmp.path());
+    let d = docs.to_string_lossy().into_owned();
+    let held = fs::OpenOptions::new()
+        .read(true)
+        .share_mode(0)
+        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS)
+        .open(docs.join("diagrams"))
+        .unwrap();
+
+    let out = ddq(&["update", &d]);
+    assert_eq!(out.status.code(), Some(1), "{}", text(&out));
+    assert!(
+        text(&out).contains("図のキャッシュを消しきれません（版マーカーは 0.0.0 のまま")
+            && text(&out).contains("を読めません"),
+        "{}",
+        text(&out)
+    );
+    assert_eq!(marker(&docs), "0.0.0\n");
+    drop(held);
+    assert_eq!(caches(&docs).len(), 2);
+
+    let out = ddq(&["update", &d]);
+    assert_ok(&out);
+    assert!(text(&out).contains("キャッシュ 2 件を削除"), "{}", text(&out));
+    assert_eq!(caches(&docs), Vec::<String>::new());
+    assert_ne!(marker(&docs), "0.0.0\n");
+}
+
+/// 図のキャッシュのフォルダが無いのは、消すものが無いだけ（これまでどおり版を上げる）
+#[test]
+fn a_missing_cache_folder_is_nothing_to_prune() {
+    let tmp = tempfile::tempdir().unwrap();
+    let docs = older_folder(tmp.path());
+    fs::remove_dir_all(docs.join("diagrams")).unwrap();
+
+    let out = ddq(&["update", &docs.to_string_lossy()]);
+    assert_ok(&out);
+    assert!(!text(&out).contains("キャッシュ"), "{}", text(&out));
+    assert_ne!(marker(&docs), "0.0.0\n");
 }
 
 /// 機構ファイルを書けずに止まっても、版マーカーとキャッシュは前のまま。閉じてから実行し直せば終わる

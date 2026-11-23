@@ -3,7 +3,7 @@
 //! plantuml-config.puml と
 //! `.template-version`。これらは doc リポジトリにコミットされる（cli/DESIGN.md §3.3）。
 
-use std::{fs, path::Path};
+use std::{fs, io, path::Path};
 
 use anyhow::{Context, Result, bail};
 
@@ -48,14 +48,24 @@ pub fn run(dir: &Path) -> Result<()> {
 
 /// `diagrams/` の中の、design-doc.lua が作るキャッシュ（`mmd-*` / `puml-*`）を消す。
 /// 執筆者が置いた静的図（それ以外の名前）には触らない。キャッシュは Git 管理外（雛形の .gitignore）。
+///
+/// `diagrams/` が無いときだけ「消すものが無い」とする。フォルダでない・読めない・途中の項目を読めないときは、
+/// 消しきれたか分からないので失敗にする（版マーカーを古いまま残し、再実行で消し直せるように。M-03）。
 pub fn prune_diagram_cache(dir: &Path) -> Result<usize> {
     let diagrams = dir.join("diagrams");
-    let Ok(entries) = fs::read_dir(&diagrams) else {
-        return Ok(0);
-    };
+    let unreadable = || format!("{} を読めません", diagrams.display());
+    match fs::metadata(&diagrams) {
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(0),
+        Err(e) => return Err(e).with_context(unreadable),
+        Ok(m) if !m.is_dir() => bail!(
+            "{} がフォルダではありません（図のキャッシュを置くフォルダです）",
+            diagrams.display()
+        ),
+        Ok(_) => {}
+    }
     let mut n = 0;
-    for e in entries.filter_map(|e| e.ok()) {
-        let path = e.path();
+    for e in fs::read_dir(&diagrams).with_context(unreadable)? {
+        let path = e.with_context(unreadable)?.path();
         let is_cache = path.is_file()
             && path
                 .file_name()

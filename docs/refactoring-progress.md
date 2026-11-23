@@ -8,7 +8,11 @@
 - 2026-11-22 の指示で、ブランチ `refactor/refactoring-plan` に ID ごとのコミットとして積み、PR（ramsesyok/ddq-template#142）にした。ID ごとの差分は「差分の取り出し方」参照
 - #142 は 2026-11-22 15:45（UTC。日本時間では 11-23 の 0:45）に `f6e27ed` までがマージされた（マージコミット `6bb9232`）。
   その後の 3 件（GEN-02 の既知の差を直す、ddq から release を外す、既存の不具合 2 件を直す）は、2026-11-23 の指示でブランチ
-  `refactor/release-split-and-fixes` に移した（main の上に載せ替えた。中身は同じ）
+  `refactor/release-split-and-fixes` に移した（main の上に載せ替えた。中身は同じ）。#143 として 2026-11-23 にマージされた（`5e840b3`）
+- 2026-11-23 の外部レビュー（`docs/refactoring-review.md`）は総合 FAIL（14 件）。Critical の 3 件と M-05 を、2026-11-23 の指示で
+  ブランチ `fix/review-critical` で直した（末尾の「外部レビューの指摘」。`142d742`）。続けて Medium の残り 5 件と Low の 3 件を
+  同じブランチで直した（全件の試験が通った後、2026-11-23 の指示でコミットした。`8b9338a`）。High の 2 件も、同じ日の指示で
+  同じブランチで直した（全件の試験が通った後、2026-11-23 の指示でコミットし、PR にした）
 
 ## 環境
 
@@ -318,7 +322,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   postprocess-html.js は機構ファイルなので、版を上げないまま新しい exe を使うと、既存の 3.1.0-pre1 の執筆フォルダは「同じ版で中身が違う」（終了コード 3 → update の案内）になる。
   既存の `_quarto.yml` は書き換えない
 - **計画からの逸脱**: 列をキーと同じ字下げで書く形も、両実装で読むようにした。旧 JS はこの形を読めていたので、そのまま残すためである
-- **残存リスク**: `part` に書いたファイル（部の扉ページ）とフロー形式 `[a, b]` は対象外。版を上げないため、同じ `3.1.0-pre1` を名乗る exe どうしで機構が違う（次のリリースで版を上げる前提）
+- **残存リスク**: `part` に書いたファイル（部の扉ページ）とフロー形式 `[a, b]` は対象外（扉ページは 2026-11-23 に直した。H-01）。版を上げないため、同じ `3.1.0-pre1` を名乗る exe どうしで機構が違う（次のリリースで版を上げる前提）
 
 ### EXT-01　版を preN まで番号順に比べ、分からない版を決めつけない
 
@@ -446,6 +450,8 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 - **判断を求めたこと**: 一時ファイルからの付け替えは、Windows でほかのプログラムが書き込みを共有して削除を共有せずに開いている
   （CRT の fopen・Python の open・同期ソフトの一部）と拒まれ、従来のその場の書き込みなら通る場面で失敗するようになった（実測）。
   利用者の判断で「1 秒ほど待ち直し、それでもだめなら従来どおりその場で書く」にした（従来通っていた場面はすべて通る）
+  → 2026-11-23 の外部レビューの C-01・C-02 を受けて、書き込み用に開いたままなら止める、その場で書くのは付け替えの共有違反だけ、
+    に変えた（2026-11-23 の利用者判断。末尾の「外部レビューの指摘」）
 - **計画からの逸脱**
   1. 上の判断により、付け替えを拒まれたときはその場で書く。その場合だけ「中断後も途中のバイト列にならない」は保証しない（従来と同じ）
   2. 付け替えは tempfile の `persist`（`MoveFileExW`）ではなく std の `rename` を使った。`MoveFileExW` は削除を共有して開かれている
@@ -454,6 +460,7 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 - **戻す方法**: `tag.rs`・`rev.rs` の書き込みを `fs::write` に戻し、`replace.rs` を消す。契約の期待値の BOM も戻す
 - **残存リスク**
   - 書く直前の照合と置き換えの間（数ミリ秒）に保存されたものは検出できない
+    → 2026-11-23 に、置き換えるときにファイルごとに照合し直し、Windows では書き込みを拒んで開いておくようにした（末尾）
   - その場で書いたとき（上の判断）は、従来と同じく途中で止まると途中のバイト列になりうる
   - 置き換えると別のファイルになるので、ハードリンクの他方は元の中身のまま、Windows の個別の ACL・代替データストリーム
     （ダウンロード元の印など）・作成日時は引き継がない（新しいファイルはフォルダの ACL を継ぐ）
@@ -1227,19 +1234,19 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 | CLI-01 | 読込回数・大文書の実行時間、警告・相対パス・ラベル・diff の順序が一致 | 満たす（新旧の release exe の出力が同じ） | — |
 | EXT-02 | 引数・cwd・PATH、UTF-8 のチャンク境界、exit 3、ENOENT、別フォルダの並行、取消時の子孫の終了、deactivate 後の出力 | 満たす（孫の停止は Windows だけ。計画の範囲） | — |
 | GEN-02 | 出力を変えず、3 組の重複を同じ入力で検証 | 満たす（既知の差は期待値に印を付けた。そのうち 3 組は、レビューの後の 2026-11-23 の指示で直した。キャッシュの移行は要らなかった） | 残した 2 つ（PlantUML の `@start` の前の空白、書式つきのセルの比較） |
-| EXT-03 | 応答順の逆転・close→reopen・未保存・設定変更・多ルート・deactivate 後を模擬と実 Host で | 満たす（多ルートと deactivate 後は模擬だけ。理由は節に記録） | ステータスバーの逆転（計画の対象外。表示だけ） |
+| EXT-03 | 応答順の逆転・close→reopen・未保存・設定変更・多ルート・deactivate 後を模擬と実 Host で | 満たす（多ルートと deactivate 後は模擬だけ。理由は節に記録） | ステータスバーの逆転（計画の対象外。表示だけ）。2026-11-23 の外部レビューは部分完了と判定（H-02・M-01・M-02）→ 同日に M-01・M-02 を直し、続けて H-02 も直した（末尾） |
 | EXT-04 | 2 バンドルの配信・起動・メッセージ・CSP・旧データを実 Host と `check:offline` で | 満たす（逸脱 3 件を記録） | — |
-| GEN-01 | 新規／既存／過去の Git 版、増分 HTML と再実行で章・付録が一致し、従来の fixture の出力が一致 | 満たす（過去の `_quarto.yml` 52 版、サンプルの版間比較 141 一致） | 版を上げていない（下の「次のリリースの前に」） |
+| GEN-01 | 新規／既存／過去の Git 版、増分 HTML と再実行で章・付録が一致し、従来の fixture の出力が一致 | 満たす（過去の `_quarto.yml` 52 版、サンプルの版間比較 141 一致） | 版を上げていない（下の「次のリリースの前に」）。2026-11-23 の外部レビューは部分完了と判定（H-01）→ 同日に直した（末尾） |
 | EXT-01 | 正式版／pre1／pre4／pre10／旧 `2.4`、同版の内容差、欠落・不正値を両方向で | 満たす（出荷済みの 30 版。ダイアログは模擬） | 版の違う ddq での案内を実 Host では見ていない |
 | DATA-01 | Rust→TS、TS→Rust、二度目の保存で比較。自動一括移行は別承認 | 満たす（移行はしていない） | — |
-| IO-01 | 同時変更・読み取り専用・ロック・再試行・改行・末尾改行・`--dry-run`、BOM の保持は承認 | 満たす（付け替えを拒まれたときはその場で書く例外を記録） | Unix の経路は未実行（CI の Rust は Windows だけ） |
-| IO-02 | 二つの init/add の競合、開かれたファイルの update、同版の修復、版の変わる update | 満たす | — |
+| IO-01 | 同時変更・読み取り専用・ロック・再試行・改行・末尾改行・`--dry-run`、BOM の保持は承認 | 満たす（付け替えを拒まれたときはその場で書く例外を記録） | Unix の経路は未実行（CI の Rust は Windows だけ）。2026-11-23 の外部レビューは部分完了と判定（C-01・C-02）→ 同日に直した（末尾） |
+| IO-02 | 二つの init/add の競合、開かれたファイルの update、同版の修復、版の変わる update | 満たす | 2026-11-23 の外部レビューは部分完了と判定（M-03）→ 同日に直した（末尾） |
 | REL-03 | 重い処理の前に 4 つの版を照合。CI は同じ checkout のビルドを使い、配布検証の記録にコミットと exe の SHA-256 を残す | 満たす（手元）。照合と同じ checkout のビルドは `810249b`。exe の SHA-256 は `check_release.py` のログにだけ出て成果物に入っていなかったので、このレビューで `versions.txt` に足した（`ddq.exe sha256:` の行。ZIP・VSIX の exe がこれと同じことは次の手順の `check_release.py --exe` が確かめる） | GitHub 上は次の実行で確かめる |
 | CI-02 | 模擬の監査結果で、配布対象が失敗し開発用だけの指摘は参考になる | 満たす | — |
 | REL-01 | 両アーカイブの表示・ライセンス本文・同梱 exe・版・target を照合 | 満たす（手元と CI の両方） | 次のリリースノートに両資産のファイル一覧差 |
 | CI-01 | 配布候補の作成者を 1 つにし artifact で渡す。PR は高速試験、main・手動は実候補の検査。既存の検査を保つ | 満たす（PR の実行で 4 ジョブ成功。ci・extension の既存ジョブは vsix-smoke 以外そのまま） | main・手動・`concurrency` はマージの後に確かめた（2026-11-23） |
-| DOC-01 | リンク・旧 ID の注記・配布用マニュアルの PDF/HTML を確認。旧資料の削除は個別承認 | 満たす（削除はしていない）。拡張の開発文書の追随はこのレビューで直した（下の「資料の整合」） | — |
-| REL-02 | 保証する範囲を決め、失敗の種類ごとに旧資産のハッシュを検査 | **一部** → 2026-11-23 に満たす。範囲は決めた（計画 §7 に追記）。わざと失敗させた 2 本（作成・検査）で `release-<版>` が残らず、公開済みの資産のハッシュが変わらないことを確かめた | なし（失敗した実行の Re-run は試していない） |
+| DOC-01 | リンク・旧 ID の注記・配布用マニュアルの PDF/HTML を確認。旧資料の削除は個別承認 | 満たす（削除はしていない）。拡張の開発文書の追随はこのレビューで直した（下の「資料の整合」） | 2026-11-23 の外部レビューは部分完了と判定（M-05・M-06）→ 同日にどちらも直した（末尾） |
+| REL-02 | 保証する範囲を決め、失敗の種類ごとに旧資産のハッシュを検査 | **一部** → 2026-11-23 に満たす。範囲は決めた（計画 §7 に追記）。わざと失敗させた 2 本（作成・検査）で `release-<版>` が残らず、公開済みの資産のハッシュが変わらないことを確かめた | なし（失敗した実行の Re-run は試していない）。2026-11-23 の外部レビューは、手での公開の手順（C-03）で部分完了と判定 → 同日に直した（末尾） |
 
 ### 外部契約の照合（計画 §2）
 
@@ -1292,7 +1299,7 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
    旧二拡張からの移行、版の違う ddq での案内（EXT-01 は模擬だけ）
 3. **次のリリースの前に**
    - **版を上げる**: 機構ファイル（`postprocess-html.js`）と雛形（`_quarto.yml`）が変わったのに `template/VERSION` は 3.1.0-pre1 のまま
-     （GEN-01 で上げないことにした）。同じ版名で機構が違うので、3.1.0-pre1 で作った文書を新しい ddq で発行すると「同じ版で中身が違う」
+     （GEN-01 で上げないことにした）→ 2026-11-23 に 3.1.0 に上げ、変更履歴を書いた（末尾の「2026-11-23 の残作業」）。同じ版名で機構が違うので、3.1.0-pre1 で作った文書を新しい ddq で発行すると「同じ版で中身が違う」
      （exit 3）になる。拡張の `package.json`・`package-lock.json` も揃える（REL-03 が照合する）。マージの後の main の release-candidate も
      `release-3.1.0-pre1` を作るが、公開済みの v3.1.0-pre1 とは中身が違うので、版を上げるまで公開に使わない
    - **変更履歴とリリースノート**に書く利用者に見える差: 章の並びの読み方（GEN-01。行末コメント・引用・空白入りのパス・part・同じ字下げの列）、
@@ -1301,9 +1308,14 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
      表エディタの merge-cols の読み方（`"ALL"`・`""`・旧 `.merge-rows` を結合せずに開く。解釈できない値の警告）、タブを含む mermaid の図を
      先回りの SVG で描く（GEN-02 の直し）、機構ファイル（`postprocess-html.js`・`design-doc.lua`）が変わるので `ddq update` が要ること、
      `tag list` が同じ見出しの多い文書で落ちない（5 つ目からの候補は `-2`・`-3`…）、改訂履歴の表で修正内容の逆斜線が書いたとおりに出る
-     （既存の不具合 2 件の直し。表は `ddq rev build` をやり直すと新しくなる）
+     （既存の不具合 2 件の直し。表は `ddq rev build` をやり直すと新しくなる）、`tag apply`・`rev diff --write` がほかのプログラムが書き込み用に
+     開いたままのファイルを書かずに止める・一時ファイルを書けないときに元のファイルに触れない（外部レビューの C-01・C-02 の直し）、
+     確定済みの改訂を開いた直後に編集できない・保存できないときに取り直し・確定しない・図のキャッシュを消しきれないと update が
+     止まる（M-01〜M-03）、部の扉ページの本文が tag・rev の対象になり HTML で番号が付く・付録は書いた順にかかわらず章の後ろ（H-01）、
+     改訂履歴の画面がほかで直したメモを古い値で戻さない（H-02）
    - PR で release-candidate を毎回走らせるか（計画 §7「PR でのフル配布検査の所要時間を確認してジョブ配置を決める」）: 所要時間は 38 分
      （うち書体を入れる時間が 25 分あまり）。検討書 §2 の 3 の形（main と手動。PR は workflow などを変えたときだけ）のままを勧める
+     → 2026-11-23 に利用者が「今のまま」と決めた（末尾の「2 回目」）
 4. **計画の中の小さな直し**（2026-11-22 の指示で、このレビューで直した）
    - REL-03: CI の成果物に exe の SHA-256 を残す（`versions.txt` に 1 行）。workflow から手順を取り出して手元で流し、書いた値が
      exe と ZIP の中の exe の SHA-256 と一致することを確かめた。workflow は YAML として読め、手順の数は変わらない（build 12）
@@ -1311,6 +1323,8 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 5. **計画の外・別の判断**: GEN-02 の既知の差のうち残した 2 つ（3 組は 2026-11-23 に直した）、ddq.exe から `release` を外すか（検討書 §5。2026-11-23 に外した。上の「ddq から release を外す」）、既存の不具合 2 件（下。2026-11-23 に直した）、
    実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文の更新（release の分離の分だけは 2026-11-23 に直した）、書体を入れる時間の短縮、`actions/*@v4` の Node.js 20 の警告、
    `versions.txt` に書体の版を残すか、EXT-03 のステータスバー
+   → 2026-11-23 に、GEN-02 の 2 つは残すと決め、実装仕様書を 3.1.0 基準にし、書体はビルドと重ね、Action を Node 24 の版にし、
+   ステータスバーを直した（末尾の「2026-11-23 の残作業」。書体の版は L-02 で `versions.txt` に書くようにした）
 
 ## 計画外で見つけた既存の不具合（2026-11-23 に直した）
 
@@ -1322,3 +1336,363 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
    書くと `\docs`・`\a` が TeX の命令とみなされ、表には `C:.qmd` と出る（新旧同じ。DATA-01 の相互確認で見つけた）。
    パスは `` `C:\docs\a.qmd` `` か `C:\\docs` と書けば出る
    → 2026-11-23 に直した（TeX の命令になる逆斜線を `\\` にする。上の「既存の不具合 2 件を直す」）
+
+## 外部レビューの指摘（2026-11-23。`docs/refactoring-review.md`）
+
+2026-11-23 に、`acbec86`（#143 のマージの前の `refactor/release-split-and-fixes`。main の `5e840b3` と同じ木）を対象にした
+最終品質レビュー `docs/refactoring-review.md` が置かれた（未追跡）。総合判定は FAIL、指摘は Critical 3・High 2・Medium 6・Low 3。
+上の台帳では計画の 17 項目をすべて検証済にしたが、レビューは EXT-03・GEN-01・IO-01・IO-02・DOC-01・REL-02 の 6 項目を部分完了と
+判定した（下の表の指摘による）。指摘のうち 12 件は、コードと手順書を読んで指摘どおりであることを確かめた（L-02・M-04 は細部を見ていない）。
+
+| ID | 指摘 | 状況（2026-11-23） |
+|---|---|---|
+| C-01 | 書き戻しの待ちの間にほかで保存された追記を消し、成功を返す（IO-01） | 直した（下。ブランチ `fix/review-critical`） |
+| C-02 | 一時ファイルの書き込み・同期の失敗でも、元のファイルを切り詰めて書き直す（IO-01） | 直した（下） |
+| C-03 | 公開の手順で下書きの作成と公開が別のコマンドで、片方の資産だけの下書きを公開しうる（REL-02） | 直した（下） |
+| H-01 | `part: part.qmd` の部の本文が走査から抜け、`appendices` を先に書くと付録が先に並ぶ（GEN-01） | 直した（下の「High 2 件」） |
+| H-02 | 改訂メモを 1 件直すと、文書全体を古い画面の状態で置き換え、別の行の変更が戻る（EXT-03） | 直した（下の「High 2 件」） |
+| M-01 | 確定済みの改訂が、開いた直後は編集できる（EXT-03。比較元からの回帰） | 直した（下の「Medium 5 件と Low 3 件」） |
+| M-02 | 保存に失敗しても、取り直し・確定に進む（EXT-03） | 直した（下） |
+| M-03 | `diagrams/` を列挙できなくても update が成功し、版マーカーを進める（IO-02） | 直した（下） |
+| M-04 | 通常 CI の失敗が、公開に使う候補の選択を止めない | 直した（下。公開の手順で照合する） |
+| M-05 | 公開の手順で、既にあるタグの指すコミットを照合しない。例に `--prerelease` が無い（DOC-01） | 直した（C-03 と一緒に。下） |
+| M-06 | 開発資料の手での梱包だと、VSIX に `THIRD-PARTY-NOTICES.md` が入らない（DOC-01） | 直した（下。手で作る VSIX は渡さないと書いた） |
+| L-01 | 2 本目のバイナリを足した後、`cargo run` の既定のバイナリが無い | 直した（下） |
+| L-02 | 再ビルドの条件を配布の記録から作り直せない（rustc・書体・Action の SHA） | 直した（下） |
+| L-03 | 同じ ref への 3 件目の要求で、待っている候補が取り消される（コメントが不正確） | 直した（下。PR の試走で要確認） |
+
+レビューに無いずれも 1 つ見つけた: `docs/cli-impl/05-build-environment.qmd:56` の「`npm ci` は node_modules が無いときだけ」は、
+いまの実装（毎回 `npm ci`）と違う（M-06 と一緒に直した）。
+
+### Critical 3 件と M-05 を直す（2026-11-23。ブランチ `fix/review-critical`）
+
+- **状況**: **実装済**（単体・実 exe・変異・偽の gh で手順を確かめた）。main の `5e840b3` から切ったブランチ
+  `fix/review-critical` に、2026-11-23 の指示でコミットした（`142d742`。プッシュはしていない）
+- **利用者の判断（2026-11-23）**
+  1. C-01: ほかのプログラムが原稿・改訂ファイルを**書き込み用に**開いたまま、1 秒ほど待っても閉じないときは、書かずに止める
+     （IO-01 の 2026-11-22 の判断「1 秒ほど待ち、それでもだめならその場で書く」を変えた）。読むだけで開いているものは、照合し直して
+     から従来どおりその場で書く。Unix はロックが無いので、付け替えの直前に照合し直すだけ
+  2. C-02: その場で書く代わりの動作は、最後の付け替えが共有違反で拒まれたときだけ。一時ファイルの作成・書き込み・同期の失敗では
+     元のファイルに触れない（レビューの推奨）
+  3. C-03: 公開の手順を、`--draft` を付けない 1 つの `gh release create` に戻す（分ける前の形。新しいツールは作らない）
+  4. M-05: C-03 と一緒に直す
+- **変更**
+  - `cli/src/replace.rs`: 一時ファイルの作成・書き込み・同期（`prepare`）と付け替え（`swap`）を分けた。`replace` は共有違反の
+    付け替えだけその場で書く。人が書くファイル向けの `replace_unchanged`（読んだバイト列との照合つき）と、止めた理由の
+    `Refused`（`Changed`・`Busy`）を足した。試験のビルドだけの障害注入（`FAULT`）
+  - `cli/src/commands/tag.rs`: 書く前の照合で読んだバイト列を残し、ファイルごとに `replace_unchanged` に渡す
+  - `cli/src/commands/rev.rs`: `save_revision` を `replace_unchanged` にした（読み直しは置き換えの中。文言は同じ）
+  - 試験: `cli/src/replace.rs` の単体 14（追加 6・照合つきも流すように書き換え 4）、`cli/tests/tag.rs`（+2）、`cli/tests/rev.rs`（+1）。
+    `cli/src/commands/tag.rs` の単体 1 件は、止まった理由の文言の期待値を新しいものにした（下の「利用者に見える差」の 3）
+  - `docs/manual/chapters/18-maintainer/06-release.qmd`（公開の手順）、`cli/DESIGN.md` §14.5・§15、`docs/release-ci-proposal.md`（追記）
+- **規則**: `cli/DESIGN.md` §14.5「置き換え（`replace.rs`）の規則」。公開の手順は、`set -euo pipefail` で失敗したところで止まり、
+  `SHA256SUMS.txt` を照合し、既にあるタグ（注釈つきは剥がしたもの）が `versions.txt` の `commit:` と違えば作る前に止まる。
+  版に `-` が付けば `--prerelease`。作った後に、資産の名前と GitHub の `digest` を `SHA256SUMS.txt` と照合する
+- **試験と結果**
+  - 単体（Windows）: 障害注入で、作成・書き込み・同期・付け替え（共有違反以外）のどこで失敗しても、`replace` も `replace_unchanged`
+    も「元のファイルは変えていません」で止まり、元のバイト列のまま、一時ファイルも残らない。共有違反の付け替えだけはその場で書く。
+    書き込み用に開いた手（読み・書きを共有／読み・書き・削除を共有）が 200 ミリ秒後に行を足して閉じると、待ち直した後の照合で
+    見つけて `Changed`、足した行は残る。開いたままなら 1 秒ほど待って `Busy`、元のまま。読みと削除を共有する読み手がいても
+    付け替える（その読み手には元のバイト列）。読むだけで削除を共有しない読み手なら、照合し直してその場で書く（従来どおり）
+  - 実 exe: `tag apply --all` の途中（パスの順で前のファイルを書いた後）に、CRT の fopen の追記と同じ開き方で原稿に 1 行足して閉じると、
+    終了コード 1・「読み込んだあとに変わっています」・書いた／書いていないファイルを挙げ、足した行は残る（従来は足した行が消えて 0）。
+    もう一度実行すると、足した行を残して書き戻す。書き込み用に開いたままなら終了コード 1 で元のまま、閉じて再実行すると 1 回で
+    書き戻したときと同じ中身。`rev diff --write` の改訂ファイルを書き込み用に開いたままなら終了コード 1 で元のまま
+  - 変異 13 か所（照合しない・書き込みを拒まない・開けるまで待ち直さない・書き込み用に開いていてもその場で書く・読み手がいると
+    止める・消えていたら Busy・無かったはずのものを上書き・準備の失敗でその場で書く（2 か所）・付け替えのどの失敗でもその場で書く・
+    tag と rev で照合しない・tag の BOM）を 1 つずつ入れ、すべてで試験が落ちた。「書き込みを拒まない」だけは、実 exe の
+    「途中で足した行」の試験が時間の前後で通る（単体と実 exe の残り 2 つが落ちる）。その場で書く前の照合し直しは、落とせる試験が無い
+  - 公開の手順: 手順の bash を、偽の gh・git で 8 場面流した（プレリリースで最後まで、正式版に `--prerelease` を付けない、同じ
+    コミットの軽量タグ・注釈つきタグなら通る、別のコミットのタグなら作る前に止まる、資産を上げられなければそこで止まり次を呼ばない、
+    公開した資産の digest が違えば知らせて止まる、SHA-256 の一覧が合わなければ作らない。`versions.txt` の CRLF も除く）。jq の式は
+    公開済みの v3.1.0-pre1 を読むだけで試し、2 資産の SHA-256 が `sha256sum` と同じ形で出た。gh 2.92.0 のソース
+    （`pkg/cmd/release/create/create.go` の 496–567 行）で、`--draft` を付けずに資産を渡すと、下書きで作って上げ終えてから公開し、
+    失敗したら下書きを消すことを読んだ。章は Quarto 同梱の Pandoc で読め、手順の塊は原文と同じ。実際のリリースは作っていない
+  - Rust 全件: **243 件成功・失敗 0・ignored 0**（`DDQ_E2E=1`・`--test-threads=1`、505 秒）。unit 121 / ddq-release 6 / commands 10 / contract 5 / e2e 5 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 4 / rev 17 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1。1 回目は `commands::tag` の単体 1 件が、止まった理由の文言の古い期待値で落ちた（期待値を直して、通しで流し直した）
+  - `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings` 成功。拡張のコードは変えていない
+- **利用者に見える差**
+  1. `tag apply`・`rev diff --write`: ほかのプログラムが書き込み用に開いたままの原稿・改訂ファイルは、1 秒ほど待っても閉じなければ
+     書かずに終了コード 1（従来はその場で書いた）。待っている間に保存されたものは消さずに終了コード 1（従来は消えて 0）
+  2. 一時ファイルを書けない（容量不足など）ときは、元のファイルに触れずに止まり「元のファイルは変えていません」と出る（従来は
+     その場で書き直した）
+  3. 原稿・改訂ファイルをほかのプログラムが開いていて書けないときの理由の文言が、「<ファイル> を置き換えられません（ほかの
+     プログラムが開いていないか確かめてください）」から「ほかのプログラムが開いているため、書き換えていません（閉じてから、もう一度
+     実行してください）」になった（`tag apply` は前の行の「<ファイル> を書き換えられないため、途中で止めました」、`rev diff --write` は
+     「<ファイル> を書けません」が付く）。終了コード・書いた／書いていないファイルの一覧は同じ。拡張と契約の期待値はこの文言に依らない
+  4. 公開の手順（保守者だけ）: 1 つの `gh release create` に戻り、タグの照合・`--prerelease`・公開後の digest の照合が付いた
+- **計画からの逸脱**: なし（レビューの後の直し）。IO-01 の 2026-11-22 の判断を、上の判断 1 で変えた
+- **戻す方法**: `cli/src/replace.rs`・`cli/src/commands/tag.rs`・`cli/src/commands/rev.rs` と足した試験を `5e840b3` に戻す。手順書・
+  設計書・検討書の追記も戻す
+- **残存リスク**
+  - Windows でも、ほかのプログラムが「安全な保存」（一時ファイルからの付け替え）で原稿を置き換えるのは拒めない（自分の付け替えの
+    ために削除を共有するため）。照合と付け替えの間（ミリ秒より短い）に起きると検出できない
+  - Unix は付け替えの直前に照合し直すだけ（配る exe は Windows だけ。CI の Rust も Windows だけ）
+  - その場で書く経路（削除を共有しない読み手）は、従来どおり途中で止まると途中のバイト列になりうる
+  - 公開の手順は文書で、CI の試験は無い（偽の gh で流したのは手元だけ）。公開した後に digest が違ったら、公開は取り消せない
+    （下書きに戻して調べる）
+
+### Medium 5 件と Low 3 件を直す（2026-11-23。ブランチ `fix/review-critical`）
+
+- **状況**: **実装済**（単体・実 exe・変異・偽の gh・手元での手順の実行で確かめた）。Critical の直し（`142d742`）の上に、
+  全件の試験が通った後、2026-11-23 の指示（「テストが通ったらコミットしてください」）でコミットした（プッシュはしていない）。
+  High の 2 件（H-01・H-02）は、同じ日の指示（「終わったら High も直してください」）で続けて直す
+- **利用者の判断（2026-11-23）**: 「コミットして Medium と Low にも対応してください」。決め方を尋ねた 4 件はすべて推奨を選んだ
+  1. M-04: 公開の手順で、選んだ実行が main のそのコミットの通った配布候補であることと、同じコミットで `ci.yml`・`extension.yml` が
+     通ったことを照合し、無ければ止める。CI の設定は変えない（文書だけの変更では通常の CI が path の条件で走らないので、
+     `gh workflow run` で走らせるよう案内する）
+  2. M-06: 手で作る VSIX は確かめる用で人に渡さず、配るのは CI の配布候補だけと書く。手で作るときのライセンス表示のコピーも書く。
+     梱包のスクリプトに検査は足さない。`docs/cli-impl/05-build-environment.qmd` の `npm ci` の記述も直す
+  3. L-02: `versions.txt` に Rust（rustc・cargo）、書体の実際の版、スモークに使った VSCode の版を足す。`release-candidate.yml` の
+     外部の Action をコミットの SHA に固定し（版はコメント）、上げる手順を書く。Rust の版は固定しない
+  4. L-03: `release-candidate.yml` の同時実行に `queue: max` を足し、要求をすべて待たせる
+  - M-01・M-02・M-03・L-01 は、レビューの推奨どおりに直した（尋ねていない）
+- **変更**
+  - M-01（`extensions/ddq-template/src/revision/messages.ts`・`provider.ts`・`src/revisionWebview/RevisionEditor.tsx`）: 画面に渡す
+    状態に `checked`（タグの状態を確かめ終えたか）を足した。拡張は最初の `ddq rev next` が返るまで `checked: false` で本文を送り、
+    画面は確定済みのときと同じく編集欄・取り直し・確定・stale の削除を使えなくし、「タグの状態を確かめています…」と出す。
+    拡張も、確かめ終えていない・確定済みの改訂への書き戻し・取り直し・確定を受け付けず、画面を文書に戻して知らせる。照会に失敗した
+    （Git が無いなど）ときは、従来どおり確かめ終えた・未確定とする。確かめた後の入力は、従来どおり入力が止まってから取り直す
+  - M-02（`provider.ts` の `saveBeforeDdq`）: 取り直し・確定の前の保存で、`save()` が偽を返した・例外になった・保存の後にまた
+    変わったときは、ddq を起動せず（表も作らず、確定のコマンドも案内せず）に知らせる
+  - M-03（`cli/src/commands/update.rs`）: `diagrams/` が無いときだけ「消すものが無い」。フォルダでない・読めない・途中の項目を
+    読めないときは失敗にし、版マーカーを古いまま残す（「図のキャッシュを消しきれません（版マーカーは … のまま…」）
+  - M-04（`docs/manual/chapters/18-maintainer/06-release.qmd`）: 公開の手順に、`gh run view` で実行の workflow・枝・コミット・
+    契機・結論の照合と、`gh run list --workflow ci.yml|extension.yml --branch main --commit <コミット>` で通常の CI の照合を足した
+  - M-06（`extensions/ddq-template/DEVELOPMENT.md`・`docs/cli-impl/05-build-environment.qmd`・`cli/tests/release.rs` の注記）
+  - L-01（`cli/Cargo.toml`）: `default-run = "ddq"`
+  - L-02（`.github/workflows/release-candidate.yml`・`extensions/ddq-template/tests/host/smoke.mjs`・`smoke-index.js`）: 外部の
+    Action 8 つ（checkout v5.1.0・rust-toolchain の stable の枝・rust-cache v2.9.3・quarto-actions/setup v2.2.0・setup-node v5.0.0・
+    upload-artifact v4.6.2・download-artifact v4.3.0・cache v4.3.0）を、2026-11-23 にそのタグ・枝が指していたコミットに固定した。
+    `versions.txt` に `rust:` 行を足し、`fonts:` 行を書体の名前から「名前・版・ファイル」にした（WPF の GlyphTypeface で name 表を
+    読む）。スモークは使った VSCode の版を書き出し（環境変数 `SMOKE_VERSIONS`）、`publishable` が `versions.txt` に足す
+  - L-03（`release-candidate.yml`）: `concurrency` に `queue: max`
+  - 設計書（`cli/DESIGN.md` §3 の別の exe・図のキャッシュ・§7.6 の配布候補）、検討書（追記）。§7.5 の「下書きのリリースに載せてから
+    公開」という C-03 の前の書き方も直した
+- **試験と結果**
+  - M-03（`cli/tests/rerun.rs` +3）: `diagrams` がファイルなら終了コード 1・版マーカーは古いまま、フォルダに戻して再実行すると
+    キャッシュ 2 件を消して版を上げる。`diagrams` をほかのプログラムが共有せずに開いていても同じ（Windows）。無いときは従来どおり
+    成功する。直す前の `update.rs` では、前の 2 つが落ちる（無いときの試験は前後とも通る）
+  - M-01・M-02（`provider.test.ts` +8、`RevisionEditor.test.tsx` +1）: 照会が返る前は `checked: false` で、届いた書き戻しを当てず、
+    返った後は当てる。確定済みなら書き戻し・取り直し・確定を受け付けず、表は作れる。照会の失敗では編集できる。保存が偽・例外なら
+    取り直しも確定もしない（ddq を起動せず、案内も出さない）。保存の後にまた変わっていたら取り直さない。保存できたら取り直す。
+    画面は、中身が届く前と確かめ中は編集欄・ボタンが使えず、確かめたら使える。変異 7 か所（拡張が照合しない・最初から確かめ
+    終えたことにする・画面が確かめ中でも編集させる・`save()` の偽を無視・例外を握りつぶす・保存後の再変更を見ない・確定で保存を
+    確かめない）を 1 つずつ入れ、すべてで試験が落ちた
+  - 拡張: 型検査・Vitest **47 ファイル 506 件成功**・build・`check:offline`・`check:audit` 成功
+  - L-02: 「使った版を書く」の手順を手元の pwsh で流し、`rust:`・`fonts: BIZ UDGothic Version 2.02 (BIZ-UDGothicR.ttc), Meiryo UI
+    Version 6.52 (meiryo.ttc)` が出て、CRLF・BOM なしのまま（`publish.sh` の読み方は変わらない）。M-06 の手順どおり
+    （ライセンス表示をコピーしてから `npm run package:win32-x64`）に作った VSIX は 14 項目で、`SMOKE_VERSIONS` を付けた
+    `npm run test:smoke` が合格し、`vscode (smoke): 1.147.0 (…Code.exe)` を CRLF で書いた（作ったものは消した）。workflow の
+    YAML は読め、外部の Action に版のタグが残っていない
+  - M-04: 手順の bash を偽の gh・git で 20 場面流した（Critical のときの 8 場面に、手動実行の候補なら通る、`ci.yml`・`extension.yml`
+    を main のそのコミットで探す、PR・別のコミット・落ちた実行・別の workflow の実行なら作る前に止まる、`ci.yml` が落ちた・走って
+    いない、`extension.yml` が途中・打ち切られたなら作る前に止まる、を足した）。照合の `gh` の式は、実際の main の配布候補
+    （実行 45106998667。`5e840b3`）と、無いコミットで読むだけで試し、`release-candidate main 5e840b3… push success`・
+    `completed success`（2 つ）・`実行が無い` が出た。章は Quarto 同梱の Pandoc で読め、手順の塊は原文と同じ
+  - Rust 全件: **246 件成功・失敗 0・ignored 0**（`DDQ_E2E=1`・`--test-threads=1`、517 秒）。unit 121 / ddq-release 6 / commands 10 / contract 5 / e2e 5 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 7 / rev 17 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1。1 回目の全件は rerun の新しい 2 件が落ちた（変異の確認の後に `update.rs` を `Copy-Item` で戻したので更新日時が古いままになり、cargo が作り直さず直す前のコードの exe で走った。日時を更新して作り直し、通しで流し直した）。実拡張ホスト（`DDQ_HOST_REAL=1`、新しくビルドした release の ddq）の 30 確認に合格
+  - `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings` 成功。`cargo run -- --version` が ddq を起動する
+- **利用者に見える差**
+  1. 改訂履歴の画面: 開いた直後、タグの状態を確かめ終わるまで（`ddq rev next` が返るまで）は編集できず、「タグの状態を確かめています…」
+     と出る。保存できなかったときは、取り直し・確定が「改訂履歴の文書を保存できなかったため、…をやめました。」で止まる
+  2. `ddq update`: `diagrams` がフォルダでない・読めないときは、終了コード 1 で版マーカーを古いまま残す（従来は成功し、版だけ上げた）
+  3. 開発者・保守者だけ: `cargo run` の既定が ddq。公開の手順は通常の CI の成功も照合する。配布候補の `versions.txt` の
+     `fonts:` 行の形が変わり、`rust:`・`vscode (smoke):` 行が増えた（`commit:` 行は同じ）
+- **計画からの逸脱**: なし（レビューの後の直し）
+- **戻す方法**: 上の変更のファイルを `142d742` に戻す
+- **残存リスク**
+  - L-03 の `queue: max` は GitHub の文書にあるが、プレビューかどうかの記載が無い。受け付けられるかは、PR を出したときの
+    release-candidate の試走で確かめる（受け付けられなければ workflow が読めずに失敗する）
+  - L-02 の書体の版は WPF で name 表を読む。`C:/Windows/Fonts` と利用者のフォントフォルダに無い書体は「版を読めない」と書く。
+    固定した Action は、上げる手順を人が踏まない限り古いまま（Dependabot などは入れていない）
+  - M-04 の照合は手順書の中だけで、CI の試験は無い（偽の gh で流したのは手元だけ）。`extension.yml` は同じ枝への次の push で
+    前の実行を打ち切るので、続けて push すると、前のコミットの配布候補は公開に使えなくなる
+  - M-01 は、確かめた後にほかで打ったタグを、入力が止まって取り直すまで（0.8 秒）知らない（従来どおり。拡張も同じ状態で照合する）
+  - H-01・H-02 は未着手（→ 下の「High 2 件を直す」）
+
+### High 2 件を直す（2026-11-23。ブランチ `fix/review-critical`）
+
+- **状況**: **実装済**（単体・実 Quarto・実 exe・実拡張ホスト・変異で確かめた）。2026-11-23 の指示でコミットし、ブランチをプッシュして PR にした。Medium・Low の直し
+  （`8b9338a`）の上の作業ツリー
+- **利用者の判断（2026-11-23）**: 「終わったら High も直してください」。決め方は尋ねていない（レビューの推奨どおり）。部の扉ページの
+  図表の番号は、既にある番号なしの章の扱い（「図 0-1」。雛形の `index.qmd` にも書いてある）に揃えた
+- **確かめた Quarto の振る舞い（1.9.38）**: 付録を先に書き、部の扉ページ（ファイル）・部の題名・付録の中の部・ファイルの無い値
+  （`総論.qmd`）を混ぜた book を実際に描いた。入力の並び（`quarto inspect` の `files.input`）は
+  `index, part, a, b, parts/p3, c, d, app, app-part, app2`、扉ページは番号なし（「図 1:」）、付録の中の扉は記号を使わない（`app2` が
+  付録 B）、ファイルの無い値は部の題名。同梱の `quarto.js` の `bookRenderItems`（章 → references → 付録）・`normalizeSidebarItem`
+  （値がファイルなら扉ページ）とも合う
+- **変更**
+  - H-01（`cli/src/doc/project.rs`・`gitsrc.rs`、`template/postprocess-html.js`）: `- part: <値>` の値が執筆フォルダにあるファイル
+    なら部の扉ページとして子の章の前に入れ、無ければ部の題名として入れない（作業ツリーはファイルか、旧版は `git ls-tree` の一覧に
+    あるか。`Source::exists` を足した）。付録は書いた順にかかわらず章の後ろ。後処理も扉ページの番号を振り直し（番号なしの章と同じく
+    0）、付録の中の扉ページには付録の記号を振らない
+  - H-02（`extensions/ddq-template/src/revision/messages.ts`・`provider.ts`・`revfile.ts`、`src/revisionWebview/RevisionEditor.tsx`、
+    `src/activateRevision.ts`）: 画面は改訂全体ではなく、通し番号と直した 1 か所（メモ・改訂日・stale の削除と、直す前の値・直した
+    後の値）を送る。拡張は届いた順に 1 つずつ、文書のいまの内容に当てる（`applyChange`）。直す前の値が文書と違えば当てず（同じ値に
+    直してあれば通す）、`reset` を付けた内容で画面を文書に戻して知らせる。差分に戻った行は消さない。値は書いて読み戻した形で比べる
+    （メモの末尾の空行と全行に共通の字下げは文書に残らないため。比べないと、末尾で改行を打つと消える）。画面は、拡張が処理し終えて
+    いない自分の変更を、届いた文書の内容に重ねて出す（打っている値を巻き戻さず、ほかの行の変更は出す）。処理済みは値ではなく、
+    拡張が返す番号（`applied`）で決める（A → B → A と打ったときに途中の版で手放さない）。取り直し・確定も同じ順番に並べる。検証用の
+    内部コマンド `writeNote` も同じ経路にした
+  - 試験の正解: `cli/tests/fixtures/contract/chapters.json` に H-01 のケース（上の book）と `part_files` を足し、全 7 ケースの正解を
+    `quarto inspect` の `files.input` に照らし直した（すべて一致）。`cli/tests/e2e.rs` の `quarto_chapters` も `files.input` にした
+    （以前は `config.book` の `chapters` だけをたどり、扉ページを正解からも落としていた）
+  - 資料: `cli/DESIGN.md` §14.3・§14.6、`docs/design/chapters/06-html/01-postprocess.qmd`、`docs/cli-impl/03-behavior.qmd`、
+    `cli/tests/fixtures/contract/README.md`、`docs/revision-study.md` §5.8、`extensions/ddq-template/AGENTS.md`、
+    `docs/ddq-template-impl/parts/revision/` の 02〜04 章
+- **試験と結果**
+  - H-01: `project.rs` の単体 +2（扉ページ・付録の位置・`part:x`・値の無い `part:`、作業ツリーでフォルダの名前の部は題名・扉ページの
+    include も展開）、共有ケース +1、`tests/rev.rs` +1（旧版（git）でも扉ページを読み、扉と付録の本文の変更が「変更」になる）、
+    `tests/filter_contract.rs`（扉ページの原稿を置き、扉・付録の HTML を Quarto の形にした）、`tests/e2e.rs` +1（`ddq init` の雛形を
+    部立てにし、`tag list` の文書順が Quarto の入力の並びと同じ、扉ページの表がラベルの走査に入る、`ddq html` で扉ページと付録の中の
+    扉の表が「表 0-1」、付録が A・B、別の章からの参照が「表 0-1」）。変異 8 か所（扉ページを拾わない・付録を後ろに回さない・値が
+    ファイルかを見ない・フォルダもあるとする・旧版で扉が無いとする、後処理が扉を拾わない・付録の扉に記号を振る・付録の扉を並びから
+    落とす）を 1 つずつ入れ、すべてで試験が落ちた
+  - H-02: `messages.test.ts`（新規 11 件）、`provider.test.ts` +5（レビューの手順: ほかで 2 行目を `editor B` にした後に、古い画面から
+    1 行目の変更が届いても 2 行目は残る。同じ行の食い違いでは当てずに reset。同じ値なら書かずに通す。続けて届いた書き戻しを順に当てる。
+    stale の削除）、`RevisionEditor.test.tsx` +5（1 か所と直す前の値を送る・改訂日・打っている最中の版で巻き戻さずにほかの行は出す・
+    A → B → A・末尾の改行・reset）。変異 10 か所（拡張が直す前の値を照らさない・順に並べない・reset を送らない、画面が届いた内容を
+    使わない・値で処理済みを決める・reset を無視、差分に戻った行も消す、読み戻した形で比べない（画面・拡張）、直す前の値を文書から
+    取る）を 1 つずつ入れ、すべてで試験が落ちた
+  - 拡張: 型検査・Vitest **48 ファイル 527 件成功**・build・`check:offline`・`check:audit` 成功
+  - Rust 全件: **250 件成功・失敗 0・ignored 0**（`DDQ_E2E=1`・`--test-threads=1`、540 秒）。unit 123 / ddq-release 6 / commands 10 / contract 5 / e2e 6 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1
+  - 実拡張ホスト: `DDQ_HOST_REAL=1`、新しくビルドした release の ddq で 30 確認に合格（画面で書いたメモの確認は、新しい経路 `writeNote` → `applyChangeTo` を通る）
+  - `cargo fmt --check`・`cargo clippy --locked --offline --all-targets -- -D warnings` 成功
+- **利用者に見える差**
+  1. `part:` にファイルを書いた部の扉ページの本文が、`ddq tag`・`ddq rev` の対象になる（従来は抜けていた）。付録を章より先に書いても、
+     文書順・改訂の並びは章 → 付録
+  2. HTML で扉ページの図表に番号が付く（番号なしの章と同じく「図 0-1」。従来は Quarto の既定の「図 1:」のまま）
+  3. 改訂履歴の画面: ほかの所で直したメモを、古い画面の値で戻さない。打った行がほかで変わっていたら当てずに「…ほかの所から変わって
+     います。いまの内容を出し直したので、確かめてからもう一度直してください。」と出し、画面を文書の内容に戻す
+- **計画からの逸脱**: なし（レビューの後の直し）。テンプレートの版は上げていない（GEN-01 の判断どおり。機構の `postprocess-html.js` が
+  また変わったので、次のリリースで版を上げる。上の「次のリリースの前に」）
+- **戻す方法**: 上の変更のファイルを `8b9338a` に戻し、`extensions/ddq-template/src/revision/messages.test.ts` を消す
+- **残存リスク**
+  - H-01: `part:` を `chapters:` の後ろに書いた項目、フロー形式 `[a, b]`、`book.references`（Quarto は章と付録のあいだに入れる）、
+    `index.qmd` を先頭以外に書いたとき（Quarto は先頭に回す）は、従来どおり Quarto と並びが違う（レビューの指摘の外）。PDF での
+    扉ページは確かめていない（部は利用マニュアルに書いていない）
+  - H-02: 打った値が文書に当たる前にほかで同じ行が直されると、当てずに画面を戻す（打った値は画面から消える。知らせは出る）。
+    改訂全体を YAML に作り直して置き換える点は従来どおり（手で崩した書式は整え直される）。実画面での IME の変換中の入力は見ていない
+    （jsdom では見られない。「人の手で行う検証」）
+
+## 2026-11-23 の残作業（版 3.1.0・章の書き方・CI・実装仕様書。ブランチ `fix/review-critical`）
+
+- **状況**: **実装済**（単体・実 Quarto・実 exe・実拡張ホスト・GitHub Actions で確かめた）。2026-11-23 の指示（「コミットしてプッシュ」）で
+  `31c0f18`（コード・CI・版）と `1fafcc5`（実装仕様書・記録）にし、PR #144 の枝にプッシュした。PR の CI は 13 件すべて成功（下）
+- **利用者の指示（2026-11-23）**: 「外部レビューおよび人の手で行う検証以外で実行できるものは実施してください。判断が必要なものは
+  確認を実施してください」。尋ねた判断と答え:
+  - GitHub: 「コミットしてPRを出す (推奨)」（High の直しのコミットと PR。検証用の枝 `ci-test/*` は消さず、失敗した実行も走らせ直さない）
+  - 版: 「3.1.0 に上げる」（変更履歴も書く。タグとリリースは作らない）
+  - 章の並びの残りの書き方: 「Quarto に合わせて直す (推奨)」
+  - GEN-02 の残りの差 2 つ: 「残す (推奨)」
+  - 書体を入れる時間: 「ビルドと重ねる (推奨)」
+  - 実装仕様書: 「3.1.0 を基準に反映する」
+  - 試験の中で見つけた、部（`- part:`）のある book が PDF にできない前からの制約: 「記録だけにする (推奨)」（部の扉の体裁は
+    別に設計してから直す）
+- **変更**
+  - 章の並び（`cli/src/doc/project.rs`、`template/postprocess-html.js`）: H-01 の残存リスクに挙げた書き方を Quarto と同じ並びにした。
+    フロー形式 `[a, b]`（複数行も、部の中の `chapters:` も）、`book.references`（章と付録のあいだ）、`index.` で始まるページを先頭へ、
+    対応付けの項目で `chapters:` を `part:` より先に書いたとき（扉ページは子の章の前）。読まないのはフロー形式の対応付け
+    `{part: …}` と `href:`・`file:` で書いた項目（`cli/DESIGN.md` §14.3 に書いた）。共有の期待値 `chapters.json` を 9 ケースにし、
+    正解は `quarto inspect` の `files.input`（Quarto 1.9.38）
+  - EXT-03 の残り（`extensions/ddq-template/src/build.ts`）: ステータスバーの問い合わせに通し番号を付け、先に始めた問い合わせの答えで
+    後の表示（発行中の表示を含む）を上書きしない。試験 `src/build.status.test.ts`（新規 3 件）
+  - CI: `actions/*` を Node 24 で動く版にした（`ci.yml`・`extension.yml` は版の枝、`release-candidate.yml` はコミットの SHA）。
+    `.github/actions/jp-fonts` に `phase`（`all`・`start`・`wait`）を足し、`release-candidate.yml` の build では書体を裏で入れ始めて
+    （`start`。Quarto の導入を前に移した）ビルドと重ね、使う前に待つ（`wait`。裏の処理が終了コードを残さずに消えたら待たずに止める。
+    長くても 45 分）。verify-zip は従来どおり（`all`）
+  - 版 3.1.0: `template/VERSION`、拡張の `package.json`・`package-lock.json`、`extensions/ddq-template/CHANGELOG.md`（3.1.0 の節。
+    日付 2026-11-23）、`cli/DESIGN.md` の対象版、README・AGENT-GUIDE・利用マニュアル・設計書・発表資料の展開フォルダ名などの版
+  - 実装仕様書: `docs/cli-impl/`・`docs/ddq-template-impl/` の基準を 3.1.0 にし、IO-01・IO-02・REL-01・REL-03・CI-01・CI-02・
+    GEN-01・GEN-02・QA-01・DATA-01・EXT-01〜04・H-01・H-02 と既存の不具合 2 件の直しを本文・根拠（`cli-impl` の E-0038）に書いた。
+    古くなっていた記述（`mermaid.min.js` が npm の dist と一致する、zip 8.6.0、配布工程の jar、`npm ci` は node_modules が無いときだけ、
+    CI の vsix-smoke）も直した。`analysis/source-sha256.json` を取り直した（91 ファイル）
+  - `cargo fmt` と clippy（`collapsible_if`）の指摘を直した（`project.rs`。fmt は `e2e.rs`・`filter_contract.rs` も整えた）
+- **試験と結果**
+  - Rust 全件（`DDQ_E2E=1`・`DDQ_PLANTUML_JAR`・`--test-threads=1`）: **253 件成功・失敗 0・ignored 0**（562 秒）。
+    unit 125 / ddq-release 6 / commands 10 / contract 5 / e2e 7 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 /
+    release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1。`cargo fmt --check`・clippy・release
+    ビルドも成功
+  - 章の並び: `project.rs` の単体 +2、共有ケース +2、`tests/e2e.rs` +1（フロー形式・references・後ろに書いた index の book を
+    `quarto inspect` の入力の並びと `tag list` の文書順で照らし、`ddq html` の番号も見る）
+  - 拡張: 型検査・Vitest **49 ファイル 530 件成功**（`REQUIRE_PANDOC=1`）・build・`check:offline`・`check:audit`（配布物に入る依存の指摘 0 件。開発用の依存の参考も 0 件）
+  - 実拡張ホスト: `DDQ_HOST_REAL=1`、3.1.0 のリリースビルドの ddq で 30 項目に合格
+  - 書体の 2 段: workflow を YAML として読めることと、`phase` の手順を手元の PowerShell で流した結果（workflow 3 本と jp-fonts を YAML として読めた。偽の dism と「書体が無い」状態を差し込んで 7 通りを流し、すべて期待どおり（start → wait、2 回目の wait は待たない、書体があれば入れ始めない、dism の失敗で止まる、裏の処理が消えたら待たずに止まる、既定の all、知らない phase は止まる）。実際の dism は流していない（システムを変えるため））
+  - 実装仕様書: 新しい ddq で `ddq update` → `ddq html`（cli-impl: 警告なし。`analysis/check_output.py` で 9 ページ・図 3 つ・壊れたリンク 0・ハッシュの不一致 0、ddq-template-impl: update → pdf（55 ページ）→ html、警告・未解決の参照なし）
+  - PR の CI（`1fafcc5`、2026-11-23）: ci・extension・release-candidate の 13 件すべて成功。release-candidate の build では、
+    ランナーに書体が無く `phase: start` が裏で入れ始めて 8 秒で進み、ビルドの後の `phase: wait` が dism の終わり
+    （The operation completed successfully.）を待って、Meiryo UI・BIZ UDGothic が Typst から見えることを確かめた。上げた版の
+    Action（checkout・setup-node・cache・upload-artifact・download-artifact など）もすべて動いた。build ジョブは 15 分 4 秒 → 11 分 44 秒
+    （書体とビルドで 12 分 43 秒 → 9 分 14 秒。重ねたぶんビルドは 2 分 7 秒 → 4 分 25 秒に延びた）。ワークフロー全体は 28 分 4 秒 →
+    28 分 12 秒で縮まなかった（下の残存リスク）
+  - PDF の部の扉ページ: E2E と同じ部立ての book（扉ページのファイル・題名だけの部・付録の中の部）を `ddq init` で作って `ddq pdf` すると、Typst の `unknown variable: part` で失敗した。Quarto 1.9.38 は部を `#part[…]` と出すが、`template/` の Typst 側は `part` を定義していない（前からの制約。今日の変更は Typst 側に触れていない）。利用者の判断で記録だけにした（下の残存リスク）
+- **利用者に見える差**: `extensions/ddq-template/CHANGELOG.md` の 3.1.0 の節。今日の分は、フロー形式・`book.references`・後ろに書いた
+  index・`chapters:` を先に書いた部の章が tag・rev・HTML の番号の対象になること、ステータスバーが前のフォルダに戻らないこと
+- **計画からの逸脱**: なし（利用者の判断に沿った残りの片付け）
+- **戻す方法**: 上の変更のファイルを `f2c6e0e` に戻し、`extensions/ddq-template/src/build.status.test.ts` を消す
+- **残存リスク**
+  - 配布候補のワークフロー全体の時間は約 28 分のまま。後に続く verify-zip が書体を重ねずに入れていて（`phase: all`。今回 14 分 39 秒、
+    前回 11 分 36 秒）、これが全体を決める。verify-zip には書体と重ねられる重い手順が無い（取り出した exe で init → pdf → html するには
+    書体が要る）。書体を入れる時間はランナーによって 3 分ほど揺れる
+  - 変更履歴の日付は 2026-11-23。公開する日が違えば直す。タグ・リリースは作っていない
+  - 章立てでフロー形式の対応付け `{part: …}` と `href:`・`file:` の項目は読まない（Quarto とは並びが違う）
+    → 同じ日の 2 回目に、利用者の判断で Quarto と同じに読むようにした（下の節）
+  - GEN-02 の既知の差 2 つは残した（利用者の判断）
+  - 部（`- part:`）を書いた book は、扉ページのファイルでも題名だけでも `ddq pdf` が Typst の `unknown variable: part` で失敗する
+    （前からの制約。Quarto 1.9.38 が出す `#part[…]` を `template/lib.typ`・`typst-template.typ` が定義しない）。HTML・`tag`・`rev` は
+    扉ページを含めて読む。部は利用マニュアルに書いていない。利用者の判断で記録だけにした（扉の体裁を決めてから直す）
+
+## 2026-11-23 の残作業（2 回目。章の書き方の残り・regress・判断の記録。ブランチ `fix/review-critical`）
+
+- **利用者の指示（2026-11-23）**: 同じ指示「外部レビューおよび人の手で行う検証以外で実行できるものは実施してください。判断が必要な
+  ものは確認を実施してください」の 2 回目（`cd00267` の後）。尋ねた判断と答え:
+  - PR #144 のマージ: 「まだマージしない (推奨)」（外部レビューと人の手で行う検証の後に、利用者がマージする）
+  - 章立てで読まない書き方（フロー形式の対応付け `{part: …}`、`href:`・`file:` の項目）: 「Quarto に合わせて読む (推奨)」（Rust と
+    postprocess-html.js の両方を直し、共有の正解は `quarto inspect` で取る。3.1.0 は公開前なので版はそのまま）
+  - PR で配布候補（`release-candidate.yml`）を毎回走らせるか（計画 §7）: 「今のまま (推奨)」（main への push・手動実行・
+    workflow・`.github/actions/jp-fonts`・`cli/tools/check_release.py` を変えた PR だけ）
+- **変更**
+  - 章の並び（`cli/src/doc/project.rs`、`template/postprocess-html.js`）: フロー形式の対応付け `{part: …, chapters: […]}`（列の中・
+    複数行・コメントも）と、`href:`・`file:` で書いた項目（`text:` は前後のどちらの行でもよい。`{href: …}` も）を Quarto と同じ並びに
+    読む。1 つの項目のページは 1 つで、部の扉ページ（`part:` の値がファイル）→ `href:` → `file:` の順に使い、どの行に書いても子の章の
+    前に入れる。部の題名の項目の `href:`・`file:` のページは部のページで、Quarto は番号なしで出し、付録の中なら記号を振らない
+    （postprocess-html.js はこれを `parts` に入れる）。Quarto の動きは `quarto inspect`（並び）と `quarto render`（番号・付録の記号）で
+    確かめた。フロー形式は、閉じるまで読んでから（`flow_text`）引用と入れ子の外で区切って形を見る（`split_flow`・`flow_node`・
+    `key_value`・`flow_docs`）読み方に書き直した。読まないのは、引用したキー・アンカーと別名・ブロックスカラー・タグのような YAML の
+    珍しい書き方（`docs/cli-impl` 7 章）
+  - 共有の期待値 `chapters.json`: 4 ケースを足して 13 ケース。部の題名の項目に `href:`・`file:` で書いたページ `part_hrefs` を足し、
+    `filter_contract.rs` はそれも部のページとして見る（契約の README に採取の記録を足した）
+  - 文書: `cli/DESIGN.md` §14.3・§14.6、設計書の後処理の節（`docs/design/chapters/06-html/01-postprocess.qmd`）、実装仕様書
+    （`docs/cli-impl` の 3 章・5 章・7 章・E-0038・`analysis/validation.md`・`analysis/source-sha256.json`）、変更履歴の 3.1.0 の節
+- **試験と結果**
+  - Rust 全件（`DDQ_E2E=1`・`DDQ_PLANTUML_JAR`・`--test-threads=1`）: **255 件成功・失敗 0・ignored 0**（534 秒）。
+    unit 126 / ddq-release 6 / commands 10 / contract 5 / e2e 8 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 / release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1。`cargo fmt --check`・clippy・release ビルドも成功
+  - 章の並び: `project.rs` の単体 +1（`href_file_and_flow_mapping_items`。`flow_items_read_quoted_nested_and_multiline_values` も
+    対応付けと閉じない入れ子に広げた）、共有ケース +4（全 13 ケースを `quarto inspect` の `files.input` に照らし直し、すべて一致。
+    `part_hrefs` のケースは `quarto render` の番号・付録の記号とも一致）、`tests/e2e.rs` +1（フロー形式の対応付けと `href:`・`file:` の
+    book を、`quarto inspect` の並び・`tag list` の文書順・`ddq html` の番号と付録の記号で照らす）
+  - わざと壊した実装（JS 8 通り・Rust 6 通り）: すべて試験で落ちた。初めは JS の「値の中の引用を見分けない」が通った（共有ケースで、
+    引用の中の `,` が結果に効く例が無かった）ので、ケースのパスを `"b, c.qmd"` にしてから落ちることを確かめた
+  - 拡張: 変わったのは変更履歴だけ（拡張は章の並びを読まない）なので流していない
+  - regress（`cli/tools/regress.py`）: v3.1.0-pre1 のソース（`git archive v3.1.0-pre1 cli template`）から作った ddq と、今の作業ツリーの
+    release ビルドの ddq で、`examples/docs`・`examples/plantuml`・`docs/manual` を capture → compare した（リポジトリの写しで流し、
+    作業ツリーには触れない）。compare の NG は docs 107 件（ok 81）・plantuml 111 件（ok 72）・manual 22 件（ok 179）。すべて次の 3 つで説明がつく:
+    - 図のキャッシュのキーに ddq の版が入るので、SVG の名前が版ごとに違う（片方にしか無い SVG と、それを指す `index.typ`・HTML の差）。
+      キーと版を伏せて比べ直すと、3 文書とも `index.typ`・HTML（15・13・20 ページ）・`search.json` が同じ。PDF の文字（`3.pdf-text`）は
+      compare でも一致
+    - docs の mermaid の図 4 つ（システムコンテキスト・ハードウェア構成・要求と機能の充足関係・受注DB の ER 図）は、描くたびに線の形が
+      変わる（同じ v3.1.0-pre1 の ddq でも、1 回目と 2 回目の regress で 4 図の SVG の大きさが違った）。ページの画素の差（docs の
+      5・8・12・35 ページ）は、ちょうどこの 4 図の載るページ。ほかの図は同じ（docs 23 のうち 19、plantuml
+      25 のうち 25、manual 4 のうち 4）
+    - 機構ファイルの照合（`0.mechanism`）の `postprocess-html.js` 1 件（各文書）: 比べる写しはコミット済みの HEAD（`cd00267`）から
+      取り出すが、新しい ddq は今回直した作業ツリーの `postprocess-html.js` を持つ。新しい ddq が書いたものは作業ツリーのものと一致した。
+      ほかの機構ファイル 4 本は一致
+  - 実装仕様書: 新しい ddq で `docs/cli-impl` を `ddq update` → `ddq html`（警告なし。`analysis/check_output.py` で 9 ページ・図 3 つ・壊れたリンク 0・ハッシュの不一致 0）。`analysis/source-sha256.json` を取り直した
+    （91 ファイル。うち今回変わったのは 7 ファイル）
+- **利用者に見える差**: 変更履歴の 3.1.0 の節に、フロー形式の対応付けと `href:`・`file:` で書いた章も tag・rev・HTML の番号の対象に
+  なることを足した
+- **計画からの逸脱**: なし（利用者の判断に沿った残りの片付け）
+- **戻す方法**: 上の変更のファイルを `cd00267` に戻す
+- **残存リスク**
+  - 章立ては `_quarto.yml` を行ごとに読む。引用したキー・アンカーと別名・ブロックスカラー・タグは読まない（書き方としては珍しい）
+  - regress は、描くたびに線の形が変わる mermaid の図を版の違いと見分けない（今回の 4 図は図ごとに確かめた）
+  - 部（`- part:`）を書いた book の `ddq pdf` は前のとおり失敗する（前の節の残存リスク。扉の体裁を決めてから直す）

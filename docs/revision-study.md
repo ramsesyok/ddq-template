@@ -354,6 +354,10 @@ entries:
   `api` は内蔵 Git 拡張（`vscode.extensions.getExtension('vscode.git')` → `activate()` → `getAPI(1)`）。**旧版に存在しないファイルの `git:` URI は `openTextDocument` が例外になる**（空文書にはならない。V3 で実測）ので、added の左ペインは自前の `TextDocumentContentProvider`（スキーム `ddq-rev`、空文字列を返す）で出す。removed の右ペインも同じ。
 - 基準に**コミット SHA を渡しても `toGitUri` は機能する**ので、`base_commit` をそのまま使える（タグ名である必要はない）。
 - 編集モデル: Webview 内の状態 ↔ `CustomTextEditorProvider` の `TextDocument`（YAML 文字列）。textarea の変更は `WorkspaceEdit` で yml 全体を書き換える（ddq-table-editor の `applyTable` と同じ発想。YAML の直列化は拡張側で `js-yaml`、キー順・複数行 `|` を固定して差分を汚さない）。保存・dirty・Undo・外部変更検知は VSCode 任せ。
+  2026-11-23 から（外部レビュー H-02）、画面は改訂全体ではなく**直した 1 か所と直す前に出していた値**（通し番号付き）を送り、
+  拡張が文書の**いまの**内容に当ててから yml を書き換える。直す前の値が文書と違えば（別のエディタ・Undo・`ddq rev diff --write`
+  で変わった）当てずに画面を文書に戻して知らせる。書き戻しは届いた順に 1 つずつ当てる。画面は、拡張が処理し終えていない
+  自分の変更を、届いた文書の内容に重ねて出す（打っている値を巻き戻さず、ほかの行の変更は出す）
 - fixed（タグ有）のファイルは表を読み取り専用にし、ヘッダに「rev-C タグ済み。直すには `git tag -d rev-C`」と表示。
 - 「新しい改訂を開始」コマンド: `ddq rev next --json` で記号と base を決め、`rev diff` の結果から `revisions/rev-<記号>.yml` を生成して開く。draft が既にあれば警告して開く。
 - 「確定」: note 空を確認 → `ddq rev build` → 通知に `git add docs/revisions && git commit -m "rev C" && git tag rev-C` を表示（コピー可）。実行はしない（Q17）。

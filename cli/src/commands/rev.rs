@@ -141,8 +141,8 @@ pub fn diff_cmd(dir: &Path, base: Option<&str>, json: bool, strict: bool, write:
 
     // 旧版・新版とも同じ手順で論理文書を組み立てる（旧版側は旧版の _quarto.yml を使う）。
     let old_src = repo.at(&base_commit)?;
-    let (old_lines, mut warnings) = project::logical(&old_src);
-    let (new_lines, new_warnings) = project::logical(&Folder(dir));
+    let (old_lines, mut warnings) = project::logical(&old_src)?;
+    let (new_lines, new_warnings) = project::logical(&Folder(dir))?;
     warnings.extend(new_warnings);
     if old_lines.is_empty() {
         warnings.push(format!(
@@ -258,16 +258,16 @@ fn write_revision(
 }
 
 /// 読んだときから変わっていなければ（無かったものは無いまま）置き換える。拡張などで保存されて
-/// いたら、人の書いたメモを上書きしないよう書かずに止める（IO-01）。
+/// いたら、人の書いたメモを上書きしないよう書かずに止める（IO-01）。照合は置き換えるときに行い、
+/// ほかのプログラムが書き込み用に開いたままなら書かずに止める（`replace_unchanged`。C-01）。
 fn save_revision(path: &Path, before: Option<&[u8]>, text: &str) -> Result<()> {
-    let now = path.is_file().then(|| fs::read(path).ok()).flatten();
-    if now.as_deref() != before {
-        bail!(
+    match replace::replace_unchanged(path, before, text.as_bytes()) {
+        Err(e) if replace::refused(&e) == Some(replace::Refused::Changed) => bail!(
             "{} は読み込んだあとに変わっています（拡張などで保存した？）。書き換えていません。もう一度実行してください",
             path.display()
-        );
+        ),
+        r => r.with_context(|| format!("{} を書けません", path.display())),
     }
-    replace::replace(path, text.as_bytes()).with_context(|| format!("{} を書けません", path.display()))
 }
 
 /// `ddq rev build`
@@ -281,7 +281,7 @@ pub fn build(dir: &Path, check: bool) -> Result<()> {
     }
 
     // 各改訂の中は「新版の文書順」に並べる。消えたものは yml の順のまま後ろに残す。
-    let (lines, _) = project::logical(&Folder(dir));
+    let (lines, _) = project::logical(&Folder(dir))?;
     let order = diff::order_of(&lines);
     let mut rows: Vec<Row> = Vec::new();
     let mut empty_notes = 0usize;

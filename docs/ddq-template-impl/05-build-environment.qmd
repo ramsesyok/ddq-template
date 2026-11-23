@@ -8,9 +8,9 @@
 | スクリプト | 内容 |
 |---|---|
 | `build` | `build:ext`（esbuild で `out/extension.js`）＋ `build:webview`（`vite build --mode revision` と `--mode tableEditor` で `out/webview/<画面>/assets/main.{js,css}`） |
-| `package` | `vsce package`。ddq.exe を入れない VSIX（開発・拡張の CI 用） |
+| `package` | `vsce package`。ddq.exe を入れない VSIX（開発・拡張の CI 用。人には渡さない） |
 | `package:win32-x64` | `vsce package --target win32-x64` → `ddq-template-win32-x64-<版>.vsix`。`bin/win32-x64/ddq.exe` を置いてから実行する |
-| `test` / `typecheck` / `check:offline` / `check:audit` / `verify` | ユニットテスト・型検査・成果物の通信 API と外部 URL の検査・本番依存の脆弱性検査・その一括 |
+| `test` / `typecheck` / `check:offline` / `check:audit` / `verify` | ユニットテスト・型検査・成果物の通信 API と外部 URL の検査・配布物に入る依存の脆弱性検査・その一括。`check:audit`（`scripts/check-audit.mjs`。3.1.0、CI-02）は、Webview を一時フォルダにソースマップつきでビルドしてバンドルに実際に入るパッケージを数え、lock で dev でないものと合わせた範囲に low 以上の指摘が 1 件でもあれば失敗する。数えたバンドルが `cli/tools/third_party.py` の `EXTENSION_BUNDLED`（ライセンス表示の一覧）と違っても失敗する。開発用だけの依存の指摘は参考として出す（従来の `npm audit --omit=dev` は、依存がすべて devDependencies なので何も見ていなかった） |
 | `test:host` | 実拡張ホスト（ソースから起動。ddq は手元のビルドか golden を返す差し替え。差し替えは Windows では `rustc` で作る小さな exe で包むので、`rustc` が要る。`DDQ_HOST_REAL=1` なら差し替えに落ちずに失敗する） |
 | `test:smoke` | 同梱版のスモーク。VSIX を `System32\tar.exe` で展開し、展開した `extension/` を拡張として起動。設定・`PATH` なしで同梱 ddq に決まること、`init` → `html` |
 :::
@@ -23,21 +23,24 @@ lib モードの iife は複数エントリを持てないので、Webview は�
 保守者用の `ddq-release`（`cli/src/bin/ddq-release/release.rs`。2026-11-23 に `ddq release` から分けた別の exe で、配らない）が、
 `package:win32-x64` スクリプトを持つ拡張について次を行う。
 
-1. 配る ddq.exe（`--ddq`。既定は ddq-release と同じフォルダの `ddq.exe`）を `<拡張>/bin/win32-x64/ddq.exe` にコピーする（`extensions/*/bin/` は git 管理外）。
-2. `npm ci`（`node_modules` が無いときだけ）→ `npm run package:win32-x64`。
-3. VSIX の `extension/bin/win32-x64/ddq.exe` が、配る ddq.exe と**バイト一致**することを確かめる
-   （`--no-build` で前の版の ddq を同梱した VSIX を配らないため）。
+1. 配る ddq.exe（`--ddq`。既定は ddq-release と同じフォルダの `ddq.exe`）を `<拡張>/bin/win32-x64/ddq.exe` に、リポジトリ直下の
+   `THIRD-PARTY-NOTICES.md` を拡張のフォルダ直下にコピーする（どちらも git 管理外。表示は 3.1.0、REL-01）。
+2. `npm ci`（毎回。`node_modules` があっても入れ直す。2026-11-15 までは `node_modules` が無いときだけ）→ `npm run package:win32-x64`。
+3. VSIX の `extension/bin/win32-x64/ddq.exe` と `extension/THIRD-PARTY-NOTICES.md` が、配る ddq.exe とリポジトリ直下の表示に
+   **バイト一致**することを確かめる（`--no-build` で前の版の ddq や表示の無い VSIX を配らないため）。
 4. VSIX は配布 zip に入れず、zip の隣に置く（リリースページの別資産）。
 
-VSIX は約 10.7 MB（ddq.exe は約 30 MB で、zip 圧縮で縮む）。確認済み（実行）。
+VSIX は約 10.6 MB・14 ファイル（ddq.exe は約 30 MB で、zip 圧縮で縮む）。確認済み（実行）。
+手で `npm run package:win32-x64` した VSIX は確かめる用で、人には渡さない（ライセンス表示は手でコピーしないと入らない。
+外部レビュー M-06）。配る VSIX は CI の配布候補が作ったものだけである（下の CI）。
 
 ### CI
 
 | ワークフロー | ジョブ | 内容 |
 |---|---|---|
-| `extension.yml` | test / host / audit / package | 拡張のユニットテスト（Ubuntu・Windows × Node 20・22）、実拡張ホスト（同じコミットの ddq をビルドし、Quarto を入れて実物で回す。`DDQ_HOST_REAL=1`）、脆弱性、ddq なし VSIX。`cli/`・`template/` の変更でも走る |
-| `ci.yml` | cli | ddq の fmt / clippy / test / build。`ddq-windows-x64` を成果物に |
-| `ci.yml` | vsix-smoke | 上の ddq.exe を同梱して VSIX を作り `test:smoke`。main への push と手動実行のみ（PR では走らない） |
+| `extension.yml` | test / host / audit / package | 拡張のユニットテスト（Ubuntu・Windows × Node 20・22）、実拡張ホスト（同じコミットの ddq をビルドし、Quarto を入れて実物で回す。`DDQ_HOST_REAL=1`）、脆弱性（配布物に入る依存は 0 件必須、開発依存は参考）、ddq なし VSIX（版の照合つき）。`cli/`・`template/` の変更でも走る |
+| `ci.yml` | cli / mermaid-bundle | ddq の fmt / clippy / test / build と `cargo audit`。`ddq-windows-x64` を成果物に。埋め込みの `mermaid.min.js` を作る `cli/tools/mermaid-bundle` の監査と再現の確認 |
+| `release-candidate.yml` | build / verify-zip / verify-vsix / publishable | 配布候補（3.1.0、CI-01）。ddq.exe と ddq-release をビルドし、ddq-release で ZIP と同梱版 VSIX を作る。別のランナーで ZIP（取り出した exe で init → pdf → html）と VSIX（`test:smoke`）を検査し、すべて通った実行の成果物だけを公開に使う。外部の Action はコミットの SHA に固定する。旧 `ci.yml` の vsix-smoke はこれに置き換えた |
 
 ## ラベル付け・改訂履歴（旧 DDQ Revision） {#sec-build-rev}
 
