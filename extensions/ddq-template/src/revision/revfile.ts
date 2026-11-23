@@ -39,6 +39,21 @@ export function emptyRevision(): Revision {
     return { rev: '', date: '', base: '', baseCommit: '', scheme: '', entries: [] };
 }
 
+/**
+ * そのメモを書いて読み戻した値。末尾の空行と、全行に共通の字下げは文書に残らない（画面で打っている値と
+ * 文書の値を比べるときに使う。H-02）。
+ */
+export function storedNote(note: string): string {
+    const probe = emptyRevision();
+    probe.entries.push({ label: 'x', kind: 'changed', unit: 'heading', title: '', file: '', note, stale: false });
+    return parse(toYaml(probe)).entries[0]?.note ?? '';
+}
+
+/** その改訂日を書いて読み戻した値（前後の空白は残らない。H-02） */
+export function storedDate(date: string): string {
+    return parse(toYaml({ ...emptyRevision(), date })).date;
+}
+
 /** 決まった形の YAML を読む。 */
 export function parse(text: string): Revision {
     const rev = emptyRevision();

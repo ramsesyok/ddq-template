@@ -839,7 +839,11 @@ design-doc.lua ──┤                                        … POST /render
 
 ### 14.3 文書順（`doc::project`）
 
-`_quarto.yml` の `book.chapters`（`part:` の入れ子も含む）と `book.appendices`（付録。2.4.0 から）を書かれた順に起点として `{{< include >}}` を再帰展開する。
+`_quarto.yml` の `book.chapters`（`part:` の入れ子も含む）と `book.appendices`（付録。2.4.0 から）を起点として `{{< include >}}` を再帰展開する。
+並びは Quarto が描く順（`quarto inspect` の `files.input`）と同じにする: 章 → 付録（`_quarto.yml` に書いた順にかかわらず）。
+`- part: <値>` は、値が執筆フォルダにあるファイルなら部の扉ページとして子の章の前に入れ、無ければ部の題名として入れない
+（Quarto と同じ判定。作業ツリーはファイルか、旧版は `git ls-tree` の一覧にあるか。2026-11-23、外部レビュー H-01）。
+postprocess-html.js の `docsOf` も同じ並びを作り、付録の中の扉ページには付録の記号を振らない。
 **include のパスの基準は「`chapters:` に並べた章ファイルのあるディレクトリ」で、入れ子の include でも
 変わらない**（include 元ファイルの位置ではない）。執筆フォルダの `_quarto.yml` にも同じ注意書きがある。
 ここを取り違えると章の大半を取りこぼす（実際に踏んだ）。
@@ -890,7 +894,7 @@ design-doc.lua ──┤                                        … POST /render
 
 ### 14.6 テスト
 
-- `src/doc/*` の単体テスト: `chapters:` の読み取り（`part:` 入れ子・字下げの終わり）、入れ子 include の
+- `src/doc/*` の単体テスト: `chapters:` の読み取り（`part:` 入れ子・部の扉ページ・付録の位置・字下げの終わり）、入れ子 include の
   パス解決、行頭パターン（見出し・`.tbl`・`.ipo`・`#fig-`・pipe 表）、ユニット内側の見出しを外すこと、
   候補ラベルの決定性と衝突回避、挿入位置（既存属性あり／なし、CRLF）。
 - `tests/tag.rs`: 2 段の入れ子 include を持つ執筆フォルダを組み立て、`tag list --json` の

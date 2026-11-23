@@ -67,7 +67,7 @@ sequenceDiagram
 
 - `parse(document.getText())` で改訂を読み、`ddq rev next --json` でタグの一覧を取り、**`rev-<記号>` タグがあれば確定済み**として画面を読み取り専用にする
 - `onDidChangeTextDocument` を購読し、**外から書き換わっても画面を合わせる**（`ddq rev diff --write` が同じファイルを書くため）
-- 画面からの `edit` は `toYaml` で YAML 全体を作り直し、`WorkspaceEdit` で置き換える。**文書の改行（`document.eol`）に合わせて書く**ので、CRLF のファイルで全行が書き換わらない
+- 画面からの `edit` は `toYaml` で YAML 全体を作り直し、`WorkspaceEdit` で置き換える（2026-11-23 から、`edit` は直した 1 か所と直す前の値で、拡張は文書のいまの内容に当て、直す前の値が文書と違えば当てずに画面を文書に戻す。外部レビュー H-02）。**文書の改行（`document.eol`）に合わせて書く**ので、CRLF のファイルで全行が書き換わらない
 
 ::: {.tbl caption="画面のボタンが行うこと" label="tbl-rev-editor-buttons" widths="20,80"}
 | ボタン | 行うこと |

@@ -83,11 +83,14 @@ const docPath = (item) => {
 
 /**
  * `chapters:` と `appendices:` の下に続く「その行より深い字下げ」の範囲から、文書のパスを
- * 書かれた順に拾う（Rust の `chapters_of` と同じ規則）。キーと同じ字下げの `- ` もそのキーの列。
+ * 拾う（Rust の `chapters_of` と同じ規則）。キーと同じ字下げの `- ` もそのキーの列。
  * `part:` で束ねた入れ子の `chapters:` も同じ範囲に入るので、外側の列に続けて拾う。
+ * `- part: <値>` は、値がファイル（`isFile`）なら部の扉ページとしてその位置（子の章の前）に入れ、
+ * `parts` にも入れる。無ければ部の題名なので入れない（Quarto と同じ。H-01）。章と付録は別の列で、
+ * 使う側が章 → 付録の順に並べる（書いた順にかかわらず）。
  */
-const docsOf = (text) => {
-  const lists = { chapters: [], appendices: [] };
+const docsOf = (text, isFile) => {
+  const lists = { chapters: [], appendices: [], parts: new Set() };
   let inside;                             // { indent, list }
   for (const line of text.split(/\r?\n/)) {
     const trimmed = line.trimStart();
@@ -101,22 +104,38 @@ const docsOf = (text) => {
       if (key) inside = { indent, list: lists[key[1]] };
       continue;
     }
-    const p = trimmed.startsWith('- ') ? docPath(trimmed.slice(2)) : undefined;
-    if (p) inside.list.push(p);
+    if (!trimmed.startsWith('- ')) continue;
+    const item = trimmed.slice(2);
+    const part = /^part:(?:\s|$)/.test(item);   // `part:x` は YAML では 1 つの文字列
+    const p = docPath(part ? item.slice('part:'.length) : item);
+    if (p === undefined || (part && !isFile(p))) continue;
+    inside.list.push(p);
+    if (part) lists.parts.add(p);
   }
   return lists;
 };
 
+// Quarto と同じく、ファイルであれば部の扉ページ（フォルダや無い名前は部の題名）。cwd は執筆フォルダ
+const isFile = (p) => {
+  try {
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
+};
+
 const toHtml = (f) => f.replace(/\.(?:qmd|md)$/i, '.html');
-const docs = docsOf(conf);
+const docs = docsOf(conf, isFile);
 const chapters = docs.chapters.map(toHtml);
+const appendices = docs.appendices.map(toHtml);
 // 付録（book.appendices）。Quarto は章番号を A・B… と振るが、**HTML の章タイトルには
 // chapter-number を出さず**「付録 A — 解析根拠」という文にしてしまう（id を付けた章では
 // 特に）。語は言語設定で変わるので、記号は _quarto.yml の並び順から決める。
+// 付録の中の部の扉ページは記号を使わない（Quarto も番号なしで出す。番号なしの章と同じく 0）。
 const appendixLetter = new Map(
-  docs.appendices.map(toHtml).map((f, i) => [f, String.fromCharCode(65 + i)])
+  docs.appendices.filter((f) => !docs.parts.has(f)).map(toHtml).map((f, i) => [f, String.fromCharCode(65 + i)])
 );
-const order = [...chapters, ...[...appendixLetter.keys()].filter((f) => !chapters.includes(f))];
+const order = [...chapters, ...appendices.filter((f) => !chapters.includes(f))];
 if (order.length === 0) {
   console.error('_quarto.yml の chapters を読めませんでした');
   process.exit(1);

@@ -463,8 +463,8 @@ fn merge_cols_match_the_shared_cases() {
     }
 }
 
-/// 章ごとに図を 1 つ持つ最小の HTML（Quarto の book が出す形）。`chapter` が None なら付録の形
-/// （章タイトルに chapter-number が無い）。
+/// 章ごとに図を 1 つ持つ最小の HTML（Quarto の book が出す形）。`chapter` が None なら付録・部の扉
+/// ページの形（章タイトルに chapter-number が無い）。
 fn chapter_page(n: usize, chapter: Option<&str>) -> String {
     let title = match chapter {
         Some(c) => format!(
@@ -498,10 +498,11 @@ fn postprocess(dir: &Path, output_files: Option<&str>) -> String {
     stdout
 }
 
-/// 章の並び（GEN-01）。chapters.json の各ケースの `_quarto.yml` と章ごとの最小の HTML を置き、
-/// 本物の postprocess-html.js に通す。並びに入った章だけが番号を振り直され（図 3-1）、付録は
-/// 並び順に A・B…（図 A-1）。並びに無い HTML には触れない。もう一度通しても同じ（preview の
-/// 保存ごとの再実行）、出力が 1 つだけと渡されても同じ（増分の再描画）。Rust 側は
+/// 章の並び（GEN-01・H-01）。chapters.json の各ケースの `_quarto.yml`、部の扉ページの原稿（`part_files`）と
+/// 章ごとの最小の HTML を置き、本物の postprocess-html.js に通す。並びに入った章だけが番号を振り直され
+/// （図 3-1）、付録は部の扉ページを除いた並び順に A・B…（図 A-1）、部の扉ページは番号なしの章と同じく 0
+/// （図 0-1。Quarto は扉ページに章番号を出さない）。並びに無い HTML には触れない。もう一度通しても同じ
+/// （preview の保存ごとの再実行）、出力が 1 つだけと渡されても同じ（増分の再描画）。Rust 側は
 /// src/doc/project.rs の単体試験が同じケースを読む。
 #[test]
 fn chapter_lists_match_the_shared_cases() {
@@ -512,25 +513,51 @@ fn chapter_lists_match_the_shared_cases() {
         let name = s(case, "name");
         let dir = tempfile::tempdir().unwrap();
         fs::write(dir.path().join("_quarto.yml"), s(case, "yaml")).unwrap();
-        let html_of = |v: &Value| format!("{}.html", v.as_str().unwrap().rsplit_once('.').unwrap().0);
-        // （HTML, 期待する番号の接頭辞。None は触れないこと）
-        let mut pages: Vec<(String, Option<String>)> = Vec::new();
-        for (i, ch) in case["chapters"].as_array().unwrap().iter().enumerate() {
-            pages.push((html_of(ch), Some((i + 1).to_string())));
+        let parts: Vec<&str> = case["part_files"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        for part in &parts {
+            let path = dir.path().join(part);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, "# 部\n").unwrap();
         }
-        for (i, ap) in case["appendices"].as_array().unwrap().iter().enumerate() {
-            pages.push((html_of(ap), Some(char::from(b'A' + i as u8).to_string())));
+        let html_of = |p: &str| format!("{}.html", p.rsplit_once('.').unwrap().0);
+        // （HTML, HTML の章番号（None は付録・扉ページの形）, 期待する番号の接頭辞（None は触れないこと））
+        let mut pages: Vec<(String, Option<String>, Option<String>)> = Vec::new();
+        for ch in case["chapters"].as_array().unwrap() {
+            let ch = ch.as_str().unwrap();
+            let n = (pages.len() + 1).to_string();
+            pages.push(if parts.contains(&ch) {
+                (html_of(ch), None, Some("0".into()))
+            } else {
+                (html_of(ch), Some(n.clone()), Some(n))
+            });
         }
-        pages.push(("not-listed.html".into(), None));
+        let mut letters = (b'A'..=b'Z').map(char::from);
+        for ap in case["appendices"].as_array().unwrap() {
+            let ap = ap.as_str().unwrap();
+            let prefix = if parts.contains(&ap) {
+                "0".to_string()
+            } else {
+                letters.next().unwrap().to_string()
+            };
+            pages.push((html_of(ap), None, Some(prefix)));
+        }
+        pages.push((
+            "not-listed.html".into(),
+            Some((pages.len() + 1).to_string()),
+            None,
+        ));
         let book = dir.path().join("_book");
-        let appendices = case["appendices"].as_array().unwrap().len();
-        let first_appendix = pages.len() - 1 - appendices;
-        for (n, (html, _)) in pages.iter().enumerate() {
+        for (n, (html, chapter, _)) in pages.iter().enumerate() {
             let path = book.join(html);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
-            let chapter = (n < first_appendix || n == pages.len() - 1).then(|| (n + 1).to_string());
             fs::write(path, chapter_page(n, chapter.as_deref())).unwrap();
         }
+        let pages: Vec<(String, Option<String>)> = pages.into_iter().map(|(h, _, p)| (h, p)).collect();
 
         let stdout = postprocess(dir.path(), None);
         assert!(

@@ -1,5 +1,5 @@
 {
-  "about": "GEN-01。_quarto.yml の book.chapters / appendices を、ddq（cli/src/doc/project.rs の chapters_of）と postprocess-html.js（docsOf）が Quarto と同じに読むか。正解は quarto inspect の config.book を part を展開して並べたもの（PyYAML の読みと一致を確かめた）。逆斜線は / に揃える。作り方は README.md",
+  "about": "GEN-01・H-01。_quarto.yml の book.chapters / appendices を、ddq（cli/src/doc/project.rs の chapters_of）と postprocess-html.js（docsOf）が Quarto と同じ並びに読むか。正解は quarto inspect の files.input（Quarto が描く入力の並び。部の扉ページを含み、章 → 付録）を chapters と appendices に分けたもの。part_files は部の扉ページとして置くファイル（part: の値でファイルの無いものは部の題名）。逆斜線は / に揃える。作り方は README.md",
   "cases": [
     {
       "name": "雛形（17ed32e。第2〜7章に行末コメント。CRLF。リリース前）",
@@ -75,6 +75,29 @@
         "chapters/05/index.qmd"
       ],
       "appendices": []
+    },
+    {
+      "name": "付録を先に書く・部の扉ページ（ファイル）と部の題名・付録の中の部（H-01）",
+      "yaml": "project:\n  type: book\nbook:\n  title: t\n  appendices:   # 付録を章より先に書く\n    - app.qmd\n    - part: app-part.qmd\n      chapters:\n        - app2.qmd\n  chapters:\n    - index.qmd\n    - part: part.qmd   # 部の扉（ファイル）\n      chapters:\n        - a.qmd\n    - part: \"第II部\"\n      chapters:\n        - b.qmd\n    - part: 'parts/p3.qmd'\n      chapters:\n        - c.qmd\n    - part: 総論.qmd     # ファイルが無いので部の題名\n      chapters:\n        - d.qmd\nlang: ja\n",
+      "part_files": [
+        "part.qmd",
+        "parts/p3.qmd",
+        "app-part.qmd"
+      ],
+      "chapters": [
+        "index.qmd",
+        "part.qmd",
+        "a.qmd",
+        "b.qmd",
+        "parts/p3.qmd",
+        "c.qmd",
+        "d.qmd"
+      ],
+      "appendices": [
+        "app.qmd",
+        "app-part.qmd",
+        "app2.qmd"
+      ]
     }
   ],
   "items": {

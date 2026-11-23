@@ -199,6 +199,52 @@ fn appendices_are_part_of_the_document() {
     assert_eq!(labels, ["sec-evidence"]);
 }
 
+/// 部の扉ページ（`part:` の値がファイル）も文書の一部で、旧版（git）でも同じに読む（H-01）。付録を章より
+/// 先に書いても、付録は章の後ろ（改訂の並びは文書順）
+#[test]
+fn part_pages_are_part_of_the_document_in_both_versions() {
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    write(
+        tmp.path(),
+        "docs/_quarto.yml",
+        "project:\n  type: book\nbook:\n  appendices:\n    - appendix.qmd\n  chapters:\n    - index.qmd\n    \
+         - part: part.qmd\n      chapters:\n        - chapters/01-overview/index.qmd\n",
+    );
+    write(tmp.path(), "docs/part.qmd", "# 総論 {#sec-part}\n\n扉の本文。\n");
+    write(
+        tmp.path(),
+        "docs/appendix.qmd",
+        "# 解析根拠 {#sec-evidence}\n\n根拠の本文。\n",
+    );
+    assert!(git(tmp.path(), &["add", "-A"]));
+    assert!(git(tmp.path(), &["commit", "-qm", "部と付録"]));
+    assert!(git(tmp.path(), &["tag", "-f", "rev-A"]));
+    write(
+        tmp.path(),
+        "docs/part.qmd",
+        "# 総論 {#sec-part}\n\n扉の本文を直した。\n",
+    );
+    write(
+        tmp.path(),
+        "docs/appendix.qmd",
+        "# 解析根拠 {#sec-evidence}\n\n根拠を直した。\n",
+    );
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+
+    let v: Value = serde_json::from_str(&stdout(&ddq(&["rev", "diff", &docs, "--json"]))).unwrap();
+    let got: Vec<(&str, &str)> = v["entries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (e["label"].as_str().unwrap(), e["kind"].as_str().unwrap()))
+        .collect();
+    assert_eq!(got, [("sec-part", "changed"), ("sec-evidence", "changed")]);
+}
+
 #[test]
 fn next_without_tags_has_no_base() {
     if !git_available() {

@@ -3,8 +3,9 @@
  *
  * `revisions/rev-<記号>.yml` を `CustomTextEditorProvider` として開く。**文書そのものが
  * 正本**なので、保存・未保存の印・Undo・外部からの変更の検知は VSCode 任せにできる。
- * Webview は差分の一覧とメモの入力だけを持ち、直したら YAML 全体を作り直して
- * `WorkspaceEdit` で置き換える（表エディタと同じ流儀）。
+ * Webview は差分の一覧とメモの入力だけを持ち、直した 1 か所（と直す前に出していた値）を送る。
+ * 拡張はそれを文書の**いまの**内容に当て、YAML を作り直して `WorkspaceEdit` で置き換える。
+ * 直す前の値が文書と違えば当てずに画面を文書に戻す（古い画面の状態で、ほかの行の変更を戻さない。H-02）。
  *
  * 差分そのものは自前で描かず、VSCode 標準の差分エディタに渡す。旧版は内蔵 Git 拡張の
  * `toGitUri`、旧版に無いファイル（追加）や新版に無いファイル（削除）の側は、空を返す
@@ -19,7 +20,14 @@ import { parseRevNext } from '../ddq/contract';
 import { currentDdq } from '../ddq/launch';
 import { DdqError, run, runJson } from '../ddq/run';
 import { noteReady, webviewHtml, webviewOptions } from '../webviewHtml';
-import { emptyNotes, type EditorContext, type FromEditorMessage, type ToEditorMessage } from './messages';
+import {
+    applyChange,
+    emptyNotes,
+    type EditorContext,
+    type FromEditorMessage,
+    type RevisionChange,
+    type ToEditorMessage
+} from './messages';
 import { parse, toYaml, type Revision } from './revfile';
 
 /** 空の左右ペインを出すための自前スキーム（§5.8）。 */
@@ -62,10 +70,13 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
             fixed: false,
             tags: []
         };
-        /** いまの状態で改訂ファイルを書き換えてよいか。だめなら画面を文書に戻してから知らせる */
-        const ensureEditable = () => {
+        /**
+         * いまの状態で改訂ファイルを書き換えてよいか。だめなら画面を文書に戻して（未反映の変更を捨てさせて）から
+         * 知らせる。`applied` は、断った edit の番号
+         */
+        const ensureEditable = (applied?: number) => {
             if (context.checked && !context.fixed) return;
-            send();
+            send({ applied, reset: true });
             throw new DdqError(
                 context.fixed
                     ? `確定済みの改訂（タグ rev-${symbolOf(document.uri)} がある）は編集できません。`
@@ -73,8 +84,18 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
             );
         };
 
-        /** いまの文書を画面に送る（タグの状態は覚えているものを使う） */
-        const send = () => post({ type: 'revision', revision: parse(document.getText()), context });
+        /** いまの文書を画面に送る（タグの状態は覚えているものを使う）。`mark` は edit を処理した印（H-02） */
+        const send = (mark: { applied?: number; reset?: boolean } = {}) =>
+            post({ type: 'revision', revision: parse(document.getText()), context, ...mark });
+
+        // 画面からの書き戻し・取り直し・確定は、届いた順に 1 つずつ行う（H-02）。前の書き戻しが文書に当たる前に
+        // 次の書き戻しが文書を読むと、画面が「直す前の値」として送った前の値と食い違って見えてしまう
+        let queue: Promise<unknown> = Promise.resolve();
+        const inOrder = <T>(task: () => Promise<T>): Promise<T> => {
+            const done = queue.then(task);
+            queue = done.catch(() => undefined);
+            return done;
+        };
 
         // タグの状態（確定済みか・既にあるタグ）は Git のタグで決まり、メモの入力そのものでは
         // 変わらない。文書が変わったら本文はすぐ送り、タグは入力が止まってから 1 回だけ取り直す
@@ -112,12 +133,17 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
                         await refreshTags();
                         return;
                     case 'edit':
-                        ensureEditable();
-                        if (!(await write(document, message.revision))) {
-                            // 書けなかった。画面を文書に戻してから知らせる
-                            send();
-                            throw new DdqError('改訂履歴の文書に書き込めませんでした。ファイルを開き直してください。');
-                        }
+                        await inOrder(async () => {
+                            ensureEditable(message.id);
+                            try {
+                                await applyChangeTo(document, message.change);
+                            } catch (e) {
+                                // 当てなかった（食い違い・書けない）。画面を文書に戻してから知らせる
+                                send({ applied: message.id, reset: true });
+                                throw e;
+                            }
+                            send({ applied: message.id });
+                        });
                         return;
                     case 'reveal':
                         await reveal(folder, message.file, message.line);
@@ -126,16 +152,20 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
                         await openDiff(folder, parse(document.getText()), message.label);
                         return;
                     case 'refresh':
-                        ensureEditable();
-                        await this.refresh(folder, document, message.base, post);
+                        await inOrder(async () => {
+                            ensureEditable();
+                            await this.refresh(folder, document, message.base, post);
+                        });
                         await refreshTags();
                         return;
                     case 'build':
                         await this.build(folder, post);
                         return;
                     case 'fix':
-                        ensureEditable();
-                        await this.fix(folder, document, post);
+                        await inOrder(async () => {
+                            ensureEditable();
+                            await this.fix(folder, document, post);
+                        });
                         await refreshTags();
                         return;
                 }
@@ -214,6 +244,19 @@ export class RevisionEditorProvider implements vscode.CustomTextEditorProvider {
         );
         if (copy === 'コマンドをコピー') await vscode.env.clipboard.writeText(commands);
         post({ type: 'notice', level: 'info', text: `確定するには: ${commands}` });
+    }
+}
+
+/**
+ * 画面で直した 1 か所を、文書の**いまの**内容に当てて書く（H-02。`applyChange`）。直す前の値が文書と違う・
+ * 書けないときは DdqError。既にその値なら書かない。
+ */
+export async function applyChangeTo(document: vscode.TextDocument, change: RevisionChange): Promise<void> {
+    const result = applyChange(parse(document.getText()), change);
+    if (!result.ok) throw new DdqError(result.reason);
+    if (!result.changed) return;
+    if (!(await write(document, result.revision))) {
+        throw new DdqError('改訂履歴の文書に書き込めませんでした。ファイルを開き直してください。');
     }
 }
 

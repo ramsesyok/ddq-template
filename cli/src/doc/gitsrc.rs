@@ -173,6 +173,11 @@ impl Source for GitFolder {
         text
     }
 
+    /// そのコミットにファイルとしてあるか（`ls-tree -r` の一覧はファイルだけ。読まない）
+    fn exists(&self, rel: &str) -> bool {
+        self.files.contains(rel)
+    }
+
     fn list(&self) -> Vec<String> {
         let mut files: Vec<String> = self
             .files

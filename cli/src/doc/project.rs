@@ -31,6 +31,10 @@ pub trait Source {
     fn read(&self, rel: &str) -> Option<String>;
     /// 走査できるファイルの一覧（`_quarto.yml` が読めないときの保険で使う）
     fn list(&self) -> Vec<String>;
+    /// ファイルとしてあるか（`part:` の値が部の扉ページか題名かを決める。H-01）。既定は読めるか
+    fn exists(&self, rel: &str) -> bool {
+        self.read(rel).is_some()
+    }
 }
 
 /// 作業ツリーのフォルダ。
@@ -39,6 +43,11 @@ pub struct Folder<'a>(pub &'a Path);
 impl Source for Folder<'_> {
     fn read(&self, rel: &str) -> Option<String> {
         read_text(&self.0.join(rel)).ok()
+    }
+
+    /// Quarto と同じく、ファイルであれば（読めなくても）ある（フォルダは無い）
+    fn exists(&self, rel: &str) -> bool {
+        self.0.join(rel).is_file()
     }
 
     fn list(&self) -> Vec<String> {
@@ -133,7 +142,9 @@ struct Sink<'a> {
 /// 文書順の組み立て。`_quarto.yml` の chapters を起点に include を展開する。
 /// chapters が無ければフォルダ内の qmd/md をパス順に並べる（include は展開しない）。
 fn assemble(src: &dyn Source, sink: &mut Sink) -> Order {
-    let chapters = src.read("_quarto.yml").map(|conf| chapters_of(&conf));
+    let chapters = src
+        .read("_quarto.yml")
+        .map(|conf| chapters_of(&conf, |p| src.exists(p)));
     let warnings = match &chapters {
         Some(c) if !c.is_empty() => {
             let mut out = Order {
@@ -234,18 +245,23 @@ fn include_path(line: &str) -> Option<String> {
     (!arg.is_empty()).then(|| arg.replace('\\', "/"))
 }
 
-/// `_quarto.yml` から章ファイルのパスを取り出す。
+/// `_quarto.yml` から、Quarto が描く順に文書ファイルのパスを取り出す。
 ///
 /// `chapters:` と `appendices:`（付録。2.4.0 から）の下に続く「その行より深い字下げ」の
-/// 範囲から `- <パス>.qmd|md` を、書かれた順に拾う。キーと同じ字下げの `- ` もそのキーの列
+/// 範囲から `- <パス>.qmd|md` を拾う。キーと同じ字下げの `- ` もそのキーの列
 /// （YAML はこの書き方を許す）。`part:` で束ねた入れ子の `chapters:` も同じ範囲に入るので、
-/// これで両方拾える（`- part: "第I部"` の行はパスの形に合わないので自然に外れる）。
+/// これで両方拾える。並びは Quarto（`bookRenderItems`）と同じにする（H-01）:
+///
+/// - `- part: <値>` は、値が執筆フォルダにあるファイル（`is_file`）なら部の扉ページとして、その位置
+///   （子の章の前）に入れる。無ければ部の題名なので入れない（Quarto の `normalizeSidebarItem`）
+/// - 付録は、`_quarto.yml` に書いた順にかかわらず章の後ろ
 ///
 /// 1 件の書き方は `as_doc_path` を参照（GEN-01）。postprocess-html.js の `docsOf` は同じ規則で、
-/// 両方を tests/fixtures/contract/chapters.json（正解は `quarto inspect`）に照らす。
-fn chapters_of(conf: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut inside = None::<usize>;
+/// 両方を tests/fixtures/contract/chapters.json（正解は `quarto inspect` の入力の並び）に照らす。
+fn chapters_of(conf: &str, is_file: impl Fn(&str) -> bool) -> Vec<String> {
+    let (mut chapters, mut appendices) = (Vec::new(), Vec::new());
+    // いまの範囲の字下げと、付録の範囲か
+    let mut inside = None::<(usize, bool)>;
     for line in conf.lines() {
         let trimmed = line.trim_start();
         let indent = line.len() - trimmed.len();
@@ -254,25 +270,40 @@ fn chapters_of(conf: &str) -> Vec<String> {
             continue;
         }
         // 字下げが戻ったら範囲の終わり。同じ行が次の範囲の始まり（`appendices:`）でありうる。
-        if inside.is_some_and(|start| indent < start || (indent == start && !trimmed.starts_with("- "))) {
+        if inside.is_some_and(|(start, _)| indent < start || (indent == start && !trimmed.starts_with("- ")))
+        {
             inside = None;
         }
         match inside {
             None => {
-                if trimmed.starts_with("chapters:") || trimmed.starts_with("appendices:") {
-                    inside = Some(indent);
+                if trimmed.starts_with("chapters:") {
+                    inside = Some((indent, false));
+                } else if trimmed.starts_with("appendices:") {
+                    inside = Some((indent, true));
                 }
             }
-            Some(_) => {
-                if let Some(rest) = trimmed.strip_prefix("- ")
-                    && let Some(p) = as_doc_path(rest)
-                {
-                    out.push(p);
+            Some((_, appendix)) => {
+                let Some(item) = trimmed.strip_prefix("- ") else {
+                    continue;
+                };
+                let path = match part_value(item) {
+                    Some(value) => as_doc_path(value).filter(|p| is_file(p)),
+                    None => as_doc_path(item),
+                };
+                if let Some(p) = path {
+                    if appendix { &mut appendices } else { &mut chapters }.push(p);
                 }
             }
         }
     }
-    out
+    chapters.extend(appendices);
+    chapters
+}
+
+/// `part: <値>` の値（`part:` の後ろが空白か行末のとき。`part:x` は YAML では 1 つの文字列）
+fn part_value(item: &str) -> Option<&str> {
+    item.strip_prefix("part:")
+        .filter(|v| v.is_empty() || v.starts_with(char::is_whitespace))
 }
 
 /// `- ` の後ろが文書ファイルのパスならそれを返す（`part:` などは None）。
@@ -375,11 +406,37 @@ mod tests {
     #[test]
     fn chapters_include_parts_but_not_part_titles() {
         let conf = "book:\n  title: x\n  chapters:\n    - index.qmd\n    - part: \"第I部\"\n      chapters:\n        - a/b.qmd\n        - c.md\n\nlang: ja\n";
-        assert_eq!(chapters_of(conf), ["index.qmd", "a/b.qmd", "c.md"]);
+        assert_eq!(chapters_of(conf, |_| true), ["index.qmd", "a/b.qmd", "c.md"]);
     }
 
-    /// 章の並びの共有ケース（GEN-01）。正解は `quarto inspect` の読み方。postprocess-html.js も
-    /// 同じケースで試す（tests/filter_contract.rs）
+    /// 部の扉ページ（`part:` の値がファイル）は子の章の前に入り、付録は書いた順にかかわらず章の後ろ（H-01。
+    /// Quarto の入力の並び）。ファイルの無い値・`part:x`（1 つの文字列）・値の無い `part:` は入れない
+    #[test]
+    fn part_pages_come_before_their_chapters_and_appendices_last() {
+        let conf = "book:\n  appendices:\n    - app.qmd\n    - part: app-part.qmd\n      chapters:\n        - app2.qmd\n  \
+                    chapters:\n    - index.qmd\n    - part: part.qmd   # 扉\n      chapters:\n        - a.qmd\n    \
+                    - part: 'parts/p3.qmd'\n      chapters:\n        - b.qmd\n    - part: 総論.qmd\n      chapters:\n        \
+                    - c.qmd\n    - part:\n      chapters:\n        - d.qmd\n    - part:x.qmd\nlang: ja\n";
+        let files = ["part.qmd", "parts/p3.qmd", "app-part.qmd", "x.qmd"];
+        assert_eq!(
+            chapters_of(conf, |p| files.contains(&p)),
+            [
+                "index.qmd",
+                "part.qmd",
+                "a.qmd",
+                "parts/p3.qmd",
+                "b.qmd",
+                "c.qmd",
+                "d.qmd",
+                "app.qmd",
+                "app-part.qmd",
+                "app2.qmd"
+            ]
+        );
+    }
+
+    /// 章の並びの共有ケース（GEN-01・H-01）。正解は `quarto inspect` の入力の並び。`part_files` は
+    /// 部の扉としてあるファイル。postprocess-html.js も同じケースで試す（tests/filter_contract.rs）
     #[test]
     fn chapters_match_the_shared_cases() {
         let shared: serde_json::Value =
@@ -390,8 +447,14 @@ mod tests {
                 .flat_map(|key| case[key].as_array().unwrap())
                 .map(|v| v.as_str().unwrap())
                 .collect();
+            let parts: Vec<&str> = case["part_files"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|v| v.as_str().unwrap())
+                .collect();
             assert_eq!(
-                chapters_of(case["yaml"].as_str().unwrap()),
+                chapters_of(case["yaml"].as_str().unwrap(), |p| parts.contains(&p)),
                 want,
                 "{}",
                 case["name"]
@@ -420,13 +483,40 @@ mod tests {
         // 付録（book.appendices）も文書の一部。chapters: の直後で字下げが同じでも拾う
         let conf =
             "book:\n  chapters:\n    - index.qmd\n    - a.qmd\n  appendices:\n    - app-a.qmd\n\nlang: ja\n";
-        assert_eq!(chapters_of(conf), ["index.qmd", "a.qmd", "app-a.qmd"]);
+        assert_eq!(chapters_of(conf, |_| false), ["index.qmd", "a.qmd", "app-a.qmd"]);
     }
 
     #[test]
     fn chapters_stops_at_dedent() {
         let conf = "book:\n  chapters:\n    - index.qmd\nformat:\n  html:\n    - not-a-chapter.qmd\n";
-        assert_eq!(chapters_of(conf), ["index.qmd"]);
+        assert_eq!(chapters_of(conf, |_| true), ["index.qmd"]);
+    }
+
+    /// 作業ツリーでは、部の扉ページの本文も走査し（include も展開）、フォルダの名前の部は題名（H-01）
+    #[test]
+    fn folder_walks_part_pages_but_not_folders_named_as_parts() {
+        let tmp = tempfile::tempdir().unwrap();
+        let put = |rel: &str, text: &str| {
+            let p = tmp.path().join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        };
+        put(
+            "_quarto.yml",
+            "book:\n  appendices:\n    - app.qmd\n  chapters:\n    - index.qmd\n    - part: part.qmd\n      \
+             chapters:\n        - a.qmd\n    - part: dir.qmd\n      chapters:\n        - b.qmd\n",
+        );
+        for rel in ["index.qmd", "a.qmd", "b.qmd", "app.qmd", "sub.qmd"] {
+            put(rel, "# x\n");
+        }
+        put("part.qmd", "# 第I部\n{{< include sub.qmd >}}\n");
+        std::fs::create_dir(tmp.path().join("dir.qmd")).unwrap();
+        let order = order(tmp.path()).unwrap();
+        assert_eq!(
+            order.files,
+            ["index.qmd", "part.qmd", "sub.qmd", "a.qmd", "b.qmd", "app.qmd"]
+        );
+        assert!(order.warnings.is_empty(), "{:?}", order.warnings);
     }
 
     #[test]
@@ -621,6 +711,9 @@ mod tests {
         }
         fn list(&self) -> Vec<String> {
             self.inner.list()
+        }
+        fn exists(&self, rel: &str) -> bool {
+            self.inner.exists(rel)
         }
     }
 

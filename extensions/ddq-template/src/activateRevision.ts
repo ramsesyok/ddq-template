@@ -18,10 +18,10 @@ import { noteReady, webviewOptions } from './webviewHtml';
 import {
     EMPTY_SCHEME,
     RevisionEditorProvider,
+    applyChangeTo,
     html,
     openDiff,
     reveal as revealEntry,
-    write,
     writingFolderOf
 } from './revision/provider';
 import { parse } from './revision/revfile';
@@ -89,11 +89,16 @@ export function activateRevision(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand(
             'ddqTemplate.internal.writeNote',
             async (uri: string, note: string) => {
+                // 画面と同じく、直した 1 か所を文書のいまの内容に当てる（H-02）
                 const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(uri));
-                const revision = parse(document.getText());
-                if (revision.entries.length === 0) return false;
-                revision.entries[0].note = note;
-                return write(document, revision);
+                const first = parse(document.getText()).entries[0];
+                if (!first) return false;
+                try {
+                    await applyChangeTo(document, { field: 'note', label: first.label, before: first.note, after: note });
+                    return true;
+                } catch {
+                    return false;
+                }
             }
         )
     );

@@ -35,7 +35,7 @@
 確認済み（静的）：2 つの画面で**状態の持ち方が違う**。
 
 - **ラベル一覧**は拡張ホスト側のモジュール変数 `session`（パネル・執筆フォルダ・直近の一覧）に持つ。同時に 1 枚だけで、2 回目の呼び出しは既存のパネルを `reveal` して対象フォルダを差し替える。
-- **改訂履歴**は `CustomTextEditorProvider` で、**状態は `TextDocument` そのもの**である。保存・未保存の印・Undo・外部からの変更検知を VSCode に任せられる。画面の編集は YAML 全体を作り直して `WorkspaceEdit` で置き換える。
+- **改訂履歴**は `CustomTextEditorProvider` で、**状態は `TextDocument` そのもの**である。保存・未保存の印・Undo・外部からの変更検知を VSCode に任せられる。画面の編集は YAML 全体を作り直して `WorkspaceEdit` で置き換える（2026-11-23 から、画面は直した 1 か所だけを送り、拡張が文書のいまの内容に当ててから作り直す。外部レビュー H-02）。
 
 [E-0002](appendix-evidence.qmd#ev-rev-e-0002)、[E-0006](appendix-evidence.qmd#ev-rev-e-0006)
 
