@@ -29,7 +29,7 @@ Node は CVE-2024-27980 の対応以降バッチを `execFile` で直接起動�
 | `ddq update <執筆フォルダ>` | 終了コード（版不一致の案内から） |
 | `ddq init <リポジトリ> <名前> [--no-render]` | 終了コード |
 | `ddq add <執筆フォルダ> [--no-render]` | 終了コード |
-| `ddq --version` | `ddq 3.1.0-pre1` の最後の語（`versionOf`）。版不一致の分類と、同梱 ddq の版の確認に使う |
+| `ddq --version` | `ddq 3.1.0` の最後の語（`versionOf`）。版不一致の分類と、同梱 ddq の版の確認に使う |
 :::
 
 ::: {.tbl caption="ddq の終了コード" label="tbl-exit-codes" widths="14,46,40"}
@@ -42,6 +42,13 @@ Node は CVE-2024-27980 の対応以降バッチを `execFile` で直接起動�
 
 ddq の標準エラーの書式（`Error: {:?}`）は anyhow の既定と同じで、終了コード 3 を足しただけである
 （`cli/tests/commands.rs` が 3 と 1 の両方を固定している）。拡張は文言を解析せず、終了コードだけで分岐する。
+3.1.0 で ddq が書き戻しを止めたときの文言（ほかのプログラムが開いている、など）が変わったが、拡張は影響を受けない。
+
+統合後に変えた点（3.1.0、QA-01）：ラベル付け・改訂履歴が受け取る `tag list --json`・`rev next --json` は、
+`src/ddq/contract.ts` の `parseTagList`・`parseRevNext` が形（必須のキーと型）を確かめ、違えば `ContractError` として
+使わない。期待値は ddq 側の `cli/tests/contract.rs` と同じ `cli/tests/fixtures/contract/`（ddq の実際の出力を採ったもの。
+採り直しの手順と記録は同じフォルダの README）で、`src/ddq/contract.test.ts` が読む。結果行（`OK: …index.html`・`警告: …`）と
+終了コード 3 → `ddq update` → 回復の順も同じ期待値で照らす。
 
 ### 設定・状態
 

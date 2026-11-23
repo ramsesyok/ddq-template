@@ -8,22 +8,25 @@
 | ファイル | 責務 |
 |---|---|
 | `src/extension.ts` | 入口。`initLocate` → `activateBuild` → `activateInit` → `activateAdd` → `activateRevision` → `activateTableEditor` → `warnLegacyExtensions` の順に呼ぶだけ。`deactivate` は逆に各機能の後始末を呼ぶ |
-| `src/build.ts` | 発行コマンド（`ddqTemplate.pdf` / `html` / `diagrams`）、版不一致時の update、ステータスバー、「DDQ」出力チャネル、実行中の子プロセスの管理 |
+| `src/build.ts` | 発行コマンド（`ddqTemplate.pdf` / `html` / `diagrams`）、版不一致時の update、ステータスバー |
 | `src/init.ts` | 作成コマンド（`ddqTemplate.init`）、開き直したあとの案内、Git 初期化ボタン |
 | `src/add.ts` | 執筆フォルダの追加コマンド（`ddqTemplate.add`）。足す先の検査と名前の初期値 |
 | `src/openFile.ts` | 出力した PDF・HTML を既定アプリで開く（Windows は `explorer.exe` に素のパスを渡す） |
 | `src/folders.ts` | 執筆フォルダの決定、ワークスペースの執筆フォルダの列挙と `setContext` |
 | `src/quarto.ts` | Quarto の有無の検査、`ddqTemplate.quartoPath` を `PATH` に足した環境変数 |
 | `src/legacy.ts` | 旧拡張（`ramsesyok.ddq-revision` / `ramsesyok.ddq-table-editor`）の検出とアンインストールの案内 |
+| `src/webviewHtml.ts` | 3 画面（ラベル一覧・改訂履歴・表エディタ）の Webview の HTML・CSP・nonce・バンドルの URI と `localResourceRoots`（3.1.0。EXT-04） |
+| `src/ddq/launch.ts` | 設定・起動する ddq の決定（`currentDdq`）・「DDQ」出力チャネル・進捗通知つきの実行（`runWithProgress`）・拡張の終了処理（3.1.0。EXT-02） |
 | `src/ddq/locate.ts` | ddq の解決順（設定 → 同梱 → `PATH`） |
-| `src/ddq/run.ts` | ddq の起動（JSON を受け取る `run` / `runJson`、出力を流す `runStreaming`、孫まで止める `killTree`） |
+| `src/ddq/run.ts` | ddq の起動（JSON を受け取る `run` / `runJson`、出力を流す `runStreaming`、孫まで止める `killTree`）。3.1.0 から実行中の子を記録し、`stopAll` で止める。出力は溜めず、結果行だけを残す |
+| `src/ddq/contract.ts` | ddq の JSON（`tag list --json`・`rev next --json`）の形の検査（`parseTagList`・`parseRevNext`。違えば `ContractError`。3.1.0、QA-01） |
 | `src/ddq/lock.ts` | 執筆フォルダごとの実行中フラグ |
 | `src/ddq/version.ts` | 終了コード 3 の定数、版の比較と不一致の分類 |
 :::
 
 確認済み（静的）。純粋な関数（`chooseDdq`・`bundledPath`・`classifyMismatch`・`compareVersions`・`lockKey`・
 `envWithQuarto`・`nearestWritingFolder`・`htmlIndexOf`・`warningOf`・`isNearlyEmpty`・`validateFolderName`・
-`checkAddTarget`・`suggestFolderName`・`defaultAppCommand`・`installedLegacy`）は
+`checkAddTarget`・`suggestFolderName`・`defaultAppCommand`・`installedLegacy`、3.1.0 から `parseVersion`・`parseTagList`・`parseRevNext`）は
 `vscode` に依存しない形に切り出し、vitest で検査している（`src/**/*.test.ts`）。
 
 ### 起動と登録
@@ -49,16 +52,23 @@
 ### 依存の向き
 
 ```text
-extension.ts ─┬─► build.ts ──► ddq/{locate,run,lock,version} ・ folders ・ quarto ・ openFile
-              ├─► init.ts  ──► build.ts（runWithProgress・channel・settings・showError）・ ddq/lock ・ folders ・ quarto
-              ├─► add.ts   ──► build.ts（同上）・ ddq/lock ・ folders ・ init（validateFolderName・writingFoldersIn）・ quarto
-              ├─► activateRevision.ts ──► ddq/run（ddqCommand は locate を通る）・ folders ・ tagging ・ revision
-              ├─► tableEditor/activateTableEditor.ts（ddq を使わない）
+extension.ts ─┬─► ddq/launch.ts ──► ddq/{locate,run}（activateLaunch・deactivateLaunch）
+              ├─► build.ts ──► ddq/{launch,lock,version} ・ folders ・ quarto ・ openFile
+              ├─► init.ts  ──► ddq/launch（runWithProgress・channel・settings・showError）・ ddq/lock ・ folders ・ quarto
+              ├─► add.ts   ──► ddq/launch（同上）・ ddq/lock ・ folders ・ init（validateFolderName・writingFoldersIn）・ quarto
+              ├─► activateRevision.ts ──► ddq/{launch,run,contract} ・ folders ・ tagging ・ revision ・ webviewHtml
+              ├─► tableEditor/activateTableEditor.ts ──► webviewHtml（ddq を使わない）
+              ├─► webviewHtml.ts（activateWebviewProbe。検証用の ready の回数）
               └─► legacy.ts
 ```
 
 ラベル付け・改訂履歴は、統合で**執筆フォルダの決め方**（`folders.ts`）と **ddq の解決順**（`ddqCommand` が
 `locateDdq` を通る）を共通の基盤に揃えた。表エディタは ddq も執筆フォルダも使わないので変わっていない。
+
+統合後に変えた点（3.1.0）：ddq を起動するのは `launch.ts` の `runWithProgress`（発行・作成・追加）と `run` / `runJson`
+（ラベル一覧・改訂履歴）だけで、どれも `currentDdq` で決めた ddq を使う（EXT-02）。Webview の器は `webviewHtml.ts` に
+まとめ、`localResourceRoots` はそのバンドルの出力先だけにした（ラベル一覧・改訂履歴は従来、拡張のフォルダ全体と
+ワークスペースだった。EXT-04）。画面ごとのメッセージの型・モデルは各機能に残した。
 
 ## ラベル付け・改訂履歴（旧 DDQ Revision） {#sec-architecture-rev}
 

@@ -6,37 +6,37 @@
 
 | 識別項目 | 確認した値・条件 |
 |---|---|
-| リポジトリの版 | `2a9373e`、`main`（本文の解析基準は `281d62f1338d1de7f6660c1a47e1e84e72edda1b`） |
-| 調査開始時 | 追跡ファイルの差分なし。未追跡 `.claude/` は解析対象外 |
-| 表示版／機構版 | `template/VERSION` の `3.0.0-pre4`（解析基準は2.4.0） |
-| Cargo パッケージ | `ddq`、package version `0.0.0`、edition `2024`、rust-version `1.95` |
-| 調査基準日 | 2026-11-14（2.4.0 の解析 2026-09-23、初版 2026-09-21） |
+| リポジトリの版 | ブランチ `fix/review-critical` の `f2c6e0e` とその上の作業ツリー（3.1.0 に上げた未コミットの変更を含む）。本文の解析基準は2.4.0の `281d62f1338d1de7f6660c1a47e1e84e72edda1b` で、3.1.0 までの変更を差分で反映した |
+| 調査開始時 | 追跡ファイルに 3.1.0 の作業中の変更あり（本書の対象）。未追跡のうち `docs/refactoring-review.md`（外部レビュー）と `.claude/` は解析対象外 |
+| 表示版／機構版 | `template/VERSION` の `3.1.0`（解析基準は2.4.0） |
+| Cargo パッケージ | `ddq`、package version `0.0.0`、edition `2024`、rust-version `1.95`。バイナリは `ddq` と保守者用の `ddq-release` の2本（`default-run = "ddq"`） |
+| 調査基準日 | 2026-11-23（3.0.0-pre4 の追補 2026-11-14、2.4.0 の解析 2026-09-23、初版 2026-09-21） |
 
-上表は静的確認済み。表示版と Cargo の版は同一ではない。`build.rs` が `DDQ_VERSION` をコンパイル時に設定し、`assets::VERSION`、`--version`、配置先の `.template-version`、リリース名に使う。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0003](appendix-evidence.qmd#ev-e-0003)
+上表は静的確認済み。表示版と Cargo の版は同一ではない。`build.rs` が `DDQ_VERSION` をコンパイル時に設定し、`assets::VERSION`、`--version`、配置先の `.template-version`、ddq-release のリリース名と版の照合（`release.rs::VERSION`。2本のバイナリは同じ `build.rs` でビルドされる）に使う。[E-0001](appendix-evidence.qmd#ev-e-0001)、[E-0003](appendix-evidence.qmd#ev-e-0003)
 
 ## 適用範囲 {#sec-8c7067}
 
 | 範囲 | 調査の深さ／適用性 |
 |---|---|
-| `cli/src`、Cargo／ビルド設定 | 全自前 Rust ソースを読み、入口から主要な正常・異常経路を追跡 |
+| `cli/src`、Cargo／ビルド設定 | 全自前 Rust ソースを読み、入口から主要な正常・異常経路を追跡（3.1.0 までの変更は差分を読んで追跡。`cli/src/bin/ddq-release/` を含む） |
 | `cli/tests`、`cli/tools/regress.py` | 期待値、実行条件、回帰検証の境界を調査。実行範囲は第5章 |
-| `template`、CI、`extensions/*/package.json` | CLI に埋め込む資産、Lua・`lib.typ` との契約、発行・配布に関わる部分を確認 |
+| `template`、CI（`.github/workflows`・`.github/actions/jp-fonts`）、`extensions/*/package.json` | CLI に埋め込む資産、Lua・`lib.typ` との契約、発行・配布に関わる部分を確認 |
 | 自前のDB・GUI | 適用なし。`cli/src` と直接依存にDB接続・スキーマ・GUIイベント処理はない。外部プロセス内部はこの判断の対象外 |
 | OSS内部、Typst組版詳細、VSCode拡張内部 | 詳細解析対象外。利用API・生成物・設定の境界のみ確認。拡張側は `docs/ddq-template-impl` が扱う |
 | Git | `rev` が子プロセスとして呼ぶ範囲（引数・出力の解釈）のみ。Git自体の挙動は対象外 |
-| ブラウザ／Java／全E2E／リリースの実行 | 今回は未確認。静的追跡と既存テストの読解を実行成功と扱わない |
+| ブラウザ／Java／全E2E／リリースの実行 | 2026-11-23 に1台で `DDQ_E2E=1` の全件を実行した（第5章、[E-0038](appendix-evidence.qmd#ev-e-0038)）。ddq-release の本物のリポジトリでの実行は分離の時点のもの（[E-0037](appendix-evidence.qmd#ev-e-0037)）。GitHub Actions 上の配布候補（`release-candidate.yml`）は本書の基準の変更では未実行。静的追跡と既存テストの読解を実行成功と扱わない |
 
 境界と非該当の判断根拠は [E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0013](appendix-evidence.qmd#ev-e-0013)、[E-0016](appendix-evidence.qmd#ev-e-0016)。外部実装の振る舞いまで網羅した解析ではない。
 
 ## 読み始める場所と確度 {#sec-045a84}
 
-コマンド追加は `main.rs::Command`、`main`、`commands/mod.rs` から始める。配置規則は `assets.rs` と `commands/setup.rs`、図変換は `mermaid/mod.rs` と `plantuml/mod.rs`、配布は保守者用の別の exe ddq-release の `bin/ddq-release/release.rs`（2026-11-23 に ddq から分けた）、ラベルと改訂履歴は `commands/tag.rs`・`commands/rev.rs` と `doc/` が入口になる。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0020](appendix-evidence.qmd#ev-e-0020)
+コマンド追加は `main.rs::Command`、`main`、`commands/mod.rs` から始める。配置規則は `assets.rs` と `commands/setup.rs`、図変換は `mermaid/mod.rs` と `plantuml/mod.rs`、配布は保守者用の別の exe ddq-release の `bin/ddq-release/release.rs`（2026-11-23 に ddq から分けた）、ラベルと改訂履歴は `commands/tag.rs`・`commands/rev.rs` と `doc/` が入口になる。原稿・改訂ファイル・機構の書き込みはどれも `replace.rs`（3.1.0）を通る。[E-0002](appendix-evidence.qmd#ev-e-0002)、[E-0020](appendix-evidence.qmd#ev-e-0020)
 
 本文の根拠IDは [解析根拠](appendix-evidence.qmd#sec-evidence) のパス・シンボルに対応する。パスはリポジトリルート基準で記載するため、HTMLだけを配布しても対象を特定できる。既存の `cli/DESIGN.md` は設計方針と過去の測定の資料として扱い、現行コードとの差は [既知の問題と未解明事項](07-issues-unknowns.qmd#sec-issues-unknowns) に残す。
 
 ## 改版の反映範囲 {#sec-update-scope}
 
-**確認済み（静的）**：初版の基準 `02672eb`（2.2.1）から本版の基準 `281d62f`（2.4.0）までに、CLI とその境界へ次の変更が入った。本書はこれらを各章へ反映した。[E-0020](appendix-evidence.qmd#ev-e-0020)～[E-0023](appendix-evidence.qmd#ev-e-0023)
+**確認済み（静的）**：初版の基準 `02672eb`（2.2.1）から本版の対象（3.1.0）までに、CLI とその境界へ次の変更が入った。本書はこれらを各章へ反映した（解析基準は2.4.0の `281d62f`）。[E-0020](appendix-evidence.qmd#ev-e-0020)～[E-0023](appendix-evidence.qmd#ev-e-0023)、[E-0036](appendix-evidence.qmd#ev-e-0036)～[E-0038](appendix-evidence.qmd#ev-e-0038)
 
 | 版 | CLIと境界の変更 | 反映先 |
 |---|---|---|
@@ -50,9 +50,12 @@
 | 2.4.4 | mermaid の一括変換（`mermaid::prerender` と、フィルタが2段のフィルタを返して章ファイルごとに束ねる。機構）。release の組み立て後の改名を最大10秒待ち直す（`rename_patiently`） | 第3・4・7章 |
 | 3.0.0-pre1 | 版不一致を終了コード 3 で返す（`setup::TemplateMismatch`）。init が `.vscode/extensions.json` を置く。release が自身を同梱した VSIX（`win32-x64`）を作り、zip の隣に置く。`tag list` の編集指示に `original` を持たせ、`tag apply --from` が照合する。ブラウザの後始末を待ち、一時フォルダを作業フォルダ内にする（PR #122 の再検証 N-01） | 第2～4・6章 |
 | 3.0.0-pre3 | `ddq diagrams` が入力ゼロでキャッシュだけ残るとき `警告:` を出す | 第3・4章 |
-| 3.0.0 | `template/vendor/mermaid.min.js` を 11.16.1 に、`pulldown-cmark` を 0.13.6 に更新（脆弱性対応） | 第5・7章 |
-| 3.1.0-pre1 の作業中（2026-11-23） | `release` を ddq から外し、保守者用の別の exe `ddq-release`（`cli/src/bin/ddq-release/`。同じ Cargo パッケージの 2 本目のバイナリ）にした。配る ddq.exe を `--ddq` で受け取り（既定は ddq-release と同じフォルダの `ddq.exe`）、利用マニュアルの update→PDF→HTML もその ddq.exe を子プロセスで呼んで作り、ZIP と VSIX にもそれを入れる。`ddq release` は未知のサブコマンドとして終了コード 2 になる。**本書はこの分離だけを反映した**。3.0.0 から後の他の変更（`docs/refactoring-plan.md` の各項目。配布工程では版の照合、ライセンス表示の VSIX への同梱、入れ替え途中の失敗の扱い、配布候補の CI での作成）と、3.0.0 で plantuml.jar を同梱しなくなったことは反映していない。`analysis/source-sha256.json` も 3.0.0-pre4 の基準のまま | 第1～7章の配布の箇所 |
+| 3.0.0 | `template/vendor/mermaid.min.js` を 11.16.1 に、`pulldown-cmark` を 0.13.6 に更新（脆弱性対応）。`plantuml.jar` を配布物に同梱しなくなった（ddq が jar を探す順 `DDQ_PLANTUML_JAR` → ddq.exe の隣 → `PLANTUML_JAR` は同じ。見つからないときの案内に入手先を書く） | 第3・5・7章 |
+| 3.0.1-pre1 | `mermaid.min.js` を `cli/tools/mermaid-bundle`（esbuild）で mermaid 11.16.1 の ESM から組み直し、中の DOMPurify を 3.4.18、KaTeX を 0.18.10 にした。ライセンス表示は実際に束ねたもの（`bundled.json`）だけを挙げる。`zip` を 9.5.1 に。release が毎回 `npm ci` する。機構では PDF の目次を前付け（`index.qmd`）の後ろに置くのを既定にした | 第3・5・7章 |
+| 3.1.0-pre1 | 機構（`design-doc.lua`・`lib.typ`）で番号付きリストの項目の参照（`@num-x`）と、コード・数式の番号を PDF・HTML で揃えた。Rust 側は変更なし | 機構照合の対象として扱う |
+| 3.1.0-pre1 の作業中（2026-11-23） | `release` を ddq から外し、保守者用の別の exe `ddq-release`（`cli/src/bin/ddq-release/`。同じ Cargo パッケージの 2 本目のバイナリ）にした。配る ddq.exe を `--ddq` で受け取り（既定は ddq-release と同じフォルダの `ddq.exe`）、利用マニュアルの update→PDF→HTML もその ddq.exe を子プロセスで呼んで作り、ZIP と VSIX にもそれを入れる。`ddq release` は未知のサブコマンドとして終了コード 2 になる。この時点の本書はこの分離だけを反映し、3.0.0 から後の他の変更は次の行（3.1.0）で反映した | 第1～7章の配布の箇所 |
+| 3.1.0（2026-11-23） | 原稿・改訂ファイル・機構・版マーカーを、同じフォルダの一時ファイルに書いてから付け替える `replace` を入れた。`tag apply` は書く前に全ファイルを照合して BOM を残し、人が書くファイルは読んだバイト列と照らし直し、ほかのプログラムが書き込み用に開いたままなら止める（IO-01、外部レビュー C-01・C-02）。init/add は上書きしない新規作成、update は機構 → 図のキャッシュ → 版マーカーの順で、`diagrams` を読めなければ版マーカーを前の版のまま残して止める（IO-02・M-03）。章立ての読み方を Quarto と同じにした（行末コメント・引用・空白入りのパス・`part:` の扉ページ・付録の位置・フロー形式・`book.references`・index の位置。GEN-01・H-01）。原稿の読み取りを1回に（CLI-01）。改訂ファイルの引用付きの値を拡張と同じ規則で読む（DATA-01）。`tag list` の panic（同じものが5つ以上で候補を使い切る。`-2` を付ける）と、`rev build` の表で修正内容の逆斜線が TeX の命令になるのを直した。mermaid の先回りの描画が、タブを含む図もフィルタと同じキーにする（GEN-02）。ddq-release が版を照合し（REL-03）、同梱の VSIX にライセンス表示を入れて照合し（REL-01）、入れ替え以降の失敗では残った出力を挙げて止まる（REL-02）。正式に配る一式は GitHub Actions の配布候補（`release-candidate.yml`）が作る（CI-01）。`cargo run` の既定を ddq にした（L-01）。新規作成の雛形を記法見本つきにし、章フォルダ名を番号だけにした | 第1～7章 |
 
-3.0.0 までの変更の根拠は [E-0036](appendix-evidence.qmd#ev-e-0036)、release の分離は [E-0037](appendix-evidence.qmd#ev-e-0037)。VSCode 拡張側の受け手は `docs/ddq-template-impl` が扱う。
+3.0.0 までの変更の根拠は [E-0036](appendix-evidence.qmd#ev-e-0036)、release の分離は [E-0037](appendix-evidence.qmd#ev-e-0037)、3.0.1-pre1 から 3.1.0 までの変更は [E-0038](appendix-evidence.qmd#ev-e-0038)。VSCode 拡張側の受け手は `docs/ddq-template-impl` が扱う。
 
 2.4.0 までの範囲では、Mermaid・PlantUML・Quarto起動・パス検査・機構照合の Rust 実装に変更はない（Mermaid は 2.4.4 と 3.0.0-pre1 で上表のとおり変わった）。これらを記述した節は、版表記と参照先の更新にとどめた。

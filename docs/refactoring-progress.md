@@ -1299,7 +1299,7 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
    旧二拡張からの移行、版の違う ddq での案内（EXT-01 は模擬だけ）
 3. **次のリリースの前に**
    - **版を上げる**: 機構ファイル（`postprocess-html.js`）と雛形（`_quarto.yml`）が変わったのに `template/VERSION` は 3.1.0-pre1 のまま
-     （GEN-01 で上げないことにした）。同じ版名で機構が違うので、3.1.0-pre1 で作った文書を新しい ddq で発行すると「同じ版で中身が違う」
+     （GEN-01 で上げないことにした）→ 2026-11-23 に 3.1.0 に上げ、変更履歴を書いた（末尾の「2026-11-23 の残作業」）。同じ版名で機構が違うので、3.1.0-pre1 で作った文書を新しい ddq で発行すると「同じ版で中身が違う」
      （exit 3）になる。拡張の `package.json`・`package-lock.json` も揃える（REL-03 が照合する）。マージの後の main の release-candidate も
      `release-3.1.0-pre1` を作るが、公開済みの v3.1.0-pre1 とは中身が違うので、版を上げるまで公開に使わない
    - **変更履歴とリリースノート**に書く利用者に見える差: 章の並びの読み方（GEN-01。行末コメント・引用・空白入りのパス・part・同じ字下げの列）、
@@ -1322,6 +1322,8 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 5. **計画の外・別の判断**: GEN-02 の既知の差のうち残した 2 つ（3 組は 2026-11-23 に直した）、ddq.exe から `release` を外すか（検討書 §5。2026-11-23 に外した。上の「ddq から release を外す」）、既存の不具合 2 件（下。2026-11-23 に直した）、
    実装仕様書（`cli-impl/`・`ddq-template-impl/`）の本文の更新（release の分離の分だけは 2026-11-23 に直した）、書体を入れる時間の短縮、`actions/*@v4` の Node.js 20 の警告、
    `versions.txt` に書体の版を残すか、EXT-03 のステータスバー
+   → 2026-11-23 に、GEN-02 の 2 つは残すと決め、実装仕様書を 3.1.0 基準にし、書体はビルドと重ね、Action を Node 24 の版にし、
+   ステータスバーを直した（末尾の「2026-11-23 の残作業」。書体の版は L-02 で `versions.txt` に書くようにした）
 
 ## 計画外で見つけた既存の不具合（2026-11-23 に直した）
 
@@ -1570,3 +1572,61 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
   - H-02: 打った値が文書に当たる前にほかで同じ行が直されると、当てずに画面を戻す（打った値は画面から消える。知らせは出る）。
     改訂全体を YAML に作り直して置き換える点は従来どおり（手で崩した書式は整え直される）。実画面での IME の変換中の入力は見ていない
     （jsdom では見られない。「人の手で行う検証」）
+
+## 2026-11-23 の残作業（版 3.1.0・章の書き方・CI・実装仕様書。ブランチ `fix/review-critical`）
+
+- **状況**: **実装済**（単体・実 Quarto・実 exe・実拡張ホストで確かめた）。コミットしていない（High の直し `f2c6e0e`・PR の上の作業ツリー）。
+  GitHub Actions では走らせていない
+- **利用者の指示（2026-11-23）**: 「外部レビューおよび人の手で行う検証以外で実行できるものは実施してください。判断が必要なものは
+  確認を実施してください」。尋ねた判断と答え:
+  - GitHub: 「コミットしてPRを出す (推奨)」（High の直しのコミットと PR。検証用の枝 `ci-test/*` は消さず、失敗した実行も走らせ直さない）
+  - 版: 「3.1.0 に上げる」（変更履歴も書く。タグとリリースは作らない）
+  - 章の並びの残りの書き方: 「Quarto に合わせて直す (推奨)」
+  - GEN-02 の残りの差 2 つ: 「残す (推奨)」
+  - 書体を入れる時間: 「ビルドと重ねる (推奨)」
+  - 実装仕様書: 「3.1.0 を基準に反映する」
+  - 試験の中で見つけた、部（`- part:`）のある book が PDF にできない前からの制約: 「記録だけにする (推奨)」（部の扉の体裁は
+    別に設計してから直す）
+- **変更**
+  - 章の並び（`cli/src/doc/project.rs`、`template/postprocess-html.js`）: H-01 の残存リスクに挙げた書き方を Quarto と同じ並びにした。
+    フロー形式 `[a, b]`（複数行も、部の中の `chapters:` も）、`book.references`（章と付録のあいだ）、`index.` で始まるページを先頭へ、
+    対応付けの項目で `chapters:` を `part:` より先に書いたとき（扉ページは子の章の前）。読まないのはフロー形式の対応付け
+    `{part: …}` と `href:`・`file:` で書いた項目（`cli/DESIGN.md` §14.3 に書いた）。共有の期待値 `chapters.json` を 9 ケースにし、
+    正解は `quarto inspect` の `files.input`（Quarto 1.9.38）
+  - EXT-03 の残り（`extensions/ddq-template/src/build.ts`）: ステータスバーの問い合わせに通し番号を付け、先に始めた問い合わせの答えで
+    後の表示（発行中の表示を含む）を上書きしない。試験 `src/build.status.test.ts`（新規 3 件）
+  - CI: `actions/*` を Node 24 で動く版にした（`ci.yml`・`extension.yml` は版の枝、`release-candidate.yml` はコミットの SHA）。
+    `.github/actions/jp-fonts` に `phase`（`all`・`start`・`wait`）を足し、`release-candidate.yml` の build では書体を裏で入れ始めて
+    （`start`。Quarto の導入を前に移した）ビルドと重ね、使う前に待つ（`wait`。裏の処理が終了コードを残さずに消えたら待たずに止める。
+    長くても 45 分）。verify-zip は従来どおり（`all`）
+  - 版 3.1.0: `template/VERSION`、拡張の `package.json`・`package-lock.json`、`extensions/ddq-template/CHANGELOG.md`（3.1.0 の節。
+    日付 2026-11-23）、`cli/DESIGN.md` の対象版、README・AGENT-GUIDE・利用マニュアル・設計書・発表資料の展開フォルダ名などの版
+  - 実装仕様書: `docs/cli-impl/`・`docs/ddq-template-impl/` の基準を 3.1.0 にし、IO-01・IO-02・REL-01・REL-03・CI-01・CI-02・
+    GEN-01・GEN-02・QA-01・DATA-01・EXT-01〜04・H-01・H-02 と既存の不具合 2 件の直しを本文・根拠（`cli-impl` の E-0038）に書いた。
+    古くなっていた記述（`mermaid.min.js` が npm の dist と一致する、zip 8.6.0、配布工程の jar、`npm ci` は node_modules が無いときだけ、
+    CI の vsix-smoke）も直した。`analysis/source-sha256.json` を取り直した（91 ファイル）
+  - `cargo fmt` と clippy（`collapsible_if`）の指摘を直した（`project.rs`。fmt は `e2e.rs`・`filter_contract.rs` も整えた）
+- **試験と結果**
+  - Rust 全件（`DDQ_E2E=1`・`DDQ_PLANTUML_JAR`・`--test-threads=1`）: **253 件成功・失敗 0・ignored 0**（562 秒）。
+    unit 125 / ddq-release 6 / commands 10 / contract 5 / e2e 7 / faults 8 / filter_contract 7 / golden 2 / mechanism 2 / plantuml 4 /
+    release 20 / rerun 7 / rev 18 / rev_ops 4 / table_pagination 2 / tag 25 / third_party 1。`cargo fmt --check`・clippy・release
+    ビルドも成功
+  - 章の並び: `project.rs` の単体 +2、共有ケース +2、`tests/e2e.rs` +1（フロー形式・references・後ろに書いた index の book を
+    `quarto inspect` の入力の並びと `tag list` の文書順で照らし、`ddq html` の番号も見る）
+  - 拡張: 型検査・Vitest **49 ファイル 530 件成功**（`REQUIRE_PANDOC=1`）・build・`check:offline`・`check:audit`（配布物に入る依存の指摘 0 件。開発用の依存の参考も 0 件）
+  - 実拡張ホスト: `DDQ_HOST_REAL=1`、3.1.0 のリリースビルドの ddq で 30 項目に合格
+  - 書体の 2 段: workflow を YAML として読めることと、`phase` の手順を手元の PowerShell で流した結果（workflow 3 本と jp-fonts を YAML として読めた。偽の dism と「書体が無い」状態を差し込んで 7 通りを流し、すべて期待どおり（start → wait、2 回目の wait は待たない、書体があれば入れ始めない、dism の失敗で止まる、裏の処理が消えたら待たずに止まる、既定の all、知らない phase は止まる）。実際の dism は流していない（システムを変えるため））
+  - 実装仕様書: 新しい ddq で `ddq update` → `ddq html`（cli-impl: 警告なし。`analysis/check_output.py` で 9 ページ・図 3 つ・壊れたリンク 0・ハッシュの不一致 0、ddq-template-impl: update → pdf（55 ページ）→ html、警告・未解決の参照なし）
+  - PDF の部の扉ページ: E2E と同じ部立ての book（扉ページのファイル・題名だけの部・付録の中の部）を `ddq init` で作って `ddq pdf` すると、Typst の `unknown variable: part` で失敗した。Quarto 1.9.38 は部を `#part[…]` と出すが、`template/` の Typst 側は `part` を定義していない（前からの制約。今日の変更は Typst 側に触れていない）。利用者の判断で記録だけにした（下の残存リスク）
+- **利用者に見える差**: `extensions/ddq-template/CHANGELOG.md` の 3.1.0 の節。今日の分は、フロー形式・`book.references`・後ろに書いた
+  index・`chapters:` を先に書いた部の章が tag・rev・HTML の番号の対象になること、ステータスバーが前のフォルダに戻らないこと
+- **計画からの逸脱**: なし（利用者の判断に沿った残りの片付け）
+- **戻す方法**: 上の変更のファイルを `f2c6e0e` に戻し、`extensions/ddq-template/src/build.status.test.ts` を消す
+- **残存リスク**
+  - CI の変更（Action の版・書体の 2 段）は GitHub で走らせていない。PR に push した後の実行で確かめる
+  - 変更履歴の日付は 2026-11-23。公開する日が違えば直す。タグ・リリースは作っていない
+  - 章立てでフロー形式の対応付け `{part: …}` と `href:`・`file:` の項目は読まない（Quarto とは並びが違う）
+  - GEN-02 の既知の差 2 つは残した（利用者の判断）
+  - 部（`- part:`）を書いた book は、扉ページのファイルでも題名だけでも `ddq pdf` が Typst の `unknown variable: part` で失敗する
+    （前からの制約。Quarto 1.9.38 が出す `#part[…]` を `template/lib.typ`・`typst-template.typ` が定義しない）。HTML・`tag`・`rev` は
+    扉ページを含めて読む。部は利用マニュアルに書いていない。利用者の判断で記録だけにした（扉の体裁を決めてから直す）

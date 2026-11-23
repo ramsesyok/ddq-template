@@ -26,6 +26,20 @@
 `cli/src/bin/ddq-release/release.rs` に移った（`cli/DESIGN.md` §4「保守者用の ddq-release」、`docs/cli-impl` の E-0037）。
 拡張のソースは変えていない。上の `cli/src/commands/release.rs` は移す前の観測である。
 
+追補（ブランチ `fix/review-critical` の `f2c6e0e` とその上の作業ツリー、2026-11-23。3.1.0）。統合後の変更（@tbl-post-merge-changes）の
+3.1.0 の行は、次のソースの静的確認と実行結果に基づく。
+
+- ソース: `src/ddq/{launch,run,contract,version}.ts`、`src/webviewHtml.ts`、`src/build.ts`（ステータスバーの通し番号）、
+  `src/folders.ts`、`src/activateRevision.ts`、`src/revision/{messages,provider,revfile}.ts`、`src/revisionWebview/RevisionEditor.tsx`、
+  `src/tableEditor/activateTableEditor.ts`、`src/tableEditor/formats/mergeCols/simulateMergeCols.ts`、
+  `src/tableEditor/markdown-document/findEditTarget.ts`、`scripts/check-audit.mjs`、`package.json`、`tests/host/{run.mjs,index.js,smoke.mjs}`、
+  共有の期待値 `cli/tests/fixtures/contract/`（`src/ddq/contract.test.ts`・`mergeCols/contract.test.ts` が読む）、
+  `cli/src/bin/ddq-release/release.rs`（`build_extension`・`check_bundled`）
+- 実行（確認済み）: 型検査、`REQUIRE_PANDOC=1 npm test`（Vitest 49 ファイル 530 件成功）、`npm run build`、
+  `check:offline`、`check:audit`（配布物に入る依存の指摘 0 件。開発用の依存の参考も 0 件）、`DDQ_HOST_REAL=1 npm run test:host`（3.1.0 のリリースビルドの ddq で 30 項目に合格）
+- 今回は実行していない: `npm run test:smoke`（同梱版の VSIX。配布候補の CI の verify-vsix が行う）、実画面での IME・セル結合など
+  （人の手で行う検証）
+
 ## ラベル付け・改訂履歴（旧 DDQ Revision 2.3.0）
 
 {{< include parts/revision/appendix-evidence.qmd >}}
