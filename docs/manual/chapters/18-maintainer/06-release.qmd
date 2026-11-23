@@ -118,20 +118,49 @@ python cli/tools/third_party.py
 使った版の一覧。コミットと ddq.exe の SHA-256 も載る）が残る。手動で起動するときは `gh workflow run release-candidate --ref main`
 （サンプルを同梱するなら `-f with_sample=true`）。
 
+まず `gh run list --workflow release-candidate --branch main` で、main の、すべてのジョブが通った実行を選ぶ。
+次の手順を `publish.sh` などに保存し、先頭の 3 行を書き換えてから、リポジトリのルートで `bash publish.sh` を実行する。
+**どこかで失敗したら、そこで止まる**（`set -euo pipefail`。端末に貼り付けて流すと、止まったときに端末ごと閉じる）。
+
 ```bash
-# main の、すべてのジョブが通った実行を選ぶ
-gh run list --workflow release-candidate --branch main
-gh run download <実行の番号> -n release-3.1.0-pre1 -D release
+set -euo pipefail
+VER=3.1.0-pre1                  # 配る版（template/VERSION と同じ）
+RUN=<実行の番号>                 # 上で選んだ実行
+NOTES=<リリースノートのファイル>
+
+gh run download "$RUN" -n "release-$VER" -D release
 (cd release && sha256sum -c SHA256SUMS.txt)
-# 下書きで作り、資産がそろったのを確かめてから公開する（読み手には一式が一度に見える）
-gh release create v3.1.0-pre1 "release/quarto-template-3.1.0-pre1.zip" "release/ddq-template-win32-x64-3.1.0-pre1.vsix" \
-  --draft --target <その実行のコミット> \
-  --title "v3.1.0-pre1 — （変更の要約）" \
-  --notes-file <リリースノートのファイル>
-gh release edit v3.1.0-pre1 --draft=false
+COMMIT=$(sed -n 's/^commit: *//p' release/versions.txt | tr -d '\r')
+# タグが既にあれば、実行のコミットを指しているかを確かめる（--target は新しく作るタグにしか効かない）
+TAGGED=$(git ls-remote --tags origin "v$VER" "v$VER^{}" | tail -n 1 | cut -f1)
+if [ -n "$TAGGED" ] && [ "$TAGGED" != "$COMMIT" ]; then
+  echo "v$VER は $TAGGED を指しています（実行のコミットは $COMMIT）。公開しません" >&2
+  exit 1
+fi
+# 版に「-」が付く（3.1.0-pre1 など）ならプレリリース
+PRE=
+case "$VER" in *-*) PRE=--prerelease ;; esac
+# 1 つのコマンドで作る。gh は下書きで資産を上げ、2 つとも上がったときだけ公開する（失敗したら下書きを消す）
+gh release create "v$VER" "release/quarto-template-$VER.zip" "release/ddq-template-win32-x64-$VER.vsix" \
+  --target "$COMMIT" $PRE \
+  --title "v$VER — （変更の要約）" \
+  --notes-file "$NOTES"
+# 公開した資産の名前と SHA-256 が、実行の一覧と同じかを確かめる
+gh release view "v$VER" --json assets \
+  --jq '.assets[] | "\(.digest | ltrimstr("sha256:"))  \(.name)"' | sort > release/published.txt
+sort release/SHA256SUMS.txt | diff - release/published.txt || {
+  echo "公開した資産が実行の一覧と違います。gh release edit v$VER --draft=true で下書きに戻して調べてください" >&2
+  exit 1
+}
 ```
 
-- **タグは実行のコミットに付ける**（`--target`。`release/versions.txt` の `commit:`）。タグの指すコミットと配布物が一致する。
+- **タグは実行のコミットを指す**（`release/versions.txt` の `commit:`）。タグが無ければ `--target` で作る。既にあれば、指す
+  コミット（注釈つきのタグは剥がしたもの）を照合し、違えば止める。タグの指すコミットと配布物が一致する。
+- **読み手には一式が一度に見える。** `--draft` を付けない `gh release create` は、下書きで資産を上げ、2 つとも上がったときだけ
+  公開する。上げるのに失敗したら下書きを消して終わる（片方の資産だけのリリースは公開されない）。下書きを作るコマンドと
+  公開するコマンドを分けない（分けると、片方の資産だけ上がった下書きを次のコマンドが公開しうる）。
+- 版に `-` が付く（`-pre1` など）ときはプレリリースにする（`--prerelease`）。
+- 公開した後に、資産の名前と SHA-256（GitHub が資産に付ける `digest`）が実行の一覧と同じかを確かめる。
 - CI は公開済みのリリースにもタグにも書き込まない。公開とタグは保守者が行う。
 - 成果物は 90 日で消える。公開したリリースの資産が正の記録になる。
 

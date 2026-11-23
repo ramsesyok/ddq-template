@@ -571,6 +571,49 @@ fn a_read_only_revision_file_is_not_overwritten() {
     fs::set_permissions(&yml, p).unwrap();
 }
 
+/// 改訂ファイルをほかのプログラムが書き込み用に開いたままなら、待ち直したあと書かずに止める
+/// （その場で書かない。照合の後に保存された人のメモを上書きしない。C-01）。閉じれば書ける
+#[cfg(windows)]
+#[test]
+fn a_revision_file_kept_open_for_writing_is_not_overwritten() {
+    use std::os::windows::fs::OpenOptionsExt;
+    const FILE_SHARE_READ_WRITE: u32 = 3;
+
+    if !git_available() {
+        return;
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    repo(tmp.path());
+    edit(tmp.path());
+    let docs = tmp.path().join("docs").to_string_lossy().into_owned();
+    assert_ok(&ddq(&["rev", "diff", &docs, "--write"]));
+    let yml = tmp.path().join("docs/revisions/rev-B.yml");
+    let before = fs::read(&yml).unwrap();
+    let writer = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .share_mode(FILE_SHARE_READ_WRITE)
+        .open(&yml)
+        .unwrap();
+
+    let out = ddq(&["rev", "diff", &docs, "--write"]);
+    drop(writer);
+    assert_eq!(out.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("rev-B.yml を書けません") && err.contains("閉じてから、もう一度実行してください"),
+        "{err}"
+    );
+    assert_eq!(fs::read(&yml).unwrap(), before);
+    let names: Vec<String> = fs::read_dir(yml.parent().unwrap())
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, ["rev-B.yml"], "一時ファイルを残さない");
+
+    assert_ok(&ddq(&["rev", "diff", &docs, "--write"]));
+}
+
 /// 改訂履歴の表を開いたまま（削除の共有なし）だと置き換えられない。表は元のまま、閉じれば作れる
 #[cfg(windows)]
 #[test]

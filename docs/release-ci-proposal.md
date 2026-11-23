@@ -55,6 +55,11 @@ gh release create v<版> release/quarto-template-<版>.zip release/ddq-template-
 gh release edit v<版> --draft=false
 ```
 
+> 2026-11-23 追記: 下書きを作るコマンドと公開するコマンドを分けると、片方の資産だけ上がった下書きを次のコマンドが
+> 公開しうる（レビュー `docs/refactoring-review.md` の C-03）。マニュアル 18 章「リリースを配る」の手順は、`--draft` を
+> 付けない 1 つの `gh release create`（gh が下書きで資産を上げ、2 つとも上がったときだけ公開し、失敗したら下書きを消す）に
+> 戻し、既にあるタグの指すコミットの照合と `--prerelease` を足した（M-05）
+
 `release/` の下のファイル名は今と同じなので、今の手順の `gh release create` の行はそのまま使える。
 タグは実行のコミットを指すので、タグと配布物のコミットが必ず一致する（今は「マージ後の main から作り直してからタグを打つ」を
 保守者が守る必要がある）。

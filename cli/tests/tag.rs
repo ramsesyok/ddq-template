@@ -925,8 +925,9 @@ fn a_file_held_open_stops_there_and_a_rerun_gives_the_same_result() {
     assert_eq!(snapshot(tmp.path()), snapshot(once.path()));
 }
 
-/// 書き込みは共有するが削除は共有しない開き方（CRT の fopen・Python の open・同期ソフトなど）では、
-/// 一時ファイルからの付け替えが拒まれる。従来の ddq と同じく書き戻せる（その場で書く。IO-01 の利用者判断）
+/// 読むだけで、書き込みは共有するが削除は共有しない開き方（CRT の fopen の読み取り・Python の open・
+/// 同期ソフトなど）では、一時ファイルからの付け替えが拒まれる。従来の ddq と同じく書き戻せる（照合し直して
+/// から、その場で書く。IO-01 の利用者判断）。書き込み用に開いたままなら止める（下の 2 つ。C-01）
 #[cfg(windows)]
 #[test]
 fn a_file_open_without_delete_sharing_is_still_written() {
@@ -948,5 +949,124 @@ fn a_file_open_without_delete_sharing_is_still_written() {
     drop(held);
     assert_ok(&out);
     assert_eq!(stderr(&out), "");
+    assert_eq!(snapshot(tmp.path()), snapshot(once.path()));
+}
+
+/// 書き戻しの途中で、ほかのプログラム（CRT の fopen の追記など）が原稿を書き込み用に開いて行を足しても、
+/// その行を消さない（C-01。従来は、待ち直している間に足して閉じた行が付け替えで消え、終了コード 0 だった）。
+/// 照合し直して止め、書いたもの・書いていないものを挙げる。もう一度実行すると、足した行を残して書き戻す
+#[cfg(windows)]
+#[test]
+fn a_line_saved_while_tag_apply_waits_is_not_lost() {
+    use std::{
+        io::Write,
+        os::windows::fs::OpenOptionsExt,
+        process::Stdio,
+        time::{Duration, Instant},
+    };
+    const FILE_SHARE_READ_WRITE: u32 = 3;
+    const FIRST: &str = "chapters/01-system/01-hw/01-spec.qmd";
+    const HELD: &str = "chapters/01-system/index.qmd";
+
+    let tmp = tempfile::tempdir().unwrap();
+    fixture(tmp.path());
+    let dir = tmp.path().to_string_lossy().into_owned();
+    let before = snapshot(tmp.path());
+    let mut writer = fs::OpenOptions::new()
+        .append(true)
+        .share_mode(FILE_SHARE_READ_WRITE)
+        .open(tmp.path().join(HELD))
+        .unwrap();
+
+    let child = Command::new(env!("CARGO_BIN_EXE_ddq"))
+        .args(["tag", "apply", &dir, "--all"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("ddq を起動できません");
+    // パスの順で前のファイルを書いたら（走査と書く前の照合は済んでいる）、行を足して閉じる
+    let started = Instant::now();
+    while fs::read(tmp.path().join(FIRST)).unwrap() == before[FIRST] {
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "前のファイルを書かない"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    writer.write_all("\n足した行。\n".as_bytes()).unwrap();
+    writer.sync_all().unwrap();
+    drop(writer);
+
+    let out = child.wait_with_output().unwrap();
+    let err = stderr(&out);
+    assert_eq!(out.status.code(), Some(1), "{err}");
+    assert!(
+        err.contains(&format!("{HELD} を書き換えられないため、途中で止めました")),
+        "{err}"
+    );
+    assert!(err.contains("読み込んだあとに変わっています"), "{err}");
+    assert!(
+        err.contains(&format!("  書き換えていないファイル: {HELD}, index.qmd")),
+        "{err}"
+    );
+    let mut added = before[HELD].clone();
+    added.extend_from_slice("\n足した行。\n".as_bytes());
+    assert_eq!(
+        fs::read(tmp.path().join(HELD)).unwrap(),
+        added,
+        "足した行が消えた"
+    );
+    assert_eq!(
+        fs::read(tmp.path().join("index.qmd")).unwrap(),
+        before["index.qmd"]
+    );
+    assert_no_temporary_files(tmp.path());
+
+    // もう一度実行すると、足した行を残したまま書き戻す
+    assert_ok(&ddq(&["tag", "apply", &dir, "--all"]));
+    let now = fs::read(tmp.path().join(HELD)).unwrap();
+    assert_ne!(now, added, "書き戻していない");
+    assert!(String::from_utf8_lossy(&now).contains("足した行。"));
+}
+
+/// ほかのプログラムが原稿を書き込み用に開いたままなら、待ち直したあと書かずに止める（その場で書かない。
+/// C-01）。閉じてからもう一度実行すると、1 回で書き戻したときと同じ中身になる
+#[cfg(windows)]
+#[test]
+fn a_manuscript_kept_open_for_writing_is_not_written() {
+    use std::os::windows::fs::OpenOptionsExt;
+    const FILE_SHARE_READ_WRITE: u32 = 3;
+    const HELD: &str = "chapters/01-system/index.qmd";
+
+    let once = tempfile::tempdir().unwrap();
+    fixture(once.path());
+    assert_ok(&ddq(&["tag", "apply", &once.path().to_string_lossy(), "--all"]));
+
+    let tmp = tempfile::tempdir().unwrap();
+    fixture(tmp.path());
+    let dir = tmp.path().to_string_lossy().into_owned();
+    let before = snapshot(tmp.path());
+    let writer = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .share_mode(FILE_SHARE_READ_WRITE)
+        .open(tmp.path().join(HELD))
+        .unwrap();
+    let out = ddq(&["tag", "apply", &dir, "--all"]);
+    drop(writer);
+
+    let err = stderr(&out);
+    assert_eq!(out.status.code(), Some(1), "{err}");
+    assert!(
+        err.contains(&format!("{HELD} を書き換えられないため、途中で止めました")),
+        "{err}"
+    );
+    assert!(err.contains("閉じてから、もう一度実行してください"), "{err}");
+    let after = snapshot(tmp.path());
+    assert_eq!(after[HELD], before[HELD]);
+    assert_eq!(after["index.qmd"], before["index.qmd"]);
+    assert_no_temporary_files(tmp.path());
+
+    assert_ok(&ddq(&["tag", "apply", &dir, "--all"]));
     assert_eq!(snapshot(tmp.path()), snapshot(once.path()));
 }

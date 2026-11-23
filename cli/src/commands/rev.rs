@@ -258,16 +258,16 @@ fn write_revision(
 }
 
 /// 読んだときから変わっていなければ（無かったものは無いまま）置き換える。拡張などで保存されて
-/// いたら、人の書いたメモを上書きしないよう書かずに止める（IO-01）。
+/// いたら、人の書いたメモを上書きしないよう書かずに止める（IO-01）。照合は置き換えるときに行い、
+/// ほかのプログラムが書き込み用に開いたままなら書かずに止める（`replace_unchanged`。C-01）。
 fn save_revision(path: &Path, before: Option<&[u8]>, text: &str) -> Result<()> {
-    let now = path.is_file().then(|| fs::read(path).ok()).flatten();
-    if now.as_deref() != before {
-        bail!(
+    match replace::replace_unchanged(path, before, text.as_bytes()) {
+        Err(e) if replace::refused(&e) == Some(replace::Refused::Changed) => bail!(
             "{} は読み込んだあとに変わっています（拡張などで保存した？）。書き換えていません。もう一度実行してください",
             path.display()
-        );
+        ),
+        r => r.with_context(|| format!("{} を書けません", path.display())),
     }
-    replace::replace(path, text.as_bytes()).with_context(|| format!("{} を書けません", path.display()))
 }
 
 /// `ddq rev build`
