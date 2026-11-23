@@ -891,11 +891,24 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
   - `THIRD-PARTY-NOTICES.md`（ZIP・VSIX とも）: 改行だけが違い、LF にそろえると中身は同じ。CI の版は CRLF（Windows の checkout。
     ZIP に入る README・LICENSE・AGENT-GUIDE と同じ形）。手元の作業コピーが LF なのは、`2dc31e2` で `third_party.py` が作り直した
     ため（git の中身は同じ）
+- **マージの後の実行**（main の `6bb9232`。#142 のマージ。2026-11-22〜23）
+  - main への push（実行 45040063019）: 4 ジョブ成功。全体 39 分 40 秒（`build` 23 分 29 秒、`verify-zip` 15 分 55 秒、
+    `verify-vsix` 2 分 13 秒、`publishable` 9 秒）。`release-3.1.0-pre1`（25,525,940 バイト）が残った
+  - 手動実行を 2 回続けて起動した（2026-11-22 22:40 UTC。`with_sample` なしの 45079044069 と、ありの 45079051895）。どちらも 4 ジョブ成功
+    - なし: ZIP 50 件・VSIX 14 件で、`docs/` は無い。全体 31 分 14 秒（`build` 19 分 51 秒、うち書体 14 分 7 秒）。
+      `release-3.1.0-pre1` は 25,526,024 バイト
+    - あり: `SAMPLE_ARG: --with-sample` が渡り、ZIP 128 件（`docs/` が有る）・VSIX 14 件。全体 36 分 20 秒（待ちを除く）。
+      `release-3.1.0-pre1` は 25,576,533 バイト
+    - 両方とも `build` と `verify-zip` の `check_release.py` が結果 OK。成果物の SHA-256 が、作ったジョブと検査したジョブで一致した。
+      ZIP から取り出した exe で init → pdf → html が通り、配る VSIX で `test:smoke` が通った
+    - `with_sample` の照合は `docs/` が有ることまでで、同梱したサンプルを CI では組まない（手元では完了レビューで組んだ）
+  - `concurrency`: 2 回目は 1 回目の実行中ずっと pending で、1 回目の最後のジョブが終わった 2 秒後（23:11:52）に `build` が始まった。
+    打ち切られずに順に走った。同じブランチへの push も同じ group なので、同じ動きになる
+  - `versions.txt` の `commit:` は `GITHUB_SHA` で、手動実行の head は API で見て `6bb9232`（成果物の中のファイルは開いていない）
 - **まだ確かめていないこと**
   - わざと失敗させた実行に `release-<版>` が残らないこと、その前後で公開済みの v3.1.0-pre1 の資産のハッシュが変わらないこと
     （計画の完了条件「失敗の種類ごとの旧資産のハッシュ」）
-  - 同じブランチへ続けて push したときに実行が重ならないこと（`concurrency`）
-  - main への push と手動実行（`with_sample` を含む）。`workflow_dispatch` は workflow が main に入るまで起動できない
+  - （`concurrency`、main への push、手動実行（`with_sample` を含む）は、マージの後に確かめた。上の「マージの後の実行」）
 - **計画からの逸脱**
   - 計画の REL-02 の提案（実行ごとの作業場所・`.building` を共有しない・同時実行の制御・退避と復元）は手元の `ddq release` には
     作らず、CI のランナー（毎回新しい）と `concurrency`、検査の後にだけ残す `release-<版>` で満たす形にした（計画 §7 の追記で承認）
@@ -905,7 +918,8 @@ revfile の 21）・`tests/tag.rs` 22・`rev.rs` 15・`contract.rs` 5 が通る�
 - **戻す方法**: `release-candidate.yml`・`.github/actions/jp-fonts/`・`check_release.py` を消し、ci.yml の vsix-smoke と push の
   起動対象を `098aa3a` に戻す。利用マニュアル 18 章の「リリースを配る」を、マージ後の main から手元で作り直してタグを打つ手順に戻す
 - **残存リスク**
-  - GitHub 上では PR の実行が 1 回成功しただけ（上の「まだ確かめていないこと」）
+  - GitHub 上では PR の実行が 1 回成功しただけ（上の「まだ確かめていないこと」）。
+    → マージの後に、main への push 1 回と手動実行 2 回も成功した（上の「マージの後の実行」）。失敗させた実行はまだ
   - 1 回 38 分のうち 25 分あまりが、2 つのジョブで日本語の追加フォントを入れる時間。PR で毎回走らせるのには向かない
     （検討書 §2 の 3 のとおり main と手動だけにし、PR は workflow などを変えたときだけ）
   - CI の PDF には、ランナーが入れたフォントの版が埋め込まれる（今回は手元より 1 つ古い版で、字形の差は 1 字）。ランナーの
@@ -1252,7 +1266,8 @@ vsix-smoke は PR では走らなかった（main への push と手動実行だ
 ### 残りと次に決めること
 
 1. **マージの後に確かめること**（CI-01・REL-02）: main への push での実行、手動実行（`with_sample` を含む）、続けて push したときの
-   `concurrency`、わざと失敗させた実行に `release-<版>` が残らないこと、その前後で公開済みの v3.1.0-pre1 の資産のハッシュが変わらないこと
+   `concurrency` は 2026-11-23 に確かめた（REL-02・CI-01 の「マージの後の実行」。すべて成功）。残りは、わざと失敗させた実行に
+   `release-<版>` が残らないこと、その前後で公開済みの v3.1.0-pre1 の資産のハッシュが変わらないこと
 2. **人の手で行う検証**（Phase 4 の受入手順 3 の後半と 4）: 公開した ZIP・VSIX を利用環境に持ち出してのスモーク、外部通信を OS で
    遮断した端末（ローカルの Java＋jar・LAN のサーバ・PlantUML なし）、実画面での IME・セル結合・未保存の編集・パネルの切り替え・
    旧二拡張からの移行、版の違う ddq での案内（EXT-01 は模擬だけ）
