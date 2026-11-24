@@ -10,8 +10,7 @@
 #  PDF は1ファイルで、章番号・図表番号・相互参照は章をまたいで連続する。
 #
 #  執筆者は Quarto と VSCode 拡張だけで HTML を出せる（ddq は不要）。
-#  PDF（発行版）は発行者が ddq を使って出す。PDF 用の設定は
-#  _quarto-publish.yml（発行者の setup が置く）にあり、このファイルには無い。
+#  発行者は ddq pdf で拡張の ddq-typst 形式を使う。
 #
 #  注意（book 特有の落とし穴）:
 #   - include のパスは「その章ファイルのあるディレクトリ」基準（入れ子でも同じ）
@@ -21,12 +20,8 @@
 #     バックスラッシュ結合され typst 0.15 以降が拒否するため）
 # ============================================================
 project:
-  type: book
+  type: ddq
   output-dir: _book
-  # 図表番号を PDF と同じ「章.節-連番」に振り直す後処理。
-  # quarto render / quarto preview のたびに Quarto 同梱の Deno で走る（node 不要）。
-  post-render:
-    - postprocess-html.js
 
 book:
   title: 受注管理システム プログラム概要設計書
@@ -57,14 +52,6 @@ lang: ja
 # 自分の端末に Java や plantuml.jar が無くても図が出る（利用マニュアル 8 章・11 章）。
 # 例: plantuml-server: http://plantuml.example.local:8080
 # 空なら、ローカルの `ddq plantuml serve`（既定 http://127.0.0.1:18080）を探す。
-plantuml-server: ""
-doc-number: SD-2026-002
-doc-revision: ""       # 改訂記号（A〜Z / NC）。doc-number の末尾に結合して資料番号に表示。空=改訂記号なし
-spec: false            # スペック様式（全ページ上部に表題欄）にするか。true でスペック様式
-company-ja: ソフト開発株式会社            # 様式フッターの会社名（日本語）
-company-en: Soft Development Co., Ltd.          # 様式フッターの会社名（英語）
-page-start: 1          # PDF の開始ページ番号。表紙・前書きを別文書で作り、その続きとして綴じるときに使う（前付けが4ページなら 5）
-pagebreak-level: 1     # PDF で見出しの先頭に自動改ページを入れる最深レベル。0=入れない、1=章(#)、2=章と節(##。各章で2つ目以降の節のみ)
 
 toc: true
 toc-location: left     # ページ内目次を右マージンから左へ移す（本文を広く取る）
@@ -77,7 +64,6 @@ format:
   # 発行版の HTML も同じ設定で出る（違うのは mermaid の描き方だけ）。
   html:
     number-sections: true
-    css: design-doc.css
     embed-resources: false
     # 画面幅の基準を 1920px にする（Quarto 既定は sidebar 250 + body 800 +
     # margin 250 ≒ 1280px）。左ペイン（sidebar）は「章番号 + 見出し15文字」＋
@@ -88,5 +74,12 @@ format:
       body-width: 1560px
       margin-width: 60px
 
-filters:
-  - design-doc.lua
+ddq:
+  plantuml-server: ""
+  doc-number: SD-2026-002
+  doc-revision: ""       # 改訂記号（A〜Z / NC）。doc-number の末尾に結合して資料番号に表示。空=改訂記号なし
+  spec: false            # スペック様式（全ページ上部に表題欄）にするか。true でスペック様式
+  company-ja: ソフト開発株式会社            # 様式フッターの会社名（日本語）
+  company-en: Soft Development Co., Ltd.          # 様式フッターの会社名（英語）
+  page-start: 1          # PDF の開始ページ番号。表紙・前書きを別文書で作り、その続きとして綴じるときに使う（前付けが4ページなら 5）
+  pagebreak-level: 1     # PDF で見出しの先頭に自動改ページを入れる最深レベル。0=入れない、1=章(#)、2=章と節(##。各章で2つ目以降の節のみ)

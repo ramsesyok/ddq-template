@@ -1,6 +1,6 @@
 // 本物の lib.typ を読み、描画されたテキストをページごとに採取する。
 // 内部の採番用 metadata には依存しない。
-#import "lib.typ": _tbl-auto, _xref
+#import "lib.typ": _tbl-auto, _xref, ddq-step-table
 #set page(width: 180mm, height: 120mm, margin: 10mm)
 #set text(size: 10pt)
 #counter(heading).update(1)
@@ -8,10 +8,9 @@
 
 #let tall(key) = [#set text(size: 8pt)
   #for i in range(100) [#(key + str(i))#linebreak()]]
-#let tblc = counter(figure.where(kind: "quarto-float-tbl"))
 #let one(name, col: 3, first: true, last: true, numbered: true, rows: 1, breakable: true, header: true, tall-last: false) = {
   if first and numbered {
-    tblc.step()
+    ddq-step-table()
     [#metadata(none)#label("sn-tbl-" + name)]
   }
   _tbl-auto(cap: name, first: first, last: last, numbered: numbered, breakable-rows: breakable)[
@@ -42,7 +41,7 @@
   pagebreak()
   one("NEXT", rows: 2)
 } else if case == "ordinary" { one("ORDINARY", rows: 3, breakable: false) } else if case == "many-rows" { one("MANY", rows: 100, breakable: false) } else if case == "no-header" { one("NOHEADER", col: 2, header: false) } else if case == "unnumbered" { one("UNNUMBERED", col: 3, numbered: false) } else if case == "header-only" { one("EMPTY", rows: 0) } else if case == "merged" {
-  tblc.step()
+  ddq-step-table()
   _tbl-auto(cap: "MERGED", breakable-rows: true)[
     #table(columns: (1fr, 3fr, 1fr),
       table.header(table.cell(colspan: 2)[HEADER-MERGED], [C]),

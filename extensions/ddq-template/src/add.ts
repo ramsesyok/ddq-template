@@ -12,7 +12,7 @@ import * as vscode from 'vscode';
 
 import { channel, runWithProgress, settings, showError } from './ddq/launch';
 import { tryLock } from './ddq/lock';
-import { QUARTO_YML, listWritingFolders } from './folders';
+import { QUARTO_CONFIGS, QUARTO_YML, listWritingFolders } from './folders';
 import { validateFolderName, writingFoldersIn } from './init';
 import { envWithQuarto, hasQuarto } from './quarto';
 
@@ -27,7 +27,7 @@ export function checkAddTarget(target: string): string | null {
         return null;
     }
     if (!stat.isDirectory()) return `${target} は既にファイルとしてあります。別の名前にしてください。`;
-    if (fs.existsSync(path.join(target, QUARTO_YML))) {
+    if (QUARTO_CONFIGS.some(name => fs.existsSync(path.join(target, name)))) {
         return `${path.basename(target)} には既に文書（${QUARTO_YML}）があります。別の名前にしてください。`;
     }
     return null;

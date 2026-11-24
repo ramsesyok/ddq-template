@@ -32,7 +32,7 @@
 
 ### 配布時のチェック
 
-::: {.tbl caption="配布前チェックリスト" label="tbl-dist-check" widths="20,80"}
+::: {.tbl caption="配布前チェックリスト" label="tbl-dist-check" tbl-colwidths="[20,80]"}
 | 対象   | 確認すること                                                        |
 |--------|---------------------------------------------------------------------|
 | 共通   | 資料番号・改訂記号が `_quarto.yml` の設定どおりか                    |
@@ -62,7 +62,7 @@ PDF か」がコミット履歴で追えるようにするためである。内�
 設計書リポジトリにコミットされないため、次を組にして保管する。
 
 - 発行元のコミットまたはタグ
-- `<執筆フォルダ>/.template-version` と同じ版の DDQ Template の VSIX（コマンドで出すなら配布 ZIP も）
+- `<執筆フォルダ>/_extensions/ddq/_extension.yml` と同じ版の DDQ Template の VSIX（コマンドで出すなら配布 ZIP も）
 - 発行した `design-doc.pdf`
 
 再ビルドには、保管した版の DDQ Template（または配布 ZIP の `ddq.exe`）を使う。異なる版で

@@ -53,7 +53,7 @@ flowchart TD
 
 ### 各部分の指定
 
-::: {.tbl caption="IPO 図の指定項目" label="tbl-ipo-attr" widths="22,20,58"}
+::: {.tbl caption="IPO 図の指定項目" label="tbl-ipo-attr" tbl-colwidths="[22,20,58]"}
 | 項目               | 指定方法              | 備考                                     |
 |--------------------|-----------------------|------------------------------------------|
 | 機能名             | `module=` 属性        | 必須                                     |

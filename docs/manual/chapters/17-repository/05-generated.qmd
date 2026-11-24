@@ -4,7 +4,6 @@
 
 | 生成物 | 生成元 |
 |--------|--------|
-| `<執筆フォルダ>/lib.typ`・`typst-*.typ`・`_quarto-publish.yml` | `setup` が埋め込みから書き出す |
 | `<執筆フォルダ>/_book/` | ビルド |
 | `<執筆フォルダ>/diagrams/mmd-*.svg` | mermaid の変換キャッシュ |
 | `cli/target/` | `cargo build`（保守者のみ） |

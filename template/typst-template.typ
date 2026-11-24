@@ -1,9 +1,12 @@
-// Quarto 用テンプレートパーシャル。
-// 様式の実体は lib.typ（単一ソース）。ここでは取り込むだけ。
-#import "lib.typ": *
+// Typst compiles the assembled book at the project root.
+#import "/_extensions/ddq/lib.typ": *
 
-// callout のアイコンを HTML 版に寄せる（note を 〇にi、important を 〇に! にする）。
-// 中身は lib.typ の【6】。Quarto 既定の callout は definitions.typ 側で定義されており
-// lib.typ からは見えないので、包み直しだけをここで行う。
-#let _quarto-callout = callout
-#let callout = with-html-callout-icons(_quarto-callout)
+#let quarto-callout = callout
+#let callout = with-html-callout-icons(quarto-callout)
+
+$if(highlighting-definitions)$
+// The default Skylighting writer emits a block of formatted inline tokens.
+// Apply the code style at that entry point for any highlighting theme.
+#let quarto-skylighting = Skylighting
+#let Skylighting(..args) = ddq-code-block(quarto-skylighting(..args))
+$endif$

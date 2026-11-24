@@ -35,6 +35,7 @@ vi.mock('vscode', () => {
                 ),
             fs: {
                 stat: async (uri: { fsPath: string }) => fs.statSync(uri.fsPath),
+                readFile: async (uri: { fsPath: string }) => fs.readFileSync(uri.fsPath),
                 readDirectory: async (uri: { fsPath: string }) =>
                     fs
                         .readdirSync(uri.fsPath, { withFileTypes: true })
@@ -49,7 +50,7 @@ vi.mock('vscode', () => {
     };
 });
 
-import { watchWritingFolders } from './folders';
+import { isWritingFolder, watchWritingFolders } from './folders';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ddq-watch-'));
 afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -58,10 +59,13 @@ afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
 function writingFolder(name: string): string {
     const dir = path.join(root, name);
     fs.mkdirSync(path.join(dir, 'chapters'), { recursive: true });
-    fs.writeFileSync(path.join(dir, '_quarto.yml'), 'project:\n  type: book\n');
-    fs.writeFileSync(path.join(dir, '.template-version'), '3.1.0-pre1\n');
-    return path.join(dir, '.template-version');
+    fs.writeFileSync(config(dir), 'project:\n  type: book\n');
+    fs.mkdirSync(path.join(dir, '_extensions', 'ddq'), { recursive: true });
+    fs.writeFileSync(manifest(dir), 'version: 3.1.0-pre1\n');
+    return dir;
 }
+const config = (dir: string) => path.join(dir, '_quarto.yml');
+const manifest = (dir: string) => path.join(dir, '_extensions', 'ddq', '_extension.yml');
 const a = writingFolder('a');
 const b = writingFolder('b');
 
@@ -87,6 +91,18 @@ beforeEach(() => {
 });
 
 describe('watchWritingFolders', () => {
+    it('拡張配置前も、Quarto が DDQ を指定したフォルダを認識する', async () => {
+        const dir = path.join(root, 'uninstalled');
+        const yml = path.join(dir, '_quarto.yaml');
+        fs.mkdirSync(dir);
+        fs.writeFileSync(yml, 'project: {type: ddq, output-dir: build}\n');
+        expect(await isWritingFolder(dir)).toBe(true);
+        fs.writeFileSync(yml, 'project:\n  type: "ddq" # DDQ\n');
+        expect(await isWritingFolder(dir)).toBe(true);
+        fs.writeFileSync(yml, 'metadata:\n  project: {type: ddq}\nproject:\n  type: book\n');
+        expect(await isWritingFolder(dir)).toBe(false);
+    });
+
     it('古い走査が後から終わっても、新しい走査の結果を上書きしない', async () => {
         const changes = vi.fn();
         watchWritingFolders(context() as never, changes);
@@ -94,13 +110,13 @@ describe('watchWritingFolders', () => {
         await until(() => scans.length === 1);
         handlers.folders?.();
         await until(() => scans.length === 2);
-        scans[1].resolve([a, b]);
+        scans[1].resolve([config(a), config(b)]);
         await until(() => changes.mock.calls.length === 1);
-        expect(lastFolders()).toEqual([path.dirname(a), path.join(path.dirname(a), 'chapters'), path.dirname(b), path.join(path.dirname(b), 'chapters')].sort());
+        expect(lastFolders()).toEqual([a, path.join(a, 'chapters'), b, path.join(b, 'chapters')].sort());
         // 古い走査（ルートが増える前。a だけ）が遅れて返る
-        scans[0].resolve([a]);
+        scans[0].resolve([config(a)]);
         await new Promise((r) => setTimeout(r, 50));
-        expect(lastFolders()).toContain(path.dirname(b));
+        expect(lastFolders()).toContain(b);
         expect(changes).toHaveBeenCalledTimes(1);
         expect(contexts.filter((c) => c.key === 'ddqTemplate.hasWritingFolders').map((c) => c.value)).toEqual([true]);
     });
@@ -108,9 +124,9 @@ describe('watchWritingFolders', () => {
     it('ルートの追加・削除で作り直す（削除で空になれば hasWritingFolders は false）', async () => {
         watchWritingFolders(context() as never, () => {});
         await until(() => scans.length === 1);
-        scans[0].resolve([a]);
+        scans[0].resolve([config(a)]);
         await until(() => lastFolders() !== undefined);
-        expect(lastFolders()).toContain(path.dirname(a));
+        expect(lastFolders()).toContain(a);
         handlers.folders?.();
         await until(() => scans.length === 2);
         scans[1].resolve([]);
@@ -125,7 +141,7 @@ describe('watchWritingFolders', () => {
         watchWritingFolders(ctx as never, changes);
         await until(() => scans.length === 1);
         for (const d of ctx.subscriptions) d.dispose();
-        scans[0].resolve([a, b]);
+        scans[0].resolve([config(a), config(b)]);
         await new Promise((r) => setTimeout(r, 50));
         expect(contexts).toEqual([]);
         expect(changes).not.toHaveBeenCalled();

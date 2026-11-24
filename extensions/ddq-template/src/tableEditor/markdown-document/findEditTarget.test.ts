@@ -11,7 +11,7 @@ const SPLIT_TABLE = doc(
   '本文の前書き。',
   '',
   ':::: {.landscape}',
-  '::: {.tbl caption="ユーザ属性一覧" label="tbl-user" widths="20,20,60"}',
+  '::: {.tbl caption="ユーザ属性一覧" label="tbl-user" tbl-colwidths="[20,20,60]"}',
   '| 属性 | 型   | 説明 |',
   '|------|------|------|',
   '| 氏名 | 文字 | 名前 |',
@@ -93,7 +93,7 @@ describe('findEditTarget — 優先度①（.tbl div）', () => {
 
   it('widths の個数が列数と合わないときは警告して自動幅にする', () => {
     const bad = doc(
-      '::: {.tbl widths="10,20"}',
+      '::: {.tbl tbl-colwidths="[10,20]"}',
       '| a | b | c |',
       '|---|---|---|',
       '| 1 | 2 | 3 |',

@@ -60,7 +60,7 @@ export function buildFenceHeader(model: TableModel, partCount = 1): string {
 
   const widths = model.columns.map(c => c.width);
   if (widths.every(w => typeof w === 'number' && Number.isFinite(w))) {
-    parts.push(`widths="${widths.join(',')}"`);
+    parts.push(`tbl-colwidths="${JSON.stringify(widths)}"`);
   }
 
   if (model.outputFormat === 'mergeCols') {

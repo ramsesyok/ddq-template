@@ -12,7 +12,7 @@
 pages = parse_pages(spec, total)
 ```
 
-::: {.tbl caption="M-0501 インタフェース" label="tbl-m0501-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0501 インタフェース" label="tbl-m0501-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `spec` | `str` | ページ指定。カンマ区切り。範囲はハイフン。**1始まり** | 不可（必須） |
@@ -65,7 +65,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0501-exc に示す。
 
-::: {.tbl caption="M-0501 処理条件・例外条件" label="tbl-m0501-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0501 処理条件・例外条件" label="tbl-m0501-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -98,7 +98,7 @@ PDF の全ページについて、用紙サイズ・向き・文字数・描画�
 rows = survey(doc)
 ```
 
-::: {.tbl caption="M-0502 インタフェース" label="tbl-m0502-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0502 インタフェース" label="tbl-m0502-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `doc` | `fitz.Document` | 開かれた PDF | 不可（必須） |
@@ -133,7 +133,7 @@ rows = survey(doc)
 
 処理条件及び例外条件を @tbl-m0502-exc に示す。
 
-::: {.tbl caption="M-0502 処理条件・例外条件" label="tbl-m0502-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0502 処理条件・例外条件" label="tbl-m0502-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `doc` が開かれていること | 呼出元 M-0507 が保証する |
@@ -164,7 +164,7 @@ M-0507 から起動につき1回呼び出される。`--list` の有無にかか
 body_size, counts = classify(rows)
 ```
 
-::: {.tbl caption="M-0503 インタフェース" label="tbl-m0503-if" widths="10,16,18,40,16"}
+::: {.tbl caption="M-0503 インタフェース" label="tbl-m0503-if" tbl-colwidths="[10,16,18,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `rows` | `list[dict]` | M-0502 の結果。**各要素に `verdict` を書き加える** | 不可（必須） |
@@ -218,7 +218,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0503-exc に示す。
 
-::: {.tbl caption="M-0503 処理条件・例外条件" label="tbl-m0503-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0503 処理条件・例外条件" label="tbl-m0503-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `rows` が M-0502 の結果であること | 必要なキーが揃っていないと例外となる |
@@ -249,7 +249,7 @@ M-0507 から、M-0502 の直後に1回呼び出される。
 render_list(rows, counts, body_size, stream)
 ```
 
-::: {.tbl caption="M-0504 インタフェース" label="tbl-m0504-if" widths="10,16,20,38,16"}
+::: {.tbl caption="M-0504 インタフェース" label="tbl-m0504-if" tbl-colwidths="[10,16,20,38,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `rows` | `list[dict]` | 判定済みのページの素性 | 不可（必須） |
@@ -287,7 +287,7 @@ render_list(rows, counts, body_size, stream)
 
 処理条件及び例外条件を @tbl-m0504-exc に示す。
 
-::: {.tbl caption="M-0504 処理条件・例外条件" label="tbl-m0504-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0504 処理条件・例外条件" label="tbl-m0504-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `rows` に判定が付いていること | M-0503 が保証する |
@@ -319,7 +319,7 @@ M-0507 から、`--list` が指定された場合にのみ1回呼び出される
 box = _trim_box(page)
 ```
 
-::: {.tbl caption="M-0505 インタフェース" label="tbl-m0505-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0505 インタフェース" label="tbl-m0505-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `page` | `fitz.Page` | 対象のページ | 不可（必須） |
@@ -352,7 +352,7 @@ box = _trim_box(page)
 
 処理条件及び例外条件を @tbl-m0505-exc に示す。
 
-::: {.tbl caption="M-0505 処理条件・例外条件" label="tbl-m0505-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0505 処理条件・例外条件" label="tbl-m0505-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -383,7 +383,7 @@ M-0506 から、`--trim` が指定された場合にページごとに1回呼び
 written = export(doc, pages, outdir, prefix, outline_text, trim)
 ```
 
-::: {.tbl caption="M-0506 インタフェース" label="tbl-m0506-if" widths="10,16,18,40,16"}
+::: {.tbl caption="M-0506 インタフェース" label="tbl-m0506-if" tbl-colwidths="[10,16,18,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `doc` | `fitz.Document` | 開かれた PDF | 不可（必須） |
@@ -434,7 +434,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0506-exc に示す。
 
-::: {.tbl caption="M-0506 処理条件・例外条件" label="tbl-m0506-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0506 処理条件・例外条件" label="tbl-m0506-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `pages` が範囲内であること | M-0501 又は M-0507 の絞り込みが保証する |
@@ -465,7 +465,7 @@ M-0507 から起動につき1回呼び出される。
 code = main(argv)
 ```
 
-::: {.tbl caption="M-0507 インタフェース" label="tbl-m0507-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0507 インタフェース" label="tbl-m0507-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `argv` | `list[str] \| None` | コマンドライン引数 | `None` |
@@ -527,7 +527,7 @@ flowchart TD
 
 貼り付け用 markdown の形式を @tbl-m0507-md に示す。
 
-::: {.tbl caption="貼り付け用 markdown の形式" label="tbl-m0507-md" widths="24,76"}
+::: {.tbl caption="貼り付け用 markdown の形式" label="tbl-m0507-md" tbl-colwidths="[24,76]"}
 | ページの向き | 出力 |
 |---|---|
 | 縦 | `![（キャプションを書く）](/diagrams/pNNN.svg){#fig-pNNN width=80%}` |
@@ -539,7 +539,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0507-exc に示す。
 
-::: {.tbl caption="M-0507 処理条件・例外条件" label="tbl-m0507-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0507 処理条件・例外条件" label="tbl-m0507-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | PyMuPDF が導入済みであること | 未導入の場合、読み込み時にメッセージ E-503 を出して終了する |

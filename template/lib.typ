@@ -89,11 +89,6 @@
 // spec: true の表題欄（ヘッダ領域）の書体。MS Gothic を既定にし、無い環境では JP-SANS に落ちる。
 #let SPEC-HEAD-FONT = ("MS Gothic", "Yu Gothic", "MS PGothic")
 
-// ---- 色 ----
-// コードブロックの背景。Quarto の Skylighting() が使う定数と同じ値にしておく
-// （この色で block を特定して両端揃えを切るため。§本文の体裁 の show ルール参照）。
-#let CODE-BG = rgb("#f1f3f5")
-
 // ---- 線 ----
 #let BORDER = rgb("#b0b0b0")   // 本文中の表罫線（様式ではなく中身の罫線）
 #let FRAME = 0.8pt + black     // 様式の外枠。太さを変えるならここ
@@ -350,58 +345,47 @@
   text(company-ja); linebreak(); text(company-en)
 }))
 
-// 図表番号の接頭辞「章.節.項…」を、指定位置の見出しカウンタから組み立てる。
-// design-doc()（図表の採番・参照）と ipo()（表番号）で共用する。
-// 見出しはレベル1〜5まで採番している（heading numbering: 1.1.1.1）ので、
-// 図表番号もその深さに追従させる。例: 章直下=「3」、節=「3.2」、項=「3.2.1」…（最大レベル5）。
-#let _section-prefix(loc) = {
-  let heads = counter(heading).at(loc)
-  // 実際に番号が付いている最下位レベル（1〜5）を求める。下位の 0（未使用の
-  // レベル）は落とし、「3.2.0」のような 0 を含む番号を出さない。
-  let depth = 1
-  for i in range(calc.min(heads.len(), 5)) {
-    if heads.at(i, default: 0) != 0 { depth = i + 1 }
-  }
-  // 見出しより前（front matter 等）の図表でカウンタが空でも壊さない。
-  let nums = heads.slice(0, calc.min(depth, heads.len()))
-  if nums.len() == 0 { nums = (0,) }
-  // depth 個を "." で連結したパターン（例 depth=3 → "1.1.1"）で採番。
-  // 付録（appendices）では章を英字にする（表 A-1 / 表 A.1-1）。
-  let head = if state("appendix-state", none).at(loc) != none { "A" } else { "1" }
-  let pat = ((head,) + range(depth - 1).map(_ => "1")).join(".")
-  numbering(pat, ..nums)
+// Retain each numbered ancestor. An unnumbered sibling clears the
+// preceding sibling's scope, so it shares its numbered parent's sequence.
+#let _section-scopes = state("ddq-section-scopes", (:))
+#let _ref-links = state("ddq-ref-links", true)
+#let _table-title = state("ddq-table-title", "表")
+#let _title-delim = state("ddq-title-delim", "　")
+
+#let _section-prefix(loc) = _section-scopes.at(loc).values().last(default: "")
+#let _float-kind(kind) = if kind == table { "quarto-float-tbl" } else if kind == image {
+  "quarto-float-fig"
+} else { kind }
+#let _float-counter(kind, prefix) = counter("ddq:" + _float-kind(kind) + ":" + prefix)
+#let _step-float(kind) = context _float-counter(kind, _section-prefix(here())).step()
+#let _float-number(kind, loc, next: false) = {
+  let prefix = _section-prefix(loc)
+  let n = _float-counter(kind, prefix).at(loc).first() + int(next)
+  if prefix == "" { str(n) } else { prefix + "-" + str(n) }
+}
+#let ddq-step-table() = _step-float("quarto-float-tbl")
+#let _table-number(loc) = _float-number("quarto-float-tbl", loc)
+#let _reference(loc, value) = context {
+  if _ref-links.get() { link(loc, value) } else { value }
+}
+#let _with-supplement(supplement, value) = if supplement in (none, []) { value } else {
+  [#supplement #value]
 }
 
-// IPO の表番号用の接頭辞。図表番号と同じ「章.節.項…」（最大レベル5）を出す。
-#let _ipo-prefix(loc) = _section-prefix(loc)
+#let _heading-numbering(appendix) = (..n) => {
+  let nums = n.pos()
+  if nums.len() == 1 {
+    numbering(if appendix { "付録 A" } else { "1." }, ..nums)
+  } else {
+    numbering(if appendix { "A.1.1.1" } else { "1.1.1.1" }, ..nums)
+  }
+}
 
-// ============================================================
-//  付録（_quarto.yml の book.appendices）
-//
-//  Quarto は本文の最後に
-//    #show: appendices.with("付録", hide-parent: true)
-//  を出す。「ここから後ろは付録」という show rule で、章番号を「付録A」「A.1」に
-//  切り替える。Quarto 既定の typst テンプレートはこの関数を持つが、本テンプレートは
-//  様式を自前に置き換えているため、ここで用意する（無いと
-//  「unknown variable: appendices」で組版が止まる）。
-//
-//  hide-parent: Quarto が直後に置く番号なしの h1（"付録"）を消す。章が「付録A」と
-//  名乗るので、その上にもう一段「付録」を出す必要がない。
-//
-//  appendix-state は Quarto の生成コード（式・callout・定理の採番）が読む状態で、
-//  図表番号の接頭辞（_section-prefix）もこれを見て「A.1」系に切り替える。
-// ============================================================
-#let appendices(title, hide-parent: false, body) = {
+#let appendices(title, numbered: true, body) = {
   state("appendix-state", none).update(title)
-  // 章番号を 1 から数え直す（付録A・付録B…）
   counter(heading).update(0)
-  set heading(numbering: (..n) => {
-    let nums = n.pos()
-    if nums.len() == 1 { numbering("付録A", nums.at(0)) } else { numbering("A.1.1.1", ..nums) }
-  })
-  // 目次からも外す（show-set。これが無いと、消したはずの「付録」が目次に残る）
-  show heading.where(level: 1, numbering: none): set heading(outlined: hide-parent == false)
-  show heading.where(level: 1, numbering: none): it => if hide-parent { none } else { it }
+  _section-scopes.update((:))
+  set heading(numbering: _heading-numbering(true)) if numbered
   body
 }
 
@@ -413,14 +397,14 @@
 //   - 通常のフロート表（`: cap {#tbl-x}`）: Quarto が付ける <tbl-x> へ ref で委譲し、
 //     既存の show ref フック（design-doc 内）が同じ番号を出す。
 //   - どちらのラベルも無い（綴り違い等）: build を壊さず赤い「?」を出す。
-#let _xref(name) = context {
+#let _xref(name, supplement: auto) = context {
   let sn = query(label("sn-" + name))
   if sn.len() > 0 {
     let loc = sn.first().location()
-    let n = counter(figure.where(kind: "quarto-float-tbl")).at(loc).first()
-    link(loc, [表 #_section-prefix(loc)-#n])
+    let prefix = if supplement == auto { _table-title.get() } else { supplement }
+    _reference(loc, _with-supplement(prefix, _table-number(loc)))
   } else if query(label(name)).len() > 0 {
-    ref(label(name))
+    ref(label(name), supplement: supplement)
   } else {
     text(fill: red)[?#name]
   }
@@ -434,7 +418,7 @@
   let hit = query(label(name))
   if hit.len() > 0 and hit.first().func() == metadata {
     let v = hit.first().value
-    link(hit.first().location(), ENUM-NUMBERING(..((1,) * (v.depth - 1)), v.n))
+    _reference(hit.first().location(), ENUM-NUMBERING(..((1,) * (v.depth - 1)), v.n))
   } else {
     text(fill: red)[?#name]
   }
@@ -498,6 +482,12 @@
 //  Quarto から使うときは typst-show.typ がフロントマターを引数に渡す。
 //  素の Typst から使うときは #show: design-doc.with(...) と書く。
 // ============================================================
+#let ddq-code-block(body) = {
+  set par(justify: false, first-line-indent: 0pt)
+  set text(size: CODE-BLOCK-SIZE)
+  body
+}
+
 #let design-doc(
   title: "設計書", subtitle: "", author: "",
   doc-number: "",
@@ -513,9 +503,15 @@
   pagebreak-level: 1,                  // 見出しの先頭で自動改ページする最深レベル。
                                        // 0=しない、1=章(h1)、2=章と節(h2。ただし各章で
                                        // 2つ目以降の節のみ)。既定 1
+  body-font: JP-SANS, font-size: BODY-SIZE, line-stretch: 1, language: "ja",
+  code-font: MONO, numbered-headings: true, number-depth: 5,
+  reference-links: true, table-title: "表", title-delim: "　",
   body,
 ) = {
   set document(title: title, author: author)
+  _ref-links.update(reference-links)
+  _table-title.update(table-title)
+  _title-delim.update(title-delim)
   // 通常様式: 資料番号は「番号 + 改訂記号」を結合して表示（改訂記号が空なら番号のみ）。
   // スペック様式: 番号(doc-number)と改訂符号(doc-revision)を別セルに分けて表示。
   // 横ページは state 経由、縦ページは下の背景で引数を直接使う。
@@ -533,7 +529,7 @@
   // ずらせば N は綴じ上がり全体の総ページ数と一致する。
   _page-start.update(page-start)
   set page(
-    paper: "a4",
+    paper: "a4", columns: 1,
     // スペック様式は表題欄（2行）のぶん本文の上マージンを下げる。
     margin: if spec {
       (left: PAGE-P-MARGIN.left, right: PAGE-P-MARGIN.right,
@@ -572,9 +568,9 @@
       }
     },
   )
-  set text(font: JP-SANS, size: BODY-SIZE, lang: "ja")
+  set text(font: body-font, size: font-size, lang: language)
   // 段落の先頭を1文字字下げ。all: true で見出し直後の段落も字下げする（和文の作法）。
-  set par(justify: true, leading: BODY-LEADING,
+  set par(justify: true, leading: line-stretch * BODY-LEADING,
     first-line-indent: (amount: PARA-INDENT, all: true))
   // 本文段落を、直前の見出しレベルと同じ位置から始める（見出し配下の本文をレベルぶん
   // 字下げ）。字下げ段数は _sec-indent（各 show heading が更新）。見出し自身は各
@@ -585,33 +581,9 @@
   show par: it => context {
     if _in-list.get() { it } else { pad(left: _indent-level() * HEAD-INDENT-STEP, it) }
   }
-  // コードブロック（```…```）には本文の体裁を持ち込まない。
-  // 本文は justify: true（両端揃え）なので、そのままだと**長い行が折り返されたときに
-  // 単語間が引き伸ばされて均等割り付けのように見える**（コマンド行でよく起きる）。
-  // 先頭字下げも同様に不要。
-  //
-  // 対象が2種類あることに注意（実測）:
-  //   1) 素の raw ブロック（構文強調が無い場合）
-  //   2) Quarto の Skylighting()（構文強調がある場合）… ```lang フェンスはこちら。
-  //      raw 要素ではなく「トークンごとの inline raw を並べた**ふつうの段落**」を
-  //      block で包んだものなので、raw の show ルールでは捕まえられない。
-  //      背景色（CODE-BG = Quarto 側の定数）で block を特定する。
-  show raw.where(block: true): it => {
-    set par(justify: false, first-line-indent: 0pt)
-    it
-  }
-  show block.where(fill: CODE-BG): set par(justify: false, first-line-indent: 0pt)
-  // コード（ブロック・インラインとも）は等幅書体にする。Quarto の構文強調は
-  // トークンごとの inline raw なので、raw への set text がそのまま効く。
-  //
-  // 大きさ（実測）: typst はコードを**周りの 0.8 倍**で描く（10.5pt の本文で 8.4pt）。
-  // この 0.8em は利用者の show-set より先に掛かるので、相対値 1.25em（= 1 / 0.8）で
-  // 打ち消すとインラインコードが周りと同じ大きさになる（表のセル等でも周りに追従する）。
-  // ブロックは絶対値 CODE-BLOCK-SIZE で上書きする。構文強調のブロックは block の中の
-  // inline raw なので、block 側で CODE-BLOCK-SIZE にすれば中の raw も 1.25 × 0.8 で同じになる。
-  show raw: set text(font: MONO, size: 1.25em)
-  show raw.where(block: true): set text(size: CODE-BLOCK-SIZE)
-  show block.where(fill: CODE-BG): set text(size: CODE-BLOCK-SIZE)
+  show raw: set text(font: code-font, size: 1.25em)
+  show raw.where(block: true): it => ddq-code-block(it)
+
   // 箇条書き（list/enum）は「最上位のリストだけ」を見出しレベルぶん＋LIST-INDENT
   // 字下げする（段落の先頭字下げと頭を揃える）。入れ子のリストには重ね掛けせず、
   // Typst 標準のネスト字下げに任せる（重ね掛けすると段ごとに右へ流れてしまう）。
@@ -653,30 +625,25 @@
   // 番号付きリストの採番を規格 表Ｂ.４ の細別番号（深さ連動）にする。
   set enum(full: true, numbering: ENUM-NUMBERING)
 
-  // 章番号の自動採番。レベル1だけ末尾にドットを付ける（"1." / "1.1" / "1.1.1"）。
-  // 付録を A.1 にしたい等はここを差し替える。
-  set heading(numbering: (..n) => {
-    let nums = n.pos()
-    if nums.len() == 1 { numbering("1.", nums.at(0)) }
-    else { numbering("1.1.1.1", ..nums) }
-  })
-  // 各見出し（level 1〜5）の先頭で図表カウンタを 0 に戻す。
-  // → 図表番号は「章.節.項…-連番」で、連番はその見出し（節・項…）ごとにリセットされる。
-  // （関数にして毎回新しい update を発行する。値を使い回すと1回しか発火しない）
-  //
-  // ただし番号なし見出し（{.unnumbered} = heading(numbering: none)）ではリセットしない。
-  // 番号なし見出しは counter(heading) を進めないので接頭辞（_section-prefix）が親のまま。
-  // ここでリセットすると「接頭辞は同じ・連番だけ 1 に戻る」＝直前の番号と重複する
-  // （例: 章直下 表 1-1 の後に ## 付録 {.unnumbered} を挟むと次表も 表 1-1）。
-  // 各 show ルールでは `if it.numbering != none` で番号あり見出しのときだけリセットする
-  // （HTML 側は接頭辞キーで連番を持つため元々継続する。これで PDF と挙動が揃う）。
-  // 対象 kind: image/table は素の Typst（jp-figure/jp-table）、
-  // quarto-float-* は Quarto qmd フローの図表とコード（lst-。キャプション付きのコード
-  // ブロック）。両フローで動くよう全て 0 に戻す（コードも図表と同じ「章.節-連番」）。
-  let reset-floats() = {
-    for k in (image, table, "quarto-float-fig", "quarto-float-tbl", "quarto-float-lst") {
-      counter(figure.where(kind: k)).update(0)
+  set heading(numbering: if numbered-headings { _heading-numbering(false) } else { none })
+  show heading.where(level: 1): set heading(numbering: none) if number-depth < 1
+  show heading.where(level: 2): set heading(numbering: none) if number-depth < 2
+  show heading.where(level: 3): set heading(numbering: none) if number-depth < 3
+  show heading.where(level: 4): set heading(numbering: none) if number-depth < 4
+  show heading.where(level: 5): set heading(numbering: none) if number-depth < 5
+  show heading.where(level: 6): set heading(numbering: none) if number-depth < 6
+  let mark-heading(it) = context {
+    let depth = it.level
+    let prefix = if numbered-headings and it.numbering != none and depth <= number-depth and depth <= 5 {
+      let nums = counter(heading).at(it.location()).slice(0, depth)
+      let first = if state("appendix-state", none).at(it.location()) == none { "1" } else { "A" }
+      numbering(((first,) + range(depth - 1).map(_ => "1")).join("."), ..nums)
     }
+    _section-scopes.update(scopes => {
+      let preceding = scopes.pairs().filter(pair => int(pair.first()) < depth)
+      let current = if prefix == none { () } else { ((str(depth), prefix),) }
+      (preceding + current).to-dict()
+    })
   }
   // 見出しの体裁。サイズは HEAD-SIZES、前後の空きは下の above/below。
   // 左インセットで見出しをレベルごとに字下げ（L1=0, L2=1, L3=2 …段）。
@@ -692,7 +659,7 @@
   // どちらも weak: true なので、ページ先頭（目次直後など）では空白ページを作らない。
   show heading.where(level: 1): it => {
     if pagebreak-level >= 1 { pagebreak(weak: true) }
-    if it.numbering != none { reset-floats() }
+    mark-heading(it)
     _sec-indent.update(0)
     _h2-index.update(0)
     set text(size: HEAD-SIZES.at(0), weight: "bold")
@@ -704,56 +671,66 @@
       // update 直後の get() は更新後の値（同じ位置で順に評価される）。
       context { if _h2-index.get() >= 2 { pagebreak(weak: true) } }
     }
-    if it.numbering != none { reset-floats() }
+    mark-heading(it)
     _sec-indent.update(1)
     set text(size: HEAD-SIZES.at(1), weight: "bold")
     block(above: 1.1em, below: 0.6em, inset: (left: 1 * HEAD-INDENT-STEP), it)
   }
   show heading.where(level: 3): it => {
-    if it.numbering != none { reset-floats() }
+    mark-heading(it)
     _sec-indent.update(2)
     set text(size: HEAD-SIZES.at(2), weight: "bold")
     block(above: 1em, below: 0.5em, inset: (left: 2 * HEAD-INDENT-STEP), it)
   }
   show heading.where(level: 4): it => {
-    if it.numbering != none { reset-floats() }
+    mark-heading(it)
     _sec-indent.update(3)
     set text(size: HEAD-SIZES.at(3), weight: "bold")
     block(above: 0.9em, below: 0.4em, inset: (left: 3 * HEAD-INDENT-STEP), it)
   }
   show heading.where(level: 5): it => {
-    if it.numbering != none { reset-floats() }
+    mark-heading(it)
     _sec-indent.update(4)
     set text(size: HEAD-SIZES.at(4), weight: "bold")
     block(above: 0.85em, below: 0.35em, inset: (left: 4 * HEAD-INDENT-STEP), it)
   }
 
-  // 図・表の日本語キャプションと採番（「図 3.2-1」＝ 章.節-連番。接頭辞は _section-prefix）
-  set figure.caption(separator: [　])
+  set figure.caption(separator: title-delim)
   show figure.where(kind: table): set figure.caption(position: top)
-  set figure(numbering: n => context _section-prefix(here()) + "-" + str(n))
-  // 参照(@fig-x)も本体と同じ番号にする。必ず対象図表の location で counter を読む
-  // （参照位置で評価すると節番号がずれるため）。
+  show figure.where(kind: image): set figure(numbering: _ => context _float-number(image, here()))
+  show figure.where(kind: table): set figure(numbering: _ => context _float-number(table, here()))
+  show figure.where(kind: "quarto-float-fig"): set figure(numbering: _ => context _float-number("quarto-float-fig", here()))
+  show figure.where(kind: "quarto-float-tbl"): set figure(numbering: _ => context _table-number(here()))
+  show figure.where(kind: "quarto-float-lst"): set figure(numbering: _ => context _float-number("quarto-float-lst", here()))
+  show figure: it => {
+    if it.numbering != none and _float-kind(it.kind) in ("quarto-float-fig", "quarto-float-tbl", "quarto-float-lst") {
+      _step-float(it.kind)
+    }
+    it
+  }
   show ref: it => {
     let el = it.element
-    if el != none and el.func() == figure {
+    if (el != none and el.func() == figure and el.numbering != none and
+        _float-kind(el.kind) in ("quarto-float-fig", "quarto-float-tbl", "quarto-float-lst")) {
       let loc = el.location()
-      let n = counter(figure.where(kind: el.kind)).at(loc).first()
-      link(loc, [#el.supplement #_section-prefix(loc)-#n])
-    } else if el != none and el.func() == heading {
-      // 見出し参照(@sec-x): レベル1 = 「5章」、レベル2以降 = 「5.3節」。
-      // Quarto 既定の「チャプター 5 / セクション 5.3」を、番号＋章/節の後置表記に替える。
-      // 付録（appendices）は「付録B」「B.1節」。章は番号自体が名乗るので「章」を付けない。
+      let supplement = if it.supplement == auto { el.supplement } else { it.supplement }
+      // The figure's location precedes the step inserted by its show rule.
+      _reference(loc, _with-supplement(supplement, _float-number(el.kind, loc, next: true)))
+    } else if (el != none and el.func() == heading and el.numbering != none and
+        it.supplement in ([チャプター], [セクション], [章], [付録])) {
       let loc = el.location()
-      let nums = counter(heading).at(loc).slice(0, el.level)
-      if state("appendix-state", none).at(loc) != none {
-        let pat = (("A",) + range(el.level - 1).map(_ => "1")).join(".")
-        let s = if el.level == 1 { numbering("付録A", ..nums) } else { numbering(pat, ..nums) + "節" }
-        link(loc, [#s])
-      } else {
-        let s = nums.map(n => str(n)).join(".")
-        let suffix = if el.level == 1 { "章" } else { "節" }
-        link(loc, [#s#suffix])
+      let ns = counter(heading).at(loc)
+      let appendix = state("appendix-state", none).at(loc) != none
+      let first = if appendix { "A" } else { "1" }
+      let number = numbering(((first,) + range(el.level - 1).map(_ => "1")).join("."), ..ns)
+      let value = if appendix and el.level == 1 { "付録" + number }
+        else { number + if el.level == 1 { "章" } else { "節" } }
+      _reference(loc, value)
+    } else if not reference-links and el != none and el.func() == heading {
+      if el.numbering == none { el.body }
+      else {
+        let number = numbering(el.numbering, ..counter(heading).at(el.location()))
+        _with-supplement(if it.supplement == auto { none } else { it.supplement }, number)
       }
     } else { it }
   }
@@ -848,7 +825,7 @@
   // スペック様式では右側に表題欄の帯（幅 2*SPEC-ROW）が入るので本文の右余白を広げる。
   let extra-right = if _spec.get() { 2 * SPEC-ROW } else { 0mm }
   set page(
-    flipped: true,
+    paper: "a4", flipped: true, columns: 1,
     margin: (..PAGE-L-MARGIN, right: PAGE-L-MARGIN.right + extra-right),
     header: none, footer: none,
     background: _side-furniture,
@@ -917,7 +894,6 @@
       }
       rest = rest.map(wrap)
       // キャプション行（全列 colspan・罫線なし）。各ページの繰り返しごとに i を計算する。
-      let tblc = counter(figure.where(kind: "quarto-float-tbl"))
       // inset の top は表の既定（5pt）のまま触らない。既定より小さくすると Typst 0.14 の
       // レイアウトが収束しなくなる（layout did not converge。マニュアルの表で再現）。
       let cap-cell = [#table.cell(
@@ -935,7 +911,7 @@
             let i = here().page() - s + 1
             if n > 1 [（#i／#n）]
           }
-          if numbered [表 #_section-prefix(here())-#tblc.get().first()#if cap != "" [　]]
+          if numbered [#_table-title.get() #_table-number(here())#if cap != "" { _title-delim.get() }]
           [#cap#suffix]
         }))<dd-cap>]
       let f = it.fields()
@@ -990,7 +966,7 @@
   // スペック様式では右側に表題欄の帯（幅 2*SPEC-ROW）が入るので IPO 表の右余白を広げる。
   let extra-right = if _spec.get() { 2 * SPEC-ROW } else { 0mm }
   set page(
-    flipped: true,
+    paper: "a4", flipped: true, columns: 1,
     margin: (..PAGE-IPO-MARGIN, right: PAGE-IPO-MARGIN.right + extra-right),
     header: none, footer: none,
     background: _side-furniture,
@@ -1001,16 +977,15 @@
     text(weight: "bold", tracking: IPO-HEAD-TRACKING, t))
   // この IPO を「表」として採番する（図ではなく表。ドキュメントの表と同じ連番列に載る）。
   // step は先頭パートの表番号の位置で1回だけ行い、その位置の値を全パートが表示する。
-  let tblc = counter(figure.where(kind: "quarto-float-tbl"))
   // 表番号 + タイトル欄。i==0（先頭パート）だけカウンタを step し、ref があれば
   // 採番位置に <sn-ref> ラベルを置く（_xref がこの location で番号を読む）。
   let num-block(i, p) = block(width: 100%, height: IPO-NUM-ROW, {
     if i == 0 {
-      tblc.step()
+      ddq-step-table()
       if ref != "" [#metadata(none)#label("sn-" + ref)]
     }
     align(center + top, context text(size: IPO-NUM-SIZE, top-edge: "cap-height")[
-      表 #_ipo-prefix(here())-#tblc.get().first()#if p.cap != "" [　#p.cap]
+      #_table-title.get() #_table-number(here())#if p.cap != "" [#_title-delim.get()#p.cap]
     ])
   })
   // IPO 本体（2つの table を罫線1本ぶん重ねて接続）

@@ -24,12 +24,8 @@ Quarto 以外の道具は要らない（Node.js も不要）。
 
 記法は**利用マニュアル**（発行者から配布される PDF / HTML）を参照する。
 
-次のファイルは**様式の機構**であり、執筆者は触らない
-（発行者がテンプレートの更新時に入れ替える）。
-
-```
-design-doc.lua  design-doc.css  postprocess-html.js  mermaid-config.json  .template-version
-```
+`{{CONTENT_DIR}}/_extensions/ddq/` には様式の機構が入る。
+テンプレートの更新時に発行者が `ddq update` で入れ替え、差分をコミットする。
 
 ## 確認する（HTML）
 

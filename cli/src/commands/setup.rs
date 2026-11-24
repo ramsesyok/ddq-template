@@ -1,9 +1,4 @@
-//! `ddq setup` — PDF を作る直前の準備（旧 setup）。冪等。pdf が内部で呼ぶ。
-//!   1) 執筆フォルダの機構ファイルが、この exe と同じ版・内容か検査する
-//!   2) PDF 側ファイル: lib.typ / typst-template.typ / typst-show.typ / _quarto-publish.yml
-//!      （常に上書き。doc リポジトリでは .gitignore 済み）
-//!
-//! 旧 setup がやっていた「ブラウザ検出 → puppeteer.json」は無い。ブラウザは変換のたびに探す。
+//! 発行前に執筆フォルダの機構の版と内容を照合する。
 
 use std::{fs, path::Path};
 
@@ -13,11 +8,10 @@ use crate::assets;
 
 pub fn run(dir: &Path) -> Result<()> {
     ensure_current(dir)?;
-    for asset in &assets::PDF_SIDE {
-        assets::write_asset(dir, asset)?;
-    }
-    let names: Vec<&str> = assets::PDF_SIDE.iter().map(|a| a.name).collect();
-    println!("PDF 側ファイルを置きました: {}", names.join(", "));
+    println!(
+        "DDQ 機構を確認しました: {}",
+        dir.join(assets::EXTENSION_DIR).display()
+    );
     Ok(())
 }
 
@@ -52,9 +46,9 @@ pub fn ensure_current(dir: &Path) -> Result<()> {
             dir.display()
         ))
     };
-    let version_file = dir.join(assets::TEMPLATE_VERSION_FILE);
+    let version_file = assets::manifest_path(dir);
     let installed = fs::read_to_string(&version_file).map_err(|_| missing(&version_file))?;
-    let installed = installed.trim();
+    let installed = assets::manifest_version(&installed).unwrap_or("（版なし）");
     if installed != assets::VERSION {
         return Err(TemplateMismatch(format!(
             "テンプレートの版が一致しません。\n  執筆フォルダ: {}\n  ddq.exe      : {}\n  \
@@ -66,8 +60,8 @@ pub fn ensure_current(dir: &Path) -> Result<()> {
         .into());
     }
 
-    for asset in &assets::MECHANISM {
-        let path = dir.join(asset.name);
+    for asset in assets::MECHANISM.iter().chain(std::iter::once(&assets::MANIFEST)) {
+        let path = dir.join(assets::EXTENSION_DIR).join(asset.name);
         let actual = fs::read_to_string(&path).map_err(|_| missing(&path))?;
         if actual != asset.body {
             return Err(TemplateMismatch(format!(

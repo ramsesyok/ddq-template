@@ -17,20 +17,6 @@
      - コードの大きさ … lib.typ の CODE-BLOCK-SIZE（本文 BODY-SIZE との比）
    ============================================================ */
 
-/* 書体。本文は PDF の JP-SANS、コードは MONO と同じ（図の mermaid-config.json・
-   plantuml-config.puml も本文と同じ書体）。Bootstrap の変数を上書きするので、
-   Quarto が使う本文・コード（code / pre / kbd）のすべてに効く。
-   BIZ UDGothic は和文の名前（BIZ UDゴシック）も並べる（環境により和文名でしか一致しないため）。 */
-:root {
-  --ddq-sans: "Meiryo UI", "Yu Gothic", "MS PGothic", sans-serif;
-  --ddq-mono: "BIZ UDGothic", "BIZ UDゴシック", "MS Gothic", Consolas, monospace;
-  --bs-body-font-family: var(--ddq-sans);
-  --bs-font-sans-serif: var(--ddq-sans);
-  --bs-font-monospace: var(--ddq-mono);
-}
-body { font-family: var(--ddq-sans); }
-code, kbd, samp, pre { font-family: var(--ddq-mono); }
-
 /* コードの大きさ。PDF と同じ比率にする: インラインコードは周りの文字と同じ、
    コードブロックは本文の 9.5 / 10.5（lib.typ の CODE-BLOCK-SIZE / BODY-SIZE）。
    Bootstrap・Quarto は code / pre を 0.875em にするので、それを打ち消す。
@@ -49,7 +35,6 @@ div.sourceCode pre, pre code { font-size: inherit; }
 /* 縦方向を詰めて 1 画面に多く表示する（社内レビュー用 HTML）。
    段落間隔・行間・見出し前後の余白を控えめにする。左ペイン（目次・章ナビ）は
    触らず本文だけを対象にする。PDF には影響しない。 */
-body { line-height: 1.45; }
 main { margin-top: 4px !important; margin-bottom: 4px !important; }
 #title-block-header { margin-bottom: .4rem !important; }
 #quarto-document-content { padding-top: .2rem; }
@@ -131,20 +116,6 @@ td[rowspan], th[rowspan] { vertical-align: middle; }
 .ipo-col ul { margin: 0; padding-left: 1.2em; }
 .ipo-col ol { margin: 0; padding-left: 1.4em; }
 .ipo-col img { max-width: 100%; height: auto; }
-
-/* 図（mermaid / 画像）は中央寄せ、はみ出さない。
-   本文幅を 1920px 基準に広げた（_quarto.yml の grid）ぶん、幅指定 90% の図が
-   1100px 超に引き伸ばされて読みにくくなるため上限を設ける。
-   PDF は lib.typ 側で組むのでこの指定の影響を受けない。 */
-#quarto-document-content img { max-width: min(100%, 900px); height: auto; }
-#quarto-document-content p:has(> img) { text-align: center; }
-/* 図番号のキャプションも中央寄せにする（表・.tbl・PDF と揃える）。
-   Quarto の既定 CSS は figure.quarto-float-tbl（表）の figcaption にしか
-   text-align: center を当てないため、図（quarto-float-fig）や
-   コードリスト（quarto-float-lst）のキャプションだけ左寄せで残ってしまう。 */
-#quarto-document-content figcaption { text-align: center; }
-/* IPO の各欄の中だけは枠いっぱいに使う（上の上限を打ち消す） */
-#quarto-document-content .ipo-col img { max-width: 100%; }
 
 /* PlantUML サーバに届かないときのプレビュー表示（design-doc.lua の .plantuml-fallback）。
    図の代わりにソースを枠付きで出す。目立つ色にして「図が描けていない」と分かるようにする。

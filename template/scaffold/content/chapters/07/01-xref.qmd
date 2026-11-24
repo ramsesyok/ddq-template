@@ -14,7 +14,7 @@
 表の書き方は @sec-table に、セル結合は @sec-tbl-merge に示す。
 テーブル定義を @lst-ddl-order に示し、目標値は @eq-throughput で求める。
 
-::: {.tbl caption="参照 ID の接頭辞" label="tbl-xref-prefix" widths="12,20,40,28"}
+::: {.tbl caption="参照 ID の接頭辞" label="tbl-xref-prefix" tbl-colwidths="[12,20,40,28]"}
 | 接頭辞 | 対象                 | ID の付け方                                         | 出力の例             |
 |--------|----------------------|-----------------------------------------------------|----------------------|
 | `fig-` | 図                   | `![…](/diagrams/x.svg){#fig-x}` ／ `::: {#fig-x}`    | 図 5.1-1             |

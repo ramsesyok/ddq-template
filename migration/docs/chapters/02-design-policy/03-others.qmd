@@ -2,7 +2,7 @@
 
 ### 命名規約
 
-::: {.tbl caption="命名規約" label="tbl-naming" widths="24,30,46"}
+::: {.tbl caption="命名規約" label="tbl-naming" tbl-colwidths="[24,30,46]"}
 | 対象 | 規約 | 備考 |
 |---|---|---|
 | 公開関数 | 小文字とアンダスコア | サブプログラム外から意味を持つ処理 |
@@ -26,7 +26,7 @@
 
 ### レビュー基準
 
-::: {.tbl caption="レビュー基準" label="tbl-review" widths="30,70"}
+::: {.tbl caption="レビュー基準" label="tbl-review" tbl-colwidths="[30,70]"}
 | 観点 | 確認事項 |
 |---|---|
 | 破壊的操作の可否 | 既存ファイルを上書きする経路に、既定での抑止（dry-run 又は `--force` 要求）があるか |

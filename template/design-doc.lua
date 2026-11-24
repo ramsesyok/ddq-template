@@ -14,7 +14,6 @@
 --   3) ::: {.ipo} div → #ipo(...)（IPO図。最初の見出し = 機能名 / 処理名、
 --      入力/処理/出力（Input/Process/Output 可）の見出しで3列に分割）
 --   4) ::: {.tbl} div → 統一テーブル（採番・分割・セル結合・列幅・相互参照）
---   5) すべての表の列幅を本文幅いっぱいに正規化（内容量に比例して配分）
 -- ============================================================
 
 -- book プロジェクトでは、フィルタ実行時の CWD が「いま処理している章ファイルの
@@ -48,6 +47,12 @@ if pandoc.system.os == 'mingw32' and utf8.len(ROOT) == nil then
   if ok then ROOT = decoded end
 end
 local DIAG = ROOT .. '/diagrams'
+local ASSETS = ROOT .. '/_extensions/ddq'
+local IS_TYPST = FORMAT == 'typst'
+local plantuml_server
+local custom_tables = {}
+local default_table_widths
+local crossref_options = {}
 
 -- SVG の実体は DIAG（絶対パス）に置くが、AST に載せるパスは章ファイルからの
 -- 相対でなければ Quarto が解決できない。CWD の深さぶん ../ を積む。
@@ -74,12 +79,12 @@ local function read_file(p)
 end
 
 -- mermaid の設定（テーマ・htmlLabels・フォント）の単一ソース。
--- 執筆フォルダ直下の mermaid-config.json（ddq update が機構ファイルとして置く）。
+-- DDQ 拡張内の mermaid-config.json（ddq update が機構ファイルとして置く）。
 -- SVG 化（ddq mermaid）とプレビューのクライアント描画の**両方**がこれを読むので、
 -- 執筆者が見る図と発行版の図の設定が食い違わない。無ければ nil を返し、SVG 化は
 -- ddq に埋め込まれた同じ既定を使い、プレビューは Quarto 既定のまま描く。
 local function mermaid_conf_path()
-  local here = ROOT .. '/mermaid-config.json'
+  local here = ASSETS .. '/mermaid-config.json'
   if file_exists(here) then return here end
   return nil
 end
@@ -90,9 +95,11 @@ end
 --   設定・エンジンなど。どれかが変われば別のファイル名になり、古い絵を使い回さない。
 -- 16 桁（64 bit）にするのは、文書内の図の数で偶然の衝突を無視できるようにするため。
 -- 版が上がったときに残る古いキャッシュは `ddq update` が消す。
+local manifest = read_file(ASSETS .. '/_extension.yml') or ''
+local VERSION = manifest:match('\nversion: "([^"]+)"') or '?'
+
 local function cache_key(...)
-  local ver = (read_file(ROOT .. '/.template-version') or '?'):gsub('%s+$', '')
-  local parts = { ver, ... }
+  local parts = { VERSION, ... }
   return pandoc.utils.sha1(table.concat(parts, '\n\0\n')):sub(1, 16)
 end
 
@@ -335,7 +342,7 @@ end
 --  サーバは次の順で決め、最初に届いたものを render の間だけ覚えておく:
 --    DDQ_PLANTUML_SERVER（ddq pdf / html / diagrams が内部で上げたサーバ）
 --    → PLANTUML_SERVER（端末の環境変数）
---    → _quarto.yml の plantuml-server:（設計書リポジトリで共有する LAN のサーバ）
+--    → _quarto.yml の ddq.plantuml-server:（設計書リポジトリで共有する LAN のサーバ）
 --    → http://127.0.0.1:18080（執筆者が手で上げる `ddq plantuml serve` の既定）
 --  どこにも届かなければ、プレビューではソースを枠付きで表示して続行し
 --  （render を止めない）、発行（typst / MERMAID_SVG=1）ではエラーで止める。
@@ -396,16 +403,7 @@ local function puml_candidates()
   end
   add(os.getenv('DDQ_PLANTUML_SERVER'), 'DDQ_PLANTUML_SERVER')
   add(os.getenv('PLANTUML_SERVER'), 'PLANTUML_SERVER')
-  -- _quarto.yml の plantuml-server: を 1 行だけ読む（Lua に YAML パーサは無いが、
-  -- 値は URL 1 つなので行頭のキーを拾えば足りる。コメント行は '#' で始まるので当たらない）
-  local yml = read_file(ROOT .. '/_quarto.yml')
-  if yml then
-    yml = '\n' .. yml
-    local v = yml:match('\n[ \t]*plantuml%-server:[ \t]*"([^"\n]*)"')
-      or yml:match("\n[ \t]*plantuml%-server:[ \t]*'([^'\n]*)'")
-      or yml:match('\n[ \t]*plantuml%-server:[ \t]*([^%s#"\']+)')
-    add(v, '_quarto.yml の plantuml-server')
-  end
+  add(plantuml_server, '_quarto.yml の ddq.plantuml-server')
   add(PUML_DEFAULT_SERVER, '既定（ddq plantuml serve）')
   return list
 end
@@ -436,7 +434,7 @@ end
 local function puml_source(code)
   code = code:gsub('\r\n', '\n'):gsub('\r', '\n')
   if code:sub(-1) ~= '\n' then code = code .. '\n' end
-  local conf = read_file(ROOT .. '/' .. PUML_CONF) or ''
+  local conf = read_file(ASSETS .. '/' .. PUML_CONF) or ''
   conf = conf:gsub('\r\n', '\n')
   if conf ~= '' and conf:sub(-1) ~= '\n' then conf = conf .. '\n' end
   local head, rest = code:match('^(%s*@start%w+[^\n]*\n)(.*)$')
@@ -531,7 +529,7 @@ local function render_plantuml(code)
   pandoc.system.make_directory(DIAG, true)
   -- 送ったソースも残す（mermaid の .mmd と同じ。図が変なときに手で再現できる）
   local f = assert(io.open(DIAG .. '/puml-' .. hash .. '.puml', 'wb')); f:write(src); f:close()
-  local ver = (read_file(ROOT .. '/.template-version') or '?'):gsub('%s+$', '')
+  local ver = VERSION
   -- ローカルのサーバで描いたときはフォントの指紋も残す（Rust の plantuml::svg_header と同じ形）
   local fonts = ''
   local id = puml_is_local(server.url) and ddq_identity()
@@ -553,7 +551,7 @@ function CodeBlock(el)
     local msg = 'PlantUML の図を描けませんでした: ' .. abs
     if WANT_SVG then
       error(msg ..
-        '\n  1) LAN のサーバを使うなら _quarto.yml の plantuml-server: か環境変数 PLANTUML_SERVER に URL を書いてください。' ..
+        '\n  1) LAN のサーバを使うなら _quarto.yml の ddq.plantuml-server: か環境変数 PLANTUML_SERVER に URL を書いてください。' ..
         '\n  2) 自分の端末で描くなら Java と plantuml.jar を用意し、`ddq pdf` / `ddq html` から実行してください' ..
         '（ddq が内部でサーバを上げます）。素の quarto render なら `ddq plantuml serve` を起動しておいてください。' ..
         '\n  3) HTTP には Windows 同梱の curl.exe を使います。PATH に無い端末では動きません。')
@@ -561,7 +559,7 @@ function CodeBlock(el)
     -- 執筆者プレビュー: 止めずにソースを枠付きで出す（design-doc.css の .plantuml-fallback）
     return pandoc.Div({
       pandoc.Para({ pandoc.Strong(msg) }),
-      pandoc.Para({ pandoc.Str('LAN の PlantUML サーバ（_quarto.yml の plantuml-server）か、' ..
+      pandoc.Para({ pandoc.Str('LAN の PlantUML サーバ（_quarto.yml の ddq.plantuml-server）か、' ..
         'ローカルの ddq plantuml serve を起動すると図が表示されます。PDF・配布 HTML ではエラーになります。') }),
       pandoc.CodeBlock(el.text, pandoc.Attr('', { 'plantuml-source' })),
     }, pandoc.Attr('', { 'plantuml-fallback' }))
@@ -619,34 +617,17 @@ local function parse_merge_cols(s)
   return cols
 end
 
--- widths 属性（"20,30,10,40" や "2,3,1,4"）を ncol 個の相対幅（合計1）へ正規化する。
--- ％でも比率でも同じ結果。個数が ncol と違う／合計0以下なら nil を返す（呼び出し側で
--- 警告して自動幅にフォールバック）。第2戻り値に見つかった個数を返す（警告用）。
-local function parse_widths(s, ncol)
-  if s == nil or s == '' then return nil end
-  local vals = {}
-  for num in s:gmatch('[%d%.]+') do vals[#vals + 1] = tonumber(num) end
-  if #vals ~= ncol then return nil, #vals end
+-- A .tbl block supplies one Quarto-style width array for all its parts.
+local function parse_widths(value, columns)
+  local ok, widths = pcall(quarto.json.decode, value)
+  if not ok or type(widths) ~= 'table' or #widths ~= columns then return end
   local total = 0
-  for _, v in ipairs(vals) do total = total + v end
-  if total <= 0 then return nil, #vals end
-  local fr = {}
-  for c = 1, ncol do fr[c] = vals[c] / total end
-  return fr, #vals
-end
-
--- 表 t に widths 属性 s の相対幅を割り当てる（Table() が付けた自動幅を上書き）。
--- 個数が列数と合わなければ警告して何もしない（自動幅のまま）。where は警告メッセージ用。
-local function apply_widths(t, s, where)
-  if s == nil or s == '' then return end
-  local ncol = #t.colspecs
-  local w, found = parse_widths(s, ncol)
-  if not w then
-    io.stderr:write('[design-doc] 警告: ' .. where .. ' の widths の個数(' .. tostring(found) ..
-      ')が列数(' .. ncol .. ')と一致しません。自動幅にします。\n')
-    return
+  for _, width in ipairs(widths) do
+    if type(width) ~= 'number' or width < 0 or width > 100 then return end
+    total = total + width
   end
-  for c = 1, ncol do t.colspecs[c] = { t.colspecs[c][1], w[c] } end
+  if total == 0 then return end
+  return widths
 end
 
 -- cols: 結合対象列（1始まり・階層の左→右順）。nil なら全列 1..ncol（従来動作）。
@@ -745,43 +726,43 @@ local function html_cell(cls, text)
   return html_div(cls, { pandoc.Plain({ pandoc.Str(text) }) })
 end
 
--- 表の列幅計算に使う表示幅（全角=2 / 半角=1）。.tbl の幅統一と Table() で共用する。
-local function disp_width(s)
-  local w = 0
-  for _, cp in utf8.codes(s) do w = w + ((cp > 0x2E7F) and 2 or 1) end
-  return w
+local function html_escape(value)
+  return value:gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;'):gsub('"', '&quot;')
 end
 
-local function cell_width(cell)
-  return disp_width(pandoc.utils.stringify(pandoc.Div(cell.contents)))
+local function split_caption(text, ref, i, total)
+  local first = i == 1 and ' data-split-first="true"' or ''
+  local dref = (i == 1 and ref) and (' data-ref="' .. html_escape(ref) .. '"') or ''
+  local title = crossref_options['tbl-title'] or quarto.doc.language['crossref-tbl-title'] or 'Table'
+  local delim = crossref_options['title-delim'] or '　'
+  return pandoc.RawBlock('html', '<div class="split-caption"' .. first .. dref ..
+    ' data-part="' .. i .. '" data-total="' .. total .. '"' ..
+    ' data-ddq-title="' .. html_escape(pandoc.utils.stringify(title)) ..
+    '" data-ddq-delim="' .. html_escape(pandoc.utils.stringify(delim)) .. '">' ..
+    html_escape(text) .. '</div>')
 end
 
--- 表 t の各列の最大表示幅を maxw（1始まり）へ集める。結合セル（col_span>1）は根拠にしない。
-local function scan_table_widths(t, ncol, maxw)
-  local function scan(rows)
-    for _, row in ipairs(rows) do
-      local c = 1
-      for _, cell in ipairs(row.cells) do
-        if cell.col_span == 1 and c <= ncol then
-          local w = cell_width(cell)
-          if w > maxw[c] then maxw[c] = w end
-        end
-        c = c + cell.col_span
-      end
-    end
-  end
-  for _, r in ipairs(t.head.rows) do scan({ r }) end
-  for _, b in ipairs(t.bodies) do scan(b.body) end
+-- Register the group's real label in Quarto's book index so standard
+-- references retain their prefix, link options, and chapter path.
+local function html_table_target(ref, caption)
+  local target = quarto.FloatRefTarget({
+    identifier = ref,
+    type = 'Table',
+    classes = {'ddq-table-anchor'},
+    content = pandoc.Blocks({}),
+    caption_long = pandoc.Blocks({pandoc.Plain({pandoc.Str(caption)})}),
+  })
+  return target
 end
 
 function Div(el)
   -- 統一テーブル: .tbl。1つのクラスで通常表・分割・セル結合・列幅・相互参照を賄う。
   if el.classes:includes('tbl') then
-    -- ::: {.tbl caption="…" label="tbl-x" widths="…" merge-cols="…"} … 1つ以上のパイプ表 … :::
+    -- ::: {.tbl caption="…" label="tbl-x" tbl-colwidths="[…]" merge-cols="…"} … 1つ以上のパイプ表 … :::
     --   ・表が1つ … 通常表（caption/label が無ければ採番もしない素の表）
     --   ・表が複数（空行区切り）… 分割表（同じ番号＋「（i／M）」）
     --   ・merge-cols="2,3"（or "all"）… セル結合
-    --   ・widths="…" … 列幅の明示指定
+    --   ・tbl-colwidths="[…]" … 列幅の明示指定
     --   ・breakable-rows="true" … PDF で行の途中の改ページを許す（既定は割らない）
     --
     -- PDF では表が改ページで割れたとき、typst 側（lib.typ の _tbl-auto）が自動で
@@ -799,7 +780,7 @@ function Div(el)
     --   解決できない。そこで label="tbl-x" で参照 id を受け取り、自前チャネルで解決する:
     --     typst … 採番位置に <sn-tbl-x> ラベルを置き、参照側（Cite）は #_xref に置換
     --             （lib.typ の _xref がこの location で図表カウンタを読み同じ番号を出す）。
-    --     HTML … 先頭パートに data-ref を付け、番号は postprocess-html.mjs が numberOf に
+    --     HTML … 先頭パートに data-ref を付け、番号は postprocess-html.js が numberOf に
     --            登録して参照アンカーを解決する。
     local parts = {}
     for _, b in ipairs(el.content) do
@@ -836,9 +817,7 @@ function Div(el)
       ref = nil
     end
 
-    -- .unnumbered: 表番号を付けずキャプションだけ出す。{.unnumbered} な章・節で使うと
-    -- 接頭辞が 0 になり「表 0-1」になってしまうのを避けるための逃げ道。採番しない＝
-    -- カウンタも進めず、@tbl-x での参照もできない（番号が無いため）。ref 併記は無効化。
+    -- .unnumbered: 表番号を付けずキャプションだけ出す。カウンタは進めない。
     local no_number = el.classes:includes('unnumbered')
     if no_number and ref then
       io.stderr:write('[design-doc] 警告: .tbl（' .. hint .. '）は .unnumbered なので番号が付きません。' ..
@@ -864,41 +843,34 @@ function Div(el)
       end
     end
 
-    -- 全パート横断で列幅を統一（列数が揃っているときだけ。ずれていたら警告して個別幅のまま）。
-    -- セル結合より前＝素のグリッドで幅を測る（結合後は下段の欠けた行で
-    -- 列位置がずれ、幅計測を誤るため）。
-    local ncol = #parts[1].colspecs
-    local same = ncol > 0
-    for _, t in ipairs(parts) do if #t.colspecs ~= ncol then same = false end end
-    -- widths="…" があれば全パートにその相対幅を割り当てる（無ければ内容量から自動算出）。
-    local widths = same and parse_widths(el.attributes.widths, ncol) or nil
-    if el.attributes.widths and same and not widths then
-      io.stderr:write('[design-doc] 警告: .tbl（' .. hint .. '）の widths の個数が列数(' .. ncol ..
-        ')と一致しません。自動幅にします。\n')
+    local widths_attr = el.attributes['tbl-colwidths']
+    local columns = #parts[1].colspecs
+    local same_columns = true
+    for _, tbl in ipairs(parts) do
+      if #tbl.colspecs ~= columns then same_columns = false end
     end
-    if not same then
-      io.stderr:write('[design-doc] 警告: .tbl（' .. hint .. '）内の表で列数が一致しません。' ..
-        '列幅の統一をスキップします。\n')
-    elseif widths then
-      for _, t in ipairs(parts) do
-        for c = 1, ncol do t.colspecs[c] = { t.colspecs[c][1], widths[c] } end
+    if widths_attr then
+      if same_columns and parse_widths(widths_attr, columns) then
+        for _, tbl in ipairs(parts) do
+          -- Quarto applies the per-table override over the project default.
+          tbl.attributes['tbl-colwidths'] = widths_attr
+        end
+      else
+        io.stderr:write('[design-doc] 警告: .tbl（' .. hint ..
+          '）の tbl-colwidths は列数分の有効な数値配列を指定してください。\n')
       end
-    else
-      local maxw = {}
-      for c = 1, ncol do maxw[c] = 1 end
-      for _, t in ipairs(parts) do scan_table_widths(t, ncol, maxw) end
-      local total = 0
-      for c = 1, ncol do
-        if maxw[c] > 40 then maxw[c] = 40 end
-        if maxw[c] < 4 then maxw[c] = 4 end
-        total = total + maxw[c]
-      end
-      for _, t in ipairs(parts) do
-        for c = 1, ncol do t.colspecs[c] = { t.colspecs[c][1], maxw[c] / total } end
+    elseif M > 1 and same_columns and not default_table_widths and columns > 0 then
+      -- Keep a split table aligned across pages even when no width is
+      -- specified. Reuse the first part's grid widths if it has them.
+      local first = parts[1].colspecs
+      for _, tbl in ipairs(parts) do
+        for i = 1, columns do
+          tbl.colspecs[i] = { tbl.colspecs[i][1], first[i][2] or 1 / columns }
+        end
       end
     end
 
-    -- 結合するなら、幅を測ったあと（素のグリッドで測るため）に各パートを rowspan 結合する。
+    -- 各パートで指定された列を rowspan 結合する。
     if do_merge then
       for _, t in ipairs(parts) do
         for _, b in ipairs(t.bodies) do merge_body(b.body, mcols) end
@@ -933,7 +905,6 @@ function Div(el)
     end
 
     local out = pandoc.Blocks({})
-    local TBLC = 'counter(figure.where(kind: "quarto-float-tbl"))'
     for i = 1, M do
       if IS_HTML then
         if no_number then
@@ -947,17 +918,8 @@ function Div(el)
               '<div class="split-caption" data-unnumbered="true">' .. body .. '</div>'))
           end
         else
-          -- HTML: 採番用キャプション div を各パートの上に置く。番号は
-          -- postprocess-html.mjs が本文の表と同じ連番で採番し、先頭に前置する。
-          -- 先頭パートに data-split-first を付け、そこで1つの表番号を確定させる。
-          -- ref があれば data-ref（postprocess が numberOf 登録）と id（HTML の参照リンクの
-          -- 飛び先。自前採番の表は Quarto フロートでないため自分で id を出す）を付ける。
-          local first = (i == 1) and ' data-split-first="true"' or ''
-          local dref = (i == 1 and ref) and (' data-ref="' .. ref .. '"') or ''
-          local idattr = (i == 1 and ref) and (' id="' .. ref .. '"') or ''
-          local body = (caption .. suffix(i)):gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
-          out:insert(pandoc.RawBlock('html', '<div class="split-caption"' .. first .. idattr .. dref ..
-            ' data-part="' .. i .. '" data-total="' .. M .. '">' .. body .. '</div>'))
+          if i == 1 and ref then out:insert(html_table_target(ref, caption)) end
+          out:insert(split_caption(caption .. suffix(i), ref, i, M))
         end
         out:insert(parts[i])
       else
@@ -971,7 +933,7 @@ function Div(el)
           -- 先頭で採番カウンタを1つ進め、全パート（全ページ）が同じ番号を表示する。
           -- 採番位置（step 済み・以降このグループでは step しない）に参照ラベルを置く。
           -- _xref がこの location で図表カウンタを読み、キャプションと同じ番号を解決する。
-          out:insert(pandoc.RawBlock('typst', '#' .. TBLC .. '.step()'))
+          out:insert(pandoc.RawBlock('typst', '#ddq-step-table()'))
           if ref then
             out:insert(pandoc.RawBlock('typst', '#metadata(none)#label("sn-' .. ref .. '")'))
           end
@@ -1081,19 +1043,15 @@ function Div(el)
     end
 
     -- HTML: パートごとに「採番キャプション div + IPO 定型枠 div」を出す。表番号は
-    --   postprocess-html.mjs が本文の表と同じ連番で採番して前置する（.tbl と同じ経路）。
+    --   postprocess-html.js が本文の表と同じ連番で採番して前置する（.tbl と同じ経路）。
     --   先頭パートに data-split-first、ref があれば id（参照リンクの飛び先）と data-ref
     --   （番号を numberOf に登録）を付ける。M==1 でも採番する（PDF は常に採番＝挙動を揃え、
     --   IPO を含む文書で PDF/HTML の表番号がずれる従来の不整合も解消する）。
     if IS_HTML then
       local out = pandoc.Blocks({})
       for i = 1, M do
-        local first = (i == 1) and ' data-split-first="true"' or ''
-        local idattr = (i == 1 and ref) and (' id="' .. ref .. '"') or ''
-        local dref = (i == 1 and ref) and (' data-ref="' .. ref .. '"') or ''
-        local body = (cap .. suffix(i)):gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
-        out:insert(pandoc.RawBlock('html', '<div class="split-caption"' .. first .. idattr .. dref ..
-          ' data-part="' .. i .. '" data-total="' .. M .. '">' .. body .. '</div>'))
+        if i == 1 and ref then out:insert(html_table_target(ref, cap)) end
+        out:insert(split_caption(cap .. suffix(i), ref, i, M))
         out:insert(pandoc.Div({
           pandoc.Div({
             html_cell('ipo-title-label', '機能名'),
@@ -1151,31 +1109,7 @@ function Div(el)
     return out
   end
 
-  -- 素の表の列幅だけを指定するラッパ: ::: {widths="20,30,10,40"} … 表 … :::
-  -- （.tbl / .landscape / .ipo は上で処理済み。ここへ来るのは幅指定のみ
-  --   の div。div 自体は残さず中身を返す＝図表の中央寄せを崩さない）。
-  if el.attributes.widths and el.attributes.widths ~= '' then
-    return pandoc.walk_block(el, { Table = function(t)
-      apply_widths(t, el.attributes.widths, 'widths ラッパ')
-      return t
-    end }).content
-  end
 end
-
--- ============================================================
---  表の幅を本文幅いっぱいに正規化する。
---
---  Pandoc は Markdown の罫線（|---|）が十分に長いときだけ相対列幅を出力し、
---  短いと幅なし（Typst の auto 幅）になる。その結果、表ごとに幅と寄せが
---  バラバラになり「執筆者が罫線を何文字引いたか」で見た目が変わってしまう。
---  そこで全ての表に明示的な相対幅を与え、常に本文幅いっぱいに揃える。
---  Vivliostyle 版（table { width: 100% }）とも見た目が一致する。
---
---  列幅は各列の最大表示幅に比例させる（全角=2, 半角=1）。等幅にすると
---  「必須」のような短い列が広くなりすぎるため。
--- ============================================================
-
--- disp_width / cell_width は Div より前（.tbl と共用）へ移動済み。
 
 -- ============================================================
 --  セル先頭のリストを #block[…] で囲む（typst 出力のみ）。
@@ -1202,44 +1136,9 @@ local function wrap_leading_list(rows)
 end
 
 function Table(t)
-  local ncol = #t.colspecs
-  if ncol == 0 then return nil end
-
-  -- 列幅の計測より先でも後でもよいが、stringify で測るので結果は変わらない。
-  if not IS_HTML then
-    for _, r in ipairs(t.head.rows) do wrap_leading_list({ r }) end
-    for _, b in ipairs(t.bodies) do wrap_leading_list(b.body) end
-  end
-
-  -- 各列の最大表示幅を集める（結合セルは列幅の根拠にしない）
-  local maxw = {}
-  for c = 1, ncol do maxw[c] = 1 end
-  local function scan(rows)
-    for _, row in ipairs(rows) do
-      local c = 1
-      for _, cell in ipairs(row.cells) do
-        if cell.col_span == 1 and c <= ncol then
-          local w = cell_width(cell)
-          if w > maxw[c] then maxw[c] = w end
-        end
-        c = c + cell.col_span
-      end
-    end
-  end
-  for _, r in ipairs(t.head.rows) do scan({ r }) end
-  for _, b in ipairs(t.bodies) do scan(b.body) end
-
-  -- 極端な偏りを抑えてから正規化する
-  local total = 0
-  for c = 1, ncol do
-    if maxw[c] > 40 then maxw[c] = 40 end   -- 長文列が支配しないよう頭打ち
-    if maxw[c] < 4 then maxw[c] = 4 end     -- 短い列がつぶれないよう下限
-    total = total + maxw[c]
-  end
-
-  for c = 1, ncol do
-    t.colspecs[c] = { t.colspecs[c][1], maxw[c] / total }
-  end
+  if not IS_TYPST then return end
+  wrap_leading_list(t.head.rows)
+  for _, body in ipairs(t.bodies) do wrap_leading_list(body.body) end
   return t
 end
 
@@ -1271,8 +1170,6 @@ end
 -- ============================================================
 local num_labels = {}          -- id -> 表示（HTML 用。typst は lib.typ が作る）
 local num_seen = {}            -- id -> true（重複の検出）
-local IS_TYPST = FORMAT == 'typst'
-
 -- 段落末尾の {#num-…} を取り除き、id を返す（無ければ nil）。inl は Inlines（その場で直す）。
 local function take_num_marker(inl)
   local acc = ''
@@ -1359,32 +1256,28 @@ local function num_ref(id)
     end
     return pandoc.RawInline('typst', '#_num-ref("' .. id .. '")')
   end
+  if crossref_options['ref-hyperlink'] == false then
+    return pandoc.RawInline('html', '<span data-ddq-ref="' .. html_escape(id) .. '">' ..
+      (num_labels[id] or '?') .. '</span>')
+  end
   return pandoc.RawInline('html', '<a href="#' .. id .. '" class="quarto-xref">' ..
     (num_labels[id] or '?') .. '</a>')
 end
 
--- ============================================================
---  @tbl- 相互参照の先回り解決。
---
---  Quarto の crossref は全 Lua フィルタより後段で走り、フロート（#tbl-x）しか
---  解決しない。自前採番の表（.tbl / .ipo）への @tbl-x は
---  未解決＝「?」になってしまう。そこで参照（Cite）をこの段階で置換し、解決を
---  自前チャネルに載せる（採番はすでに typst カウンタ／postprocess で自前に持っている）:
---    - typst: #_xref("tbl-x")（lib.typ）。<sn-tbl-x> があれば自前採番の番号、
---      なければ Quarto が付けた <tbl-x> へ ref 委譲（通常のフロート表は従来どおり）。
---    - HTML: 自前アンカー。番号は postprocess-html.mjs が numberOf から確定する
---      （通常表 id も numberOf に載るので、通常表の参照も同じ経路で解決される）。
---  fig- 参照は Quarto ネイティブのまま（図は常にフロートで従来どおり効くため触らない）。
---  複数引用（[@tbl-a; @tbl-b]）は Quarto に委ねる（自前採番表を group 参照する運用は無い）。
+-- Standard Quarto references are left to its resolver. Typst's split
+-- tables and IPO groups have their own location, collected before Cite.
 function Cite(el)
-  if #el.citations ~= 1 then return nil end
-  local id = el.citations[1].id
+  if #el.citations ~= 1 then return end
+  local cite = el.citations[1]
+  local id = cite.id
   if id:match('^num%-') then return num_ref(id) end
-  if not id:match('^tbl%-') then return nil end
-  if IS_HTML then
-    return pandoc.RawInline('html', '<a href="#' .. id .. '" class="quarto-xref">?</a>')
-  else
-    return pandoc.RawInline('typst', '#_xref("' .. id .. '")')
+  if IS_TYPST and custom_tables[id] then
+    local prefix = cite.mode == pandoc.SuppressAuthor and pandoc.Inlines{}
+      or (#cite.prefix > 0 and cite.prefix or crossref_options['tbl-prefix']
+        or pandoc.Inlines{pandoc.Str(quarto.doc.language['crossref-tbl-prefix']
+          or quarto.doc.language['crossref-tbl-title'] or 'Table')})
+    local rendered = pandoc.write(pandoc.Pandoc({pandoc.Plain(prefix)}), 'typst'):gsub('[\r\n]+$', '')
+    return pandoc.RawInline('typst', '#_xref("' .. id .. '", supplement: [' .. rendered .. '])')
   end
 end
 
@@ -1446,7 +1339,8 @@ function Pandoc(doc)
   if FORMAT ~= 'typst' then return nil end
   if not (PANDOC_WRITER_OPTIONS and PANDOC_WRITER_OPTIONS.table_of_contents) then return nil end
   -- toc-position: top なら従来どおり先頭（表紙の次・前付けの前）に出す。
-  local pos = doc.meta['toc-position'] and pandoc.utils.stringify(doc.meta['toc-position'])
+  local ddq = doc.meta.ddq or {}
+  local pos = ddq['toc-position'] and pandoc.utils.stringify(ddq['toc-position'])
   if pos == 'top' then return nil end
 
   local manual = false
@@ -1465,10 +1359,11 @@ function Pandoc(doc)
     local m = file_metadata(b)
     if m then
       if index_at then next_at = i; break end
-      if m.bookItemFile == 'index.qmd' then index_at = i end
+      if m.bookItemFile == 'index.qmd' or m.bookItemFile == 'index.md' then index_at = i end
     end
   end
-  if not next_at then return nil end
+  if not index_at then return nil end
+  next_at = next_at or #doc.blocks + 1
 
   local title = doc.meta['toc-title'] and pandoc.utils.stringify(doc.meta['toc-title']) or '目 次'
   local depth = PANDOC_WRITER_OPTIONS.toc_depth or 3
@@ -1488,16 +1383,35 @@ end
 --  2 段目で従来どおり要素ごとに変換する（CodeBlock はキャッシュを使うだけになる）。
 --  2 段目は、定義されたグローバル関数を要素名で集めて作る（関数を足したときに書き漏らさない）。
 -- ============================================================
-local function collect_mermaid(doc)
-  if not WANT_SVG then return nil end
+local function prepare(doc)
+  local ddq = doc.meta.ddq or {}
+  default_table_widths = doc.meta['tbl-colwidths'] ~= nil
+  plantuml_server = ddq['plantuml-server'] and pandoc.utils.stringify(ddq['plantuml-server'])
+  crossref_options = doc.meta.crossref or pandoc.MetaMap({})
+  if IS_HTML then
+    -- These three categories use DDQ's decimal sequence. The HTML
+    -- post-quarto filter gives their caption renderer a placeholder.
+    for _, kind in ipairs({'fig', 'tbl', 'lst'}) do
+      crossref_options[kind .. '-labels'] = pandoc.MetaString('arabic')
+    end
+    doc.meta.crossref = crossref_options
+  end
   local codes = {}
   doc:walk({
+    Div = function(el)
+      if IS_TYPST and (el.classes:includes('tbl') or el.classes:includes('ipo')) then
+        local id = (el.attributes.label or ''):gsub('^#+', '')
+        if id:match('^tbl%-') and not el.classes:includes('unnumbered') then
+          custom_tables[id] = true
+        end
+      end
+    end,
     CodeBlock = function(el)
-      if el.classes:includes('mermaid') then table.insert(codes, el.text) end
+      if WANT_SVG and el.classes:includes('mermaid') then codes[#codes + 1] = el.text end
     end,
   })
-  prerender_mermaid(codes)
-  return nil
+  if WANT_SVG then prerender_mermaid(codes) end
+  return doc
 end
 
 local ELEMENT_FILTERS = {
@@ -1518,4 +1432,4 @@ end
 
 -- 番号付きリストの {#num-x} は、参照（Cite）を置き換える 2 段目より前に集めておく
 -- （2 段目の Cite が番号を引けるように。表のセル内のリストも .tbl の組み立て前に拾う）。
-return { { Pandoc = collect_mermaid }, { Pandoc = mark_num_items }, element_filter }
+return { { Pandoc = prepare }, { Pandoc = mark_num_items }, element_filter }

@@ -64,14 +64,14 @@ pub fn run(dir: &Path) -> Result<()> {
             println!("mermaid: {} -> {}", file_name(&job.input), file_name(&job.output));
         }
         // 設定は執筆フォルダ直下のものを使う（design-doc.lua と同じ規則）。無ければ埋め込み既定。
-        let config_path = dir.join("mermaid-config.json");
+        let config_path = dir.join(crate::assets::EXTENSION_DIR).join("mermaid-config.json");
         let config = mermaid::load_config(config_path.is_file().then_some(config_path.as_path()))?;
         mermaid::render_jobs(&mmd, &config, "transparent")?;
     }
 
     if !puml.is_empty() {
         // フェンスの有無に関わらずサーバが要る（ensure は原稿にフェンスが無いと上げない）
-        let session = match plantuml::ensure(dir)? {
+        let session = match plantuml::ensure(dir, plantuml::project_server(dir).as_deref())? {
             plantuml::Session::None => plantuml::Session::Local(plantuml::start_local(0)?),
             s => s,
         };

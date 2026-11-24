@@ -20,7 +20,7 @@ Node は CVE-2024-27980 の対応以降バッチを `execFile` で直接起動�
 
 ### ddq との契約 {#sec-data-ddq-contract}
 
-::: {.tbl caption="共通の基盤が起動する ddq" label="tbl-common-ddq-calls" widths="40,60"}
+::: {.tbl caption="共通の基盤が起動する ddq" label="tbl-common-ddq-calls" tbl-colwidths="[40,60]"}
 | 呼び出し | 拡張が読むもの |
 |---|---|
 | `ddq pdf <執筆フォルダ>` | 終了コード。出力はチャネルへ流すだけ。成功後は `<執筆フォルダ>/design-doc.pdf` を開く |
@@ -32,7 +32,7 @@ Node は CVE-2024-27980 の対応以降バッチを `execFile` で直接起動�
 | `ddq --version` | `ddq 3.1.0` の最後の語（`versionOf`）。版不一致の分類と、同梱 ddq の版の確認に使う |
 :::
 
-::: {.tbl caption="ddq の終了コード" label="tbl-exit-codes" widths="14,46,40"}
+::: {.tbl caption="ddq の終了コード" label="tbl-exit-codes" tbl-colwidths="[14,46,40]"}
 | コード | 意味 | 根拠 |
 |---|---|---|
 | `0` | 成功 | ― |
@@ -52,7 +52,7 @@ ddq の標準エラーの書式（`Error: {:?}`）は anyhow の既定と同じ�
 
 ### 設定・状態
 
-::: {.tbl caption="設定と拡張の状態" label="tbl-common-state" widths="34,66"}
+::: {.tbl caption="設定と拡張の状態" label="tbl-common-state" tbl-colwidths="[34,66]"}
 | 名前 | 内容 |
 |---|---|
 | 設定 `ddqTemplate.ddqPath` | ddq のパス（@sec-data-locate） |

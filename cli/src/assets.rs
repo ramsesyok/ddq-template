@@ -5,7 +5,10 @@
 //! （build.rs が rerun-if-changed を出している）。
 //! 何を執筆フォルダのどこに置くかは §3.3 の表のとおり。
 
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result};
 use include_dir::{Dir, include_dir};
@@ -24,7 +27,7 @@ pub struct Asset {
 
 /// 機構ファイル。執筆者の HTML 経路にも要るので **doc リポジトリにコミットされる**。
 /// これを変えたらテンプレートの版を上げること（利用マニュアル 18 章・テンプレート設計書）。
-pub const MECHANISM: [Asset; 5] = [
+pub const MECHANISM: [Asset; 11] = [
     Asset {
         name: "design-doc.lua",
         body: include_str!("../../template/design-doc.lua"),
@@ -45,10 +48,6 @@ pub const MECHANISM: [Asset; 5] = [
         name: "plantuml-config.puml",
         body: include_str!("../../template/plantuml-config.puml"),
     },
-];
-
-/// PDF 側ファイル。PDF を出すときだけ要り、doc リポジトリでは .gitignore される。
-pub const PDF_SIDE: [Asset; 4] = [
     Asset {
         name: "lib.typ",
         body: include_str!("../../template/lib.typ"),
@@ -62,13 +61,36 @@ pub const PDF_SIDE: [Asset; 4] = [
         body: include_str!("../../template/typst-show.typ"),
     },
     Asset {
-        name: "_quarto-publish.yml",
-        body: include_str!("../../template/quarto-publish.yml"),
+        name: "html-crossref.lua",
+        body: include_str!("../../template/html-crossref.lua"),
+    },
+    Asset {
+        name: "typst-book.lua",
+        body: include_str!("../../template/typst-book.lua"),
+    },
+    Asset {
+        name: "numbering.typ",
+        body: include_str!("../../template/numbering.typ"),
     },
 ];
 
-/// `.template-version` に書く名前
-pub const TEMPLATE_VERSION_FILE: &str = ".template-version";
+pub const EXTENSION_DIR: &str = "_extensions/ddq";
+pub const MANIFEST: Asset = Asset {
+    name: "_extension.yml",
+    body: include_str!(concat!(env!("OUT_DIR"), "/_extension.yml")),
+};
+
+pub fn manifest_path(dir: &Path) -> PathBuf {
+    dir.join(EXTENSION_DIR).join(MANIFEST.name)
+}
+
+pub fn manifest_version(yml: &str) -> Option<&str> {
+    yml.lines()
+        .find_map(|line| line.strip_prefix("version:"))
+        .map(str::trim)
+        .map(|value| value.trim_matches(['"', '\'']))
+        .filter(|value| !value.is_empty())
+}
 
 /// 新規リポジトリ / 執筆フォルダの雛形。repo/ はリポジトリ直下、content/ は執筆フォルダ。
 pub static SCAFFOLD: Dir = include_dir!("$CARGO_MANIFEST_DIR/../template/scaffold");
@@ -120,6 +142,9 @@ pub fn write_dir_if_absent(src: &Dir, strip: &str, dest: &Path) -> Result<Vec<Pl
     let mut placed = Vec::new();
     for file in src.files() {
         let rel = file.path().strip_prefix(strip).expect("strip は src の接頭辞");
+        if rel == Path::new("_quarto.yml") && dest.join("_quarto.yaml").is_file() {
+            continue;
+        }
         let shown = rel.to_string_lossy().replace('\\', "/");
         placed.push(create_if_absent(&dest.join(rel), file.contents(), shown)?);
     }

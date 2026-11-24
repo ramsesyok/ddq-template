@@ -1,8 +1,7 @@
 /**
  * 執筆フォルダの決定（docs/ddq-template-study.md §6）。
  *
- * 執筆フォルダ = `_quarto.yml` とテンプレートの版ファイル（`.template-version`）がある
- * フォルダ。版ファイルで、ddq の文書と素の Quarto プロジェクトを見分ける。
+ * Quarto の設定と、DDQ の拡張または project.type: ddq を持つフォルダを対象にする。
  *
  *   1. エクスプローラで右クリックしたフォルダ（とその親）
  *   2. アクティブエディタのファイルから親をたどる
@@ -13,7 +12,8 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 export const QUARTO_YML = '_quarto.yml';
-export const TEMPLATE_VERSION_FILE = '.template-version';
+export const QUARTO_CONFIGS = [QUARTO_YML, '_quarto.yaml'] as const;
+export const TEMPLATE_VERSION_FILE = '_extensions/ddq/_extension.yml';
 
 /** 親をたどる上限（ドライブの根まで行かないように） */
 const MAX_DEPTH = 12;
@@ -42,15 +42,51 @@ async function exists(file: string): Promise<boolean> {
     }
 }
 
+export async function quartoConfig(dir: string): Promise<string | undefined> {
+    for (const name of QUARTO_CONFIGS) {
+        const file = path.join(dir, name);
+        if (await exists(file)) return file;
+    }
+    return undefined;
+}
+
 export async function isWritingFolder(dir: string): Promise<boolean> {
-    return (await exists(path.join(dir, QUARTO_YML))) && (await exists(path.join(dir, TEMPLATE_VERSION_FILE)));
+    const config = await quartoConfig(dir);
+    if (!config) return false;
+    if (await exists(path.join(dir, TEMPLATE_VERSION_FILE))) return true;
+
+    // 配線済みで、更新前の執筆フォルダもコマンドの対象にできるようにする。
+    try {
+        const content = new TextDecoder().decode(await vscode.workspace.fs.readFile(vscode.Uri.file(config)));
+        const project = /^project:[ \t]*(.*)$/m.exec(content);
+        if (!project) return false;
+        const ddqType = /^(?:"ddq"|'ddq'|ddq)[ \t]*(?:#.*)?$/;
+        const header = project[1].trim();
+        if (header.startsWith('{')) {
+            const scalar = /(?:^|,)\s*type:\s*([^,}]+)/.exec(header.slice(1))?.[1]?.trim();
+            return scalar !== undefined && ddqType.test(scalar);
+        }
+        const lines = content.slice(project.index + project[0].length).split(/\r?\n/);
+        let indent: number | undefined;
+        for (const line of lines) {
+            const text = line.trim();
+            if (!text || text.startsWith('#')) continue;
+            const depth = line.length - line.trimStart().length;
+            if (!depth) break;
+            indent ??= depth;
+            if (depth === indent && text.startsWith('type:')) return ddqType.test(text.slice(5).trim());
+        }
+    } catch {
+        // 構成ファイルが走査の途中で消えた場合は候補から外す。
+    }
+    return false;
 }
 
 /** ワークスペース内の執筆フォルダ（fsPath。並びは安定させる）。 */
 export async function listWritingFolders(): Promise<string[]> {
-    const found = await vscode.workspace.findFiles(`**/${TEMPLATE_VERSION_FILE}`, '**/{_book,node_modules}/**', 200);
-    const dirs = [...new Set(found.map((u) => path.dirname(u.fsPath)))];
-    const checked = await Promise.all(dirs.map(async (d) => ((await exists(path.join(d, QUARTO_YML))) ? d : undefined)));
+    const found = await vscode.workspace.findFiles('**/{_quarto.yml,_quarto.yaml}', '**/{_book,_freeze,.quarto,node_modules}/**', 200);
+    const dirs = [...new Set(found.map(u => path.dirname(u.fsPath)))];
+    const checked = await Promise.all(dirs.map(async d => (await isWritingFolder(d)) ? d : undefined));
     return checked.filter((d): d is string => d !== undefined).sort();
 }
 
@@ -73,7 +109,7 @@ export async function resolveWritingFolder(resource?: vscode.Uri): Promise<strin
     const dirs = await listWritingFolders();
     if (dirs.length === 0) {
         vscode.window.showErrorMessage(
-            `執筆フォルダ（${QUARTO_YML} と ${TEMPLATE_VERSION_FILE} のあるフォルダ）が見つかりません。`
+            `執筆フォルダ（${QUARTO_YML} または _quarto.yaml で DDQ を指定したフォルダ）が見つかりません。`
         );
         return undefined;
     }
@@ -82,7 +118,7 @@ export async function resolveWritingFolder(resource?: vscode.Uri): Promise<strin
 }
 
 /** 配下のフォルダを数えるときに入らないフォルダ（生成物・道具の置き場） */
-const SKIP_DIRS = new Set(['_book', '_freeze', '.quarto', '.git', 'node_modules']);
+const SKIP_DIRS = new Set(['_book', '_freeze', '.quarto', '.git', 'node_modules', '_extensions']);
 
 /** 右クリックメニューに載せる配下のフォルダの上限（極端に大きいワークスペースで止まらないように） */
 const MAX_SUBFOLDERS = 5000;
@@ -159,7 +195,7 @@ export function watchWritingFolders(context: vscode.ExtensionContext, onChange: 
         if (!latest()) return;
         onChange();
     };
-    for (const name of [TEMPLATE_VERSION_FILE, QUARTO_YML]) {
+    for (const name of [TEMPLATE_VERSION_FILE, ...QUARTO_CONFIGS]) {
         const watcher = vscode.workspace.createFileSystemWatcher(`**/${name}`, false, true, false);
         watcher.onDidCreate(update);
         watcher.onDidDelete(update);

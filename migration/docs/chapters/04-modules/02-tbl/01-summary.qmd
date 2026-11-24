@@ -7,7 +7,7 @@ pandoc が出力した markdown を読み、表と図にテンプレートの採
 キャプションから番号を拾う過程で「元番号 → label」の対応表ができるため、
 本文の参照置換は表の囲みと同時に行える。
 
-::: {.tbl caption="SP-02 の入出力概要" label="tbl-sp02-io" widths="16,30,54"}
+::: {.tbl caption="SP-02 の入出力概要" label="tbl-sp02-io" tbl-colwidths="[16,30,54]"}
 | 区分 | データ | 内容 |
 |---|---|---|
 | 入力 | markdown | pandoc が `-t markdown-simple_tables-multiline_tables --wrap=none` で出力したもの（設計条件 C-08） |
@@ -18,7 +18,7 @@ pandoc が出力した markdown を読み、表と図にテンプレートの採
 
 #### 変換の内容
 
-::: {.tbl caption="SP-02 が行う変換" label="tbl-sp02-conv" widths="26,74"}
+::: {.tbl caption="SP-02 が行う変換" label="tbl-sp02-conv" tbl-colwidths="[26,74]"}
 | 対象 | 変換後 |
 |---|---|
 | 表とそのキャプション | `::: {.tbl caption="タイトル" label="tbl-1-1-1"}` で囲む。キャプションから番号を除く |
@@ -36,7 +36,7 @@ label は**元番号から機械的に生成**する（`表1.1-1` → `tbl-1-1-1
 
 #### 行わない変換
 
-::: {.tbl caption="SP-02 が行わない変換とその理由" label="tbl-sp02-not" widths="22,78"}
+::: {.tbl caption="SP-02 が行わない変換とその理由" label="tbl-sp02-not" tbl-colwidths="[22,78]"}
 | 項目 | 理由 |
 |---|---|
 | `merge-cols` の付与 | Word の結合セルはグリッド表の結合として既に保存されている。手で結合を書いた表に `merge-cols` は効かないため、付けても意味がない |

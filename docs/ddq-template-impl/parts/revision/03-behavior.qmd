@@ -37,7 +37,7 @@ sequenceDiagram
 
 確認済み（静的）：`applyRows` は**当てる前に 2 段階**で確かめる。[E-0004](appendix-evidence.qmd#ev-rev-e-0004)
 
-::: {.tbl caption="書き戻しの前に確かめること" label="tbl-rev-apply-checks" widths="26,40,34"}
+::: {.tbl caption="書き戻しの前に確かめること" label="tbl-rev-apply-checks" tbl-colwidths="[26,40,34]"}
 | 段 | 見るもの | 弾いたときの扱い |
 |---|---|---|
 | 1. ラベルの検査（`checkRows`） | 空でないか、種別に合った接頭辞か（`sec-`/`tbl-`/`fig-`）、英数字・`-`・`_` だけか、既存および同じ回の他の行と重複しないか | 1 件でも駄目なら**何も当てず**、行ごとの理由を画面へ返す |
@@ -69,7 +69,7 @@ sequenceDiagram
 - `onDidChangeTextDocument` を購読し、**外から書き換わっても画面を合わせる**（`ddq rev diff --write` が同じファイルを書くため。2026-11-23 から本文はすぐ送り、タグの取り直しは入力が止まってから 800 ミリ秒後に 1 回だけ。閉じたエディタには送らない。EXT-03）
 - 画面からの `edit` は `toYaml` で YAML 全体を作り直し、`WorkspaceEdit` で置き換える（2026-11-23 から、`edit` は直した 1 か所と直す前の値で、拡張は文書のいまの内容に当て、直す前の値が文書と違えば当てずに画面を文書に戻す。外部レビュー H-02）。**文書の改行（`document.eol`）に合わせて書く**ので、CRLF のファイルで全行が書き換わらない
 
-::: {.tbl caption="画面のボタンが行うこと" label="tbl-rev-editor-buttons" widths="20,80"}
+::: {.tbl caption="画面のボタンが行うこと" label="tbl-rev-editor-buttons" tbl-colwidths="[20,80]"}
 | ボタン | 行うこと |
 |---|---|
 | 差分を取り直す | 未保存なら確認して保存（2026-11-23 から、保存できなかった・保存の後にまた変わったときは ddq を起動しない。M-02。確定も同じ） → `ddq rev diff <folder> --write [--base <ref>]`。ddq が yml を書き、外部変更として画面へ戻る |
@@ -83,7 +83,7 @@ sequenceDiagram
 
 確認済み（静的）：`openDiff` は自前で差分を描かず、`vscode.diff` に渡す。左右の URI は変更の種別で使い分ける。[E-0005](appendix-evidence.qmd#ev-rev-e-0005)、[E-0009](appendix-evidence.qmd#ev-rev-e-0009)
 
-::: {.tbl caption="差分の左右" label="tbl-rev-diff-uris" widths="20,40,40"}
+::: {.tbl caption="差分の左右" label="tbl-rev-diff-uris" tbl-colwidths="[20,40,40]"}
 | 種別 | 左（旧版） | 右（新版） |
 |---|---|---|
 | changed / renamed | 内蔵 Git 拡張の `toGitUri(file, base_commit)` | 作業ツリーの `file:` URI |

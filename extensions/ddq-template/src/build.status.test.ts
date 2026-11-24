@@ -56,7 +56,7 @@ vi.mock('vscode', () => ({
 }));
 
 vi.mock('./folders', () => ({
-    TEMPLATE_VERSION_FILE: '.template-version',
+    TEMPLATE_VERSION_FILE: '_extensions/ddq/_extension.yml',
     activeWritingFolder: () =>
         new Promise<string | undefined>((resolve) => {
             state.queries.push({ resolve });

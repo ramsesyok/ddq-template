@@ -80,9 +80,9 @@ function write(file: string, text = '') {
 
 /** 執筆フォルダ（_quarto.yml と版ファイル）を作り、ワークスペースの検索に載せる */
 function writingFolder(dir: string, version = '2.4.6'): string {
-    write(path.join(dir, '_quarto.yml'), 'project:\n  type: book\n');
-    write(path.join(dir, '.template-version'), `${version}\n`);
-    fake.found.push(path.join(dir, '.template-version'));
+    write(path.join(dir, '_quarto.yml'), 'project:\n  type: ddq\n');
+    write(path.join(dir, '_extensions/ddq/_extension.yml'), `version: ${version}\n`);
+    fake.found.push(path.join(dir, '_quarto.yml'));
     return dir;
 }
 
@@ -414,7 +414,7 @@ describe('発行（PDF / HTML / 図）', () => {
     });
 
     it('機構が古ければ update を勧め、押せば update してから元のコマンドをやり直す', async () => {
-        fs.writeFileSync(path.join(docs, '.template-version'), '2.0.0\n');
+        fs.writeFileSync(path.join(docs, '_extensions/ddq/_extension.yml'), 'version: 2.0.0\n');
         ddq.results.push({ code: 3 }, { code: 0 }, { code: 0 });
         fake.answer('showWarningMessage', 'ddq update を実行');
 
@@ -433,7 +433,7 @@ describe('発行（PDF / HTML / 図）', () => {
     });
 
     it('update を押さなければ何もしない', async () => {
-        fs.writeFileSync(path.join(docs, '.template-version'), '2.0.0\n');
+        fs.writeFileSync(path.join(docs, '_extensions/ddq/_extension.yml'), 'version: 2.0.0\n');
         ddq.results.push({ code: 3 });
         expect(await fake.run('ddqTemplate.html', Uri.file(docs))).toBe('mismatch');
         expect(ddq.calls).toEqual([['html', docs]]);
@@ -446,7 +446,7 @@ describe('発行（PDF / HTML / 図）', () => {
     });
 
     it('文書の方が新しければ update を出さない（機構を古い版に戻さない）', async () => {
-        fs.writeFileSync(path.join(docs, '.template-version'), '9.0.0\n');
+        fs.writeFileSync(path.join(docs, '_extensions/ddq/_extension.yml'), 'version: 9.0.0\n');
         ddq.results.push({ code: 3 });
 
         expect(await fake.run('ddqTemplate.pdf', Uri.file(docs))).toBe('mismatch');
@@ -457,7 +457,7 @@ describe('発行（PDF / HTML / 図）', () => {
     });
 
     it('pre の文書を正式版の ddq で発行すれば update を勧める（pre4 → 3.0.0。EXT-01）', async () => {
-        fs.writeFileSync(path.join(docs, '.template-version'), '3.0.0-pre4\n');
+        fs.writeFileSync(path.join(docs, '_extensions/ddq/_extension.yml'), 'version: 3.0.0-pre4\n');
         ddq.version = 'ddq 3.0.0';
         ddq.results.push({ code: 3 });
 
@@ -471,7 +471,7 @@ describe('発行（PDF / HTML / 図）', () => {
     });
 
     it('正式版の文書を pre の ddq で発行しても update を出さない（3.0.0 → pre4 は降格）', async () => {
-        fs.writeFileSync(path.join(docs, '.template-version'), '3.0.0\n');
+        fs.writeFileSync(path.join(docs, '_extensions/ddq/_extension.yml'), 'version: 3.0.0\n');
         ddq.version = 'ddq 3.0.0-pre4';
         ddq.results.push({ code: 3 });
 
@@ -494,9 +494,9 @@ describe('発行（PDF / HTML / 図）', () => {
         for (const [folderVersion, version, shown] of cases) {
             fake.calls.length = 0;
             ddq.calls.length = 0;
-            const file = path.join(docs, '.template-version');
+            const file = path.join(docs, '_extensions/ddq/_extension.yml');
             if (folderVersion === undefined) fs.rmSync(file, { force: true });
-            else fs.writeFileSync(file, `${folderVersion}\n`);
+            else fs.writeFileSync(file, `version: ${folderVersion}\n`);
             ddq.version = version;
             ddq.results.push({ code: 3 });
 
@@ -511,7 +511,7 @@ describe('発行（PDF / HTML / 図）', () => {
     });
 
     it('update が失敗したら元のコマンドをやり直さない', async () => {
-        fs.writeFileSync(path.join(docs, '.template-version'), '2.0.0\n');
+        fs.writeFileSync(path.join(docs, '_extensions/ddq/_extension.yml'), 'version: 2.0.0\n');
         ddq.results.push({ code: 3 }, { code: 1 });
         fake.answer('showWarningMessage', 'ddq update を実行');
 

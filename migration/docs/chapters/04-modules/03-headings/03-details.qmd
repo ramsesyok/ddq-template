@@ -16,7 +16,7 @@
 code = _code_lines(lines)
 ```
 
-::: {.tbl caption="M-0301 インタフェース" label="tbl-m0301-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0301 インタフェース" label="tbl-m0301-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `lines` | `list[str]` | 対象の行の並び | 不可（必須） |
@@ -63,7 +63,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0301-exc に示す。
 
-::: {.tbl caption="M-0301 処理条件・例外条件" label="tbl-m0301-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0301 処理条件・例外条件" label="tbl-m0301-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -96,7 +96,7 @@ markdown 全文を読み、見出しごとに番号を削除してよいかを�
 lines, code, changes = plan(text)
 ```
 
-::: {.tbl caption="M-0302 インタフェース" label="tbl-m0302-if" widths="10,16,18,40,16"}
+::: {.tbl caption="M-0302 インタフェース" label="tbl-m0302-if" tbl-colwidths="[10,16,18,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `text` | `str` | 対象の markdown 全文 | 不可（必須） |
@@ -153,7 +153,7 @@ flowchart TD
 
 番号の形の判定に用いる2つの正規表現を @tbl-m0302-re に示す。
 
-::: {.tbl caption="M-0302 番号の形" label="tbl-m0302-re" widths="26,30,44"}
+::: {.tbl caption="M-0302 番号の形" label="tbl-m0302-re" tbl-colwidths="[26,30,44]"}
 | 定数 | 対象 | 区切りの扱い |
 |---|---|---|
 | `NUMBERED_WITH_UNIT` | `第3章 システム構成` | 章・節・項・編の語があるため、後ろの空白を要求しない |
@@ -162,7 +162,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0302-exc に示す。
 
-::: {.tbl caption="M-0302 処理条件・例外条件" label="tbl-m0302-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0302 処理条件・例外条件" label="tbl-m0302-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -202,7 +202,7 @@ M-0305 から起動につき1回呼び出される。入力を変更しないた
 out = apply(lines, changes)
 ```
 
-::: {.tbl caption="M-0303 インタフェース" label="tbl-m0303-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0303 インタフェース" label="tbl-m0303-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `lines` | `list[str]` | M-0302 が返した行の並び | 不可（必須） |
@@ -238,7 +238,7 @@ out = apply(lines, changes)
 
 処理条件及び例外条件を @tbl-m0303-exc に示す。
 
-::: {.tbl caption="M-0303 処理条件・例外条件" label="tbl-m0303-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0303 処理条件・例外条件" label="tbl-m0303-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `lines` と `changes` が同じ `plan` の呼出しで得られたものであること | 別々の入力から得たものを渡すと、行番号がずれて誤った行を書き換える |
@@ -267,7 +267,7 @@ M-0305 から、`--apply` が指定された場合にのみ1回呼び出され�
 _render_plan(changes, stream)
 ```
 
-::: {.tbl caption="M-0304 インタフェース" label="tbl-m0304-if" widths="10,16,20,38,16"}
+::: {.tbl caption="M-0304 インタフェース" label="tbl-m0304-if" tbl-colwidths="[10,16,20,38,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `changes` | `list[Change]` | 判定結果 | 不可（必須） |
@@ -301,7 +301,7 @@ _render_plan(changes, stream)
 
 処理条件及び例外条件を @tbl-m0304-exc に示す。
 
-::: {.tbl caption="M-0304 処理条件・例外条件" label="tbl-m0304-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0304 処理条件・例外条件" label="tbl-m0304-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `stream` が UTF-8 で書けること | M-0305 が標準出力を切り替えてから呼ぶ（設計条件 C-05） |
@@ -332,7 +332,7 @@ M-0305 から、dry-run・適用のいずれの場合でも1回呼び出され�
 code = main(argv)
 ```
 
-::: {.tbl caption="M-0305 インタフェース" label="tbl-m0305-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0305 インタフェース" label="tbl-m0305-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `argv` | `list[str] \| None` | コマンドライン引数 | `None` |
@@ -379,7 +379,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0305-exc に示す。
 
-::: {.tbl caption="M-0305 処理条件・例外条件" label="tbl-m0305-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0305 処理条件・例外条件" label="tbl-m0305-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |

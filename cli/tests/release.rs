@@ -134,7 +134,11 @@ fn fake_repo(root: &Path) {
     write(root, "cli/Cargo.lock", b"lock\r\n");
     write(root, "THIRD-PARTY-NOTICES.md", notices().as_bytes());
     // --with-sample で写すサンプル（生成物・PDF 側の補助・図のキャッシュは除かれる）
-    write(root, "examples/docs/_quarto.yml", b"book:\n");
+    write(
+        root,
+        "examples/docs/_quarto.yml",
+        b"project: {type: ddq}\nbook:\n",
+    );
     write(root, "examples/docs/chapters/01.qmd", "# 概要\n".as_bytes());
     write(root, "examples/docs/diagrams/network.svg", b"<svg/>");
     write(root, "examples/docs/diagrams/mmd-0123456789abcdef.svg", b"<svg/>");
@@ -300,8 +304,24 @@ fn with_sample_copies_the_manuscript_but_not_generated_files() {
     let sample: Vec<&str> = names.iter().filter_map(|n| n.strip_prefix("docs/")).collect();
     assert_eq!(
         sample,
-        ["_quarto.yml", "chapters/01.qmd", "diagrams/network.svg"],
-        "生成物・PDF 側の補助・図のキャッシュは除く"
+        [
+            "_extensions/ddq/_extension.yml",
+            "_extensions/ddq/design-doc.css",
+            "_extensions/ddq/design-doc.lua",
+            "_extensions/ddq/html-crossref.lua",
+            "_extensions/ddq/lib.typ",
+            "_extensions/ddq/mermaid-config.json",
+            "_extensions/ddq/numbering.typ",
+            "_extensions/ddq/plantuml-config.puml",
+            "_extensions/ddq/postprocess-html.js",
+            "_extensions/ddq/typst-book.lua",
+            "_extensions/ddq/typst-show.typ",
+            "_extensions/ddq/typst-template.typ",
+            "_quarto.yml",
+            "chapters/01.qmd",
+            "diagrams/network.svg",
+        ],
+        "原稿・静的図と DDQ 拡張一式を同梱する"
     );
 }
 
@@ -677,6 +697,7 @@ fn stale_notices_stop_the_release() {
 //  vsce の代わりをするので、通信もしない。Quarto と npm が要る（無ければ skip。DDQ_E2E なら失敗）
 // ------------------------------------------------------------------------
 
+#[cfg(windows)]
 fn npm_available() -> bool {
     let ok = Command::new(if cfg!(windows) { "npm.cmd" } else { "npm" })
         .arg("--version")
@@ -696,6 +717,7 @@ fn npm_available() -> bool {
 /// - マニュアル: ddq init の雛形（図が無いのでブラウザ・Java は要らない）。PDF・HTML は無い
 /// - ddq-a（ddq.exe を同梱）: 古い node_modules があるが、npm ci で入れ直される（2026-11-15 から毎回 npm ci する）
 /// - ddq-b: node_modules が無い。npm ci（package-lock.json のとおり。依存は無い）をする
+#[cfg(windows)]
 fn real_build_repo(root: &Path, package_b: &str) {
     fake_repo(root);
     let v = version();

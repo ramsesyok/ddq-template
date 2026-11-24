@@ -14,6 +14,7 @@
 # PlantUML の共通設定（機構ファイル）。上と同じ理由で LF にする。
 *.puml text eol=lf
 VERSION text eol=lf
+_extension.yml text eol=lf
 # VSCode 拡張（extension/）のソース。CI は Ubuntu でも走るので LF に揃える。
 *.ts text eol=lf
 *.tsx text eol=lf

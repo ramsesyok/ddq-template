@@ -22,7 +22,7 @@ design-doc-quarto-template/
 │   ├── lib.typ               … 様式の単一ソース（外枠・採番・IPO・横向き）
 │   ├── typst-template.typ    … Quarto 既定テンプレートの差し替え口
 │   ├── typst-show.typ        … _quarto.yml の設定を様式の引数へ渡す
-│   ├── quarto-publish.yml    … PDF 用プロファイルの元
+│   ├── _extension.yml        … Quarto 拡張の定義の元
 │   ├── design-doc.lua        … 独自記法（.tbl / .landscape / .ipo / mermaid / plantuml）の変換
 │   ├── design-doc.css        … HTML の見た目
 │   ├── postprocess-html.js   … HTML の図表番号を「章.節-連番」に振り直す後処理

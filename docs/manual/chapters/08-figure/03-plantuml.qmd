@@ -104,14 +104,14 @@ stop
 mermaid と違い、PlantUML にはブラウザの中で動く実装が無い。図を描くには **PlantUML サーバ**
 が要り、プレビューでも PDF でも同じサーバに描かせる。サーバは次の順で自動的に探す。
 
-1. `_quarto.yml` の `plantuml-server:` に書かれた **LAN 内のサーバ**（発行者が設定する）
+1. `_quarto.yml` の `ddq.plantuml-server` に書かれた **LAN 内のサーバ**（発行者が設定する）
 2. 自分の端末で起動した `ddq plantuml serve`（`http://127.0.0.1:18080`）
 
 **1 があれば執筆者は何も用意しなくてよい。** 無ければ、配布 zip の `ddq.exe`、
 PlantUML の公式リリースの `plantuml.jar`、Java を用意し、執筆中は次を起動しておく（@sec-plantuml-setup）。
 
 ```bat
-cd C:\tools\quarto-template-3.1.0
+cd C:\tools\quarto-template-4.0.0
 .\ddq plantuml serve
 ```
 :::

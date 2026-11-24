@@ -43,7 +43,7 @@ const MANUAL_DIR: &str = "docs/manual";
 /// `--with-sample` で同梱するサンプル文書（設計書リポジトリ examples/ の執筆フォルダ）
 const SAMPLE_DIR: &str = "examples/docs";
 
-/// `--with-sample` でサンプルを同梱するときに除くもの（ビルド生成物・setup が置くファイル・キャッシュ）
+/// `--with-sample` でサンプルを同梱するときに除くもの（ビルド生成物・旧直下の機構・キャッシュ）
 const SAMPLE_EXCLUDE_DIRS: [&str; 2] = ["_book", ".quarto"];
 const SAMPLE_EXCLUDE_FILES: [&str; 6] = [
     "design-doc.pdf",
@@ -132,7 +132,7 @@ pub fn run(ddq: &Path, out_dir: Option<&Path>, with_sample: bool, no_build: bool
         }
     }
     let manual_pdf = manual.join("design-doc.pdf");
-    let manual_html = quarto::output_dir(&manual, None);
+    let manual_html = manual.join("_book");
     if !manual_pdf.is_file() || !manual_html.join("index.html").is_file() {
         bail!(
             "{MANUAL_DIR}/design-doc.pdf または {MANUAL_DIR}/_book/index.html がありません（--no-build を外してください）"
@@ -273,12 +273,17 @@ fn assemble(
     fs::copy(manual_pdf, stage.join("manual").join("利用マニュアル.pdf"))?;
     copy_tree(manual_html, &stage.join("manual").join("html"), &[], &[], &[])?;
     if with_sample {
+        let sample = stage.join("docs");
         copy_tree(
             &repo.join(SAMPLE_DIR),
-            &stage.join("docs"),
+            &sample,
             &SAMPLE_EXCLUDE_DIRS,
             &SAMPLE_EXCLUDE_FILES,
             &SAMPLE_EXCLUDE_PREFIXES,
+        )?;
+        quarto::run(
+            Command::new(ddq).arg("update").arg(&sample),
+            "同梱サンプルの DDQ 機構の配置",
         )?;
     }
     Ok(exe_name)
@@ -484,7 +489,9 @@ fn copy_tree(
             continue;
         }
         let name = entry.file_name().to_string_lossy();
-        if exclude_files.contains(&name.as_ref()) || exclude_prefixes.iter().any(|p| name.starts_with(p)) {
+        if (entry.depth() == 1 && exclude_files.contains(&name.as_ref()))
+            || exclude_prefixes.iter().any(|p| name.starts_with(p))
+        {
             continue;
         }
         let target = dest.join(entry.path().strip_prefix(src).expect("src 配下"));

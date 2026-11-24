@@ -1,6 +1,6 @@
 ## 出力形式による違い
 
-::: {.tbl caption="PDF と HTML で挙動が異なるもの" label="tbl-limit-format" widths="26,37,37"}
+::: {.tbl caption="PDF と HTML で挙動が異なるもの" label="tbl-limit-format" tbl-colwidths="[26,37,37]"}
 | 項目               | PDF                        | HTML                       |
 |--------------------|----------------------------|----------------------------|
 | 改ページ           | 効く                       | **効かない**               |

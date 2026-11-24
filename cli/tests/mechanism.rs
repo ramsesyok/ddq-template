@@ -114,7 +114,7 @@ fn make_writing_folder(root: &Path) -> PathBuf {
         &text[end..]
     );
     let text = replace(text, "pagebreak-level: 1 ", "pagebreak-level: 2 ");
-    let text = replace(text, "\nformat:\n", "\nformat:\n  typst:\n    keep-typ: true\n");
+    let text = replace(text, "\nformat:\n", "\nkeep-typ: true\nformat:\n");
     // ページヘッダを見分けるのに使う（pdf_digest）
     assert!(
         text.contains(&format!("doc-number: {DOC_NUMBER}\n")),
@@ -269,7 +269,7 @@ fn html_digest(html: &str) -> Vec<String> {
                     "h1" | "h2" | "h3" => Some(name.to_uppercase()),
                     "div" if has_class(&attrs, "split-caption") => {
                         let mut l = "CAPTION".to_string();
-                        if let Some(id) = attr(&attrs, "id") {
+                        if let Some(id) = attr(&attrs, "data-ref").or_else(|| attr(&attrs, "id")) {
                             l += &format!(" #{id}");
                         }
                         if let (Some(p), Some(t)) = (attr(&attrs, "data-part"), attr(&attrs, "data-total")) {

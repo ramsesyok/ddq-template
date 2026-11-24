@@ -2,7 +2,7 @@
 
 局所テーブルの一覧を @tbl-lt-list に示す。
 
-::: {.tbl caption="局所テーブル一覧" label="tbl-lt-list" widths="10,14,10,30,36"}
+::: {.tbl caption="局所テーブル一覧" label="tbl-lt-list" tbl-colwidths="[10,14,10,30,36]"}
 | ID | 名称 | SP | 用途 | 使用モジュール |
 |---|---|:---:|---|---|
 | LT-01 | `Report` | SP-01 | ファイル1件の診断結果を保持する | M-0101、M-0102、M-0103、M-0106、`render_csv` |
@@ -17,7 +17,7 @@
 いずれのテーブルも**要素数の上限を設けていない**。処理対象の文書に含まれる
 ファイル・図表・見出し・章の数に比例して増える。
 
-::: {.tbl caption="要素数の見積り" label="tbl-lt-size" widths="12,30,58"}
+::: {.tbl caption="要素数の見積り" label="tbl-lt-size" tbl-colwidths="[12,30,58]"}
 | ID | 要素数 | 想定される規模 |
 |---|---|---|
 | LT-01 | 診断対象のファイル数 | 数十件。章ごとに分割された Word で最大でも百件程度 |
@@ -35,7 +35,7 @@
 
 ### 他のテーブルとの関係
 
-::: {.tbl caption="テーブル間の関係" label="tbl-lt-rel" widths="20,20,60"}
+::: {.tbl caption="テーブル間の関係" label="tbl-lt-rel" tbl-colwidths="[20,20,60]"}
 | テーブル | 関係先 | 関係の内容 |
 |---|---|---|
 | LT-03 `Result` | LT-02 `Definition` | `definitions` に `Definition` の並びを保持する（包含） |

@@ -32,11 +32,10 @@ pub fn run(dir: &Path) -> usize {
         return 0;
     }
 
-    let version = fs::read_to_string(dir.join(".template-version"))
-        .map(|v| v.trim_end().to_string())
-        .unwrap_or_else(|_| "?".into());
+    let manifest = fs::read_to_string(assets::manifest_path(dir)).unwrap_or_default();
+    let version = assets::manifest_version(&manifest).unwrap_or("?");
     let engine_key = env::var("DDQ_MERMAID_ENGINE").unwrap_or_else(|_| "auto".into());
-    let config_path = dir.join("mermaid-config.json");
+    let config_path = dir.join(crate::assets::EXTENSION_DIR).join("mermaid-config.json");
     let config_text = fs::read_to_string(&config_path).unwrap_or_default();
     let keep = env::var("DDQ_DIAGRAM_CACHE").is_ok_and(|v| v == "keep");
     let header = choose_engine_quiet()
@@ -47,7 +46,7 @@ pub fn run(dir: &Path) -> usize {
     let mut seen = HashSet::new();
     let mut jobs = Vec::new();
     for code in codes {
-        let key = mermaid_key(&version, &engine_key, &config_text, &code);
+        let key = mermaid_key(version, &engine_key, &config_text, &code);
         if !seen.insert(key.clone()) {
             continue;
         }

@@ -23,7 +23,7 @@ cli\target\release\ddq-release.exe
 ddq.exe 入りの VSIX を作る）。
 配布先には何も要らない（CRT は静的リンク。`cli/DESIGN.md` §7.1）。
 
-::: {.tbl caption="ddq-release の引数・オプション" label="tbl-release-opts" widths="24,76"}
+::: {.tbl caption="ddq-release の引数・オプション" label="tbl-release-opts" tbl-colwidths="[24,76]"}
 | 引数・オプション | 効果 |
 |---|---|
 | 第1引数 | 出力先フォルダ（既定は `release/`） |
@@ -127,7 +127,7 @@ python cli/tools/third_party.py
 
 ```bash
 set -euo pipefail
-VER=3.1.0                       # 配る版（template/VERSION と同じ）
+VER=4.0.0                       # 配る版（template/VERSION と同じ）
 RUN=<実行の番号>                 # 上で選んだ実行
 NOTES=<リリースノートのファイル>
 
@@ -204,5 +204,5 @@ sort "$ASSETS/SHA256SUMS.txt" | diff - "$ASSETS/published.txt" || {
   - VSCode 拡張の変更点。VSIX は自動更新されないので、全員に入れ直してもらう
 
 機構ファイル 5 本に変更が無い版では、既存の設計書リポジトリで `ddq update` を実行しても
-実質 `.template-version` の更新だけになる。その旨をノートに書くと、発行者が
+実質 `_extensions/ddq/_extension.yml` の版 の更新だけになる。その旨をノートに書くと、発行者が
 更新の要否を判断できる。

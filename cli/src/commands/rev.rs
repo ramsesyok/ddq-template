@@ -442,7 +442,7 @@ fn math_end(c: &[char], i: usize) -> usize {
             }
         }
     }
-    if !c.get(i + 1).is_some_and(|n| !n.is_whitespace()) {
+    if c.get(i + 1).is_none_or(|n| n.is_whitespace()) {
         return i + 1;
     }
     let mut j = i + 1;

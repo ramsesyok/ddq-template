@@ -6,7 +6,7 @@
 双方の項目を1つのテーブルに持ち、使わない側は初期値のままとする。
 
 ::: {.landscape}
-::: {.tbl caption="LT-01 Report のデータ項目" label="tbl-lt-report" widths="16,12,10,30,32" merge-cols="1"}
+::: {.tbl caption="LT-01 Report のデータ項目" label="tbl-lt-report" tbl-colwidths="[16,12,10,30,32]" merge-cols="1"}
 | 区分 | 項目名 | 属性 | 初期値 | 内容・値域 |
 |---|---|---|---|---|
 | 共通 | `path` | 文字列 | なし（必須） | 診断対象のパス |
@@ -41,7 +41,7 @@
 
 図表番号1件の定義を保持する。
 
-::: {.tbl caption="LT-02 Definition のデータ項目" label="tbl-lt-definition" widths="14,12,12,62"}
+::: {.tbl caption="LT-02 Definition のデータ項目" label="tbl-lt-definition" tbl-colwidths="[14,12,12,62]"}
 | 項目名 | 属性 | 初期値 | 内容・値域 |
 |---|---|---|---|
 | `kind` | 文字列 | なし（必須） | `表` 又は `図` |
@@ -59,7 +59,7 @@
 
 変換の結果と取りこぼしの情報をまとめる。
 
-::: {.tbl caption="LT-03 Result のデータ項目" label="tbl-lt-result" widths="16,16,12,56"}
+::: {.tbl caption="LT-03 Result のデータ項目" label="tbl-lt-result" tbl-colwidths="[16,16,12,56]"}
 | 項目名 | 属性 | 初期値 | 内容・値域 |
 |---|---|---|---|
 | `text` | 文字列 | なし（必須） | 変換後の markdown 全文 |
@@ -76,7 +76,7 @@
 
 見出し1件の判定結果を保持する。
 
-::: {.tbl caption="LT-04 Change のデータ項目" label="tbl-lt-change" widths="14,12,12,62"}
+::: {.tbl caption="LT-04 Change のデータ項目" label="tbl-lt-change" tbl-colwidths="[14,12,12,62]"}
 | 項目名 | 属性 | 初期値 | 内容・値域 |
 |---|---|---|---|
 | `line` | 整数 | なし（必須） | 見出しの行（**1始まり**） |
@@ -96,7 +96,7 @@
 
 章立てツリーの節点を表す。自身と同じ型の並びを子として持つ。
 
-::: {.tbl caption="LT-05 Node のデータ項目" label="tbl-lt-node" widths="14,14,12,60"}
+::: {.tbl caption="LT-05 Node のデータ項目" label="tbl-lt-node" tbl-colwidths="[14,14,12,60]"}
 | 項目名 | 属性 | 初期値 | 内容・値域 |
 |---|---|---|---|
 | `level` | 整数 | なし（必須） | 見出しのレベル（1〜3） |

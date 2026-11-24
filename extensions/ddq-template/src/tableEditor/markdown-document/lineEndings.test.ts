@@ -20,7 +20,7 @@ const LF_DOC = [
   '前書き',
   '',
   ':::: {.landscape}',
-  '::: {.tbl caption="一覧" label="tbl-x" widths="30,70"}',
+  '::: {.tbl caption="一覧" label="tbl-x" tbl-colwidths="[30,70]"}',
   '| 属性 | 説明 |',
   '| ---- | ---- |',
   '| 氏名 | 名前 |',

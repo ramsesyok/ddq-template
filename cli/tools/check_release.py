@@ -168,6 +168,19 @@ def main() -> int:
     check(not any(n.lower().endswith((".jar", ".vsix")) for n in rel), "ZIP に jar・VSIX が無い")
     has_docs = any(n.startswith("docs/") for n in rel)
     check(has_docs == args.with_sample, f"docs/（サンプル）は --with-sample のときだけ（{'あり' if has_docs else 'なし'}）")
+    if has_docs:
+        ddq_extension = "docs/_extensions/ddq/"
+        managed = [
+            "_extension.yml", "design-doc.lua", "design-doc.css", "html-crossref.lua",
+            "postprocess-html.js", "plantuml-config.puml", "mermaid-config.json",
+            "typst-book.lua", "typst-template.typ", "typst-show.typ", "numbering.typ", "lib.typ",
+        ]
+        for name in managed:
+            source = (ROOT / "template" / name).read_text(encoding="utf-8")
+            if name == "_extension.yml":
+                source = source.replace("@DDQ_VERSION@", version)
+            installed = rel.get(ddq_extension + name, b"").decode("utf-8").replace("\r\n", "\n")
+            check(installed == source, f"同梱サンプルの拡張に {name} が含まれ、原本と一致")
     stage = args.out / root_name
     if stage.is_dir():
         staged = {p.relative_to(stage).as_posix(): p.read_bytes() for p in stage.rglob("*") if p.is_file()}

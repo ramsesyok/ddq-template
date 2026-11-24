@@ -4,7 +4,7 @@
 **出力とフラグで切り替える**。判定は `WANT_SVG = (FORMAT == 'typst') or (MERMAID_SVG == '1')`
 の 1 か所である。
 
-::: {.tbl caption="mermaid の変換先" label="tbl-mermaid-modes" widths="14,30,34,22"}
+::: {.tbl caption="mermaid の変換先" label="tbl-mermaid-modes" tbl-colwidths="[14,30,34,22]"}
 | 実行者 | 経路 | mermaid の扱い | 追加で要るもの |
 |---|---|---|---|
 | 執筆者 | `quarto preview`（HTML、環境変数なし） | `<pre class="mermaid mermaid-js">` を出し、Quarto 同梱ランタイムでブラウザ内描画 | **なし** |

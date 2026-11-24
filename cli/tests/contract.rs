@@ -136,7 +136,11 @@ fn failures_use_the_agreed_exit_codes_and_streams() {
     let init = ddq(&["init", &repo.to_string_lossy(), "--no-render"]);
     assert!(init.status.success(), "{}", stderr(&init));
     let folder = repo.join("docs");
-    fs::write(folder.join("design-doc.lua"), "-- locally modified\n").unwrap();
+    fs::write(
+        folder.join("_extensions/ddq/design-doc.lua"),
+        "-- locally modified\n",
+    )
+    .unwrap();
     for sub in ["setup", "pdf", "html"] {
         let out = ddq(&[sub, &folder.to_string_lossy()]);
         assert_eq!(

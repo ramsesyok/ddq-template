@@ -3,7 +3,7 @@
 以降の章で述べる構成は、次の方針から導かれている。変更を検討するときは、
 まずどの方針に関わるかを確認する。
 
-::: {.tbl caption="設計方針" label="tbl-policy" widths="6,30,64"}
+::: {.tbl caption="設計方針" label="tbl-policy" tbl-colwidths="[6,30,64]"}
 | # | 方針 | 意味と帰結 |
 |---|---|---|
 | 1 | 執筆者は Markdown だけを書く | 様式・採番・改ページを原稿に書かせない。様式は `lib.typ`、記法の拡張は `design-doc.lua` に閉じる |
@@ -13,7 +13,7 @@
 | 5 | HTML のプレビューは Quarto だけで出る | HTML を出すのに要る機構ファイルを設計書リポジトリにコミットし、mermaid はプレビュー時にブラウザ内で描く（@sec-filter-mermaid）。`ddq` が無くても `quarto preview` が通る（PDF・配布 HTML は `ddq` で出す）。例外は PlantUML で、ブラウザ内実装が無いため LAN の描画サーバ（無ければ執筆者の Java + jar）に頼る（@sec-filter-plantuml） |
 | 6 | 原本は `template/` の1か所 | 執筆フォルダにあるのは写し。写しを直接直さず、原本を直して配り直す（@sec-repo-division） |
 | 7 | 設計書リポジトリに様式の原本と道具を入れない | 執筆者が clone するものを軽く保ち、誤コミット・`git clean` による消失を防ぐ。道具（`ddq.exe`）は VSCode 拡張に同梱して利用者全員に配り、リポジトリの外に置く |
-| 8 | 配布される機構ファイルを変えたら版を上げる | 設計書リポジトリ側の `.template-version` と突き合わせ、更新の要否を判断できるようにする（@sec-version） |
+| 8 | 配布される機構ファイルを変えたら版を上げる | 設計書リポジトリ側の `_extensions/ddq/_extension.yml` の版 と突き合わせ、更新の要否を判断できるようにする（@sec-version） |
 | 9 | パスは ANSI コードページの範囲で | Windows では Lua フィルタに届くパスが CP932 に変換されるので UTF-8 に戻す。CP932 に無い文字は復元できないため検出して止める（@sec-filter-paths） |
 :::
 

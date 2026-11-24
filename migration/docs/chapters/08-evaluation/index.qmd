@@ -8,7 +8,7 @@
 割り振られていることを @tbl-eval-trace に示す。
 
 ::: {.landscape}
-::: {.tbl caption="要求事項とモジュールの対応" label="tbl-eval-trace" widths="8,32,24,20,16"}
+::: {.tbl caption="要求事項とモジュールの対応" label="tbl-eval-trace" tbl-colwidths="[8,32,24,20,16]"}
 | 番号 | 要求事項 | 割り振ったモジュール | 記述箇所 | 層 |
 |---|---|---|---|:---:|
 | R-01 | 原本を変換する前に移行コストを見積もる | M-0101〜M-0107 | @sec-sp01-detail | － |
@@ -52,7 +52,7 @@
 したがって「基本設計書との整合」は評価できない。代わりに、本書が依拠する
 外部の取決めとの整合を @tbl-eval-external に示す。
 
-::: {.tbl caption="外部の取決めとの整合" label="tbl-eval-external" widths="26,30,44"}
+::: {.tbl caption="外部の取決めとの整合" label="tbl-eval-external" tbl-colwidths="[26,30,44]"}
 | 依拠する文書 | 取決めの内容 | 本書での反映箇所 |
 |---|---|---|
 | 利用マニュアル4章 | 章＝フォルダ、子を持つ節＝フォルダ、レベル4以下は分けない | @sec-sp04-summary、M-0405 の処理 |
@@ -73,7 +73,7 @@
 
 全6サブプログラムの呼出し関係を静的に解析した結果を @tbl-eval-graph に示す。
 
-::: {.tbl caption="呼出し関係の解析結果" label="tbl-eval-graph" widths="16,10,10,20,22,22"}
+::: {.tbl caption="呼出し関係の解析結果" label="tbl-eval-graph" tbl-colwidths="[16,10,10,20,22,22]"}
 | サブプログラム | 関数数 | 呼出辺 | 自己再帰 | 相互再帰の循環 | `main` から未到達 |
 |---|---:|---:|---|---|---|
 | `diagnose.py` | 17 | 26 | なし | なし | なし |
@@ -85,7 +85,7 @@
 | **合計** | **60** | **68** | **2件** | **0件** | **0件** |
 :::
 
-::: {.tbl caption="内部一貫性の判定" label="tbl-eval-internal" widths="34,66"}
+::: {.tbl caption="内部一貫性の判定" label="tbl-eval-internal" tbl-colwidths="[34,66]"}
 | 観点 | 結果 |
 |---|---|
 | 循環呼出しの不在 | 相互再帰による循環は**0件**。閉包は非巡回である |
@@ -99,7 +99,7 @@
 
 呼出側と被呼出側の引数の対応を @tbl-eval-if に示す。特に注意を要する箇所のみ挙げる。
 
-::: {.tbl caption="インタフェース整合の確認箇所" label="tbl-eval-if" widths="22,22,56"}
+::: {.tbl caption="インタフェース整合の確認箇所" label="tbl-eval-if" tbl-colwidths="[22,22,56]"}
 | 呼出元 | 被呼出 | 確認事項 |
 |---|---|---|
 | M-0201 | M-0202 | `code`（コード行の集合）を渡す。第1パスと第3パスで**それぞれ求め直す**（第2パスで行が変わるため） |
@@ -114,7 +114,7 @@
 
 ## 適用する設計方法及び標準の適切性 {#sec-eval-method}
 
-::: {.tbl caption="設計方法の適切性" label="tbl-eval-method" widths="26,74"}
+::: {.tbl caption="設計方法の適切性" label="tbl-eval-method" tbl-colwidths="[26,74]"}
 | 観点 | 評価 |
 |---|---|
 | 構造化設計の妥当性 | 各サブプログラムが一方向の変換であり、状態も対話も持たない。関数分割で過不足なく表現できている。60 関数・68 呼出辺という規模も、階層化の枠組みを要する水準にない |
@@ -131,7 +131,7 @@
 
 ## 試験の実現可能性 {#sec-eval-test}
 
-::: {.tbl caption="試験の実現可能性" label="tbl-eval-test" widths="20,26,54"}
+::: {.tbl caption="試験の実現可能性" label="tbl-eval-test" tbl-colwidths="[20,26,54]"}
 | 対象 | 試験の方法 | 検証可能性 |
 |---|---|---|
 | M-0201 `convert` | 入力文字列を与え、出力文字列と `Result` を比較する | **可能。**ファイルを触らないため、入出力だけで完結する |
@@ -156,7 +156,7 @@
 
 ## 運用及び保守の実現可能性 {#sec-eval-maint}
 
-::: {.tbl caption="運用及び保守の実現可能性" label="tbl-eval-maint" widths="24,76"}
+::: {.tbl caption="運用及び保守の実現可能性" label="tbl-eval-maint" tbl-colwidths="[24,76]"}
 | 観点 | 評価 |
 |---|---|
 | 導入の容易さ | SP-01〜SP-04 は標準ライブラリのみで動く（設計条件 C-02）。客先環境でパッケージを導入できない場合でも、少なくとも診断は実行できる |

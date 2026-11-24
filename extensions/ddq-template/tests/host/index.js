@@ -389,7 +389,7 @@ async function build(docs) {
     say('機構の不一致（ddq の終了コード 3）を見分ける');
 
     assert.strictEqual(await run('update'), 'ok', 'ddq update が通らない');
-    assert.ok(fs.existsSync(path.join(docs, 'design-doc.lua')), 'update で機構ファイルが置かれていない');
+    assert.ok(fs.existsSync(path.join(docs, '_extensions/ddq/design-doc.lua')), 'update で機構ファイルが置かれていない');
     say('ddq update で機構ファイルが置かれる');
 
     const first = run('html');
@@ -446,7 +446,7 @@ async function init() {
     const name = writingFolderName();
     const outcome = await vscode.commands.executeCommand('ddqTemplate.internal.init', repo, name);
     assert.strictEqual(outcome, 'ok', `init が通らない（執筆フォルダ名 ${name}）: ${outcome}`);
-    for (const f of ['.gitignore', '.vscode/settings.json', '.vscode/extensions.json', `${name}/_quarto.yml`, `${name}/.template-version`]) {
+    for (const f of ['.gitignore', '.vscode/settings.json', '.vscode/extensions.json', `${name}/_quarto.yml`, `${name}/_extensions/ddq/_extension.yml`]) {
         assert.ok(fs.existsSync(path.join(repo, f)), `${f} が無い`);
     }
     assert.ok(
@@ -459,7 +459,7 @@ async function init() {
     const second = path.join(repo, `${name}2`);
     const added = await vscode.commands.executeCommand('ddqTemplate.internal.add', second);
     assert.strictEqual(added, 'ok', `add が通らない: ${added}`);
-    for (const f of ['_quarto.yml', '.template-version', 'design-doc.lua']) {
+    for (const f of ['_quarto.yml', '_extensions/ddq/_extension.yml', '_extensions/ddq/design-doc.lua']) {
         assert.ok(fs.existsSync(path.join(second, f)), `${name}2/${f} が無い`);
     }
     // 既存の文書には足さない（ddq add が拒否する）

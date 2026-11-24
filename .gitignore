@@ -8,28 +8,30 @@ design-doc.pdf
 # Quarto の keep-typ 中間ファイル（通常は自動削除）
 index.typ
 
-# ==== setup / update-doc が執筆フォルダへ配置する機構ファイル ====
-# 実体は template/ の1か所。このリポジトリでは写しを git に載せない
-# （実際の設計書リポジトリでは、HTML 側の4本と .template-version はコミットする。
-#   template/scaffold/repo/gitignore を参照）。
-lib.typ
-typst-template.typ
-typst-show.typ
-_quarto-publish.yml
-design-doc.css
-design-doc.lua
-postprocess-html.js
-mermaid-config.json
-plantuml-config.puml
-.template-version
-!/template/lib.typ
-!/template/typst-template.typ
-!/template/typst-show.typ
-!/template/design-doc.css
-!/template/design-doc.lua
-!/template/postprocess-html.js
-!/template/mermaid-config.json
-!/template/plantuml-config.puml
+# 保守リポジトリでは機構の写しは ddq update で作る。
+/docs/*/_extensions/ddq/
+/examples/*/_extensions/ddq/
+/migration/docs/_extensions/ddq/
+
+# 既存の作業コピーに残る旧配置の生成物。
+/docs/*/design-doc.lua
+/docs/*/design-doc.css
+/docs/*/postprocess-html.js
+/docs/*/mermaid-config.json
+/docs/*/plantuml-config.puml
+/docs/*/.template-version
+/docs/*/lib.typ
+/docs/*/typst-*.typ
+/docs/*/_quarto-publish.yml
+/examples/*/design-doc.lua
+/examples/*/design-doc.css
+/examples/*/postprocess-html.js
+/examples/*/mermaid-config.json
+/examples/*/plantuml-config.puml
+/examples/*/.template-version
+/examples/*/lib.typ
+/examples/*/typst-*.typ
+/examples/*/_quarto-publish.yml
 
 # ==== ツールの作業/キャッシュディレクトリ ====
 .quarto/

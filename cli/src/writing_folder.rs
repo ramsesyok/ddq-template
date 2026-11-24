@@ -5,11 +5,30 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 use walkdir::WalkDir;
 
+use crate::{assets, doc::project};
+
+pub const CONFIG_NAMES: [&str; 2] = ["_quarto.yml", "_quarto.yaml"];
+
+pub fn config_path(dir: &Path) -> Option<PathBuf> {
+    CONFIG_NAMES
+        .iter()
+        .map(|name| dir.join(name))
+        .find(|path| path.is_file())
+}
+
+pub fn uses_ddq(dir: &Path) -> bool {
+    config_path(dir).is_some_and(|path| {
+        assets::manifest_path(dir).is_file()
+            || std::fs::read_to_string(path)
+                .is_ok_and(|yml| project::mapping_scalar(&yml, "project", "type").as_deref() == Some("ddq"))
+    })
+}
+
 /// 引数の執筆フォルダを絶対パスにし、`_quarto.yml` があることを確かめる。
 /// 省略時は `docs`。相対パスはカレント基準（旧 bat と同じ）。
 pub fn resolve(arg: Option<PathBuf>) -> Result<PathBuf> {
     let dir = absolute(&arg.unwrap_or_else(|| PathBuf::from("docs")))?;
-    if !dir.join("_quarto.yml").is_file() {
+    if config_path(&dir).is_none() {
         bail!(
             "{} に _quarto.yml がありません。\n  執筆フォルダ（_quarto.yml のあるフォルダ）のパスを 1 番目の引数に渡してください。",
             dir.display()
@@ -148,14 +167,21 @@ mod tests {
 /// リポジトリ配下の執筆フォルダをすべて挙げる（`ddq update --all`）。
 /// ビルド生成物・ツールの作業フォルダは探索しない。
 pub fn find_all(repo: &Path) -> Result<Vec<PathBuf>> {
-    const SKIP: [&str; 5] = ["_book", ".quarto", "node_modules", ".git", "target"];
+    const SKIP: [&str; 6] = [
+        "_book",
+        ".quarto",
+        "_extensions",
+        "node_modules",
+        ".git",
+        "target",
+    ];
     let mut found = Vec::new();
     let walker = WalkDir::new(repo).into_iter().filter_entry(|e| {
         !(e.file_type().is_dir() && SKIP.contains(&e.file_name().to_string_lossy().as_ref()))
     });
     for entry in walker {
         let entry = entry.with_context(|| format!("{} を走査できません", repo.display()))?;
-        if entry.file_type().is_file() && entry.file_name() == "_quarto.yml" {
+        if entry.file_type().is_file() && CONFIG_NAMES.iter().any(|name| entry.file_name() == *name) {
             found.push(
                 entry
                     .path()
@@ -165,6 +191,8 @@ pub fn find_all(repo: &Path) -> Result<Vec<PathBuf>> {
             );
         }
     }
+    found.retain(|dir| uses_ddq(dir));
     found.sort();
+    found.dedup();
     Ok(found)
 }

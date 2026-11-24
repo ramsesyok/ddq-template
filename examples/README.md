@@ -32,5 +32,5 @@ cli\target\release\ddq.exe pdf      examples\plantuml
 cli\target\release\ddq.exe html     examples\plantuml
 ```
 
-各執筆フォルダ直下の機構ファイル（`design-doc.lua` など）と `design-doc.pdf` は、原本が
-このリポジトリの `template/` にあるため git 管理しない（ルートの `.gitignore`）。
+このリポジトリでは、各サンプルの `_extensions/ddq/` は `ddq update` で生成する。
+配布 ZIP に入れるサンプルには拡張一式を収録する。

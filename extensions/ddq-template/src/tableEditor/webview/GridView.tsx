@@ -360,8 +360,8 @@ export const GridView = forwardRef<GridViewHandle, Props>(function GridView(
                     placeholder={filled !== undefined ? `${filled}` : '自動'}
                     title={
                       filled !== undefined
-                        ? `列幅（widths）。空欄のまま適用すると残りの ${filled} が入ります`
-                        : '列幅（widths）。空欄なら自動幅'
+                        ? `列幅（tbl-colwidths）。空欄のまま適用すると残りの ${filled} が入ります`
+                        : '列幅（tbl-colwidths）。空欄なら自動幅'
                     }
                     onChange={e =>
                       onChangeWidth(c, e.target.value === '' ? undefined : Number(e.target.value))

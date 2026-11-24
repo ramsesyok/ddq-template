@@ -11,7 +11,7 @@ import { parseMergeCols } from '../formats/mergeCols/simulateMergeCols';
 import {
   toTblAttributes,
   attributeValue,
-  parseWidths
+  parseColumnWidths
 } from '../formats/tbl/parseTblAttributes';
 
 export type EditTargetKind = 'tblPart' | 'plainTable' | 'new';
@@ -101,11 +101,11 @@ function fromTblBlock(
   const model = parsed.value;
   model.attributes = toTblAttributes(block.header);
 
-  const widthsAttr = attributeValue(block.header, 'widths');
-  const widths = parseWidths(widthsAttr, model.columns.length);
+  const widthsAttr = attributeValue(block.header, 'tbl-colwidths');
+  const widths = parseColumnWidths(widthsAttr, model.columns.length);
   if (widthsAttr && !widths) {
     warnings.push(
-      `widths="${widthsAttr}" の個数が列数（${model.columns.length}）と一致しません。自動幅として扱います。`
+      `tbl-colwidths="${widthsAttr}" の個数が列数（${model.columns.length}）と一致しません。自動幅として扱います。`
     );
   }
   if (widths) {

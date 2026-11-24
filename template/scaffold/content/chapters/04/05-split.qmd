@@ -11,7 +11,7 @@
 書く。列幅は全パートで自動的にそろう。
 
 ```markdown
-::: {.tbl caption="画面一覧" label="tbl-screen-list" widths="15,35,50" merge-cols="1"}
+::: {.tbl caption="画面一覧" label="tbl-screen-list" tbl-colwidths="[15,35,50]" merge-cols="1"}
 | 分類 | 画面名       | 概要                       |
 |------|--------------|----------------------------|
 | 受注 | 受注入力     | 受注を登録する             |
@@ -24,7 +24,7 @@
 :::
 ```
 
-::: {.tbl caption="画面一覧" label="tbl-screen-list" widths="15,35,50" merge-cols="1"}
+::: {.tbl caption="画面一覧" label="tbl-screen-list" tbl-colwidths="[15,35,50]" merge-cols="1"}
 | 分類 | 画面名       | 概要                       |
 |------|--------------|----------------------------|
 | 受注 | 受注入力     | 受注を登録する             |

@@ -1,12 +1,12 @@
 ## ファイルの役割
 
-::: {.tbl caption="template/ の主なファイル" label="tbl-repo-files" widths="26,20,54"}
+::: {.tbl caption="template/ の主なファイル" label="tbl-repo-files" tbl-colwidths="[26,20,54]"}
 | ファイル                | 効く先        | 役割                                                       |
 |-------------------------|---------------|------------------------------------------------------------|
 | `lib.typ`               | PDF           | 様式の単一ソース。外枠・採番・IPO・横向きの実装             |
 | `typst-template.typ`    | PDF           | Quarto 既定テンプレートの差し替え口。`lib.typ` を取り込む   |
 | `typst-show.typ`        | PDF           | `_quarto.yml` の設定を様式の引数へ渡す                      |
-| `quarto-publish.yml`    | PDF           | typst 用の設定。`_quarto-publish.yml` として置かれる        |
+| `_extension.yml`        | PDF ＋ HTML   | DDQ のプロジェクト型、形式、配布する拡張の版               |
 | `design-doc.lua`        | PDF ＋ HTML   | 独自記法（`.tbl` / `.landscape` / `.ipo` / mermaid / plantuml）の変換 |
 | `design-doc.css`        | HTML          | HTML の見た目                                               |
 | `postprocess-html.js`   | HTML          | 図表番号を「章.節-連番」に振り直す後処理                    |

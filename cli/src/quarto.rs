@@ -1,7 +1,7 @@
 //! `quarto` の起動。ここを通すことで環境変数の付与と失敗時の説明を一か所にまとめる。
 
 use std::{
-    env,
+    env, fs,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -14,16 +14,25 @@ use anyhow::{Context, Result, bail};
 /// この exe を使えるようにする（cli/DESIGN.md §6）。PATH に別の版があっても、
 /// 起動した exe の版が使われる。PlantUML サーバの URL（`DDQ_PLANTUML_SERVER`）は
 /// 呼び出し側が `extra_env` で渡す（§13）。
-pub fn render(dir: &Path, args: &[&str], extra_env: &[(&str, String)]) -> Result<()> {
+pub fn render(dir: &Path, format: &str, extra_env: &[(&str, String)]) -> Result<Vec<PathBuf>> {
+    let scratch = tempfile::tempdir()?;
+    let output_list = scratch.path().join("outputs.txt");
     let mut cmd = Command::new("quarto");
     cmd.arg("render")
-        .args(args)
+        .args(["--to", format])
         .current_dir(dir)
         .env("DDQ_BIN", self_exe()?);
     for (k, v) in extra_env {
         cmd.env(k, v);
     }
-    run(&mut cmd, "quarto render")
+    cmd.env("DDQ_RENDER_OUTPUTS", &output_list);
+    run(&mut cmd, "quarto render")?;
+    let outputs = fs::read_to_string(&output_list).context("Quarto の成果物一覧を読めません")?;
+    Ok(outputs
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(|line| dir.join(line))
+        .collect())
 }
 
 /// この exe の絶対パス
@@ -49,61 +58,28 @@ pub fn run(cmd: &mut Command, what: &str) -> Result<()> {
     Ok(())
 }
 
-/// Quarto の出力先（`project: output-dir:`）。既定は `_book`。`profile` を渡すと
-/// `_quarto-<profile>.yml` の指定を優先する（`--profile publish` の PDF）。YAML は行で読む
-/// （`output-dir:` の行だけを見る）。利用者が変えても pdf / html が成果物を見失わないように
-/// （docs/cli-impl U-0006 の試験で、`_book` 決め打ちで PDF を取り出せないことを確認）。
-pub fn output_dir(dir: &Path, profile: Option<&str>) -> PathBuf {
-    let mut files = Vec::new();
-    if let Some(p) = profile {
-        files.push(dir.join(format!("_quarto-{p}.yml")));
-    }
-    files.push(dir.join("_quarto.yml"));
-    for f in files {
-        if let Ok(text) = std::fs::read_to_string(&f)
-            && let Some(v) = output_dir_in(&text)
-        {
-            return dir.join(v);
-        }
-    }
-    dir.join("_book")
-}
-
-/// YAML の文字列から `output-dir:` の値を読む（コメント・引用符を外す）。
-fn output_dir_in(yml: &str) -> Option<String> {
-    yml.lines().find_map(|l| {
-        let t = l.trim_start();
-        if t.starts_with('#') {
-            return None;
-        }
-        let v = t.strip_prefix("output-dir:")?.split('#').next()?.trim();
-        let v = v.trim_matches(|c| c == '"' || c == '\'').trim();
-        (!v.is_empty()).then(|| v.to_string())
-    })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn output_dir_follows_the_project_and_the_profile() {
-        let tmp = tempfile::tempdir().unwrap();
-        let d = tmp.path();
-        assert_eq!(output_dir(d, None), d.join("_book"), "既定は _book");
-        std::fs::write(
-            d.join("_quarto.yml"),
-            "project:\n  type: book\n  # output-dir: x\n  output-dir: \"build\"  # 変えた\n",
-        )
-        .unwrap();
-        assert_eq!(output_dir(d, None), d.join("build"));
-        assert_eq!(
-            output_dir(d, Some("publish")),
-            d.join("build"),
-            "profile に指定が無ければ本体の指定"
+/// Inspect the same project and active profile that the renderer will use.
+pub fn inspect(dir: &Path) -> Result<serde_json::Value> {
+    let output = Command::new("quarto")
+        .arg("inspect")
+        .arg(".")
+        .current_dir(dir)
+        .output()
+        .context("quarto inspect を起動できません（quarto は PATH にありますか）")?;
+    if !output.status.success() {
+        bail!(
+            "quarto inspect が失敗しました: {}",
+            String::from_utf8_lossy(&output.stderr)
         );
-        std::fs::write(d.join("_quarto-publish.yml"), "project:\n  output-dir: pdf-out\n").unwrap();
-        assert_eq!(output_dir(d, Some("publish")), d.join("pdf-out"));
-        assert_eq!(output_dir(d, None), d.join("build"));
     }
+    serde_json::from_slice(&output.stdout).context("quarto inspect の結果を読めません")
+}
+
+pub fn book_index(outputs: &[PathBuf]) -> Result<&Path> {
+    outputs
+        .iter()
+        .filter(|path| path.file_name().is_some_and(|name| name == "index.html"))
+        .min_by_key(|path| path.components().count())
+        .map(PathBuf::as_path)
+        .context("Quarto の成果物に index.html がありません")
 }

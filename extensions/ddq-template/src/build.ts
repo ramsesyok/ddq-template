@@ -268,7 +268,8 @@ async function offerUpdate(kind: BuildKind, folder: string): Promise<BuildOutcom
 
 function readFolderVersion(folder: string): string | undefined {
     try {
-        return fs.readFileSync(path.join(folder, TEMPLATE_VERSION_FILE), 'utf8').trim() || undefined;
+        const manifest = fs.readFileSync(path.join(folder, TEMPLATE_VERSION_FILE), 'utf8');
+        return /^version:\s*["']?([^"'\s#]+)/m.exec(manifest)?.[1];
     } catch {
         return undefined;
     }

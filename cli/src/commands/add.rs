@@ -39,10 +39,10 @@ pub fn run(dir: &Path, no_render: bool) -> Result<()> {
         ),
     }
     // 既存の文書を壊さないための拒否。init は再実行を許すので、この検査は add だけが行う。
-    if dir.join("_quarto.yml").is_file() {
+    if let Some(config) = writing_folder::config_path(&dir) {
         bail!(
-            "{} には既に _quarto.yml があります（既存の文書は上書きしません）",
-            dir.display()
+            "既に {} があります（既存の文書は上書きしません）",
+            config.display()
         );
     }
     populate(&dir, no_render)
@@ -63,11 +63,8 @@ pub fn populate(dir: &Path, no_render: bool) -> Result<()> {
 
     if !no_render {
         println!("疎通確認のため HTML を一度 render します...");
-        quarto::render(dir, &["--to", "html"], &[])?;
-        println!(
-            "OK -> {}",
-            quarto::output_dir(dir, None).join("index.html").display()
-        );
+        let built = quarto::render(dir, "ddq-html", &[])?;
+        println!("OK -> {}", quarto::book_index(&built)?.display());
     }
     Ok(())
 }

@@ -57,7 +57,7 @@ flowchart TD
 
 受注登録の内容を @tbl-ipo-order に示す。
 
-::: {.tbl caption="IPO 図の指定項目" label="tbl-ipo-attr" widths="24,26,50"}
+::: {.tbl caption="IPO 図の指定項目" label="tbl-ipo-attr" tbl-colwidths="[24,26,50]"}
 | 項目               | 指定のしかた                  | 備考                                  |
 |--------------------|-------------------------------|---------------------------------------|
 | 機能名             | `module=` 属性                | 必須                                  |

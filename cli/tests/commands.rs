@@ -10,12 +10,7 @@ const MECHANISM: [&str; 5] = [
     "mermaid-config.json",
     "plantuml-config.puml",
 ];
-const PDF_SIDE: [&str; 4] = [
-    "lib.typ",
-    "typst-template.typ",
-    "typst-show.typ",
-    "_quarto-publish.yml",
-];
+const PDF_SIDE: [&str; 3] = ["lib.typ", "typst-template.typ", "typst-show.typ"];
 
 fn ddq(args: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_ddq"))
@@ -68,23 +63,19 @@ fn init_then_add_then_update_all() {
         "index.qmd",
         "chapters/01/index.qmd",
         "diagrams/.gitkeep",
-        ".template-version",
+        "_extensions/ddq/_extension.yml",
     ] {
         assert!(docs.join(f).is_file(), "docs/{f} がありません");
     }
     for f in MECHANISM {
-        assert!(docs.join(f).is_file(), "docs/{f} がありません");
+        assert!(docs.join("_extensions/ddq").join(f).is_file(), "{f} がありません");
     }
     for f in PDF_SIDE {
-        assert!(
-            !docs.join(f).exists(),
-            "init 直後に docs/{f} があってはいけない（setup が置く）"
-        );
+        assert!(docs.join("_extensions/ddq").join(f).is_file(), "{f} がありません");
+        assert!(!docs.join(f).exists(), "直下に {f} を置いてはいけない");
     }
-    assert_eq!(
-        fs::read_to_string(docs.join(".template-version")).unwrap().trim(),
-        template_version()
-    );
+    let manifest = fs::read_to_string(docs.join("_extensions/ddq/_extension.yml")).unwrap();
+    assert!(manifest.contains(&format!("version: \"{}\"", template_version())));
 
     // 既存ファイルは触らない
     fs::write(docs.join("index.qmd"), "edited").unwrap();
@@ -98,7 +89,7 @@ fn init_then_add_then_update_all() {
     // 同じ場所にもう一度は拒否
     let out = ddq(&["add", &api.to_string_lossy(), "--no-render"]);
     assert!(!out.status.success());
-    assert!(String::from_utf8_lossy(&out.stderr).contains("既に _quarto.yml"));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("_quarto.yml があります"));
     // 入れ子の執筆フォルダ（リポジトリ直下でなくてもよい。目印は上へたどって探す）
     let nested = repo.join("examples").join("plantuml");
     assert_ok(&ddq(&["add", &nested.to_string_lossy(), "--no-render"]));
@@ -109,36 +100,51 @@ fn init_then_add_then_update_all() {
     let svn_docs = svn.join("docs");
     assert_ok(&ddq(&["add", &svn_docs.to_string_lossy(), "--no-render"]));
     assert!(svn_docs.join("_quarto.yml").is_file());
-    // 目印が上のどこにも無い場所への add は拒否（一時フォルダの先祖に目印が無い前提）
-    let out = ddq(&[
-        "add",
-        &tmp.path().join("nowhere/docs").to_string_lossy(),
-        "--no-render",
-    ]);
-    assert!(!out.status.success());
-    assert!(String::from_utf8_lossy(&out.stderr).contains("ddq init"));
-
-    // update --all: 両方の機構ファイルが更新される
-    fs::write(docs.join("design-doc.lua"), "stale").unwrap();
-    fs::write(api.join("design-doc.lua"), "stale").unwrap();
-    assert_ok(&ddq(&["update", "--all", &repo_s]));
-    assert_ne!(fs::read_to_string(docs.join("design-doc.lua")).unwrap(), "stale");
-    assert_ne!(fs::read_to_string(api.join("design-doc.lua")).unwrap(), "stale");
-
-    // setup: PDF 側ファイルを置く
-    assert_ok(&ddq(&["setup", &docs.to_string_lossy()]));
-    for f in PDF_SIDE {
-        assert!(docs.join(f).is_file(), "setup 後に docs/{f} がありません");
+    // 一時領域が別の作業コピーに属する環境では祖先のリポジトリが見つかる。
+    if !tmp.path().ancestors().any(|p| {
+        [".gitignore", ".git", ".svn", ".hg"]
+            .iter()
+            .any(|m| p.join(m).exists())
+    }) {
+        let out = ddq(&[
+            "add",
+            &tmp.path().join("nowhere/docs").to_string_lossy(),
+            "--no-render",
+        ]);
+        assert!(!out.status.success());
+        assert!(String::from_utf8_lossy(&out.stderr).contains("ddq init"));
     }
 
+    // update --all: 両方の機構ファイルが更新される
+    fs::write(docs.join("_extensions/ddq/design-doc.lua"), "stale").unwrap();
+    fs::write(api.join("_extensions/ddq/design-doc.lua"), "stale").unwrap();
+    assert_ok(&ddq(&["update", "--all", &repo_s]));
+    assert_ne!(
+        fs::read_to_string(docs.join("_extensions/ddq/design-doc.lua")).unwrap(),
+        "stale"
+    );
+    assert_ne!(
+        fs::read_to_string(api.join("_extensions/ddq/design-doc.lua")).unwrap(),
+        "stale"
+    );
+
+    // 発行者のプロファイルを検査時に上書きしない
+    let profile = docs.join("_quarto-publish.yml");
+    fs::write(&profile, "format: {ddq-typst: default}").unwrap();
+    assert_ok(&ddq(&["setup", &docs.to_string_lossy()]));
+    assert_eq!(
+        fs::read_to_string(profile).unwrap(),
+        "format: {ddq-typst: default}"
+    );
+
     // setup は追跡対象の機構ファイルを暗黙に直さない
-    fs::write(docs.join("design-doc.lua"), "locally modified").unwrap();
+    fs::write(docs.join("_extensions/ddq/design-doc.lua"), "locally modified").unwrap();
     let out = ddq(&["setup", &docs.to_string_lossy()]);
     // 機構の不一致は終了コード 3（VSCode 拡張が update を案内する。§3.2）
     assert_eq!(out.status.code(), Some(3));
     assert!(String::from_utf8_lossy(&out.stderr).contains("ddq update"));
     assert_eq!(
-        fs::read_to_string(docs.join("design-doc.lua")).unwrap(),
+        fs::read_to_string(docs.join("_extensions/ddq/design-doc.lua")).unwrap(),
         "locally modified"
     );
 
@@ -163,7 +169,7 @@ fn update_prunes_diagram_cache_only_when_the_version_changes() {
     assert!(diagrams.join("mmd-0123456789abcdef.svg").exists());
 
     // 版が変わる update では、キャッシュ（mmd-* / puml-*）だけを消す。静的図には触らない
-    fs::write(docs.join(".template-version"), "0.0.0\n").unwrap();
+    fs::write(docs.join("_extensions/ddq/_extension.yml"), "version: 0.0.0\n").unwrap();
     put("puml-0123456789abcdef.svg");
     put("puml-0123456789abcdef.puml");
     put("network.svg");
@@ -259,7 +265,7 @@ fn setup_rejects_different_template_version() {
     let repo = tmp.path().join("order-design");
     assert_ok(&ddq(&["init", &repo.to_string_lossy(), "--no-render"]));
     let docs = repo.join("docs");
-    fs::write(docs.join(".template-version"), "0.0.0\n").unwrap();
+    fs::write(docs.join("_extensions/ddq/_extension.yml"), "version: 0.0.0\n").unwrap();
 
     let out = ddq(&["setup", &docs.to_string_lossy()]);
     assert_eq!(out.status.code(), Some(3), "版の不一致は終了コード 3");
@@ -271,8 +277,8 @@ fn setup_rejects_different_template_version() {
     assert!(stderr.contains("テンプレートの版が一致しません"));
     assert!(stderr.contains("ddq update"));
     assert_eq!(
-        fs::read_to_string(docs.join(".template-version")).unwrap(),
-        "0.0.0\n"
+        fs::read_to_string(docs.join("_extensions/ddq/_extension.yml")).unwrap(),
+        "version: 0.0.0\n"
     );
 }
 

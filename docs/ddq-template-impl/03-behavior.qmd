@@ -50,7 +50,7 @@
 
 `offerUpdate` は、`<執筆フォルダ>/.template-version` と `ddq --version` を `classifyMismatch` で比べる。
 
-::: {.tbl caption="版不一致の分類と動作" label="tbl-mismatch-flow" widths="22,28,50"}
+::: {.tbl caption="版不一致の分類と動作" label="tbl-mismatch-flow" tbl-colwidths="[22,28,50]"}
 | 分類 | 条件 | 動作 |
 |---|---|---|
 | `folder-older` | 執筆フォルダの版 ＜ ddq の版 | 「ddq update を実行」を出す。押されたら `execute('update', …)`（非対話）→ 成功すれば元の `kind` を `interactive` でやり直す |

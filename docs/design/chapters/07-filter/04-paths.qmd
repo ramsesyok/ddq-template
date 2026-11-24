@@ -7,7 +7,7 @@ book プロジェクトでは、フィルタ実行時の CWD が**「いま処�
 執筆フォルダの絶対パスが要る。フィルタは**環境変数に依存せず**次の順で自己解決する
 （VSCode の Quarto 拡張や素の `quarto render` でもそのまま動く）。
 
-::: {.tbl caption="フィルタが解決するパス" label="tbl-filter-paths" widths="16,54,30"}
+::: {.tbl caption="フィルタが解決するパス" label="tbl-filter-paths" tbl-colwidths="[16,54,30]"}
 | 名前 | 解決の優先順位 | 用途 |
 |---|---|---|
 | `ROOT` | `DOC_ROOT` env → `quarto.project.directory` → `QUARTO_PROJECT_DIR` env → `'.'` | 執筆フォルダ。図の出力先 `diagrams/` の親 |

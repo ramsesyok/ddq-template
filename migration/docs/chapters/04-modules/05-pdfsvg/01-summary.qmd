@@ -8,7 +8,7 @@ PowerPoint の図は原本（`.pptx`）からは**形が取り出せない**。�
 
 ラスタライズは行わない。PowerPoint も LibreOffice も要しない。
 
-::: {.tbl caption="SP-05 の入出力概要" label="tbl-sp05-io" widths="16,30,54"}
+::: {.tbl caption="SP-05 の入出力概要" label="tbl-sp05-io" tbl-colwidths="[16,30,54]"}
 | 区分 | データ | 内容 |
 |---|---|---|
 | 入力 | PDF | 提出用 PDF |
@@ -24,7 +24,7 @@ Word と PowerPoint を結合した PDF では、本文ページと PPT 由来�
 **用紙サイズや向きが違う**ことが多い。本サブプログラムは、
 **最も多い用紙サイズを本文とみなし**、それ以外を図の候補として挙げる。
 
-::: {.tbl caption="ページの判定" label="tbl-sp05-verdict" widths="18,40,42"}
+::: {.tbl caption="ページの判定" label="tbl-sp05-verdict" tbl-colwidths="[18,40,42]"}
 | 判定 | 条件 | 意味 |
 |---|---|---|
 | 別サイズ | 用紙サイズが最頻値と異なる | PPT 由来ページ、又は横向きページ |

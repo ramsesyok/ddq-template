@@ -9,8 +9,9 @@ filters:
   - design-doc.lua
 lang: ja
 toc: false
-pagebreak-level: 0
-page-start: 7
+ddq:
+  pagebreak-level: 0
+  page-start: 7
 ---
 
 ```{=typst}
@@ -20,7 +21,7 @@ page-start: 7
 # Tables {#sec-tables}
 
 ::: {.landscape}
-::: {.tbl caption="FIELDS" label="tbl-fields" widths="6,8,40,23,23" breakable-rows="true"}
+::: {.tbl caption="FIELDS" label="tbl-fields" tbl-colwidths="[6,8,40,23,23]" breakable-rows="true"}
 
 @@FIELDS@@
 
@@ -36,7 +37,7 @@ page-start: 7
 
 :::
 
-::: {.tbl caption="MANUAL" label="tbl-manual" widths="6,8,40,23,23" breakable-rows="true"}
+::: {.tbl caption="MANUAL" label="tbl-manual" tbl-colwidths="[6,8,40,23,23]" breakable-rows="true"}
 
 @@MANUAL@@
 
@@ -56,7 +57,7 @@ page-start: 7
 
 :::
 
-::: {.tbl .unnumbered caption="UNNUMBERED" widths="6,8,40,23,23" breakable-rows="true"}
+::: {.tbl .unnumbered caption="UNNUMBERED" tbl-colwidths="[6,8,40,23,23]" breakable-rows="true"}
 
 @@UNNUMBERED@@
 

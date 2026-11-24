@@ -1,11 +1,11 @@
 ## 環境に関する症状
 
-::: {.tbl caption="環境に関する症状と対処" label="tbl-trouble-env" widths="34,66"}
+::: {.tbl caption="環境に関する症状と対処" label="tbl-trouble-env" tbl-colwidths="[34,66]"}
 | 症状                                       | 対処                                                                 |
 |--------------------------------------------|----------------------------------------------------------------------|
 | `quarto` が見つからない・「Quarto が見つかりません」の通知 | Quarto のインストール後、VSCode を再起動する。確認は `quarto --version`。解消しなければ設定 `ddqTemplate.quartoPath` に `quarto.exe` のパスを入れる（@sec-quarto-install） |
 | コマンドパレットに `DDQ:` のコマンドが無い  | DDQ Template が入っていない・無効になっている（@sec-extension）。信頼されていないフォルダ（制限モード）でも動かないので、フォルダを信頼する |
-| 右クリックに DDQ のコマンドが出ない         | 執筆フォルダ（`_quarto.yml` と `.template-version` があるフォルダ）とその中のフォルダにだけ出る。右クリックしたのが執筆フォルダの中か確かめる |
+| 右クリックに DDQ のコマンドが出ない         | 執筆フォルダ（`_quarto.yml` と `_extensions/ddq/_extension.yml` があるフォルダ）とその中のフォルダにだけ出る。右クリックしたのが執筆フォルダの中か確かめる |
 | 「バッチファイルなので起動しません」と出る  | 設定 `ddqTemplate.ddqPath` に `.cmd` / `.bat` が入っている。`ddq.exe` を指定するか、空にして同梱の ddq を使う |
 | ラベル一覧で「ラベルを書き戻せません」と出る | 設定 `ddqTemplate.ddqPath` の ddq が古い（書き戻す行を照合できない）。空にして同梱の ddq を使うか、新しい `ddq.exe` を指定する |
 | 「旧拡張をアンインストール」の通知が出る    | 2.4 までの `ddq-revision` / `ddq-table-editor` が残っている。機能は DDQ Template に入っているので、通知からアンインストールする |
@@ -46,7 +46,7 @@ dir
 フォルダにいる。見えない場合は移動する。
 
 ```bat
-cd C:\tools\quarto-template-3.1.0
+cd C:\tools\quarto-template-4.0.0
 ```
 
 VSCode から使うときは場所を意識しなくてよい（DDQ Template が同梱の `ddq.exe` を使う）。

@@ -1,22 +1,18 @@
 ## 設計書リポジトリ（発行者・執筆者） {#sec-doc-repo}
 
 ```text
-order-design/                 … 名前は文書ごとに決める（日本語可）
+order-design/
 ├── .gitignore
 ├── .gitattributes
-├── .vscode/settings.json     … 日本語を等幅で表示する設定
-├── .vscode/extensions.json   … おすすめの拡張（quarto.quarto）
-├── README.md                 … 執筆者向けの入口（作成時に置かれる）
+├── .vscode/
+├── README.md
 └── docs/                     … 執筆フォルダ（名前は自由）
-    ├── _quarto.yml           … book 設定（章の並び・doc-number・post-render）
-    ├── index.qmd             … 前付け（採番されない）
+    ├── _quarto.yml           … 章の並び、Quarto と DDQ の設定
+    ├── index.qmd             … 前付け
     ├── chapters/             … 本文
-    ├── diagrams/             … 静的図と mermaid / PlantUML 生成 SVG のキャッシュ置き場
-    ├── design-doc.pdf        … 中間版 PDF（発行者が更新・コミット）
-    ├── design-doc.lua        ┐
-    ├── design-doc.css        │ 機構ファイル（コミットする。原本は ddq に埋め込み）
-    ├── postprocess-html.js   │
-    ├── mermaid-config.json   │
-    ├── plantuml-config.puml  ┘
-    └── .template-version     … 置かれたテンプレートの版
+    ├── diagrams/             … 静的図と生成 SVG のキャッシュ
+    ├── revisions/            … 改訂履歴
+    ├── design-doc.pdf         … 中間版 PDF（発行者が更新・コミット）
+    └── _extensions/ddq/       … DDQ の形式、フィルタと様式（コミット）
+        └── _extension.yml    … 拡張の定義と版
 ```

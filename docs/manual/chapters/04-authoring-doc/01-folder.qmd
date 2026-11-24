@@ -15,24 +15,17 @@ order-design/              … 設計書リポジトリ（clone するのはこ�
     ├── chapters/          … 本文。章＝フォルダ／節＝サブフォルダ／項＝ファイル
     ├── diagrams/          … 図の置き場（SVG・mermaid / PlantUML のキャッシュ）
     ├── design-doc.pdf     … 中間版 PDF（発行者が更新する）
-    ├── design-doc.lua     ┐
-    ├── design-doc.css     │ 機構ファイル（触らない）。
-    ├── postprocess-html.js│ 発行者が ddq で配置する
-    ├── mermaid-config.json│
-    ├── plantuml-config.puml│
-    ├── .template-version  ┘ 置かれたテンプレートの版
-    ├── lib.typ            … 発行者の setup が置く生成物（触らない）
-    ├── typst-*.typ        … 同上
-    ├── _quarto-publish.yml… 同上
+    ├── revisions/         … 改訂資料
+    ├── _extensions/ddq/   … 発行者が配置する版・HTML と PDF の機構
     └── _book/             … 出力先（生成物）
 ```
 
-`lib.typ`・`typst-*.typ`・`_quarto-publish.yml` は発行者の環境にだけ現れる
-（PDF を出すときに置かれる）。執筆者の手元には無い。
+`_extensions/ddq/` には、版を記録する `_extension.yml` と、二つの出力形式で使う機構がある。
+発行者は `ddq update` で更新し、フォルダ一式をコミットする。
 
 ### 執筆者が触るもの
 
-::: {.tbl caption="編集する場所" label="tbl-edit-where" widths="34,66"}
+::: {.tbl caption="編集する場所" label="tbl-edit-where" tbl-colwidths="[34,66]"}
 | 何をしたいか                       | どこを編集するか                     |
 |------------------------------------|--------------------------------------|
 | 本文を書く・直す                   | `chapters/` の中の `.qmd`            |
@@ -44,27 +37,24 @@ order-design/              … 設計書リポジトリ（clone するのはこ�
 これ以外のファイルは触らなくてよい。
 
 ::: {.callout-note}
-表題・資料番号・会社名（`_quarto.yml` の先頭）は**発行者が決める設定**である。
+表題・資料番号・会社名（`_quarto.yml` の `book:` や `ddq:`）は**発行者が決める設定**である。
 執筆者が変えるものではない（@sec-quarto-yml）。
 :::
 
 ::: {.callout-warning}
-機構ファイル（`design-doc.lua`・`design-doc.css`・`postprocess-html.js`・
-`mermaid-config.json` / `plantuml-config.puml`）は `ddq` に埋め込まれた原本の**写し**である。
-直接編集しても、発行者がテンプレートを更新（`ddq update`）したときや
-ビルドしたときに上書きされる。様式を変えたい場合は 18章を参照すること。
+機構の原本は `ddq` に埋め込まれている。
+標準の見た目は `_quarto.yml` から調整できる。発行者が管理する機構の変更は 18章を参照すること。
 :::
 
 ### 生成物とバージョン管理
 
-::: {.tbl caption="バージョン管理の対象" label="tbl-vcs" widths="45,10,45"}
+::: {.tbl caption="バージョン管理の対象" label="tbl-vcs" tbl-colwidths="[45,10,45]"}
 | ファイル | 管理 | 備考 |
 |---|:---:|---|
 | `_quarto.yml`・`index.qmd`・`chapters/`・`diagrams/` | ○ | 原稿そのもの |
-| 機構ファイル 5 点・`.template-version` | ○ | 発行者が置く。差分が出たら発行者がコミットする |
+| `_extensions/ddq/` | ○ | 発行者が `ddq update` で配置・更新する |
 | `design-doc.pdf` | ○ | **中間版**。発行者が定期的に更新してコミットする |
 | `_book/` | × | 出力先（生成物） |
-| `lib.typ`・`typst-*.typ`・`_quarto-publish.yml` | × | 発行者の setup が置く生成物 |
 | `diagrams/mmd-*.svg` | × | mermaid の変換キャッシュ |
 :::
 

@@ -264,7 +264,7 @@ suite('pandoc との整合（pandoc が無い環境ではスキップ）', () =>
     expect(native).not.toMatch(/Para/);
   });
 
-  it('pandoc が書き出した結合表（縁が `|`）を読み、同じ構造で書き戻せる', () => {
+  it('pandoc が書き出したグリッド表を読み、同じ構造で書き戻せる', () => {
     const html = join(dir, `t${seq++}.html`);
     writeFileSync(
       html,
@@ -275,8 +275,8 @@ suite('pandoc との整合（pandoc が無い環境ではスキップ）', () =>
         '<tr><td>r</td></tr></tbody></table>',
       'utf8'
     );
-    const written = execFileSync(pandoc!, ['-f', 'html', '-t', 'markdown', html], { encoding: 'utf8' });
-    expect(written).toMatch(/^\| +\+-/m); // pandoc 自身が縁を `|` で書く
+    const written = execFileSync(pandoc!, ['-f', 'html', '-t', 'markdown-simple_tables-multiline_tables-pipe_tables', html], { encoding: 'utf8' });
+    expect(written).toMatch(/^\+-/m);
 
     const parsed = parseGridTable(written.trim());
     if (!parsed.ok) throw new Error(parsed.message);

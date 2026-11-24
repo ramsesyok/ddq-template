@@ -4,7 +4,7 @@
 
 ### 一緒に直す箇所
 
-::: {.tbl caption="一緒に直す箇所" label="tbl-common-impact" widths="36,64"}
+::: {.tbl caption="一緒に直す箇所" label="tbl-common-impact" tbl-colwidths="[36,64]"}
 | 変えるもの | 一緒に直すもの |
 |---|---|
 | 版不一致の終了コード（3） | `cli/src/commands/setup.rs` の `TEMPLATE_MISMATCH_EXIT_CODE` と `src/ddq/version.ts` の `TEMPLATE_MISMATCH_EXIT_CODE`、`cli/tests/commands.rs`、`cli/DESIGN.md` |

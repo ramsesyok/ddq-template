@@ -6,7 +6,7 @@
 ### 全列を結合する
 
 ```markdown
-::: {.tbl caption="機能分類" label="tbl-func-class" widths="20,20,45,15" merge-cols="all"}
+::: {.tbl caption="機能分類" label="tbl-func-class" tbl-colwidths="[20,20,45,15]" merge-cols="all"}
 | 大分類 | 中分類 | 機能         | 必須 |
 |--------|--------|--------------|:----:|
 | 受注   | 登録   | 入力チェック | ○    |
@@ -16,7 +16,7 @@
 :::
 ```
 
-::: {.tbl caption="機能分類" label="tbl-func-class" widths="20,20,45,15" merge-cols="all"}
+::: {.tbl caption="機能分類" label="tbl-func-class" tbl-colwidths="[20,20,45,15]" merge-cols="all"}
 | 大分類 | 中分類 | 機能         | 必須 |
 |--------|--------|--------------|:----:|
 | 受注   | 登録   | 入力チェック | ○    |
@@ -35,7 +35,7 @@
 指定する。
 
 ```markdown
-::: {.tbl caption="機能一覧" label="tbl-func-list" widths="10,20,20,50" merge-cols="2,3"}
+::: {.tbl caption="機能一覧" label="tbl-func-list" tbl-colwidths="[10,20,20,50]" merge-cols="2,3"}
 | No | 大分類 | 中分類 | 機能         |
 |:--:|--------|--------|--------------|
 | 1  | 受注   | 登録   | 入力チェック |
@@ -45,7 +45,7 @@
 :::
 ```
 
-::: {.tbl caption="機能一覧" label="tbl-func-list" widths="10,20,20,50" merge-cols="2,3"}
+::: {.tbl caption="機能一覧" label="tbl-func-list" tbl-colwidths="[10,20,20,50]" merge-cols="2,3"}
 | No | 大分類 | 中分類 | 機能         |
 |:--:|--------|--------|--------------|
 | 1  | 受注   | 登録   | 入力チェック |

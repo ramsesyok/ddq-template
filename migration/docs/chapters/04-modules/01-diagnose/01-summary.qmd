@@ -6,7 +6,7 @@
 OOXML の実体が zip であることを利用し、`zipfile` と `xml.etree.ElementTree` で
 直接読む。pandoc も外部ライブラリも用いない（設計条件 C-02）。
 
-::: {.tbl caption="SP-01 の入出力概要" label="tbl-sp01-io" widths="16,30,54"}
+::: {.tbl caption="SP-01 の入出力概要" label="tbl-sp01-io" tbl-colwidths="[16,30,54]"}
 | 区分 | データ | 内容 |
 |---|---|---|
 | 入力 | 原本ファイル | `.docx` / `.pptx`。フォルダを与えた場合は配下を再帰的に探す |
@@ -16,7 +16,7 @@ OOXML の実体が zip であることを利用し、`zipfile` と `xml.etree.El
 
 #### 診断する項目と、それが表す作業量
 
-::: {.tbl caption="診断項目と対応する層" label="tbl-sp01-items" widths="22,14,64"}
+::: {.tbl caption="診断項目と対応する層" label="tbl-sp01-items" tbl-colwidths="[22,14,64]"}
 | 診断項目 | 層 | 意味 |
 |---|:---:|---|
 | 見出し（スタイル） | A | 見出しスタイルで書かれた段落数。0 なら章立てを一から起こすことになる |

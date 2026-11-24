@@ -13,7 +13,7 @@ markdown 全文を受け取り、表と図の採番、本文の参照置換、�
 result = convert(text, image_prefix="/diagrams")
 ```
 
-::: {.tbl caption="M-0201 インタフェース" label="tbl-m0201-if" widths="10,16,16,42,16"}
+::: {.tbl caption="M-0201 インタフェース" label="tbl-m0201-if" tbl-colwidths="[10,16,16,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `text` | `str` | 対象の markdown 全文 | 不可（必須） |
@@ -135,7 +135,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0201-exc に示す。
 
-::: {.tbl caption="M-0201 処理条件・例外条件" label="tbl-m0201-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0201 処理条件・例外条件" label="tbl-m0201-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | 入力が設計条件 C-08 を満たすこと | 満たさない場合、表を検出できない。M-0206 が事前に警告する |
@@ -172,7 +172,7 @@ M-0206 から起動につき1回呼び出される。ファイルの読み書き
 blocks = _find_tables(lines, code)
 ```
 
-::: {.tbl caption="M-0202 インタフェース" label="tbl-m0202-if" widths="10,14,20,40,16"}
+::: {.tbl caption="M-0202 インタフェース" label="tbl-m0202-if" tbl-colwidths="[10,14,20,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `lines` | `list[str]` | 対象の行の並び | 不可（必須） |
@@ -219,7 +219,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0202-exc に示す。
 
-::: {.tbl caption="M-0202 処理条件・例外条件" label="tbl-m0202-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0202 処理条件・例外条件" label="tbl-m0202-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `code` が算出済みであること | 呼出元 M-0201 が保証する |
@@ -253,7 +253,7 @@ M-0201 から、第1パスと第3パスでそれぞれ呼び出される。
 line = _rewrite_image(line, definition, image_prefix)
 ```
 
-::: {.tbl caption="M-0203 インタフェース" label="tbl-m0203-if" widths="10,16,18,40,16"}
+::: {.tbl caption="M-0203 インタフェース" label="tbl-m0203-if" tbl-colwidths="[10,16,18,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `line` | `str` | 画像記法を含む行 | 不可（必須） |
@@ -308,7 +308,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0203-exc に示す。
 
-::: {.tbl caption="M-0203 処理条件・例外条件" label="tbl-m0203-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0203 処理条件・例外条件" label="tbl-m0203-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | 画像記法が無い行を渡しても、そのまま返る |
@@ -341,7 +341,7 @@ M-0201 の第3パスから、画像を含む行ごとに1回呼び出される�
 found = _looks_like_simple_table(lines, code)
 ```
 
-::: {.tbl caption="M-0204 インタフェース" label="tbl-m0204-if" widths="10,14,20,40,16"}
+::: {.tbl caption="M-0204 インタフェース" label="tbl-m0204-if" tbl-colwidths="[10,14,20,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `lines` | `list[str]` | 対象の行の並び | 不可（必須） |
@@ -377,7 +377,7 @@ found = _looks_like_simple_table(lines, code)
 
 処理条件及び例外条件を @tbl-m0204-exc に示す。
 
-::: {.tbl caption="M-0204 処理条件・例外条件" label="tbl-m0204-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0204 処理条件・例外条件" label="tbl-m0204-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -408,7 +408,7 @@ M-0206 から、変換の前に1回呼び出される。真を返しても処理
 _write_map(path, definitions)
 ```
 
-::: {.tbl caption="M-0205 インタフェース" label="tbl-m0205-if" widths="10,16,20,38,16"}
+::: {.tbl caption="M-0205 インタフェース" label="tbl-m0205-if" tbl-colwidths="[10,16,20,38,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `path` | `Path` | 書き出し先 | 不可（必須） |
@@ -441,7 +441,7 @@ _write_map(path, definitions)
 
 処理条件及び例外条件を @tbl-m0205-exc に示す。
 
-::: {.tbl caption="M-0205 処理条件・例外条件" label="tbl-m0205-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0205 処理条件・例外条件" label="tbl-m0205-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | 書き出し先の親フォルダが存在すること | 存在しない場合は例外となり、Python の既定の異常終了に委ねる |
@@ -471,7 +471,7 @@ M-0206 から、`--map` が指定された場合にのみ1回呼び出される�
 code = main(argv)
 ```
 
-::: {.tbl caption="M-0206 インタフェース" label="tbl-m0206-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0206 インタフェース" label="tbl-m0206-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `argv` | `list[str] \| None` | コマンドライン引数 | `None` |
@@ -524,7 +524,7 @@ flowchart TD
 
 要約として報告する内容を @tbl-m0206-report に示す。
 
-::: {.tbl caption="M-0206 が報告する内容" label="tbl-m0206-report" widths="34,66"}
+::: {.tbl caption="M-0206 が報告する内容" label="tbl-m0206-report" tbl-colwidths="[34,66]"}
 | 報告 | 意味 |
 |---|---|
 | 採番した表・図の件数と置換した参照の箇所数 | 正常に処理された量 |
@@ -536,7 +536,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0206-exc に示す。
 
-::: {.tbl caption="M-0206 処理条件・例外条件" label="tbl-m0206-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0206 処理条件・例外条件" label="tbl-m0206-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |

@@ -112,7 +112,7 @@ fn tall_grid(key: &str) -> String {
 }
 
 /// 本文が載る全ページに正しいキャプションがあること、通番と総数が一致すること。
-fn assert_table(pages: &Pages, name: &str, number: Option<u64>, body_prefix: &str) {
+fn assert_table(pages: &Pages, name: &str, number: Option<u64>, body_prefix: &str, prefix: &str) {
     let body_pages: Vec<_> = pages
         .iter()
         .filter(|(_, text)| text.contains(body_prefix))
@@ -123,7 +123,7 @@ fn assert_table(pages: &Pages, name: &str, number: Option<u64>, body_prefix: &st
     let last = *body_pages.last().unwrap();
     let total = last - first + 1;
     for page in first..=last {
-        let prefix = number.map(|n| format!("表1-{n}")).unwrap_or_default();
+        let prefix = number.map(|n| format!("表{prefix}{n}")).unwrap_or_default();
         let suffix = if total > 1 {
             format!("（{}／{total}）", page - first + 1)
         } else {
@@ -170,28 +170,31 @@ fn table_captions_cover_every_body_page() {
     )
     .unwrap();
 
+    fn check_unscoped(pages: &Pages, name: &str, number: Option<u64>, body: &str) {
+        assert_table(pages, name, number, body, "");
+    }
     for (case, name) in [("first", "FIRST"), ("middle", "MIDDLE"), ("last", "LAST")] {
         let pages = render(tmp.path(), case);
         assert!(pages.len() > 2, "{case}: 再現条件の高さが不足しています");
-        assert_table(&pages, name, Some(1), &format!("CELL-{name}-"));
+        check_unscoped(&pages, name, Some(1), &format!("CELL-{name}-"));
         assert!(pages.values().any(|p| p.contains(&format!("CELL-{name}-99"))));
     }
     let pages = render(tmp.path(), "following");
-    assert_table(&pages, "MIDDLE", Some(1), "CELL-MIDDLE-");
-    assert_table(&pages, "NEXT", Some(2), "CELL-NEXT-");
+    check_unscoped(&pages, "MIDDLE", Some(1), "CELL-MIDDLE-");
+    check_unscoped(&pages, "NEXT", Some(2), "CELL-NEXT-");
 
     let pages = render(tmp.path(), "last-row");
-    assert_table(&pages, "LASTROW", Some(1), "LASTROW-");
+    check_unscoped(&pages, "LASTROW", Some(1), "LASTROW-");
     assert!(pages.values().any(|p| p.contains("CELL-LASTROW-99")));
 
     let pages = render(tmp.path(), "same-page");
-    assert_table(&pages, "SMALL", Some(1), "ROW-SMALL-");
-    assert_table(&pages, "MIDDLE", Some(2), "CELL-MIDDLE-");
-    assert_table(&pages, "SMALLNEXT", Some(3), "ROW-SMALLNEXT-");
+    check_unscoped(&pages, "SMALL", Some(1), "ROW-SMALL-");
+    check_unscoped(&pages, "MIDDLE", Some(2), "CELL-MIDDLE-");
+    check_unscoped(&pages, "SMALLNEXT", Some(3), "ROW-SMALLNEXT-");
 
     let pages = render(tmp.path(), "manual");
-    assert_table(&pages, "MANUAL", Some(1), "CELL-MANUAL-");
-    assert_table(&pages, "NEXT", Some(2), "ROW-NEXT-");
+    check_unscoped(&pages, "MANUAL", Some(1), "CELL-MANUAL-");
+    check_unscoped(&pages, "NEXT", Some(2), "ROW-NEXT-");
 
     for (case, name, body) in [
         ("ordinary", "ORDINARY", "ROW-ORDINARY-"),
@@ -201,7 +204,7 @@ fn table_captions_cover_every_body_page() {
         ("header-only", "EMPTY", "ABCDE"),
     ] {
         let pages = render(tmp.path(), case);
-        assert_table(&pages, name, Some(1), body);
+        check_unscoped(&pages, name, Some(1), body);
         if case == "many-rows" {
             // 行を割らない既定動作: 同じ行の先頭列・末尾列が同じページにある。
             for row in 0..100 {
@@ -214,16 +217,19 @@ fn table_captions_cover_every_body_page() {
         }
     }
     let pages = render(tmp.path(), "unnumbered");
-    assert_table(&pages, "UNNUMBERED", None, "CELL-UNNUMBERED-");
+    check_unscoped(&pages, "UNNUMBERED", None, "CELL-UNNUMBERED-");
     assert!(pages.values().all(|p| !p.contains('表')));
 
     let pages = render(tmp.path(), "references");
-    assert_table(&pages, "MIDDLE", Some(1), "CELL-MIDDLE-");
-    assert!(pages.values().any(|p| p.contains("BEFORE表1-1")));
-    assert!(pages.values().any(|p| p.contains("AFTER表1-1")));
+    check_unscoped(&pages, "MIDDLE", Some(1), "CELL-MIDDLE-");
+    assert!(pages.values().any(|p| p.contains("BEFORE表1")));
+    assert!(pages.values().any(|p| p.contains("AFTER表1")));
 
     // Quarto → design-doc.lua → lib.typ の経路。横向き・手動分割・自動結合と併用する。
     let template = Path::new(env!("CARGO_MANIFEST_DIR")).join("../template");
+    let extension = tmp.path().join("_extensions/ddq");
+    fs::create_dir_all(&extension).unwrap();
+    fs::copy(template.join("lib.typ"), extension.join("lib.typ")).unwrap();
     for name in ["design-doc.lua", "typst-template.typ", "typst-show.typ"] {
         fs::copy(template.join(name), tmp.path().join(name)).unwrap();
     }
@@ -242,11 +248,11 @@ fn table_captions_cover_every_body_page() {
     assert!(!stderr.contains("did not converge"), "{stderr}");
     assert!(tmp.path().join("tables.pdf").is_file());
     let pages = query_pages(tmp.path(), "tables.typ", None);
-    assert_table(&pages, "FIELDS", Some(1), "FIELD-");
-    assert_table(&pages, "NEXT", Some(2), "NORMAL-");
-    assert_table(&pages, "MANUAL", Some(3), "MANUAL-");
-    assert_table(&pages, "MERGED", Some(4), "MERGE-");
-    assert_table(&pages, "UNNUMBERED", None, "UNNUM-");
+    assert_table(&pages, "FIELDS", Some(1), "FIELD-", "1-");
+    assert_table(&pages, "NEXT", Some(2), "NORMAL-", "1-");
+    assert_table(&pages, "MANUAL", Some(3), "MANUAL-", "1-");
+    assert_table(&pages, "MERGED", Some(4), "MERGE-", "1-");
+    assert_table(&pages, "UNNUMBERED", None, "UNNUM-", "1-");
     for marker in ["FIELD-99", "MANUAL-99", "MANUAL-END", "UNNUM-99"] {
         assert!(
             pages.values().any(|p| p.contains(marker)),

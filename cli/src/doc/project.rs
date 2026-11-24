@@ -144,7 +144,15 @@ struct Sink<'a> {
 /// 文書順の組み立て。`_quarto.yml` の chapters を起点に include を展開する。
 /// 設定のないフォルダだけは qmd/md をパス順に並べる。
 fn assemble(src: &dyn Source, sink: &mut Sink) -> Result<Order> {
-    if let Some(conf) = src.read("_quarto.yml") {
+    let mut config = None;
+    for name in crate::writing_folder::CONFIG_NAMES {
+        if let Some(text) = src.read(name) {
+            config = Some(text);
+            break;
+        }
+        anyhow::ensure!(!src.exists(name), "{name} を読み取れません");
+    }
+    if let Some(conf) = config {
         let chapters = chapters_of(&conf, |p| src.exists(p));
         anyhow::ensure!(
             !chapters.is_empty(),
@@ -159,7 +167,6 @@ fn assemble(src: &dyn Source, sink: &mut Sink) -> Result<Order> {
         }
         return Ok(out);
     }
-    anyhow::ensure!(!src.exists("_quarto.yml"), "_quarto.yml を読み取れません");
     let files = src.list();
     // 文書順だけが要るとき（order_of）は本文を読まない
     if sink.lines.is_some() || sink.texts.is_some() {
@@ -436,6 +443,53 @@ fn value_of<'a>(s: &'a str, key: &str) -> Option<&'a str> {
     s.strip_prefix(key)?
         .strip_prefix(':')
         .filter(|v| v.is_empty() || v.starts_with(char::is_whitespace))
+}
+
+/// Read a scalar from a root mapping for commands that can run without Quarto.
+/// Rendering uses Quarto's resolved configuration instead.
+pub fn mapping_scalar(yml: &str, mapping: &str, key: &str) -> Option<String> {
+    let mut lines = yml.trim_start_matches('\u{feff}').lines();
+    let value = lines.find_map(|line| value_of(line, mapping).map(str::trim))?;
+    if let Some(flow) = value.strip_prefix('{') {
+        let text = flow_text(flow, &mut lines);
+        return split_flow(&text).into_iter().find_map(|item| {
+            let (name, value) = key_value(item)?;
+            (name == key).then(|| yaml_scalar(value)).flatten()
+        });
+    }
+    let mut indent = None;
+    for line in lines {
+        let trimmed = line.trim_start();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let depth = line.len() - trimmed.len();
+        if depth == 0 {
+            break;
+        }
+        if depth == *indent.get_or_insert(depth)
+            && let Some(value) = value_of(trimmed, key)
+        {
+            return yaml_scalar(value);
+        }
+    }
+    None
+}
+
+fn yaml_scalar(value: &str) -> Option<String> {
+    let value = value.trim();
+    let comment = unquoted(value)
+        .into_iter()
+        .find_map(|(i, c)| (c == '#' && (i == 0 || value[..i].ends_with(char::is_whitespace))).then_some(i));
+    let value = value[..comment.unwrap_or(value.len())].trim_end();
+    let value = if let Some(quoted) = value.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+        quoted.replace("\\\"", "\"").replace("\\\\", "\\")
+    } else if let Some(quoted) = value.strip_prefix('\'').and_then(|s| s.strip_suffix('\'')) {
+        quoted.replace("''", "'")
+    } else {
+        value.to_string()
+    };
+    (!value.is_empty() && !matches!(value.as_str(), "null" | "~")).then_some(value)
 }
 
 /// 対応付けの行 `キー: 値` のキーと値（キーは英数字・`-`・`_`。`value_of` と同じく `part:x` は 1 つの文字列）
@@ -1233,7 +1287,10 @@ mod tests {
         let flat = Files(&[("b.qmd", "# B\n"), ("a.md", "# A\n")]);
         let counted = Counting::new(&flat);
         assert_eq!(order_of(&counted).unwrap().files, ["a.md", "b.qmd"]);
-        assert_eq!(counted.reads(), [("_quarto.yml".to_string(), 1)]);
+        assert_eq!(
+            counted.reads(),
+            [("_quarto.yaml".to_string(), 1), ("_quarto.yml".to_string(), 1)]
+        );
         let (order, texts) = order_with_texts(&flat).unwrap();
         assert_eq!(order.files, ["a.md", "b.qmd"]);
         assert_eq!(texts[0], ("a.md".to_string(), "# A\n".to_string()));

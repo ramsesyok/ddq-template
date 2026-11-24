@@ -2,13 +2,13 @@
 
 本章では、執筆フォルダと `template/` にあるファイルの役割を一覧にする。
 場所欄の **doc** は執筆フォルダ、**tpl** は `template/`、**tpl→doc** は原本が
-`template/` にあり写しが執筆フォルダに置かれるもの。「配布」欄は設計書リポジトリに
+`template/` にあり写しが執筆フォルダの `_extensions/ddq/` に置かれるもの。「配布」欄は設計書リポジトリに
 コミットされるかを示す。
 
-::: {.tbl caption="ファイルの役割（原稿と機構）" label="tbl-files-doc" widths="22,8,6,44,20"}
+::: {.tbl caption="ファイルの役割（原稿と機構）" label="tbl-files-doc" tbl-colwidths="[22,8,6,44,20]"}
 | ファイル | 場所 | 配布 | 役割 | 影響する出力 |
 |---|---|---|---|---|
-| `_quarto.yml` | doc | ○ | 章の並び、html 設定、画面幅（`grid:`）、資料番号、`post-render` | 両方 |
+| `_quarto.yml` | doc | ○ | 章の並び、html 設定、画面幅（`grid:`）、`ddq:` の資料番号など | 両方 |
 | `index.qmd` | doc | ○ | 前付け（採番なし）。HTML のトップページ | 両方 |
 | `chapters/**.qmd` | doc | ○ | 本文 | 両方 |
 | `diagrams/` | doc | ○ | qmd が直接貼る静的図 ＋ mermaid / PlantUML 生成 SVG の置き場（`mmd-*` `puml-*` は管理外） | 両方 |
@@ -18,15 +18,14 @@
 | `postprocess-html.js` | tpl→doc | ○ | 図表番号を「章.節-連番」に振り直す（`post-render` で自動実行） | HTML |
 | `mermaid-config.json` | tpl→doc | ○ | mermaid のテーマ・`htmlLabels: false`（SVG 化とプレビューの共通ソース） | 両方 |
 | `plantuml-config.puml` | tpl→doc | ○ | PlantUML の共通設定（`layout smetana`・フォント）。各図の先頭に連結して送るので、変えるとキャッシュが作り直される | 両方 |
-| `.template-version` | tpl→doc | ○ | 置いた時点のテンプレート版（`template/VERSION` の写し） | ― |
+| `_extension.yml` | tpl→doc | ○ | プロジェクト・形式の定義と版（`template/VERSION`） | ― |
 | `design-doc.pdf` | doc | ○ | 中間版（発行者が定期的に作る） | ― |
-| `typst-show.typ` | tpl→doc | × | フロントマター → `design-doc()` の引数 | PDF |
-| `typst-template.typ` | tpl→doc | × | Quarto 既定テンプレートの差し替え口（`lib.typ` を import） | PDF |
-| `lib.typ` | tpl→doc | × | **様式の単一ソース**（枠・採番・IPO・横向き・`.tbl` の分割） | PDF |
-| `quarto-publish.yml` | tpl→doc | × | typst 用プロファイル（`_quarto-publish.yml` として置かれる） | PDF |
+| `typst-show.typ` | tpl→doc | ○ | フロントマター → `design-doc()` の引数 | PDF |
+| `typst-template.typ` | tpl→doc | ○ | Quarto 既定テンプレートの差し替え口（`lib.typ` を import） | PDF |
+| `lib.typ` | tpl→doc | ○ | **様式の単一ソース**（枠・採番・IPO・横向き・`.tbl` の分割） | PDF |
 :::
 
-::: {.tbl caption="ファイルの役割（template/ にだけあるもの）" label="tbl-files-tpl" widths="26,74"}
+::: {.tbl caption="ファイルの役割（template/ にだけあるもの）" label="tbl-files-tpl" tbl-colwidths="[26,74]"}
 | ファイル | 役割 |
 |---|---|
 | `VERSION` | テンプレートの版。配布される機構ファイルを変えたら上げる（@sec-version） |

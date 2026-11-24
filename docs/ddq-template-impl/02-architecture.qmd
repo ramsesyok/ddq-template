@@ -4,7 +4,7 @@
 
 ### ソースの構成
 
-::: {.tbl caption="共通の基盤のソース" label="tbl-common-src" widths="30,70"}
+::: {.tbl caption="共通の基盤のソース" label="tbl-common-src" tbl-colwidths="[30,70]"}
 | ファイル | 責務 |
 |---|---|
 | `src/extension.ts` | 入口。`initLocate` → `activateBuild` → `activateInit` → `activateAdd` → `activateRevision` → `activateTableEditor` → `warnLegacyExtensions` の順に呼ぶだけ。`deactivate` は逆に各機能の後始末を呼ぶ |
@@ -35,7 +35,7 @@
 ウィンドウでの案内のため、コマンドを実行しなくても起動する）。`capabilities.untrustedWorkspaces.supported`
 は `false` で、制限モードでは読み込まれない（ワークスペースで exe を実行するため）。
 
-::: {.tbl caption="共通の基盤が登録するもの" label="tbl-common-activate" widths="40,60"}
+::: {.tbl caption="共通の基盤が登録するもの" label="tbl-common-activate" tbl-colwidths="[40,60]"}
 | 登録 | 内容 |
 |---|---|
 | `ddqTemplate.init` / `add` / `pdf` / `html` / `diagrams` | `package.json` に出すコマンド（コマンドパレット・右クリック。`add` はリポジトリのルートフォルダの右クリック） |

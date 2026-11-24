@@ -61,12 +61,12 @@ describe('属性値のエスケープ', () => {
 
 describe('parseFenceHeader', () => {
   it('クラスと属性を読み分ける', () => {
-    const h = parseFenceHeader(':::: {.tbl .unnumbered caption="表題" widths="1,2" merge-cols="1"}');
+    const h = parseFenceHeader(':::: {.tbl .unnumbered caption="表題" tbl-colwidths="[1,2]" merge-cols="1"}');
     expect(h?.colons).toBe(4);
     expect(h?.classes).toEqual(['tbl', 'unnumbered']);
     expect(h?.attributes).toEqual([
       ['caption', '表題'],
-      ['widths', '1,2'],
+      ['tbl-colwidths', '[1,2]'],
       ['merge-cols', '1']
     ]);
   });

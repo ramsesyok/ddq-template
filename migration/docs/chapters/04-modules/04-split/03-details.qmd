@@ -13,7 +13,7 @@ markdown 全文を読み、最初の見出しより前の内容（前付け）�
 preamble, roots = build_tree(text)
 ```
 
-::: {.tbl caption="M-0401 インタフェース" label="tbl-m0401-if" widths="10,16,18,40,16"}
+::: {.tbl caption="M-0401 インタフェース" label="tbl-m0401-if" tbl-colwidths="[10,16,18,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `text` | `str` | 対象の markdown 全文 | 不可（必須） |
@@ -64,7 +64,7 @@ flowchart TD
 
 キーの採番規則を @tbl-m0401-key に示す。キーは対応表 `_names.tsv` の1列目となる。
 
-::: {.tbl caption="M-0401 キーの採番規則" label="tbl-m0401-key" widths="20,20,60"}
+::: {.tbl caption="M-0401 キーの採番規則" label="tbl-m0401-key" tbl-colwidths="[20,20,60]"}
 | 階層 | 例 | 規則 |
 |---|---|---|
 | 章 | `01` | 出現順に1から。2桁の0詰め |
@@ -74,7 +74,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0401-exc に示す。
 
-::: {.tbl caption="M-0401 処理条件・例外条件" label="tbl-m0401-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0401 処理条件・例外条件" label="tbl-m0401-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -108,7 +108,7 @@ ASCII 以外の文字が含まれる場合は、対象をすべて示したう�
 names = load_names(path)
 ```
 
-::: {.tbl caption="M-0402 インタフェース" label="tbl-m0402-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0402 インタフェース" label="tbl-m0402-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `path` | `Path` | 対応表のパス | 不可（必須） |
@@ -163,7 +163,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0402-exc に示す。
 
-::: {.tbl caption="M-0402 処理条件・例外条件" label="tbl-m0402-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0402 処理条件・例外条件" label="tbl-m0402-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | 対応表が UTF-8 であること | 本サブプログラムが書き出したものをそのまま編集する前提 |
@@ -194,7 +194,7 @@ M-0408 から、`--names` が指定された場合にのみ1回呼び出され�
 apply_names(nodes, names)
 ```
 
-::: {.tbl caption="M-0403 インタフェース" label="tbl-m0403-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0403 インタフェース" label="tbl-m0403-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `nodes` | `list[Node]` | 対象の節点の並び。**内容を書き換える** | 不可（必須） |
@@ -228,7 +228,7 @@ apply_names(nodes, names)
 
 処理条件及び例外条件を @tbl-m0403-exc に示す。
 
-::: {.tbl caption="M-0403 処理条件・例外条件" label="tbl-m0403-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0403 処理条件・例外条件" label="tbl-m0403-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | 各節点のキーが採番済みであること | M-0401 が保証する |
@@ -258,7 +258,7 @@ M-0408 から、`--names` が指定された場合にのみ、章の並びを引
 text = _body(node, includes)
 ```
 
-::: {.tbl caption="M-0404 インタフェース" label="tbl-m0404-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0404 インタフェース" label="tbl-m0404-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `node` | `Node` | 対象の節点 | 不可（必須） |
@@ -292,7 +292,7 @@ text = _body(node, includes)
 
 処理条件及び例外条件を @tbl-m0404-exc に示す。
 
-::: {.tbl caption="M-0404 処理条件・例外条件" label="tbl-m0404-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0404 処理条件・例外条件" label="tbl-m0404-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `includes` が章フォルダ基準であること | 呼出元 M-0405 が組み立てる |
@@ -322,7 +322,7 @@ M-0405 から、書き出すファイル1件につき1回呼び出される。
 written = write_tree(roots, outdir, preamble)
 ```
 
-::: {.tbl caption="M-0405 インタフェース" label="tbl-m0405-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0405 インタフェース" label="tbl-m0405-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `roots` | `list[Node]` | 章の並び | 不可（必須） |
@@ -386,7 +386,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0405-exc に示す。
 
-::: {.tbl caption="M-0405 処理条件・例外条件" label="tbl-m0405-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0405 処理条件・例外条件" label="tbl-m0405-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | 出力先が空であるか、`--force` が指定されていること | M-0408 が検査する（設計条件 C-14） |
@@ -419,7 +419,7 @@ M-0408 から起動につき1回呼び出される。改行を LF に固定し�
 write_names(path, roots)
 ```
 
-::: {.tbl caption="M-0406 インタフェース" label="tbl-m0406-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0406 インタフェース" label="tbl-m0406-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `path` | `Path` | 書き出し先（`_names.tsv`） | 不可（必須） |
@@ -453,7 +453,7 @@ write_names(path, roots)
 
 処理条件及び例外条件を @tbl-m0406-exc に示す。
 
-::: {.tbl caption="M-0406 処理条件・例外条件" label="tbl-m0406-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0406 処理条件・例外条件" label="tbl-m0406-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | 各節点のキーが採番済みであること | M-0401 が保証する |
@@ -483,7 +483,7 @@ M-0408 から起動につき1回呼び出される。`--names` の有無にか�
 write_chapters_yml(path, roots)
 ```
 
-::: {.tbl caption="M-0407 インタフェース" label="tbl-m0407-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0407 インタフェース" label="tbl-m0407-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `path` | `Path` | 書き出し先（`_chapters.yml`） | 不可（必須） |
@@ -522,7 +522,7 @@ write_chapters_yml(path, roots)
 
 処理条件及び例外条件を @tbl-m0407-exc に示す。
 
-::: {.tbl caption="M-0407 処理条件・例外条件" label="tbl-m0407-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0407 処理条件・例外条件" label="tbl-m0407-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | 各節点のキーと名前が設定済みであること | M-0401 及び M-0403 が保証する |
@@ -551,7 +551,7 @@ M-0408 から起動につき1回呼び出される。
 code = main(argv)
 ```
 
-::: {.tbl caption="M-0408 インタフェース" label="tbl-m0408-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0408 インタフェース" label="tbl-m0408-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `argv` | `list[str] \| None` | コマンドライン引数 | `None` |
@@ -603,7 +603,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0408-exc に示す。
 
-::: {.tbl caption="M-0408 処理条件・例外条件" label="tbl-m0408-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0408 処理条件・例外条件" label="tbl-m0408-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |

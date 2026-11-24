@@ -3,7 +3,7 @@
 SP-01 を構成するモジュールを @tbl-sp01-mods に、補助モジュールを @tbl-sp01-sub に、
 相互関連を @fig-sp01-tree に示す。
 
-::: {.tbl caption="SP-01 モジュール一覧" label="tbl-sp01-mods" widths="12,20,46,22"}
+::: {.tbl caption="SP-01 モジュール一覧" label="tbl-sp01-mods" tbl-colwidths="[12,20,46,22]"}
 | ID | 名称 | 機能の概要 | 呼出元 |
 |---|---|---|---|
 | M-0101 | `analyze` | ファイル1件を種別に応じて診断する。異常時も例外を返さず結果に含める | `main` |
@@ -15,7 +15,7 @@ SP-01 を構成するモジュールを @tbl-sp01-mods に、補助モジュー�
 | M-0107 | `main` | 引数を解釈し、全体を制御する | （利用者） |
 :::
 
-::: {.tbl caption="SP-01 補助モジュール一覧" label="tbl-sp01-sub" widths="16,12,38,34"}
+::: {.tbl caption="SP-01 補助モジュール一覧" label="tbl-sp01-sub" tbl-colwidths="[16,12,38,34]"}
 | 名称 | 戻り値 | 機能 | 備考 |
 |---|---|---|---|
 | `_local` | `str` | タグ名から名前空間を除く | `{ns}tag` → `tag` |

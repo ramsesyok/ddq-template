@@ -4,7 +4,7 @@
 すべて名前付き定数として集約してあり、以降の関数群はこの定数を参照するだけである。
 様式の微調整は原則ここだけを触ればよい。
 
-::: {.tbl caption="lib.typ の節" label="tbl-lib-sections" widths="10,32,58"}
+::: {.tbl caption="lib.typ の節" label="tbl-lib-sections" tbl-colwidths="[10,32,58]"}
 | 節 | 内容 | 主な関数 |
 |---|---|---|
 | 【1】 | 調整パラメータ（フォント・色・寸法・IPO の欄割り） | 定数のみ |
@@ -19,7 +19,7 @@
 
 ### 調整パラメータ
 
-::: {.tbl caption="変えたいものと触る定数" label="tbl-lib-params" widths="40,60"}
+::: {.tbl caption="変えたいものと触る定数" label="tbl-lib-params" tbl-colwidths="[40,60]"}
 | 変えたいもの | 触る定数 |
 |---|---|
 | 本文・様式のフォント（HTML の `design-doc.css`、図の `mermaid-config.json`・`plantuml-config.puml` もそろえる） | `JP-SANS` / `MONO` / `SPEC-HEAD-FONT` |

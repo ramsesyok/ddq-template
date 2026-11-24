@@ -9,7 +9,7 @@ npm run verify      # typecheck → test → build → check:offline → check:a
 npm run test:host   # 実拡張ホスト（本物の VSCode）で動かす
 ```
 
-::: {.tbl caption="生成物" label="tbl-rev-artifacts" widths="34,26,40"}
+::: {.tbl caption="生成物" label="tbl-rev-artifacts" tbl-colwidths="[34,26,40]"}
 | 生成物 | 生成元 | 参照先 |
 |---|---|---|
 | `out/extension.js` | `esbuild.mjs`（cjs・node18・bundle） | VSCode 拡張ホスト |
@@ -24,7 +24,7 @@ npm run test:host   # 実拡張ホスト（本物の VSCode）で動かす
 
 確認済み（静的）：**本番依存はゼロ**である。`dependencies` を持たず、すべて `devDependencies`（ビルドとテストの道具）である。実行時に必要なのは VSCode API と、外部プロセスとしての `ddq` だけである。[E-0001](appendix-evidence.qmd#ev-rev-e-0001)
 
-::: {.tbl caption="開発時の依存（役割別）" label="tbl-rev-devdeps" widths="34,66"}
+::: {.tbl caption="開発時の依存（役割別）" label="tbl-rev-devdeps" tbl-colwidths="[34,66]"}
 | 依存 | 役割 |
 |---|---|
 | `esbuild` | 拡張ホスト側のバンドル |
@@ -42,7 +42,7 @@ npm run test:host   # 実拡張ホスト（本物の VSCode）で動かす
 
 ### 設定
 
-::: {.tbl caption="設定と環境変数" label="tbl-rev-settings" widths="30,26,44"}
+::: {.tbl caption="設定と環境変数" label="tbl-rev-settings" tbl-colwidths="[30,26,44]"}
 | 名前 | 読む場所 | 効果 |
 |---|---|---|
 | `ddqRevision.ddqPath` | 拡張（`ddqCommand`） | `ddq` 実行ファイルのパス。空なら `PATH` の `ddq` |

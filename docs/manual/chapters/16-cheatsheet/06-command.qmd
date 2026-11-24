@@ -1,6 +1,6 @@
 ## コマンド
 
-::: {.tbl caption="主な操作" label="tbl-cs-cmd" widths="28,32,28,12"}
+::: {.tbl caption="主な操作" label="tbl-cs-cmd" tbl-colwidths="[28,32,28,12]"}
 | やりたいこと             | VSCode（DDQ Template）                      | コマンド（@sec-cli）                          | 参照  |
 |--------------------------|---------------------------------------------|-----------------------------------------------|-------|
 | 確認用 HTML を出す（執筆者） | DDQ: HTML を作成                         | `cd docs` ＋ `quarto render`                  | 5章   |
@@ -24,5 +24,5 @@ VSCode のコマンドは、コマンドパレット（`Ctrl+Shift+P`）で `DDQ
 **絶対パスで書く**こと。
 
 ```bat
-cd C:\tools\quarto-template-3.1.0
+cd C:\tools\quarto-template-4.0.0
 ```

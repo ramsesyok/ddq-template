@@ -72,7 +72,7 @@ export function toTblAttributes(header: FenceHeader): TblAttributes {
       case 'label':
         attrs.label = normalizeLabel(value);
         break;
-      case 'widths':
+      case 'tbl-colwidths':
       case 'merge-cols':
         // 列情報・出力形式として別途扱うので属性としては保持しない
         break;
@@ -99,18 +99,21 @@ export function isValidLabel(label: string): boolean {
   return /^tbl-/.test(label);
 }
 
-/** `widths="20,30,50"` を数値配列へ。個数が列数と合わなければ undefined。 */
-export function parseWidths(
+/** `tbl-colwidths="[20,30,50]"` を数値配列へ。個数が列数と合わなければ undefined。 */
+export function parseColumnWidths(
   value: string | undefined,
   colLen: number
 ): number[] | undefined {
   if (!value) return undefined;
-  const nums = [...value.matchAll(/[\d.]+/g)].map(m => Number(m[0]));
-  if (nums.length !== colLen) return undefined;
-  if (nums.some(n => !Number.isFinite(n)) || nums.reduce((a, b) => a + b, 0) <= 0) {
+  try {
+    const nums: unknown = JSON.parse(value);
+    if (!Array.isArray(nums) || nums.length !== colLen) return undefined;
+    if (nums.some(n => typeof n !== 'number' || !Number.isFinite(n) || n < 0 || n > 100)) return undefined;
+    if (nums.every(n => n === 0)) return undefined;
+    return nums;
+  } catch {
     return undefined;
   }
-  return nums;
 }
 
 /** fence の属性から値を取り出す。 */

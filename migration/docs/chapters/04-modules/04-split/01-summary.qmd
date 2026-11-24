@@ -3,7 +3,7 @@
 1本の markdown を、テンプレートが定める章立ての規約に沿ってファイル・フォルダへ
 分割し、執筆フォルダの形で書き出す。
 
-::: {.tbl caption="SP-04 の入出力概要" label="tbl-sp04-io" widths="16,30,54"}
+::: {.tbl caption="SP-04 の入出力概要" label="tbl-sp04-io" tbl-colwidths="[16,30,54]"}
 | 区分 | データ | 内容 |
 |---|---|---|
 | 入力 | markdown | SP-03 の出力。番号を除いた見出しを含む |
@@ -17,7 +17,7 @@
 
 #### 分割の規約
 
-::: {.tbl caption="分割の規約" label="tbl-sp04-rule" widths="26,74"}
+::: {.tbl caption="分割の規約" label="tbl-sp04-rule" tbl-colwidths="[26,74]"}
 | 対象 | 規約 |
 |---|---|
 | 章（レベル1） | **必ずフォルダ**にする。ラッパーは `index.qmd` |
