@@ -16,7 +16,7 @@ Markdown（Quarto）で書いた原稿から、社内様式の PDF とレビュ�
 | もの | 説明 |
 |---|---|
 | Visual Studio Code | 1.85 以上 |
-| Quarto | PDF / HTML の作成に使う。見つからないときは案内が出ます |
+| Quarto | 1.9.38 以上。PDF / HTML の作成に使う。見つからないときは案内が出ます |
 | ddq | 拡張に同梱しています（Windows x64）。別に入れる必要はありません |
 | PlantUML（使うときだけ） | LAN 内の PlantUML サーバ、または `plantuml.jar` と Java 8 以上。`plantuml.jar` は拡張にも配布 zip にも入っていません。PlantUML の公式リリースから取得し、環境変数 `DDQ_PLANTUML_JAR` にパスを設定してください（利用マニュアル 11 章） |
 
@@ -61,7 +61,8 @@ Quarto が無くても作れます（最後の確認の `quarto render` を省�
 
 ## 発行（PDF / HTML / 図）
 
-執筆フォルダ（`_quarto.yml` と `.template-version` のあるフォルダ）に対して ddq を実行します。
+執筆フォルダの `_quarto.yml` または `_quarto.yaml` で DDQ を選び、
+`_extensions/ddq/` に HTML・PDF の機構を配置します。拡張はこの執筆フォルダに対して ddq を実行します。
 
 | コマンド | 内容 |
 |---|---|
@@ -227,7 +228,7 @@ Excel / Handsontable と同じ流儀です。
 #### 結合なし → パイプ表
 
 ```markdown
-::: {.tbl caption="機能分類" label="tbl-cls" widths="20,20,60"}
+::: {.tbl caption="機能分類" label="tbl-cls" tbl-colwidths="[20,20,60]"}
 | 大分類 | 中分類 | 項目         |
 | ------ | ------ | ------------ |
 | 受注   | 登録   | 入力チェック |
@@ -238,7 +239,7 @@ Excel / Handsontable と同じ流儀です。
 #### 結合あり → グリッド表（既定）
 
 ```markdown
-::: {.tbl caption="機能分類" label="tbl-cls" widths="20,20,60"}
+::: {.tbl caption="機能分類" label="tbl-cls" tbl-colwidths="[20,20,60]"}
 +--------+--------+--------------+
 | 大分類 | 中分類 | 項目         |
 +========+========+==============+
@@ -252,7 +253,7 @@ Excel / Handsontable と同じ流儀です。
 #### 結合あり → merge-cols（再現可能なときだけ選択可）
 
 ```markdown
-::: {.tbl caption="機能分類" label="tbl-cls" widths="20,20,60" merge-cols="1"}
+::: {.tbl caption="機能分類" label="tbl-cls" tbl-colwidths="[20,20,60]" merge-cols="1"}
 | 大分類 | 中分類 | 項目         |
 | ------ | ------ | ------------ |
 | 受注   | 登録   | 入力チェック |

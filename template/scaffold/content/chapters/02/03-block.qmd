@@ -7,12 +7,14 @@
 
 ````markdown
 ```yaml
-doc-number: XX-2026-001
+ddq:
+  doc-number: XX-2026-001
 ```
 ````
 
 ```yaml
-doc-number: XX-2026-001
+ddq:
+  doc-number: XX-2026-001
 ```
 
 ### 注記ボックス（コールアウト）

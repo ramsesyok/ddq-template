@@ -45,11 +45,11 @@ DDQ Template から出力するときに環境変数を効かせたいなら、W
 
 ```bat
 set "MERMAID_SVG=1"
-quarto render --to html
+quarto render --to ddq-html
 ```
 
 bash では1コマンドにだけ効かせられる。
 
 ```bash
-MERMAID_SVG=1 quarto render --to html
+MERMAID_SVG=1 quarto render --to ddq-html
 ```

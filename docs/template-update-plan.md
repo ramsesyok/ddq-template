@@ -209,4 +209,5 @@ HTML の章順を求めるための部分的な YAML 解釈は整理する。CLI
 - サンプル付き ZIP の収録を Linux 上の検証用パッケージで確認した。クリーンなサンプルに拡張の 12 ファイルが配置され、ZIP 内の内容が原本と一致した。展開先で `ddq setup` と章の HTML レンダーを通した。サンプル全体の HTML では DDQ Mermaid 22 図と PlantUML 1 図の SVG を確認した。
 - サンプル全体と利用マニュアルの HTML は生成できた。PDF は、ローカルで Typst の組版がサンプルで 7 分、利用マニュアルで 20 分を超えたため、検証を打ち切った。小規模な文書と分割表の実レンダーでは PDF を確認した。
 - PR の CLI CI では、発行者プロファイルの PDF・HTML 出力先と、リンクなしの章間参照が章単独レンダーで更新されることを実レンダーで検証する。配布候補の CI が対象 PR で走る場合は、サンプル付き ZIP と VSIX を組み立てて照合する。
-- Windows の日本語コードページでの発行と、実 VS Code でのプレビュー・拡張操作、Windows 用の配布候補一式の検証は公開前に残る。Linux の実拡張ホスト試験では、VS Code の取得先の名前解決で止まった。
+- PR #145 の Windows CI では、CP1252 での非 ASCII パスと、サンプル全体の PDF・HTML が通過した。実 VS Code では同じコミットの CLI を使った発行操作・ラベルの書き戻し・改訂履歴と、配布 VSIX に含まれる CLI の初期化・HTML 発行が通過した。配布候補では利用マニュアル全体の PDF・HTML の生成、ZIP・VSIX の照合、ZIP から取り出した CLI による初期化・PDF・HTML が通過した。Windows CP932 での発行と、Quarto 拡張の Preview ボタンを使う操作は別途確認が必要。 [CLI CI](https://github.com/ramsesyok/ddq-template/actions/runs/45317205114) · [拡張 CI](https://github.com/ramsesyok/ddq-template/actions/runs/45317205136) · [配布候補 CI](https://github.com/ramsesyok/ddq-template/actions/runs/45317205128)
+- CI 結果確認後の点検で、改訂履歴の生成と執筆者向けの説明に残っていた旧列幅記法・旧配置・旧採番の記述を修正した。新しい CLI で生成した改訂履歴を両形式でレンダーし、列幅と項目の出し分けを確認した。利用マニュアル、設計書、CLI と拡張の実装仕様書、移行支援の設計書を HTML にし、57 ページの相互参照 467 件のリンク先が存在することを確認した。

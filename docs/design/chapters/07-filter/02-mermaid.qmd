@@ -30,14 +30,14 @@ SVG 化はフィルタが外部コマンドを `pandoc.pipe` で呼んで行う�
   Edge / Chrome を headless で使い、`vendor/mermaid.min.js`（版固定）で描かせる。
   ブラウザが無いときは内蔵レンダラに落ちる（文字幅の推定で配置がわずかに変わり得る）。
   探索と実装は `cli/DESIGN.md` にある。
-- mermaid の設定は執筆フォルダ直下の `mermaid-config.json` を使う（`htmlLabels: false`
+- mermaid の設定は執筆フォルダの `_extensions/ddq/mermaid-config.json` を使う（`htmlLabels: false`
   が必須。HTML ラベルは Typst で文字が消えるため）。
 
 ### クライアント描画の仕組み
 
-Quarto native の ` ```{mermaid} ` は typst では**フィルタが走る前に PNG へラスタライズ**され、
-自前のベクター SVG に差し替えられない（実測）。そこで執筆者記法は ` ```mermaid `
-（プレーン）に統一し、HTML 既定ではフィルタが `<pre class="mermaid mermaid-js">` を出す。
+Quarto 標準の ` ```{mermaid} ` は Quarto が描画し、Typst 出力ではフィルタが走る前に PNG に変換する。
+発行版でもベクター SVG を使う図は DDQ の ` ```mermaid ` で書く。
+この記法を HTML でプレビューすると、フィルタが `<pre class="mermaid mermaid-js">` を出す。
 
 描画に要る 3 ファイル（`mermaid.min.js` / `mermaid-init.js` / `mermaid.css`）は
 `QUARTO_SHARE_PATH`（Quarto が render 時にフィルタへ渡す）配下 `formats/html/mermaid/`

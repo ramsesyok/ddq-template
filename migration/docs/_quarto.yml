@@ -10,8 +10,7 @@
 #  PDF は1ファイルで、章番号・図表番号・相互参照は章をまたいで連続する。
 #
 #  執筆者は Quarto と VSCode 拡張だけで HTML を出せる（node も template/ も不要）。
-#  PDF（中間版・発行版）は発行者が ddq を使って出す。PDF 用の設定は
-#  _quarto-publish.yml（発行者の setup が置く）にあり、このファイルには無い。
+#  発行者は ddq pdf で PDF を出す。様式は _extensions/ddq/ に置く。
 #
 #  注意（book 特有の落とし穴）:
 #   - include のパスは「その章ファイルのあるディレクトリ」基準（入れ子でも同じ）

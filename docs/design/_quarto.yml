@@ -5,8 +5,7 @@
 #  書いた文書。読者はテンプレートの保守者。旧 ADVANCED.md と template/PIPELINE.md を
 #  統合したもの。
 #  構成の規約は利用マニュアル（../manual）と同じ（1ファイル = 1章、章の中は include で分割）。
-#  様式・変換の実体は template/（原本）にある。このフォルダ直下の design-doc.lua 等は
-#  配置ツールが置く写し（このリポジトリでは git 管理外）。
+#  様式・変換の原本は template/ にある。ddq update が _extensions/ddq/ に写しを置く。
 #
 #  ビルドはリポジトリのルートから:
 #    cli\target\release\ddq.exe pdf  docs\design  … PDF  → docs\design\design-doc.pdf
