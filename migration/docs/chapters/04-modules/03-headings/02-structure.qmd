@@ -3,7 +3,7 @@
 SP-03 を構成するモジュールを @tbl-sp03-mods に、補助モジュールを @tbl-sp03-sub に、
 相互関連を @fig-sp03-tree に示す。
 
-::: {.tbl caption="SP-03 モジュール一覧" label="tbl-sp03-mods" widths="12,20,46,22"}
+::: {.tbl caption="SP-03 モジュール一覧" label="tbl-sp03-mods" tbl-colwidths="[12,20,46,22]"}
 | ID | 名称 | 機能の概要 | 呼出元 |
 |---|---|---|---|
 | M-0301 | `_code_lines` | コードブロックの行番号を集める（共通プログラム） | `plan` |
@@ -13,7 +13,7 @@ SP-03 を構成するモジュールを @tbl-sp03-mods に、補助モジュー�
 | M-0305 | `main` | 引数を解釈し、全体を制御する | （利用者） |
 :::
 
-::: {.tbl caption="SP-03 補助モジュール一覧" label="tbl-sp03-sub" widths="16,14,34,36"}
+::: {.tbl caption="SP-03 補助モジュール一覧" label="tbl-sp03-sub" tbl-colwidths="[16,14,34,36]"}
 | 名称 | 戻り値 | 機能 | 備考 |
 |---|---|---|---|
 | `_parts` | `list[str]` | 番号を階層ごとに分解する | 全角数字を半角に直し、全角読点を半角に揃えてから分割する |

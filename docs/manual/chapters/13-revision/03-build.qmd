@@ -14,7 +14,7 @@
 
 表の列は次のとおりで、**PDF だけ「頁」列**を持つ（HTML にはページの概念が無いため）。
 
-::: {.tbl caption="改訂履歴の表の列" label="tbl-revision-columns" widths="16,84"}
+::: {.tbl caption="改訂履歴の表の列" label="tbl-revision-columns" tbl-colwidths="[16,84]"}
 | 列 | 内容 |
 |----------|----------------------------------------------------------------|
 | 改訂日 | 改訂ファイルに書いた日付 |
@@ -54,7 +54,7 @@ git add docs\revisions && git commit -m "改訂 B" && git tag rev-B
 
 ### 何を Git にコミットするか
 
-::: {.tbl caption="改訂履歴に関わるファイル" label="tbl-revision-files" widths="34,20,46"}
+::: {.tbl caption="改訂履歴に関わるファイル" label="tbl-revision-files" tbl-colwidths="[34,20,46]"}
 | ファイル | コミット | 役割 |
 |--------------------------------|----------|----------------------------------|
 | `revisions/rev-<記号>.yml` | する | 改訂履歴の**正本**。1 改訂 = 1 ファイル |

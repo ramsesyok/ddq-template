@@ -19,7 +19,7 @@ PDF の出力は、生成した PDF を `_book` から
 逆の順序（HTML → PDF）にすると、`_book` の中身が PDF 生成時に置き換わり、
 **HTML は消える**。
 
-::: {.tbl caption="実行順序と残るもの" label="tbl-build-order" widths="30,35,35"}
+::: {.tbl caption="実行順序と残るもの" label="tbl-build-order" tbl-colwidths="[30,35,35]"}
 | 実行順序          | PDF                      | HTML                     |
 |-------------------|--------------------------|--------------------------|
 | PDF → HTML        | 残る（`design-doc.pdf`） | 残る（`_book`）          |
@@ -40,7 +40,7 @@ PDF → HTML の順に作り直せばよい。
 
 ```bat
 @echo off
-cd /d C:\tools\quarto-template-3.1.0
+cd /d C:\tools\quarto-template-4.0.0
 set "DOC=C:\work\order-design\docs"
 .\ddq pdf  "%DOC%" || exit /b 1
 .\ddq html "%DOC%" || exit /b 1

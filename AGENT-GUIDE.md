@@ -33,66 +33,53 @@
     ├── chapters/             … 本文。章＝フォルダ／節＝サブフォルダ／項＝ファイル
     ├── diagrams/             … 画像（SVG/PNG）と、mermaid/PlantUML の変換キャッシュ
     ├── design-doc.pdf        … 中間版 PDF（発行者が更新してコミットする）
-    ├── design-doc.lua        ┐
-    ├── design-doc.css        │ 機構ファイル。ddq が置く写し。
-    ├── postprocess-html.js   │ **編集しない**（ddq update / ビルドで上書きされる）
-    ├── mermaid-config.json   │
-    ├── plantuml-config.puml  │
-    ├── .template-version     ┘
-    ├── lib.typ, typst-*.typ, _quarto-publish.yml … 発行者環境にだけ現れる生成物。編集しない
-    └── _book/                … 出力先（生成物。コミットしない）
+    └── _extensions/ddq/      … Quarto 拡張の機構（コミットする）
+        └── _extension.yml   … 形式・フィルタとテンプレートの版
 ```
 
 **編集してよいもの**: `_quarto.yml`（章の並びなど）・`index.qmd`・`chapters/**/*.qmd`・`diagrams/` に置く画像。
 **それ以外は触らない。**
 
-`_quarto.yml` 先頭の表題・資料番号（`doc-number`）・改訂記号・会社名・`spec`・`plantuml-server` は
+`_quarto.yml` の表題と `ddq:` の資料番号・改訂記号・会社名・`spec`・`plantuml-server` は
 **発行者が決める設定**である。指示が無ければ雛形の値（または空）のままにし、推測で埋めない。
 → 4章
 
 ## 3. `_quarto.yml`（Quarto book の設定）
 
-雛形（`ddq init` が置く）の要点。**PDF 用の `format:` 設定はここに書かない**（発行者側の
-`_quarto-publish.yml` が持つ。書くと執筆者の `quarto render` が壊れる）。
+既定の `format` は `ddq-html`。発行 PDF は `ddq pdf` から作る。
 
 ```yaml
 project:
-  type: book
+  type: ddq
   output-dir: _book
-  post-render:
-    - postprocess-html.js      # HTML の図表番号を PDF と同じ「章.節-連番」に振り直す
 
 book:
   title: ○○システム 基本設計書
   author: ○○チーム
-  output-file: XX-2026-001_○○システム基本設計書   # 発行版 PDF の名前（拡張子なし）
-  chapters:                    # ← 章の並び。1 行＝1 章。章のラッパー index.qmd だけを並べる
-    - index.qmd                #    前付け（{.unnumbered}）
+  output-file: XX-2026-001_○○システム基本設計書
+  chapters:
+    - index.qmd
     - chapters/01-overview/index.qmd
     - chapters/02-design-policy/index.qmd
 
 lang: ja
-plantuml-server: ""            # LAN の PlantUML サーバ URL。空ならローカル 127.0.0.1:18080 を探す
-doc-number: XX-2026-001        # 資料番号（発行者が決める）
-doc-revision: ""               # 改訂記号 A〜Z / NC
-spec: false                    # true でスペック様式（表題欄＋会社名フッター）
-company-ja: ○○株式会社
-company-en: ○○ Co., Ltd.
-cover: false                   # true で表紙を出す
-page-start: 1                  # PDF の開始ページ番号
-pagebreak-level: 1             # 自動改ページ 0=なし 1=章 2=章と節
 toc: true
 toc-title: 目 次
 toc-depth: 3
 
 format:
-  html:
-    number-sections: true
-    css: design-doc.css
-    embed-resources: false
+  ddq-html: default
 
-filters:
-  - design-doc.lua
+ddq:
+  doc-number: XX-2026-001
+  doc-revision: ""
+  spec: false
+  company-ja: ○○株式会社
+  company-en: ○○ Co., Ltd.
+  cover: false
+  page-start: 1
+  pagebreak-level: 1
+  plantuml-server: ""
 ```
 
 - **`chapters:` に無いファイルは出力されない**。章を足したら必ず 1 行足す。
@@ -155,7 +142,7 @@ chapters/
 | やりたいこと | 記法 | 注意 |
 |---|---|---|
 | 章/節/項/目 | `#` `##` `###` `####` `#####` | **番号は自動。`# 1. 概要` と書かない**。`#` の後に半角空白 |
-| 採番しない章・節（前付け） | `# 本書について {.unnumbered}` | 節にも付ける。**採番しない章に番号付き図表を置かない**（図 0-1 になる） |
+| 採番しない章・節（前付け） | `# 本書について {.unnumbered}` | 節にも付ける。番号付きの親がない図表は通し番号 |
 | 目次から外す | `## 見出し {.unlisted}` | 採番も止めるなら `{.unnumbered .unlisted}` |
 | 章・節の参照 | 見出しに `{#sec-id}`、本文で `@sec-id` | 「5章」「5.3節」に解決。**「3章参照」と直書きしない** |
 | 段落 | 空行で区切る | 字下げは自動。全角空白を入れない |
@@ -250,7 +237,7 @@ stateDiagram-v2
 原則すべて `.tbl` にする（素の表は番号なし・参照不可の補助用途に限る）。
 
 ```markdown
-::: {.tbl caption="ユーザ属性一覧" label="tbl-user" widths="20,20,60" merge-cols="1"}
+::: {.tbl caption="ユーザ属性一覧" label="tbl-user" tbl-colwidths="[20,20,60]" merge-cols="1"}
 | 区分   | 属性   | 説明         |
 |--------|--------|--------------|
 | 基本   | 氏名   | 利用者の氏名 |
@@ -265,7 +252,7 @@ stateDiagram-v2
 |---|---|
 | `caption="…"` | キャプション。付けると採番される |
 | `label="tbl-x"` | 相互参照 ID（`#` は付けない。付いていても除去される） |
-| `widths="20,30,50"` | 列幅（％風でも比率でも可）。**個数＝列数**。合わないと警告して自動幅に戻る |
+| `tbl-colwidths="[20,30,50]"` | 列幅（百分率の配列）。**個数＝列数**。合わないと警告して自動幅に戻る |
 | `merge-cols="all"` / `"2,3"` | 縦に連続する同値セルを結合。左の列が結合済みのときだけ右も結合（階層結合） |
 | `breakable-rows="true"` | 1 行が 1 ページに収まらないときだけ、行の途中で改ページを許す |
 | `.unnumbered` | 番号を出さずキャプションだけ（連番を消費せず、参照不可）。前付けの表用 |
@@ -282,7 +269,7 @@ stateDiagram-v2
 - グリッド表: セルの中に通常の Markdown を書ける。
 
 ```markdown
-::: {.tbl caption="入出力データの内訳" label="tbl-io" widths="24,76"}
+::: {.tbl caption="入出力データの内訳" label="tbl-io" tbl-colwidths="[24,76]"}
 +--------------+----------------------------------------------+
 | 項目         | 内容                                         |
 +==============+==============================================+
@@ -302,7 +289,7 @@ stateDiagram-v2
 - 横結合: セル間の `|` を書かない。縦結合: 行境界のそのセル部分を `+      +` と空白にする。
 - リスト項目を分けるだけなら改行するだけ。**1 項目内や文章を折り返すときは行末 `\`**（または `<br>`）。
   単に行を分けただけでは連結される。
-- **`|` と `+` の桁を上下で揃える**（全角文字は 2 桁）。罫線の見た目の幅と出力幅は無関係なので `widths=` を付ける。
+- **`|` と `+` の桁を上下で揃える**（全角文字は 2 桁）。罫線の見た目の幅と出力幅は無関係なので `tbl-colwidths` を指定する。
 - 手で横結合・縦結合を書いたグリッド表には `merge-cols` が効かない（安全側で無視）。
 
 ### 大きな表のページ分割
@@ -323,7 +310,7 @@ stateDiagram-v2
 ```
 
 表の直後に空行を挟んで `: キャプション {#tbl-id}`。`.tbl` の `caption=` と併用しない。
-列幅だけ付けたいときは `::: {widths="10,90"}` で囲む。
+列幅は表のキャプション属性 `{tbl-colwidths="[10,90]"}` で指定する。
 → 9章
 
 ## 8. 横向きページと IPO 図
@@ -462,7 +449,7 @@ cd C:\tools\quarto-template-3.1.0
 ```
 
 - `pdf` と `html` は同じ `_book/` を使うので、両方残すときは **PDF → HTML の順**。
-- `pdf` / `html` は `.template-version` と機構ファイルが `ddq` と一致しないと止まる → `ddq update` してコミット。
+- `pdf` / `html` は 拡張の版と機構ファイルが `ddq` と一致しないと止まる → `ddq update` してコミット。
 - リリース一式は設計書リポジトリの**外**に置く（リポジトリ内に展開しない）。
 → 11章・12章
 
@@ -502,7 +489,7 @@ cd C:\tools\quarto-template-3.1.0
 
 機能ブロックを @tbl-fb に、階層関係を @fig-fb-tree に、受注受付の処理を @tbl-fb01-ipo に示す。
 
-::: {.tbl caption="機能ブロック一覧" label="tbl-fb" widths="12,24,64" merge-cols="1"}
+::: {.tbl caption="機能ブロック一覧" label="tbl-fb" tbl-colwidths="[12,24,64]" merge-cols="1"}
 | 区分 | 機能ブロック   | 機能概要                                 |
 |------|----------------|------------------------------------------|
 | 業務 | FB-01 受注受付 | 受注入力を検証し受注データとして登録する |

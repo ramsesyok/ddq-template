@@ -21,7 +21,7 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | 図 | mermaid（文字で書いた図をベクター SVG に）、PlantUML（LAN のサーバか、各自で取得した jar をローカルの Java で） |
 | ビルド・配置の道具 | `ddq.exe`（Rust 製の単一実行ファイル。様式一式を内蔵） |
 | VSCode 拡張 | **DDQ Template**（`ddq.exe` 同梱。設計書リポジトリの作成・PDF / HTML の出力・ラベル付け・改訂履歴・表の視覚編集） |
-| 執筆者・発行者に要るもの | Quarto ＋ VSCode ＋ DDQ Template（VSIX）。PlantUML 図を使う文書で LAN にサーバが無いときだけ、`plantuml.jar`（PlantUML の公式リリースから各自で取得）と Java も |
+| 執筆者・発行者に要るもの | Quarto 1.9.38 以降 ＋ VSCode ＋ DDQ Template（VSIX）。PlantUML 図を使う文書で LAN にサーバが無いときだけ、`plantuml.jar`（PlantUML の公式リリースから各自で取得）と Java も |
 
 > **このリポジトリは「様式の実体（`template/` と、それを内蔵する `cli/`）と、VSCode 拡張（`extensions/`）、
 > それにテンプレート自身の文書（`docs/`）とサンプル（`examples/`）」です。**
@@ -49,7 +49,7 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 | `quarto-template-<版>.zip` | `ddq.exe` 単体・利用マニュアル（PDF / HTML）・はじめかた.pdf・AGENT-GUIDE.md など | マニュアルを読む人、コマンド・バッチ・CI で使う人 |
 
 ```
-quarto-template-3.1.0/       ← 配布 zip を展開したもの（設計書リポジトリの外に置く）
+quarto-template-4.0.0/       ← 配布 zip を展開したもの（設計書リポジトリの外に置く）
 ├── ddq.exe                  ← 様式・変換・ビルドの実体（コマンドで使うとき。インストール不要）
 ├── はじめかた.pdf            ← 最初の一歩（スライド）
 ├── README.md                ← このファイル
@@ -121,7 +121,7 @@ PlantUML 図だけは描画にサーバが要ります。LAN にサーバがあ�
 
 **DDQ: PDF を作成** → **DDQ: HTML を作成** の順に実行します（執筆フォルダの右クリックからも）。
 
-出力の前に、設計書リポジトリの `.template-version` と機構ファイルが `ddq` と一致するかを確かめます。
+出力の前に、設計書リポジトリの `_extensions/ddq/_extension.yml` と機構ファイルが `ddq` と一致するかを確かめます。
 版・内容が違うときは黙って更新せず、「ddq update を実行」の通知を出して止まります。発行者が
 押して更新し、差分を確認してコミットします。
 
@@ -145,7 +145,7 @@ PlantUML 図は LAN のサーバか、無ければ各自が用意した `plantum
 VSCode を使わずに、配布 zip の `ddq.exe` で同じことができます（バッチ・CI 向け）。
 
 ```bat
-cd C:\tools\quarto-template-3.1.0
+cd C:\tools\quarto-template-4.0.0
 .\ddq init C:\work\order-design
 .\ddq pdf  C:\work\order-design\docs
 .\ddq html C:\work\order-design\docs

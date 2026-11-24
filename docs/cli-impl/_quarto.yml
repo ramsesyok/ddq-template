@@ -1,8 +1,6 @@
 project:
-  type: book
+  type: ddq
   output-dir: _book
-  post-render:
-    - postprocess-html.js
 book:
   title: "ddq ソフトウェア実装仕様書"
   subtitle: "Software Implementation Specification — テンプレート 3.1.0"
@@ -22,17 +20,14 @@ lang: ja
 toc: true
 toc-depth: 3
 format:
-  html:
+  ddq-html:
     number-sections: true
     number-depth: 2
     code-copy: true
-    css: design-doc.css
     embed-resources: false
     grid:
       sidebar-width: 300px
       body-width: 1100px
       margin-width: 60px
-filters:
-  - design-doc.lua
 execute:
   eval: false

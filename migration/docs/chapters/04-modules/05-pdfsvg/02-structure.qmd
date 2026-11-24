@@ -3,7 +3,7 @@
 SP-05 を構成するモジュールを @tbl-sp05-mods に、補助モジュールを @tbl-sp05-sub に、
 相互関連を @fig-sp05-tree に示す。
 
-::: {.tbl caption="SP-05 モジュール一覧" label="tbl-sp05-mods" widths="12,20,46,22"}
+::: {.tbl caption="SP-05 モジュール一覧" label="tbl-sp05-mods" tbl-colwidths="[12,20,46,22]"}
 | ID | 名称 | 機能の概要 | 呼出元 |
 |---|---|---|---|
 | M-0501 | `parse_pages` | ページ指定の文字列をページ番号の並びに変換する | `main` |
@@ -15,7 +15,7 @@ SP-05 を構成するモジュールを @tbl-sp05-mods に、補助モジュー�
 | M-0507 | `main` | 引数を解釈し、全体を制御する | （利用者） |
 :::
 
-::: {.tbl caption="SP-05 補助モジュール一覧" label="tbl-sp05-sub" widths="16,14,34,36"}
+::: {.tbl caption="SP-05 補助モジュール一覧" label="tbl-sp05-sub" tbl-colwidths="[16,14,34,36]"}
 | 名称 | 戻り値 | 機能 | 備考 |
 |---|---|---|---|
 | `_size_key` | `tuple[int,int]` | ページの幅と高さを整数に丸めた組を返す | 用紙サイズの集計キーに用いる |
@@ -47,7 +47,7 @@ SP-05 モジュール構造
 
 本サブプログラムは PyMuPDF（`fitz`）に依存する。@tbl-sp05-dep に使用する機能を示す。
 
-::: {.tbl caption="PyMuPDF の使用機能" label="tbl-sp05-dep" widths="30,70"}
+::: {.tbl caption="PyMuPDF の使用機能" label="tbl-sp05-dep" tbl-colwidths="[30,70]"}
 | 機能 | 用途 |
 |---|---|
 | `fitz.open` | PDF を開く |

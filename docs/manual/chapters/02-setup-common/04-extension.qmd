@@ -17,12 +17,12 @@ DDQ Template は Marketplace には公開していない。リリースの **VSI
 コマンドでも入れられる。
 
 ```bat
-code --install-extension ddq-template-win32-x64-3.1.0.vsix
+code --install-extension ddq-template-win32-x64-4.0.0.vsix
 ```
 
 入ると、コマンドパレット（`Ctrl+Shift+P`）で `DDQ:` と打つとコマンドが並ぶ。
 
-::: {.tbl caption="DDQ Template のコマンド" label="tbl-extension-commands" widths="38,40,22"}
+::: {.tbl caption="DDQ Template のコマンド" label="tbl-extension-commands" tbl-colwidths="[38,40,22]"}
 | コマンド | 内容 | 参照 |
 |---|---|---|
 | DDQ: 設計書リポジトリを作成 | 設計書リポジトリを新しく作る | @sec-newdoc |

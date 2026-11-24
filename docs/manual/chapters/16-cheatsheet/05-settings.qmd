@@ -1,18 +1,20 @@
 ## 文書設定（`_quarto.yml`）
 
-::: {.tbl caption="主な設定項目" label="tbl-cs-yml" widths="30,50,20"}
+表の `ddq.doc-number` は、YAML の `ddq:` の下に `doc-number:` を書くことを示す。
+
+::: {.tbl caption="主な設定項目" label="tbl-cs-yml" tbl-colwidths="[30,50,20]"}
 | やりたいこと           | 設定                                     | 参照 |
 |------------------------|------------------------------------------|------|
-| 表題を変える           | `book: title:`                           | 4章  |
-| 資料番号を変える       | `doc-number:`                            | 4章  |
-| 改訂記号を付ける       | `doc-revision: A`                        | 4章  |
-| 会社名を変える         | `company-ja:` ／ `company-en:`           | 4章  |
-| スペック様式にする     | `spec: true`                             | 4章  |
-| 表紙を出す             | `cover: true`                            | 4章  |
-| 途中のページから始める | `page-start: 5`                          | 4章  |
-| 節ごとに改ページする   | `pagebreak-level: 2`                     | 4章  |
-| 章で改ページしない     | `pagebreak-level: 0`                     | 4章  |
-| 目次を表紙の次に出す   | `toc-position: top`（既定は前付けの後）  | 7章  |
+| 表題を変える           | `book.title`                           | 4章  |
+| 資料番号を変える       | `ddq.doc-number:`                            | 4章  |
+| 改訂記号を付ける       | `ddq.doc-revision: A`                        | 4章  |
+| 会社名を変える         | `ddq.company-ja:` ／ `ddq.company-en:`           | 4章  |
+| スペック様式にする     | `ddq.spec: true`                             | 4章  |
+| 表紙を出す             | `ddq.cover: true`                            | 4章  |
+| 途中のページから始める | `ddq.page-start: 5`                          | 4章  |
+| 節ごとに改ページする   | `ddq.pagebreak-level: 2`                     | 4章  |
+| 章で改ページしない     | `ddq.pagebreak-level: 0`                     | 4章  |
+| 目次を表紙の次に出す   | `ddq.toc-position: top`（既定は前付けの後）  | 7章  |
 | 前付けの途中に目次     | 目次位置に `#design-toc()`               | 7章  |
-| 章を増減・並べ替える   | `book: chapters:` の一覧                 | 4章  |
+| 章を増減・並べ替える   | `book.chapters` の一覧                 | 4章  |
 :::

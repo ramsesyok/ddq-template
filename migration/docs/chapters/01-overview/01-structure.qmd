@@ -6,7 +6,7 @@
 
 サブプログラムの一覧を @tbl-sp-list に、相互関連と処理の流れを @fig-sp-flow に示す。
 
-::: {.tbl caption="サブプログラム一覧" label="tbl-sp-list" widths="10,16,34,20,20"}
+::: {.tbl caption="サブプログラム一覧" label="tbl-sp-list" tbl-colwidths="[10,16,34,20,20]"}
 | ID | 名称 | 機能 | 入力 | 出力 |
 |---|---|---|---|---|
 | SP-01 | `diagnose.py` | 原本の移行コストを見積もる | `.docx` / `.pptx` | 診断結果（md／csv／json） |
@@ -54,7 +54,7 @@ flowchart TD
 
 ### 相互関連の性質
 
-::: {.tbl caption="サブプログラム間の結合" label="tbl-sp-coupling" widths="20,20,30,30"}
+::: {.tbl caption="サブプログラム間の結合" label="tbl-sp-coupling" tbl-colwidths="[20,20,30,30]"}
 | 上流 | 下流 | 受け渡すもの | 結合の強さ |
 |---|---|---|---|
 | SP-02 | SP-03 | markdown ファイル | 弱（ファイル経由。形式は markdown のみ） |

@@ -148,44 +148,61 @@ pub fn find_jar() -> Option<PathBuf> {
     None
 }
 
-/// 設定済みのサーバ URL。`DDQ_PLANTUML_SERVER` → `PLANTUML_SERVER` → `_quarto.yml` の `plantuml-server:`。
-/// design-doc.lua の puml_candidates と同じ順（ローカル既定は含めない）。
-pub fn configured_server(dir: &Path) -> Option<(String, &'static str)> {
+/// Server priority shared with the Lua filter.
+fn configured_server(project_server: Option<&str>) -> Option<(String, &'static str)> {
     for (var, from) in [
         ("DDQ_PLANTUML_SERVER", "環境変数 DDQ_PLANTUML_SERVER"),
         ("PLANTUML_SERVER", "環境変数 PLANTUML_SERVER"),
     ] {
-        if let Ok(v) = env::var(var)
-            && !v.trim().is_empty()
+        if let Ok(value) = env::var(var)
+            && let Some(url) = server_url(&value)
         {
-            return Some((v.trim().trim_end_matches('/').to_string(), from));
+            return Some((url, from));
         }
     }
-    let yml = fs::read_to_string(dir.join("_quarto.yml")).ok()?;
-    server_from_quarto_yml(&yml).map(|u| (u, "_quarto.yml の plantuml-server"))
+    project_server
+        .and_then(server_url)
+        .map(|url| (url, "_quarto.yml の ddq.plantuml-server"))
 }
 
-/// `_quarto.yml` の `plantuml-server:` の値（行頭のキーだけを見る。YAML パーサは使わない）。
-/// 空文字・未設定なら None。
-pub fn server_from_quarto_yml(yml: &str) -> Option<String> {
-    for line in yml.lines() {
-        let t = line.trim_start();
-        let Some(rest) = t.strip_prefix("plantuml-server:") else {
-            continue;
-        };
-        let v = rest.trim();
-        let v = v
-            .strip_prefix('"')
-            .and_then(|s| s.split('"').next())
-            .unwrap_or_else(|| {
-                v.strip_prefix('\'')
-                    .and_then(|s| s.split('\'').next())
-                    .unwrap_or_else(|| v.split(['#', ' ', '\t']).next().unwrap_or(""))
-            });
-        let v = v.trim().trim_end_matches('/');
-        return if v.is_empty() { None } else { Some(v.to_string()) };
+fn server_url(value: &str) -> Option<String> {
+    let url = value.trim().trim_end_matches('/');
+    (!url.is_empty()).then(|| url.to_string())
+}
+
+fn server_from_quarto_yml(yml: &str) -> Option<String> {
+    crate::doc::project::mapping_scalar(yml, "ddq", "plantuml-server")
+        .as_deref()
+        .and_then(server_url)
+}
+
+/// The stand-alone diagram command is also usable without Quarto.
+pub fn project_server(dir: &Path) -> Option<String> {
+    let config = crate::writing_folder::config_path(dir)?;
+    server_from_quarto_yml(&fs::read_to_string(config).ok()?)
+}
+
+/// Quarto inspect 1.9.38 may fail on nested includes that render accepts.
+pub fn resolved_project_server(dir: &Path) -> Option<String> {
+    if let Ok(result) = crate::quarto::inspect(dir) {
+        return result["config"]["ddq"]["plantuml-server"]
+            .as_str()
+            .and_then(server_url);
     }
-    None
+    if let Ok(profiles) = env::var("QUARTO_PROFILE") {
+        for profile in profiles.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+            for suffix in ["yml", "yaml"] {
+                let path = dir.join(format!("_quarto-{profile}.{suffix}"));
+                if let Ok(yml) = fs::read_to_string(path) {
+                    if let Some(url) = server_from_quarto_yml(&yml) {
+                        return Some(url);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    project_server(dir)
 }
 
 /// 執筆フォルダの原稿に ```plantuml フェンスがあるか（`ddq pdf` の事前検査用）。
@@ -739,8 +756,8 @@ impl Session {
 /// 2. 既定ポートに `ddq plantuml serve` が上がっていればそれを使う（JVM を二重に上げない）
 /// 3. 原稿に ```plantuml が無ければ何も上げない（PlantUML を使わない文書に Java を要求しない）
 /// 4. Java と jar を探してローカルの PicoWeb を空きポートで上げる。無ければエラー
-pub fn ensure(dir: &Path) -> Result<Session> {
-    if let Some((url, from)) = configured_server(dir) {
+pub fn ensure(dir: &Path, project_server: Option<&str>) -> Result<Session> {
+    if let Some((url, from)) = configured_server(project_server) {
         match probe(&url) {
             Ok(version) => {
                 println!(
@@ -785,14 +802,14 @@ pub fn start_local(port: u16) -> Result<LocalServer> {
     let java = find_java().with_context(|| {
         "Java が見つかりません。PlantUML 図を描くには Java（8 以上）が要ります。\n  \
          JAVA_HOME を設定するか java を PATH に置くか、DDQ_JAVA に java.exe のパスを指定してください。\n  \
-         LAN に PlantUML サーバがあるなら、_quarto.yml の plantuml-server: に URL を書けば Java は不要です。"
+         LAN に PlantUML サーバがあるなら、_quarto.yml の ddq.plantuml-server: に URL を書けば Java は不要です。"
             .to_string()
     })?;
     let jar = find_jar().with_context(|| {
         "plantuml.jar が見つかりません（リリースには同梱していません）。\n  \
          https://github.com/plantuml/plantuml/releases から jar（MIT 版 plantuml-mit-<版>.jar を推奨）を取得し、\n  \
          環境変数 DDQ_PLANTUML_JAR にそのパスを指定するか、ddq.exe と同じフォルダに plantuml.jar の名前で置いてください。\n  \
-         LAN に PlantUML サーバがあるなら、_quarto.yml の plantuml-server: に URL を書けば jar も Java も不要です。"
+         LAN に PlantUML サーバがあるなら、_quarto.yml の ddq.plantuml-server: に URL を書けば jar も Java も不要です。"
             .to_string()
     })?;
     LocalServer::start(&java, &jar, port, LOCAL_BIND)
@@ -1024,15 +1041,15 @@ mod tests {
     #[test]
     fn quarto_yml_key() {
         assert_eq!(
-            server_from_quarto_yml("lang: ja\nplantuml-server: http://h:8080/\n"),
+            server_from_quarto_yml("lang: ja\nddq:\n  plantuml-server: http://h:8080/\n"),
             Some("http://h:8080".into())
         );
         assert_eq!(
-            server_from_quarto_yml("plantuml-server: \"http://h:1\"  # c\n"),
+            server_from_quarto_yml("ddq:\n  plantuml-server: \"http://h:1\"  # c\n"),
             Some("http://h:1".into())
         );
-        assert_eq!(server_from_quarto_yml("plantuml-server: ''\n"), None);
-        assert_eq!(server_from_quarto_yml("plantuml-server: \"\"\n"), None);
+        assert_eq!(server_from_quarto_yml("ddq:\n  plantuml-server: ''\n"), None);
+        assert_eq!(server_from_quarto_yml("ddq:\n  plantuml-server: \"\"\n"), None);
         assert_eq!(server_from_quarto_yml("# plantuml-server: http://x\n"), None);
         assert_eq!(server_from_quarto_yml("plantuml-server:\n"), None);
     }

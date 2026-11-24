@@ -162,6 +162,9 @@ export const workspace = {
         async stat(uri: Uri) {
             return fs.statSync(uri.fsPath);
         },
+        async readFile(uri: Uri) {
+            return fs.readFileSync(uri.fsPath);
+        },
         async readDirectory(uri: Uri) {
             return fs
                 .readdirSync(uri.fsPath, { withFileTypes: true })

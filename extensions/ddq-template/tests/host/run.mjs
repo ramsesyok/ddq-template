@@ -84,14 +84,15 @@ function makeWorkspace(root) {
     fs.mkdirSync(path.join(dir, 'chapters', '01-overview'), { recursive: true });
     fs.writeFileSync(
         path.join(dir, '_quarto.yml'),
-        'project:\n  type: book\nbook:\n  chapters:\n    - index.qmd\n    - chapters/01-overview/index.qmd\n'
+        'project:\n  type: ddq\nbook:\n  chapters:\n    - index.qmd\n    - chapters/01-overview/index.qmd\n'
     );
     fs.writeFileSync(path.join(dir, 'index.qmd'), '# 本書について {.unnumbered}\n\n前書き。\n');
     // 執筆フォルダの目印（拡張は _quarto.yml と版ファイルの両方で見分ける）。機構ファイルは
     // 置かないので、実物の ddq の html / pdf は版・機構の不一致（終了コード 3）になる
+    fs.mkdirSync(path.join(dir, '_extensions/ddq'), { recursive: true });
     fs.writeFileSync(
-        path.join(dir, '.template-version'),
-        fs.readFileSync(path.join(repo, 'template', 'VERSION'), 'utf8')
+        path.join(dir, '_extensions/ddq/_extension.yml'),
+        'version: ' + fs.readFileSync(path.join(repo, 'template', 'VERSION'), 'utf8')
     );
     fs.writeFileSync(
         path.join(dir, 'chapters', '01-overview', 'index.qmd'),

@@ -1,0 +1,34 @@
+title: DDQ design document
+version: "@DDQ_VERSION@"
+quarto-required: ">=1.9.38"
+contributes:
+  project:
+    project:
+      type: book
+      post-render: [_extensions/ddq/postprocess-html.js]
+  formats:
+    html:
+      filters:
+        - path: design-doc.lua
+          at: pre-quarto
+        - path: html-crossref.lua
+          at: post-quarto
+      css: design-doc.css
+      number-sections: true
+      toc-location: left
+      embed-resources: false
+      mainfont: "Meiryo UI"
+      monofont: "BIZ UDGothic"
+      linestretch: 1.45
+      grid:
+        sidebar-width: 300px
+        body-width: 1560px
+        margin-width: 60px
+    typst:
+      filters:
+        - path: design-doc.lua
+          at: pre-quarto
+        - path: typst-book.lua
+          at: post-quarto
+      template-partials: [typst-template.typ, typst-show.typ, numbering.typ]
+      number-sections: true

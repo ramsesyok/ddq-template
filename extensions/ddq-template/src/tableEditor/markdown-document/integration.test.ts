@@ -24,7 +24,7 @@ function apply(lines: string[], cursorLine: number, edit: (m: any) => any): stri
 describe('通常の .tbl（結合なし）', () => {
   it('パイプ表のまま出力し、属性を保つ', () => {
     const src = [
-      '::: {.tbl caption="ユーザ属性一覧" label="tbl-user" widths="20,20,60"}',
+      '::: {.tbl caption="ユーザ属性一覧" label="tbl-user" tbl-colwidths="[20,20,60]"}',
       '| 区分 | 属性 | 説明 |',
       '|------|------|------|',
       '| 基本 | 氏名 | 名前 |',
@@ -32,7 +32,7 @@ describe('通常の .tbl（結合なし）', () => {
     ];
     const out = apply(src, 2, m => m).join('\n');
 
-    expect(out).toContain('::: {.tbl caption="ユーザ属性一覧" label="tbl-user" widths="20,20,60"}');
+    expect(out).toContain('::: {.tbl caption="ユーザ属性一覧" label="tbl-user" tbl-colwidths="[20,20,60]"}');
     expect(out).toContain('| 区分 | 属性 | 説明 |');
     expect(out).not.toContain('+---');
     expect(out.trimEnd().endsWith(':::')).toBe(true);
@@ -106,7 +106,7 @@ describe('分割表のパート編集', () => {
   const src = [
     '前書き',
     '',
-    '::: {.tbl caption="一覧" label="tbl-x" widths="30,70"}',
+    '::: {.tbl caption="一覧" label="tbl-x" tbl-colwidths="[30,70]"}',
     '| 属性 | 説明 |',
     '|------|------|',
     '| 氏名 | 名前 |',

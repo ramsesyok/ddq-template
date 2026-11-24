@@ -1,8 +1,4 @@
-// Quarto 用テンプレートパーシャル。
-// qmd のフロントマター（title / subtitle / author / doc-number / doc-revision /
-// spec / company-ja / company-en / cover / page-start / toc / toc-title / toc-depth / toc-placed /
-// pagebreak-level）を
-// lib.typ の design-doc() に引き渡す。
+// Forward the resolved Quarto options and the public DDQ settings.
 #show: design-doc.with(
 $if(title)$
   title: "$title$",
@@ -13,26 +9,26 @@ $endif$
 $if(by-author)$
   author: "$for(by-author)$$it.name.literal$$sep$, $endfor$",
 $endif$
-$if(doc-number)$
-  doc-number: "$doc-number$",
+$if(ddq.doc-number)$
+  doc-number: "$ddq.doc-number$",
 $endif$
-$if(doc-revision)$
-  doc-revision: "$doc-revision$",
+$if(ddq.doc-revision)$
+  doc-revision: "$ddq.doc-revision$",
 $endif$
-$if(spec)$
+$if(ddq.spec)$
   spec: true,
 $endif$
-$if(company-ja)$
-  company-ja: "$company-ja$",
+$if(ddq.company-ja)$
+  company-ja: "$ddq.company-ja$",
 $endif$
-$if(company-en)$
-  company-en: "$company-en$",
+$if(ddq.company-en)$
+  company-en: "$ddq.company-en$",
 $endif$
-$if(cover)$
+$if(ddq.cover)$
   cover: true,
 $endif$
-$if(page-start)$
-  page-start: $page-start$,
+$if(ddq.page-start)$
+  page-start: $ddq.page-start$,
 $endif$
 $if(toc)$
   toc: true,
@@ -46,7 +42,37 @@ $endif$
 $if(toc-placed)$
   toc-placed: true,
 $endif$
-$if(pagebreak-level)$
-  pagebreak-level: $pagebreak-level$,
+$if(ddq.pagebreak-level)$
+  pagebreak-level: $ddq.pagebreak-level$,
+$endif$
+$if(ddq-typst-lang)$
+  language: "$ddq-typst-lang$",
+$endif$
+$if(mainfont)$
+  body-font: ("$mainfont$",),
+$endif$
+$if(fontsize)$
+  font-size: $fontsize$,
+$endif$
+$if(linestretch)$
+  line-stretch: $linestretch$,
+$endif$
+$if(codefont)$
+  code-font: ($for(codefont)$"$codefont$",$endfor$),
+$endif$
+$if(ddq-hide-heading-numbers)$
+  numbered-headings: false,
+$endif$
+$if(number-depth)$
+  number-depth: $number-depth$,
+$endif$
+$if(ddq-hide-reference-links)$
+  reference-links: false,
+$endif$
+$if(ddq-table-title)$
+  table-title: [$ddq-table-title$],
+$endif$
+$if(crossref.title-delim)$
+  title-delim: [$crossref.title-delim$],
 $endif$
 )

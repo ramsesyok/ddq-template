@@ -3,7 +3,7 @@
 SP-02 を構成するモジュールを @tbl-sp02-mods に、補助モジュールを @tbl-sp02-sub に、
 相互関連を @fig-sp02-tree に示す。
 
-::: {.tbl caption="SP-02 モジュール一覧" label="tbl-sp02-mods" widths="12,22,44,22"}
+::: {.tbl caption="SP-02 モジュール一覧" label="tbl-sp02-mods" tbl-colwidths="[12,22,44,22]"}
 | ID | 名称 | 機能の概要 | 呼出元 |
 |---|---|---|---|
 | M-0201 | `convert` | 変換の中核。3つのパスで採番・置換・整形を行う | `main` |
@@ -14,7 +14,7 @@ SP-02 を構成するモジュールを @tbl-sp02-mods に、補助モジュー�
 | M-0206 | `main` | 引数を解釈し、全体を制御する | （利用者） |
 :::
 
-::: {.tbl caption="SP-02 補助モジュール一覧" label="tbl-sp02-sub" widths="20,12,34,34"}
+::: {.tbl caption="SP-02 補助モジュール一覧" label="tbl-sp02-sub" tbl-colwidths="[20,12,34,34]"}
 | 名称 | 戻り値 | 機能 | 備考 |
 |---|---|---|---|
 | `_normalize` | `str` | 番号の表記を揃える | `1.1-1` / `１．１－１` → `1-1-1` |

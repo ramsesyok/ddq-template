@@ -11,7 +11,7 @@ Typst テンプレートと Pandoc の Lua フィルタとして実装してあ�
 同じ原稿から、内容確認用の HTML（章ごとのページ・全文検索つき）も出す。
 HTML の章番号・図表番号・相互参照は PDF と一致する。
 
-::: {.tbl caption="構成要素" label="tbl-components" widths="24,76"}
+::: {.tbl caption="構成要素" label="tbl-components" tbl-colwidths="[24,76]"}
 | 要素 | 使っているもの |
 |---|---|
 | 原稿 | Markdown（Quarto の `.qmd`） |

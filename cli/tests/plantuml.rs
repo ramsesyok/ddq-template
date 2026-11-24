@@ -204,6 +204,7 @@ fn serve_with_an_unusable_bind_fails_with_a_reason() {
     );
 }
 
+#[cfg(windows)]
 #[test]
 fn serve_answers_serverinfo_and_stops_with_parent() {
     if skip() {

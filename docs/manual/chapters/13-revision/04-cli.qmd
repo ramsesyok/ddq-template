@@ -18,7 +18,7 @@
 .\ddq rev build C:\work\order-design\docs
 ```
 
-::: {.tbl caption="改訂履歴のコマンド" label="tbl-revision-commands" widths="30,70"}
+::: {.tbl caption="改訂履歴のコマンド" label="tbl-revision-commands" tbl-colwidths="[30,70]"}
 | コマンド | 内容 |
 |--------------------------|--------------------------------------------------|
 | `ddq tag list <フォルダ>` | 見出し・表・図とラベルの有無を一覧する。`--unlabeled` で未付与だけ |

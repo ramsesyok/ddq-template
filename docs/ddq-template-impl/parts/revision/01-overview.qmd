@@ -2,7 +2,7 @@
 
 確認済み（静的）：パッケージ名は `ddq-revision`、表示名は `DDQ Revision`、版は `2.3.0`、publisher は `ramsesyok`。対応範囲は VSCode `^1.85.0`、エントリポイントは `out/extension.js`。`activationEvents` は空で、`contributes` が宣言するコマンド・カスタムエディタの登録によって起動する。テンプレート版も `2.3.0` で、`ddq release` と CI がこの一致を検査する。[E-0001](appendix-evidence.qmd#ev-rev-e-0001)
 
-::: {.tbl caption="解析の範囲と境界" label="tbl-rev-scope" widths="30,16,54"}
+::: {.tbl caption="解析の範囲と境界" label="tbl-rev-scope" tbl-colwidths="[30,16,54]"}
 | 範囲 | 扱い | 境界 |
 |---|---|---|
 | `extensions/ddq-revision/src/` | 解析対象 | 拡張ホスト、ddq の起動、ラベルの検査、YAML、React 画面 |
@@ -18,7 +18,7 @@
 
 確認済み（静的）：この拡張は 2 つの画面を持つ。**ラベル一覧**（コマンドで開く Webview パネル）と、**改訂履歴の編集**（`revisions/rev-*.yml` に結び付いたカスタムエディタ）である。どちらも Webview は 1 つのバンドルで、HTML の `data-view` 属性でどちらを描くかを決める。[E-0002](appendix-evidence.qmd#ev-rev-e-0002)、[E-0006](appendix-evidence.qmd#ev-rev-e-0006)
 
-::: {.tbl caption="調べる事項と読み始める場所" label="tbl-rev-where" widths="38,36,26"}
+::: {.tbl caption="調べる事項と読み始める場所" label="tbl-rev-where" tbl-colwidths="[38,36,26]"}
 | 調べる事項 | 最初に読むコード | 関連章 |
 |---|---|---|
 | コマンド・エディタの登録、執筆フォルダの決め方 | `src/extension.ts` の `activate` / `resolveWritingFolder` | 第2・3章 |

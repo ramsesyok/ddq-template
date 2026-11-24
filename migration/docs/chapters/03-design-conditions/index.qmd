@@ -4,7 +4,7 @@
 
 ## 実行環境の条件
 
-::: {.tbl caption="実行環境に関する設計条件" label="tbl-cond-env" widths="8,34,58"}
+::: {.tbl caption="実行環境に関する設計条件" label="tbl-cond-env" tbl-colwidths="[8,34,58]"}
 | ID | 条件の内容 | 根拠 |
 |---|---|---|
 | C-01 | Python 3.8 以上で動作すること | XML 走査に名前空間ワイルドカード（`{*}`）と、`from __future__ import annotations` を用いる。いずれも 3.8 で導入された |
@@ -14,7 +14,7 @@
 
 ## 文字コード及び入出力の条件
 
-::: {.tbl caption="入出力に関する設計条件" label="tbl-cond-io" widths="8,34,58"}
+::: {.tbl caption="入出力に関する設計条件" label="tbl-cond-io" tbl-colwidths="[8,34,58]"}
 | ID | 条件の内容 | 根拠 |
 |---|---|---|
 | C-04 | ファイルの読み書きは UTF-8 に固定すること | Windows の既定は cp932 であり、指定しないと日本語を含む原稿が読めない・書けない |
@@ -25,7 +25,7 @@
 
 ## 変換対象に関する条件
 
-::: {.tbl caption="変換対象に関する設計条件" label="tbl-cond-target" widths="8,34,58"}
+::: {.tbl caption="変換対象に関する設計条件" label="tbl-cond-target" tbl-colwidths="[8,34,58]"}
 | ID | 条件の内容 | 根拠 |
 |---|---|---|
 | C-08 | SP-02〜SP-04 の入力は、pandoc が `-t markdown-simple_tables-multiline_tables --wrap=none` で出力した markdown に限ること | simple table は罫線を空白で揃えるため、テキストからの表検出が事実上できない。また行が折り返されると画像記法が行をまたぎ、1行を単位とする走査が破綻する |
@@ -36,7 +36,7 @@
 
 ## 処理順序に関する条件
 
-::: {.tbl caption="処理順序に関する設計条件" label="tbl-cond-order" widths="8,34,58"}
+::: {.tbl caption="処理順序に関する設計条件" label="tbl-cond-order" tbl-colwidths="[8,34,58]"}
 | ID | 条件の内容 | 根拠 |
 |---|---|---|
 | C-12 | SP-02 → SP-03 → SP-04 の順に適用すること | SP-04 の分割を先に行うと、図表番号の棚卸しと参照の置換がファイル横断となり、SP-02 が1ファイル内で完結しなくなる |
@@ -46,7 +46,7 @@
 
 ## 保守上の条件
 
-::: {.tbl caption="保守に関する設計条件" label="tbl-cond-maint" widths="8,34,58"}
+::: {.tbl caption="保守に関する設計条件" label="tbl-cond-maint" tbl-colwidths="[8,34,58]"}
 | ID | 条件の内容 | 根拠 |
 |---|---|---|
 | C-15 | `_code_lines` を修正する場合は、SP-02・SP-03・SP-04 の3ファイルすべてを修正すること | 共通ライブラリを作らず複製で共通化している（@sec-common）。複製である事実を保守手順として明記する |

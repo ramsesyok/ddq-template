@@ -25,7 +25,7 @@
 
 ## 用語 {.unnumbered}
 
-::: {.tbl caption="本書で用いる用語" label="tbl-terms" widths="22,78"}
+::: {.tbl caption="本書で用いる用語" label="tbl-terms" tbl-colwidths="[22,78]"}
 | 用語 | 意味 |
 |---|---|
 | 原本 | 移行元の Word（`.docx`）又は PowerPoint（`.pptx`）ファイル |
@@ -40,7 +40,7 @@
 
 ## 改訂履歴 {.unnumbered}
 
-::: {.tbl caption="改訂履歴" label="tbl-history" widths="12,18,50,20"}
+::: {.tbl caption="改訂履歴" label="tbl-history" tbl-colwidths="[12,18,50,20]"}
 | 改訂 | 年月日 | 改訂内容 | 担当 |
 |---|---|---|---|
 | NC | 2026-08-16 | 新規作成 | RamsesYok |

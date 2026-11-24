@@ -120,7 +120,7 @@
       #set text(size: 14pt)
       - *設計書リポジトリ* = 設計書 1 件を git で共有する単位。
         DDQ Template で作り、執筆者はこれだけを clone する
-      - *執筆フォルダ* = 原稿一式（`_quarto.yml` と `.template-version` があるフォルダ）。
+      - *執筆フォルダ* = 原稿一式（`_quarto.yml` と `_extensions/ddq/_extension.yml` があるフォルダ）。
         名前は自由（既定 `docs`）。右クリックで PDF などを出せる
       - *機構ファイル*（`design-doc.lua` など 5 点）は `ddq` が置く写し。
         執筆者は触らないが、コミットはする
@@ -206,7 +206,7 @@
   - 置き換わるのは機構ファイル 5 点（`design-doc.lua` など）だけ。原稿には触れない
   - *差分は git に出るのでコミットする。* 執筆者は pull するだけ
   - *執筆者は押さない。* 通知が出たら発行者に伝え、同じ版の VSIX を受け取る
-  - 版の確認: 拡張機能ビューの DDQ Template の版と `<執筆フォルダ>\.template-version`
+  - 版の確認: 拡張機能ビューの DDQ Template の版と `<執筆フォルダ>/_extensions/ddq/_extension.yml` の版
 ]
 
 // ---- 7 ----

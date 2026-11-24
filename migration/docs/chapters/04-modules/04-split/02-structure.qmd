@@ -3,7 +3,7 @@
 SP-04 を構成するモジュールを @tbl-sp04-mods に、補助モジュールを @tbl-sp04-sub に、
 相互関連を @fig-sp04-tree に示す。
 
-::: {.tbl caption="SP-04 モジュール一覧" label="tbl-sp04-mods" widths="12,22,44,22"}
+::: {.tbl caption="SP-04 モジュール一覧" label="tbl-sp04-mods" tbl-colwidths="[12,22,44,22]"}
 | ID | 名称 | 機能の概要 | 呼出元 |
 |---|---|---|---|
 | M-0401 | `build_tree` | markdown を前付けと章のツリーに組み立てる | `main` |
@@ -16,7 +16,7 @@ SP-04 を構成するモジュールを @tbl-sp04-mods に、補助モジュー�
 | M-0408 | `main` | 引数を解釈し、全体を制御する | （利用者） |
 :::
 
-::: {.tbl caption="SP-04 補助モジュール一覧" label="tbl-sp04-sub" widths="16,14,34,36"}
+::: {.tbl caption="SP-04 補助モジュール一覧" label="tbl-sp04-sub" tbl-colwidths="[16,14,34,36]"}
 | 名称 | 戻り値 | 機能 | 備考 |
 |---|---|---|---|
 | `_code_lines` | `set[int]` | コードブロックの行番号を集める | 共通プログラム（@sec-m0301） |

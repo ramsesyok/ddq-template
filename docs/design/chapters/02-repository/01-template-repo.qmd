@@ -19,7 +19,7 @@ design-doc-quarto-template/
 │   ├── lib.typ              … 様式の単一ソース（外枠・採番・IPO・横向き）
 │   ├── typst-template.typ   … Quarto 既定テンプレートの差し替え口（lib.typ を取り込む）
 │   ├── typst-show.typ       … フロントマター → design-doc() の引数
-│   ├── quarto-publish.yml   … PDF 用のプロファイル（→ <執筆>/_quarto-publish.yml）
+│   ├── _extension.yml      … Quarto 拡張の定義（→ <執筆>/_extensions/ddq/）
 │   ├── design-doc.lua       … 執筆記法（mermaid / plantuml / .landscape / .ipo / .tbl）の変換
 │   ├── design-doc.css       … HTML の見た目
 │   ├── postprocess-html.js  … HTML の図表番号を「章.節-連番」に振り直す後処理
@@ -51,7 +51,7 @@ design-doc-quarto-template/
 
 本テンプレートで書いた文書は 2 か所に分けて置く。
 
-::: {.tbl caption="リポジトリ内の文書の置き場" label="tbl-doc-places" widths="22,40,38"}
+::: {.tbl caption="リポジトリ内の文書の置き場" label="tbl-doc-places" tbl-colwidths="[22,40,38]"}
 | 置き場 | 中身 | 位置づけ |
 |---|---|---|
 | `docs/<執筆フォルダ>` | 利用マニュアル（`manual/`）・本書（`design/`）・実装仕様書（`cli-impl/`・`ddq-template-impl/`） | テンプレート自身の文書。**設計リポジトリ**として、執筆フォルダを兄弟に並べる |

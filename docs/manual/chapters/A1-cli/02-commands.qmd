@@ -1,6 +1,6 @@
 ## コマンド一覧 {#sec-cli-commands}
 
-::: {.tbl caption="ddq のコマンド" label="tbl-cli-commands" widths="30,44,26"}
+::: {.tbl caption="ddq のコマンド" label="tbl-cli-commands" tbl-colwidths="[30,44,26]"}
 | コマンド | 内容 | 拡張での操作 |
 |---|---|---|
 | `ddq init <リポジトリ> [執筆フォルダ名]` | 設計書リポジトリを作る（@sec-init） | DDQ: 設計書リポジトリを作成 |
@@ -18,7 +18,7 @@
 ### 設計書リポジトリを作る（ddq init）
 
 ```bat
-cd C:\tools\quarto-template-3.1.0
+cd C:\tools\quarto-template-4.0.0
 .\ddq init C:\work\order-design
 ```
 
@@ -41,7 +41,7 @@ cd C:\tools\quarto-template-3.1.0
 執筆フォルダを作成: C:\work\order-design\docs
   作成: _quarto.yml
   ...
-機構ファイルを更新しました: C:\work\order-design\docs（テンプレート 3.1.0）
+機構ファイルを更新しました: C:\work\order-design\docs（テンプレート 4.0.0）
 疎通確認のため HTML を一度 render します...
 OK -> C:\work\order-design\docs\_book\index.html
 ```

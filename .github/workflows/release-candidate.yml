@@ -32,11 +32,12 @@ on:
       - THIRD-PARTY-NOTICES.md
       - .github/actions/jp-fonts/**
       - .github/workflows/release-candidate.yml
-  # この workflow 自身や照合の処理を変えた PR でだけ走らせる（手動実行は main に入るまで使えないので、その試走のため。
-  # PR で毎回走らせるかは所要時間を見て決める）
+  # 梱包・照合・拡張の配線を変更した PR では、サンプル付きの候補まで検査する。
   pull_request:
     paths:
+      - cli/src/bin/ddq-release/**
       - cli/tools/check_release.py
+      - template/_extension.yml
       - .github/actions/jp-fonts/**
       - .github/workflows/release-candidate.yml
   workflow_dispatch:
@@ -58,7 +59,7 @@ permissions:
   contents: read
 
 env:
-  SAMPLE_ARG: ${{ inputs.with_sample && '--with-sample' || '' }}
+  SAMPLE_ARG: ${{ (github.event_name == 'pull_request' || inputs.with_sample) && '--with-sample' || '' }}
 
 jobs:
   build:

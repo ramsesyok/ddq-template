@@ -4,7 +4,7 @@
 
 ### 設計から変えた判断
 
-::: {.tbl caption="設計と実装の差（共通の基盤）" label="tbl-common-design-diff" widths="30,70"}
+::: {.tbl caption="設計と実装の差（共通の基盤）" label="tbl-common-design-diff" tbl-colwidths="[30,70]"}
 | 項目 | 実装 |
 |---|---|
 | Quarto が無いときの通知 | 設計案の「ダウンロードページを開く」は入れていない。外部 URL を成果物に持たない（`check:offline`）ため。「設定でパスを指定」だけ |
@@ -15,7 +15,7 @@
 
 ### 制約と未確認の動作
 
-::: {.tbl caption="制約と未確認の動作" label="tbl-common-unverified" widths="34,66"}
+::: {.tbl caption="制約と未確認の動作" label="tbl-common-unverified" tbl-colwidths="[34,66]"}
 | 事項 | 内容 |
 |---|---|
 | `plantuml.jar` を同梱していない | 同梱 ddq の隣に `plantuml.jar` が無いので、拡張からの出力で PlantUML をローカルで描くには `DDQ_PLANTUML_JAR` が要る。3.0.0 から配布 zip にも同梱しないので、jar は利用者が PlantUML の公式リリースから取得する |

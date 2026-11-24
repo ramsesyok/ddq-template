@@ -484,7 +484,9 @@ fn build_makes_the_history_table() {
     assert!(history.contains("| @tbl-cond |"));
     assert!(history.contains("`#_xref-page(\"tbl-cond\")`{=typst}"));
     assert!(history.contains("対象範囲（見出し・削除）"));
-    // caption は付けない（前付けに置くと「表 0-1」になるため）
+    assert!(history.contains(r#"::: {.tbl tbl-colwidths="[14,8,22,8,48]"}"#));
+    assert!(history.contains(r#"::: {.tbl tbl-colwidths="[16,8,26,50]"}"#));
+    // 前付けの改訂履歴は表番号とキャプションを付けずに出す。
     assert!(!history.contains("caption="));
 
     // index.qmd が include していなければ知らせる

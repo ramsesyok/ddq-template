@@ -16,7 +16,7 @@
 
 ### 画面の見かた
 
-::: {.tbl caption="改訂履歴の画面" label="tbl-revision-editor" widths="16,84"}
+::: {.tbl caption="改訂履歴の画面" label="tbl-revision-editor" tbl-colwidths="[16,84]"}
 | 列 | 内容 |
 |------------|--------------------------------------------------------------|
 | 種別 | 変更／追加／削除／改名 |

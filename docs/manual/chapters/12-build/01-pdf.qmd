@@ -17,12 +17,9 @@
 
 ### 何が行われるか
 
-1. `setup` が呼ばれ、`.template-version` と機構ファイルが `ddq` と一致するか検査される。
-   一致していれば、PDF 用の部品（`lib.typ`・typst の partial・`_quarto-publish.yml`）が
-   執筆フォルダへ配置される。
-2. Quarto が原稿を Typst 形式に変換し、PDF を組版する（`--profile publish`）。
-   このとき mermaid 図はベクター SVG に焼き込まれる。
-3. できあがった PDF が `<執筆フォルダ>\design-doc.pdf` に取り出される。
+1. `_extensions/ddq/` の版と機構の内容を照合する。
+2. `quarto render --to ddq-typst` で発行版の PDF を組版する。DDQ の `mermaid` は SVG に変換し、標準の `{mermaid}` は Quarto が描画する。
+3. 今回作った PDF が `<執筆フォルダ>\\design-doc.pdf` に取り出される。
 
 PDF は 2 か所にできる。`_book\<output-file>.pdf` は Quarto が作るもので（`_quarto.yml` の `project:` の
 `output-dir` を変えていればその場所）、名前は
@@ -36,10 +33,14 @@ PDF は 2 か所にできる。`_book\<output-file>.pdf` は Quarto が作るも
 ファイル名と内容形式は同じであり、違いは承認状態と配布のタイミングである。
 :::
 
-::: {.callout-note}
-PDF の出力は先頭で `setup` を呼ぶため、PDF 用の準備も済む。
-`setup` を明示的に実行する必要はない。
-:::
+### 発行版だけの設定
+
+本文の書体と文字サイズ、行間は Quarto の `mainfont`、`fontsize`、`linestretch` で指定できる。
+発行者用のプロファイルを使う場合は、プロファイルの `format:` の下に `ddq-typst:` の設定を書く。
+プロファイルは Quarto 標準の `QUARTO_PROFILE` などで有効にする。
+
+発行版の A4、外枠、余白、資料番号欄とページ番号の `n / N` は DDQ の固定様式である。
+`papersize`、`margin`、`page-numbering` などに衝突する値を指定した場合は警告が出る。
 
 ### PDF は必ず `quarto render` 経由で作る
 
@@ -53,7 +54,7 @@ OS にインストールされているフォントではない。
 :::
 
 様式付き PDF のビルドは必ず **DDQ: PDF を作成**（コマンドでは `ddq pdf`）を使うこと。VSCode の通常の Render は既定の
-HTML を生成し、PDF 用の `publish` プロファイルを適用しない。
+HTML を生成する。
 
 どうしても `typst compile` を直接使って様式を試したいときは、フォントの場所を
 明示する。

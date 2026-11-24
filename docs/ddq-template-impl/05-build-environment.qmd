@@ -4,7 +4,7 @@
 
 ### スクリプト
 
-::: {.tbl caption="npm スクリプト" label="tbl-scripts" widths="30,70"}
+::: {.tbl caption="npm スクリプト" label="tbl-scripts" tbl-colwidths="[30,70]"}
 | スクリプト | 内容 |
 |---|---|
 | `build` | `build:ext`（esbuild で `out/extension.js`）＋ `build:webview`（`vite build --mode revision` と `--mode tableEditor` で `out/webview/<画面>/assets/main.{js,css}`） |

@@ -4,7 +4,7 @@ VSCode 拡張は `extensions/` の下に置く。**1 フォルダ = 1 拡張**�
 `extensions/` を走査して同じ作法で扱う。いまある拡張は **DDQ Template**（`extensions/ddq-template/`）
 1 つである。
 
-::: {.tbl caption="今ある拡張" label="tbl-extensions" widths="26,44,30"}
+::: {.tbl caption="今ある拡張" label="tbl-extensions" tbl-colwidths="[26,44,30]"}
 | 拡張 | 役割 | 実装仕様書 |
 |------------------|------------------------------------|------------------|
 | `ddq-template` | 設計書リポジトリの作成・PDF / HTML / 図の出力（`ddq.exe` 同梱）、見出し・表・図のラベル付けと改訂履歴、統一テーブル `::: {.tbl …}` の視覚編集 | `docs/ddq-template-impl/` |
@@ -16,7 +16,7 @@ exe を 1 つにし、利用者が入れる VSIX を 1 本にするため統合�
 
 ### 決まりごと {#sec-extensions-rules}
 
-::: {.tbl caption="拡張が守ること" label="tbl-extensions-rules" widths="30,70"}
+::: {.tbl caption="拡張が守ること" label="tbl-extensions-rules" tbl-colwidths="[30,70]"}
 | 決まり | 中身 |
 |--------------------------|--------------------------------------------------|
 | フォルダ名 = `name` | `package.json` の `name` とフォルダ名を一致させる。VSIX 名の先頭になるので、`ddq-release` が食い違いを検査して止める |

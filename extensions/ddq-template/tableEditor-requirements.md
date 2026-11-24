@@ -14,7 +14,7 @@ VSCode 拡張。`mkdocs-table-editor` をベースにするが、**出力ルー�
 利用マニュアル 9 章（旧 `AUTHORING.md` §6）および `template/design-doc.lua` で定義される統一テーブル。
 
 ```markdown
-::: {.tbl caption="ユーザ属性一覧" label="tbl-user" widths="20,20,60" merge-cols="1"}
+::: {.tbl caption="ユーザ属性一覧" label="tbl-user" tbl-colwidths="[20,20,60]" merge-cols="1"}
 | 区分   | 属性   | 説明         |
 |--------|--------|--------------|
 | 基本   | 氏名   | 利用者の氏名 |
@@ -28,7 +28,7 @@ VSCode 拡張。`mkdocs-table-editor` をベースにするが、**出力ルー�
 |------|------|----------------|
 | `caption="…"` | キャプション。付けると採番 | 編集可 |
 | `label="tbl-x"` | 相互参照 ID（`tbl-` 始まり必須） | 編集可。先頭 `#` は除去。`tbl-` 始まりでなければ警告 |
-| `widths="20,30,50"` | 列幅（％風でも比率でも可・列数と一致必須） | 列ごとの数値入力 UI。合計 100 を上限として検査・補完（§6） |
+| `tbl-colwidths="[20,30,50]"` | 列幅（百分率の配列。列数と一致必須） | 列ごとの数値入力 UI。合計 100 を上限として検査・補完（§6） |
 | `merge-cols="2,3"` / `"all"` | 指定列を自動 rowspan 結合 | 出力形式として選択（§4） |
 | `.unnumbered` | 番号を出さずキャプションのみ | チェックボックス |
 
@@ -77,7 +77,7 @@ VSCode 拡張。`mkdocs-table-editor` をベースにするが、**出力ルー�
 **パイプ表**を `.tbl` div で囲んで出力する。
 
 ```markdown
-::: {.tbl caption="…" label="tbl-…" widths="…"}
+::: {.tbl caption="…" label="tbl-…" tbl-colwidths="[…]"}
 | … |
 |---|
 | … |
@@ -313,7 +313,7 @@ export type TableModel = {
 - セル結合 / 結合解除
 - ヘッダ行数の指定（「ここまでがヘッダ」を行単位に）
 - 列ごとの揃え指定
-- 列ごとの幅（`widths`）数値入力。空欄なら自動幅
+- 列ごとの幅（`tbl-colwidths`）数値入力。空欄なら自動幅
   - 合計が 100 を超える／負の値があるときは入力欄を赤くして警告し、Apply を拒否する
   - 空欄が 1 列だけなら、Apply とプレビューの直前に残り幅（100 − 他列の合計）を入れる
     （入力欄自体は空のまま。補完値は placeholder で示す）

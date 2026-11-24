@@ -2,7 +2,7 @@
 
 確認済み（静的）：ソースは 4 つに分かれ、**VSCode に依存する層**と**依存しない層**が分けてある。依存しない層（`tagging/`・`revision/revfile.ts`・`ddq/types.ts`）は Node のテストで直接叩ける。[E-0003](appendix-evidence.qmd#ev-rev-e-0003)
 
-::: {.tbl caption="ソースの構成" label="tbl-rev-layers" widths="26,12,20,42"}
+::: {.tbl caption="ソースの構成" label="tbl-rev-layers" tbl-colwidths="[26,12,20,42]"}
 | 置き場 | 行数 | VSCode 依存 | 役割 |
 |---|---|---|---|
 | `src/extension.ts` | 362 | あり | 登録、ラベル一覧の画面、書き戻し、改訂の開始 |
@@ -20,7 +20,7 @@
 
 確認済み（静的）：`activate` は 5 つの登録を行う。`activationEvents` は空で、宣言したコマンドやカスタムエディタが必要になった時点で VSCode が拡張を起動する。[E-0002](appendix-evidence.qmd#ev-rev-e-0002)
 
-::: {.tbl caption="activate が登録するもの" label="tbl-rev-activate" widths="34,66"}
+::: {.tbl caption="activate が登録するもの" label="tbl-rev-activate" tbl-colwidths="[34,66]"}
 | 登録 | 内容 |
 |---|---|
 | コマンド `ddqRevision.tags` | ラベル一覧のパネルを開く。引数にフォルダの URI を取れる（エクスプローラの右クリック） |

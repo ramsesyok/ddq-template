@@ -14,7 +14,7 @@
 rep = analyze(path)
 ```
 
-::: {.tbl caption="M-0101 インタフェース" label="tbl-m0101-if" widths="10,14,16,44,16"}
+::: {.tbl caption="M-0101 インタフェース" label="tbl-m0101-if" tbl-colwidths="[10,14,16,44,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `path` | `Path` | 診断対象のパス。存在しなくてよい | 不可（必須） |
@@ -63,7 +63,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0101-exc に示す。
 
-::: {.tbl caption="M-0101 処理条件・例外条件" label="tbl-m0101-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0101 処理条件・例外条件" label="tbl-m0101-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | 呼出し前に成立していなければならない条件はない |
@@ -97,7 +97,7 @@ Word 文書（`word/document.xml`）を走査し、`Report` の各計数項目�
 rep = _analyze_docx(path, zf)
 ```
 
-::: {.tbl caption="M-0102 インタフェース" label="tbl-m0102-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0102 インタフェース" label="tbl-m0102-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `path` | `Path` | 診断対象のパス。`Report.path` に格納するためだけに用いる | 不可（必須） |
@@ -161,7 +161,7 @@ flowchart TD
 
 判定の条件を @tbl-m0102-verdict に示す。
 
-::: {.tbl caption="M-0102 層 A の判定条件" label="tbl-m0102-verdict" widths="10,34,56"}
+::: {.tbl caption="M-0102 層 A の判定条件" label="tbl-m0102-verdict" tbl-colwidths="[10,34,56]"}
 | 判定 | 条件 | 付記する所見 |
 |:---:|---|---|
 | 高 | 見出しスタイルが 0 | 章立てを一から起こすことになる旨 |
@@ -171,7 +171,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0102-exc に示す。
 
-::: {.tbl caption="M-0102 処理条件・例外条件" label="tbl-m0102-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0102 処理条件・例外条件" label="tbl-m0102-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `zf` が開かれていること | 呼出元 M-0101 が保証する |
@@ -210,7 +210,7 @@ PowerPoint のスライドを走査し、図形・コネクタ・表・画像・
 rep = _analyze_pptx(path, zf)
 ```
 
-::: {.tbl caption="M-0103 インタフェース" label="tbl-m0103-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0103 インタフェース" label="tbl-m0103-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `path` | `Path` | 診断対象のパス | 不可（必須） |
@@ -261,7 +261,7 @@ flowchart TD
 
 判定の条件を @tbl-m0103-verdict に示す。割合は「図が主体のスライド数 ÷ 全スライド数」である。
 
-::: {.tbl caption="M-0103 判定条件" label="tbl-m0103-verdict" widths="10,20,70"}
+::: {.tbl caption="M-0103 判定条件" label="tbl-m0103-verdict" tbl-colwidths="[10,20,70]"}
 | 判定 | 条件 | 付記する所見 |
 |:---:|---|---|
 | 高 | 0.6 以上 | IPO は `.ipo` に作り直し、それ以外は提出用 PDF から SVG で回収する旨 |
@@ -274,7 +274,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0103-exc に示す。
 
-::: {.tbl caption="M-0103 処理条件・例外条件" label="tbl-m0103-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0103 処理条件・例外条件" label="tbl-m0103-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `zf` が開かれていること | 呼出元 M-0101 が保証する |
@@ -309,7 +309,7 @@ M-0101 から、`.pptx` 1件につき1回呼び出される。
 styles = _heading_styles(zf)
 ```
 
-::: {.tbl caption="M-0104 インタフェース" label="tbl-m0104-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0104 インタフェース" label="tbl-m0104-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `zf` | `ZipFile` | 開かれた `.docx` | 不可（必須） |
@@ -357,7 +357,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0104-exc に示す。
 
-::: {.tbl caption="M-0104 処理条件・例外条件" label="tbl-m0104-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0104 処理条件・例外条件" label="tbl-m0104-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -389,7 +389,7 @@ M-0102 から、`.docx` 1件につき1回呼び出される。
 paths = _collect(targets, recurse)
 ```
 
-::: {.tbl caption="M-0105 インタフェース" label="tbl-m0105-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0105 インタフェース" label="tbl-m0105-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `targets` | `list[str]` | 利用者が与えたパスの並び。1件以上 | 不可（必須） |
@@ -435,7 +435,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0105-exc に示す。
 
-::: {.tbl caption="M-0105 処理条件・例外条件" label="tbl-m0105-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0105 処理条件・例外条件" label="tbl-m0105-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -468,7 +468,7 @@ M-0107 から、起動につき1回呼び出される。
 text = render_md(reports)
 ```
 
-::: {.tbl caption="M-0106 インタフェース" label="tbl-m0106-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0106 インタフェース" label="tbl-m0106-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `reports` | `list[Report]` | 診断結果の並び。空でもよい | 不可（必須） |
@@ -509,7 +509,7 @@ text = render_md(reports)
 
 処理条件及び例外条件を @tbl-m0106-exc に示す。
 
-::: {.tbl caption="M-0106 処理条件・例外条件" label="tbl-m0106-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0106 処理条件・例外条件" label="tbl-m0106-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -539,7 +539,7 @@ M-0107 から、`--format md`（既定）の場合に1回呼び出される。
 code = main(argv)
 ```
 
-::: {.tbl caption="M-0107 インタフェース" label="tbl-m0107-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0107 インタフェース" label="tbl-m0107-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `argv` | `list[str] \| None` | コマンドライン引数。`None` なら `sys.argv` を用いる | `None` |
@@ -590,7 +590,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0107-exc に示す。
 
-::: {.tbl caption="M-0107 処理条件・例外条件" label="tbl-m0107-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0107 処理条件・例外条件" label="tbl-m0107-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |

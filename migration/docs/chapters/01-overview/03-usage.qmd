@@ -19,7 +19,7 @@ python migration/<スクリプト名> <対象> [オプション]
 python migration/diagnose.py C:/work/原本 --out shindan.md
 ```
 
-::: {.tbl caption="SP-01 の主なオプション" label="tbl-usage-01" widths="26,16,58"}
+::: {.tbl caption="SP-01 の主なオプション" label="tbl-usage-01" tbl-colwidths="[26,16,58]"}
 | オプション | 既定 | 内容 |
 |---|---|---|
 | `--format {md,csv,json}` | `md` | 出力形式 |
@@ -36,7 +36,7 @@ python migration/diagnose.py C:/work/原本 --out shindan.md
 quarto pandoc -f docx -t markdown-simple_tables-multiline_tables --wrap=none --track-changes=accept --extract-media=diagrams/ch01 設計書.docx -o step0.md
 ```
 
-::: {.tbl caption="pandoc に与える指定とその理由" label="tbl-usage-pandoc" widths="42,58"}
+::: {.tbl caption="pandoc に与える指定とその理由" label="tbl-usage-pandoc" tbl-colwidths="[42,58]"}
 | 指定 | 理由 |
 |---|---|
 | `-t markdown-simple_tables-multiline_tables` | 既定では罫線を空白で揃えた simple table になり、SP-02 が表を検出できない |
@@ -85,7 +85,7 @@ python migration/split.py step2.md -o C:/work/order-design/docs --names _names.t
 
 ### 実行に要する環境
 
-::: {.tbl caption="サブプログラムごとの依存" label="tbl-usage-dep" widths="20,26,54"}
+::: {.tbl caption="サブプログラムごとの依存" label="tbl-usage-dep" tbl-colwidths="[20,26,54]"}
 | サブプログラム | 依存 | 備考 |
 |---|---|---|
 | SP-01・SP-02・SP-03・SP-04 | 標準ライブラリのみ | 追加のインストールを要しない |

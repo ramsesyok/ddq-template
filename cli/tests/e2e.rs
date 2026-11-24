@@ -314,7 +314,7 @@ fn diagram_cache_from_another_environment_is_redrawn_unless_kept() {
     );
     let chapter = dir_s.join("chapters/01/index.qmd");
     let mut text = fs::read_to_string(&chapter).unwrap();
-    text.push_str("\n```mermaid\nflowchart LR\n  受付 --> 出荷\n```\n");
+    text.push_str("\n```mermaid\nflowchart LR\n  receive[受付] --> ship[出荷]\n```\n");
     fs::write(&chapter, text).unwrap();
     let dir = dir_s.to_string_lossy().into_owned();
     let html = |keep: bool| {
@@ -339,7 +339,8 @@ fn diagram_cache_from_another_environment_is_redrawn_unless_kept() {
             let n = p.file_name().unwrap().to_string_lossy().into_owned();
             n.starts_with("mmd-")
                 && n.ends_with(".svg")
-                && fs::read_to_string(p.with_extension("mmd")).is_ok_and(|src| src.contains("受付 --> 出荷"))
+                && fs::read_to_string(p.with_extension("mmd"))
+                    .is_ok_and(|src| src.contains("receive[受付] --> ship[出荷]"))
         })
         .collect();
     assert_eq!(
@@ -380,7 +381,14 @@ fn diagram_cache_from_another_environment_is_redrawn_unless_kept() {
 /// 見出しだけにした qmd/md の写しで調べる。
 fn quarto_chapters(dir: &Path) -> Vec<String> {
     let mirror = tempfile::tempdir().unwrap();
-    fs::copy(dir.join("_quarto.yml"), mirror.path().join("_quarto.yml")).unwrap();
+    let config = fs::read_to_string(dir.join("_quarto.yml")).unwrap();
+    fs::write(
+        mirror.path().join("_quarto.yml"),
+        config
+            .replace("type: ddq", "type: book")
+            .replace("ddq-html:", "html:"),
+    )
+    .unwrap();
     for entry in walkdir::WalkDir::new(dir) {
         let entry = entry.unwrap();
         let ext = entry.path().extension().and_then(|e| e.to_str()).unwrap_or("");
@@ -416,28 +424,32 @@ fn quarto_chapters(dir: &Path) -> Vec<String> {
         .collect()
 }
 
-/// 後処理が番号を振っていないキャプション（Quarto の既定の「表&nbsp;4.1: 」のまま・分割表のラベル無し）
-fn unnumbered_captions(html: &str) -> Vec<String> {
-    let mut found = Vec::new();
-    for (open, kinds) in [
-        ("<figcaption", &["図&nbsp;", "表&nbsp;", "コード&nbsp;"][..]),
-        ("<div class=\"split-caption", &[""][..]),
-    ] {
-        for (i, _) in html.match_indices(open) {
-            let tag_end = i + html[i..].find('>').unwrap();
-            let tag = &html[i..tag_end];
-            let body: String = html[tag_end + 1..].chars().take(30).collect();
-            let bad = if open.starts_with("<div") {
-                !tag.contains("data-unnumbered=\"true\"") && !body.starts_with("表 ")
-            } else {
-                kinds.iter().any(|k| body.starts_with(k))
-            };
-            if bad {
-                found.push(format!("{tag}>{body}"));
-            }
-        }
-    }
-    found
+/// 中にある採番用の span を外し、旧試験と同じ表示文字で照合する。
+fn caption_text(html: &str) -> String {
+    html.replace("<span class=\"ddq-float-number\">", "")
+        .replace("<span class=\"ddq-split-number\">", "")
+        .replace("</span>", "")
+        .replace("&nbsp;", " ")
+        .replace(": ", "　")
+}
+
+/// 既定の Quarto 採番のままの対象キャプションや未解決の番号を検出する。
+fn unnumbered_captions(html: &str) -> Vec<&str> {
+    html.lines()
+        .filter(|line| {
+            line.contains("DDQFLOATNUMBER")
+                || (line.contains("<figcaption")
+                    && ["図&nbsp;", "表&nbsp;", "コード&nbsp;"]
+                        .iter()
+                        .any(|prefix| line.contains(prefix))
+                    && !line.contains("ddq-float-number")
+                    && !line.contains("-caption-"))
+                || (line.contains("<div class=\"split-caption")
+                    && !line.contains("data-unnumbered")
+                    && !line.contains("ddq-split-number")
+                    && !line.contains("data-ddq-title"))
+        })
+        .collect()
 }
 
 /// 新規作成の雛形の章の並び（GEN-01）。Quarto が読む章（quarto inspect）が ddq の文書順
@@ -488,14 +500,15 @@ fn scaffold_chapters_are_all_read() {
     }
     let ch4 = fs::read_to_string(docs.join("_book/chapters/04/index.html")).unwrap();
     assert!(
-        ch4.contains("data-ref=\"tbl-user\" data-part=\"1\" data-total=\"1\">表 4.1.1-1　"),
+        ch4.contains("data-ref=\"tbl-user\" data-part=\"1\" data-total=\"1\"")
+            && ch4.contains("ddq-split-number\">表 4.1.1-1　"),
         "第 4 章の tbl-user に表番号が付いていない"
     );
 }
 
 /// 部の扉ページと、章より先に書いた付録（H-01）。ddq の文書順（tag list の order）が Quarto の描く順
 /// （inspect の files.input）と同じで、扉ページの本文もラベルの走査に入る。HTML の後処理は扉ページの
-/// キャプションも振り直し（番号なしの章と同じく 0）、付録の中の扉ページは付録の記号を使わない。
+/// キャプションも振り直し（番号なしの章と同じく通し番号）、付録の中の扉ページは付録の記号を使わない。
 #[test]
 fn part_pages_and_appendices_follow_quartos_order() {
     if skip_without_quarto() {
@@ -598,22 +611,32 @@ fn part_pages_and_appendices_follow_quartos_order() {
 
     assert_ok(&ddq(&["html", &d]), "ddq html");
     let page = |ch: &str| {
-        fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html")))
-            .unwrap_or_else(|_| panic!("{ch} の HTML が無い"))
+        caption_text(
+            &fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html")))
+                .unwrap_or_else(|_| panic!("{ch} の HTML が無い")),
+        )
     };
     for ch in &chapters {
-        let bad = unnumbered_captions(&page(ch));
+        let raw = fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html"))).unwrap();
+        let bad = unnumbered_captions(&raw);
         assert!(bad.is_empty(), "{ch} に番号の無いキャプション: {bad:#?}");
     }
     for (ch, want) in [
-        ("part.qmd", "表 0-1　総論の表"),
-        ("a.qmd", "表 0-1"),
+        ("part.qmd", "表 1　総論の表"),
+        ("a.qmd", "表 1-1"),
         ("app.qmd", "表 A-1　付録の一の表"),
-        ("app-part.qmd", "表 0-1　付録の部の表"),
+        ("app-part.qmd", "表 2　付録の部の表"),
         ("app2.qmd", "表 B-1　付録の二の表"),
     ] {
         assert!(page(ch).contains(want), "{ch} に「{want}」が無い");
     }
+
+    assert_ok(&ddq(&["pdf", &d]), "題名とファイルの部、付録を含む ddq pdf");
+    assert!(
+        fs::read(docs.join("design-doc.pdf"))
+            .unwrap()
+            .starts_with(b"%PDF-")
+    );
 }
 
 /// フロー形式・`book.references`・後ろに書いた index・`chapters:` を先に書いた部も、Quarto の描く順に読む。
@@ -704,16 +727,19 @@ fn flow_lists_references_and_a_late_index_follow_quartos_order() {
 
     assert_ok(&ddq(&["html", &d]), "ddq html");
     let page = |ch: &str| {
-        fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html")))
-            .unwrap_or_else(|_| panic!("{ch} の HTML が無い"))
+        caption_text(
+            &fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html")))
+                .unwrap_or_else(|_| panic!("{ch} の HTML が無い")),
+        )
     };
     for ch in &chapters {
-        let bad = unnumbered_captions(&page(ch));
+        let raw = fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html"))).unwrap();
+        let bad = unnumbered_captions(&raw);
         assert!(bad.is_empty(), "{ch} に番号の無いキャプション: {bad:#?}");
     }
     for (ch, want) in [
         ("a.qmd", "表 1-1　概要の表"),
-        ("part.qmd", "表 0-1　総論の表"),
+        ("part.qmd", "表 1　総論の表"),
         ("b.qmd", "表 2-1　詳細の表"),
         ("refs.qmd", "表 3-1　参考の表"),
         ("app.qmd", "表 A-1　付録の一の表"),
@@ -768,13 +794,15 @@ fn flow_book_keeps_drafts_and_uses_rendered_appendix_numbers() {
     assert_eq!(fs::read(docs.join("draft.qmd")).unwrap(), draft.as_bytes());
     assert_ok(&ddq(&["html", &dir]), "ddq html");
     let appendix = fs::read_to_string(docs.join("_book/data.html")).unwrap();
-    assert!(appendix.contains("付録 A") && appendix.contains("表 A-1　データ一覧"));
+    assert!(appendix.contains("付録 A") && caption_text(&appendix).contains("表 A-1　データ一覧"));
     let content = fs::read_to_string(docs.join("_book/content.html")).unwrap();
-    assert!(content.contains("data.html#tbl-data") && content.contains("表 A-1"));
+    assert!(
+        content.contains("data.html#tbl-data") && content.contains("data-ddq-ref=\"tbl-data\">A-1</span>")
+    );
 }
 
 /// フロー形式の対応付け `{part: …, chapters: […]}` と `href:`・`file:` の項目も、Quarto の描く順に読む。
-/// 部の題名の項目に `href:` で書いたページは部のページ（Quarto は番号なしで出す。後処理は 0 で、付録の中なら
+/// 部の題名の項目に `href:` で書いたページは部のページ（Quarto は番号なしで出す。後処理は通し番号で、付録の中なら
 /// 記号を使わない）。実 exe の `tag list` の文書順が `quarto inspect` の入力の並びと同じで、`ddq html` の番号も合う
 #[test]
 fn flow_mappings_and_href_items_follow_quartos_order() {
@@ -867,23 +895,137 @@ fn flow_mappings_and_href_items_follow_quartos_order() {
 
     assert_ok(&ddq(&["html", &d]), "ddq html");
     let page = |ch: &str| {
-        fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html")))
-            .unwrap_or_else(|_| panic!("{ch} の HTML が無い"))
+        caption_text(
+            &fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html")))
+                .unwrap_or_else(|_| panic!("{ch} の HTML が無い")),
+        )
     };
     for ch in &chapters {
-        let bad = unnumbered_captions(&page(ch));
+        let raw = fs::read_to_string(docs.join("_book").join(ch.replace(".qmd", ".html"))).unwrap();
+        let bad = unnumbered_captions(&raw);
         assert!(bad.is_empty(), "{ch} に番号の無いキャプション: {bad:#?}");
     }
     for (ch, want) in [
-        ("part.qmd", "表 0-1　総論の表"),
+        ("part.qmd", "表 1　総論の表"),
         ("a.qmd", "表 1-1　概要の表"),
         ("b.qmd", "表 2-1　詳細の表"),
-        ("c.qmd", "表 0-1　各論の表"),
+        ("c.qmd", "表 2　各論の表"),
         ("d.qmd", "表 3-1　機能の表"),
         ("app.qmd", "表 A-1　付録の一の表"),
-        ("app-part.qmd", "表 0-1　付録の部の表"),
+        ("app-part.qmd", "表 3　付録の部の表"),
         ("app2.qmd", "表 B-1　付録の二の表"),
     ] {
         assert!(page(ch).contains(want), "{ch} に「{want}」が無い");
     }
+}
+
+/// 発行者のプロファイルと、リンクを無効にした章間参照を同じ実レンダーで確認する。
+#[test]
+fn profile_outputs_and_unlinked_crossrefs_follow_an_incremental_render() {
+    if skip_without_quarto() {
+        return;
+    }
+    let _lock = QUARTO_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let docs = tmp.path().join("Writing folder");
+    fs::create_dir(&docs).unwrap();
+    fs::write(
+        docs.join("_quarto.yaml"),
+        r#"project: {type: ddq, output-dir: _book}
+book: {title: Review book, chapters: [index.qmd, chapter.qmd, references.qmd]}
+format: {ddq-html: default}
+lang: en
+number-depth: 1
+crossref:
+  tbl-title: Data set
+  tbl-prefix: Dataset
+  title-delim: " / "
+  ref-hyperlink: false
+"#,
+    )
+    .unwrap();
+    fs::write(
+        docs.join("_quarto-review.yml"),
+        "project: {output-dir: 'review output'}\nbook: {output-file: reviewed-document}\n",
+    )
+    .unwrap();
+    fs::write(docs.join("index.qmd"), "# Introduction {.unnumbered}\n").unwrap();
+    let chapter = "# Data\n\n## Details\n\n";
+    let tables = "| Item | Code |
+|---|---|
+| A | 1 |
+
+: Standard caption {#tbl-standard}
+
+::: {.tbl caption=\"DDQ caption\" label=\"tbl-ddq\" tbl-colwidths=\"[40,60]\"}
+
+| Item | Code |
+|---|---|
+| B | 2 |
+
+:::
+";
+    let chapter_path = docs.join("chapter.qmd");
+    fs::write(&chapter_path, format!("{chapter}{tables}")).unwrap();
+    fs::write(
+        docs.join("references.qmd"),
+        "# References\n\nSee @tbl-standard and [custom @tbl-ddq].\n",
+    )
+    .unwrap();
+
+    let d = docs.to_string_lossy();
+    assert_ok(&ddq(&["update", &d]), "ddq update");
+    let publish = |kind: &str| {
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_ddq"));
+        cmd.arg(kind).arg(&docs).env("QUARTO_PROFILE", "review");
+        let output = cmd.output().unwrap();
+        assert_ok(&output, kind);
+        output
+    };
+    let result = docs.join("review output");
+    publish("pdf");
+    let intermediate = fs::read(docs.join("design-doc.pdf")).unwrap();
+    assert!(intermediate.starts_with(b"%PDF-"));
+    assert_eq!(
+        intermediate,
+        fs::read(result.join("reviewed-document.pdf")).unwrap()
+    );
+
+    let html = publish("html");
+    assert!(last_line(&html).contains(&result.join("index.html").display().to_string()));
+    let chapter_html = fs::read_to_string(result.join("chapter.html")).unwrap();
+    assert!(
+        chapter_html.contains("Data set&nbsp;<span class=\"ddq-float-number\">1-1</span>"),
+        "Quarto の見出し語または章スコープの番号が反映されませんでした"
+    );
+
+    let assert_refs = |standard: &str, custom: &str| {
+        let html = fs::read_to_string(result.join("references.html")).unwrap();
+        assert!(
+            html.contains(&format!(
+                "Dataset&nbsp;<span data-ddq-ref=\"tbl-standard\">{standard}</span>"
+            )),
+            "{html}"
+        );
+        assert!(
+            html.contains(&format!(
+                "custom&nbsp;<span data-ddq-ref=\"tbl-ddq\" data-ddq-no-prefix=\"true\">{custom}</span>"
+            )),
+            "{html}"
+        );
+        assert!(!html.contains("chapter.html#tbl-standard"), "{html}");
+        assert!(!html.contains("chapter.html#tbl-ddq"), "{html}");
+    };
+    assert_refs("1-1", "1-2");
+
+    let before = "| Item | Code |\n|---|---|\n| Z | 0 |\n\n: Inserted table {#tbl-first}\n\n";
+    fs::write(chapter_path, format!("{chapter}{before}{tables}")).unwrap();
+    let render = Command::new("quarto")
+        .args(["render", "chapter.qmd", "--to", "ddq-html"])
+        .current_dir(&docs)
+        .env("QUARTO_PROFILE", "review")
+        .output()
+        .unwrap();
+    assert_ok(&render, "章単独の quarto render");
+    assert_refs("1-2", "1-3");
 }

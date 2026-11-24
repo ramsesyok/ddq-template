@@ -35,7 +35,7 @@ mermaid → SVG 変換と PlantUML サーバの起動を内蔵する。保守者
 |---|---|---|---|
 | 1 | 配布形態 | exe 1 本に全コマンド統合。`.bat` `.sh` は release から**完全に削除**。（2026-11-23 から、保守者だけが使うリリース一式の作成は別の exe `ddq-release` に分けた。発行者に配るのは ddq.exe 1 本のまま。§4） | ラッパーを残すと bat の制約とメンテ対象が残る |
 | 2 | exe の置き場所 | release フォルダ直下。exe は `quarto render` 起動時に自分のパスを `DDQ_BIN` で渡す。ユーザ判断で PATH に置いてもよい | 発行者の運用（展開フォルダをそのまま使う）を変えない |
-| 3 | 機構ファイル | **全部 exe に埋め込む**（`include_dir!`）。exe 単体で全コマンドが動く | 「exe = テンプレートの版」になり、`.template-version` と一意に対応 |
+| 3 | 機構ファイル | **全部 exe に埋め込む**（`include_dir!`）。exe 単体で全コマンドが動く | 「exe = テンプレートの版」になり、`_extensions/ddq/_extension.yml` の版 と一意に対応 |
 | 4 | mermaid エンジン | 自動: **Edge → Chrome → merman**。`DDQ_MERMAID_ENGINE` / `EXECUTABLE_BROWSER` で上書き可 | ブラウザ経路は mermaid-cli と幾何一致。merman は保険 |
 | 5 | `quarto preview` | **常にクライアント描画**（現状維持）。SVG を焼くのは `ddq html` / `ddq pdf` だけ | プレビューは Quarto だけで動く速いクイックレビュー。発行物と図が微妙に違い得ることはマニュアルに明記 |
 | 6 | フィルタ⇔exe | `ddq pdf` / `ddq html` が Quarto の前に文書の mermaid をまとめて描き、フィルタはキャッシュに無い図だけを `ddq mermaid` で描く（2.4.4 から。§5.5）。CLI は複数入力に対応する | 当初は正しさを優先して図ごとの呼び出し（`quarto run mmdc` の置換）だけにし、一括事前変換はフェンス抽出とキーの二重実装になるので保留した。2.4.4 でブラウザの起動回数を減らすため一括化し、キーの一致は E2E の図の数の照合で守る（§5.5） |
@@ -69,7 +69,7 @@ quarto-template/
 ├── template/                    … 機構ファイルのソース（従来どおり編集する）
 │   ├── VERSION
 │   ├── design-doc.lua / design-doc.css / postprocess-html.js / mermaid-config.json / plantuml-config.puml
-│   ├── lib.typ / typst-template.typ / typst-show.typ / quarto-publish.yml
+│   ├── lib.typ / typst-template.typ / typst-show.typ / _extension.yml
 │   ├── release-guide.typ        … 「はじめかた」スライド（Typst。ddq-release が PDF にする）
 │   ├── scaffold/{repo,content}/
 │   └── vendor/mermaid.min.js    … 新規（11.16.1。cli/tools/mermaid-bundle で作る）
@@ -147,15 +147,16 @@ zip に入れるものとバイト一致することを確かめる（`--no-buil
 発行者・執筆者の端末に Node.js が要らない点は変わらない（要るのは保守者のリリース作成時だけ）。
 Windows の `npm` は `npm.cmd` なので `cmd /C npm …` で起動する（`Command::new("npm")` は .cmd を解決しない）。
 
-### 3.3 doc リポジトリへの配置（現状維持）
+### 3.3 doc リポジトリへの配置
 
-| コマンド | 書き出すもの | git |
-|---|---|---|
-| `init` / `add` | scaffold（無いものだけ）+ 機構ファイル 5 本 + `.template-version` | コミット |
-| `update` | 機構ファイル 5 本 + `.template-version`（上書き） | コミット |
-| `setup`（`pdf` が内部で呼ぶ） | 版・機構ファイルの一致を検査し、`lib.typ` `typst-template.typ` `typst-show.typ` `_quarto-publish.yml` を上書き | `.gitignore` 済み |
+| コマンド | 処理 |
+|---|---|
+| `init` / `add` | 雛形と `_extensions/ddq/` を配置する。雛形は無いものだけ書く |
+| `update` | `_extensions/ddq/` の管理ファイルを更新する |
+| `setup` | 拡張の版と全管理ファイルを埋め込みと照合する |
 
-`init` 直後の執筆フォルダに `lib.typ` は無い。初めて `ddq pdf` を走らせたときに置かれる。
+`template/VERSION` を `_extension.yml` の `version` に埋め込む。発行用の
+Typst 部品も拡張に含め、利用者の原稿・設定・プロファイルはそのまま使う。
 
 ---
 
@@ -199,19 +200,19 @@ tag apply ┴► doc::（_quarto.yml → chapters → include 展開 → 見出�
 | コマンド | 処理 | 現行 |
 |---|---|---|
 | **init** | 1) リポジトリ直下に `.gitignore` `.gitattributes` `.vscode/settings.json` `.vscode/extensions.json`（`quarto.quarto` を推奨）`README.md`（`{{CONTENT_DIR}}` 置換）を「無いものだけ」置く 2) `add <repo>/<name>` | init-doc |
-| **add** | 前提: 上のフォルダのどこかにリポジトリの目印（`.gitignore` / `.git` / `.svn` / `.hg`）がある（無ければ「先に `ddq init`」と案内。執筆フォルダは入れ子でもよい）。拒否: 対象に `_quarto.yml` が既にある。処理: scaffold の content 一式を無いものだけ置く → `update` → `quarto render --to html` で疎通確認（`--no-render` で省略） | （新規） |
-| **update** | 機構ファイル 5 本と `.template-version` を上書き。`--all <repo>` は配下の `_quarto.yml` を持つフォルダを列挙して全部に適用（`_book/` `.quarto/` `node_modules/` は探索しない） | update-doc |
-| **setup** | `.template-version` と機構ファイル 5 本が現在の `ddq` と一致するか検査 → PDF 側4ファイルを上書き。不一致時は `update` せず停止し、**終了コード 3** で終わる（VSCode 拡張 ddq-template が update を案内する契約。他の失敗は 1）。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
-| **html** | 版・機構の一致検査 → PlantUML サーバの用意（§13.3）→ `quarto render --to html`（env: `MERMAID_SVG=1` `DDQ_BIN` `DDQ_PLANTUML_SERVER`）。出力 `_book/` | build-html |
-| **pdf** | `setup` → PlantUML サーバの用意 → `quarto render --to typst --profile publish`（env: `DDQ_BIN` `DDQ_PLANTUML_SERVER`）→ `_book/*.pdf` を `design-doc.pdf` にバイナリコピー | build-qmd |
-| **diagrams** | `diagrams/*.mmd *.puml` → 同名 `.svg`（キャッシュ `mmd-*` `puml-*` は対象外）。設定は執筆フォルダ直下の `mermaid-config.json` / `plantuml-config.puml`（無ければ埋め込み） | render-diagrams |
+| **add** | 前提: 上のフォルダのどこかにリポジトリの目印（`.gitignore` / `.git` / `.svn` / `.hg`）がある（無ければ「先に `ddq init`」と案内。執筆フォルダは入れ子でもよい）。拒否: 対象に `_quarto.yml` が既にある。処理: scaffold の content 一式を無いものだけ置く → `update` → `quarto render --to ddq-html` で疎通確認（`--no-render` で省略） | （新規） |
+| **update** | 機構ファイルと `_extensions/ddq/_extension.yml` の版 を上書き。`--all <repo>` は配下の DDQ プロジェクトに適用（`_book/` `.quarto/` `node_modules/` は探索しない） | update-doc |
+| **setup** | `_extensions/ddq/_extension.yml` の版 と機構ファイルが現在の `ddq` と一致するか検査。不一致時は `update` せず停止し、**終了コード 3** で終わる（VSCode 拡張 ddq-template が update を案内する契約。他の失敗は 1）。**ブラウザ検出と puppeteer.json 生成は廃止** | setup |
+| **html** | 版・機構の一致検査 → PlantUML サーバの用意（§13.3）→ `quarto render --to ddq-html`（env: `MERMAID_SVG=1` `DDQ_BIN` `DDQ_PLANTUML_SERVER`）。出力 `_book/` | build-html |
+| **pdf** | `setup` → PlantUML サーバの用意 → `quarto render --to ddq-typst`（env: `DDQ_BIN` `DDQ_PLANTUML_SERVER`）→ 今回生成した PDF を `design-doc.pdf` にバイナリコピー | build-qmd |
+| **diagrams** | `diagrams/*.mmd *.puml` → 同名 `.svg`（キャッシュ `mmd-*` `puml-*` は対象外）。設定は`_extensions/ddq/` の `mermaid-config.json` / `plantuml-config.puml`（無ければ埋め込み） | render-diagrams |
 | **plantuml serve** | §13.4。Java と jar を探し、PicoWeb を既定ポートに上げて Ctrl-C まで待つ | （新規） |
 | **tag list** | 執筆フォルダの見出し・表・図と Quarto ラベルの有無を一覧する。ラベルが無いものには内容由来ハッシュの候補と**編集指示**（ファイル・行・行頭からの文字数・挿入する文字列）を付ける。`--json` は機械可読（VSCode 拡張・CI 向け）、`--unlabeled` はラベルの無いものだけ | （新規。§14） |
 | **tag apply** | `--all` で候補をすべて書き戻す。`--from <FILE>` は `tag list --json` の出力（人が候補を直したもの）を読んで書き戻し、当てる前に文書側と突き合わせる。`--dry-run` で書かずに内容だけ出す | （新規。§14） |
 | **mermaid** | §5。hidden（`--help` の一覧に出さない） | quarto run mmdc |
 
 `TEMPLATE_ROOT`（旧フィルタが `mermaid-config.json` のフォールバック探索に使っていた）は廃止した。
-フィルタは執筆フォルダ直下の `mermaid-config.json` があれば `-c` で渡し、無ければ渡さない
+フィルタは`_extensions/ddq/` の `mermaid-config.json` があれば `-c` で渡し、無ければ渡さない
 （ddq が埋め込みの同じ既定を使う）。§6 参照。
 
 ### 保守者用の ddq-release（別の exe）
@@ -244,8 +245,8 @@ Windows では Quarto → Lua フィルタへ渡るパスが ANSI コードペ�
 データベースのパスが長すぎる）、約 231 文字で PDF も失敗し、259 文字以上は Quarto を起動できない（os error 267）。
 ddq 自身のファイル操作は長いパスでも動く（Rust の std が長いパスの API を使う）。
 
-**出力先（2.4.3 から）**。`pdf` / `html` は `_quarto.yml` の `output-dir`（PDF は `_quarto-publish.yml` を優先）を
-`quarto::output_dir` で読む。以前は `_book` 決め打ちで、変えると PDF を取り出せなかった。
+**出力先**。Quarto がプロジェクトの後処理へ渡す今回の成果物一覧を使う。
+有効なプロファイルによる `output-dir` と `output-file` も反映される。
 
 ### メッセージ
 
@@ -386,7 +387,7 @@ auto:
 | 呼び出し | `"<ddq>" mermaid -i "<mmd>" -o "<svg>" -c "<config>" -b transparent` |
 | 成否 | 出力 SVG の存在で判定（現状維持） |
 | `WANT_SVG` | `FORMAT == 'typst' or MERMAID_SVG == '1'`（現状維持）。プレビューは exe を探さない |
-| `mermaid-config.json` | 執筆フォルダ直下にあれば `-c` で渡す。無ければ `-c` を付けず、ddq が埋め込みの同じ既定を使う（`TMPL` / `TEMPLATE_ROOT` は廃止） |
+| `mermaid-config.json` | 拡張フォルダにあれば `-c` で渡す。無ければ `-c` を付けず、ddq が埋め込みの同じ既定を使う（`TMPL` / `TEMPLATE_ROOT` は廃止） |
 | 呼び出し方 | `pandoc.pipe`（シェルを介さない）。`os.execute` だと cmd.exe の引用符解釈（先頭が `"` のコマンド行）に振り回されるため |
 | 互換 env | `EXECUTABLE_BROWSER` `MERMAID_SVG` `DOC_ROOT` は読み続ける。`TEMPLATE_ROOT` は読まない |
 
@@ -431,7 +432,7 @@ PATH 上の古い `ddq` と release フォルダの新しい `ddq` が共存し�
 ### 7.4 版
 
 - `ddq --version` = `template/VERSION`（`build.rs` が `cargo:rustc-env` で渡す）。
-- `update` は `.template-version` に同じ値を書く。
+- `update` は `_extensions/ddq/_extension.yml` の版 に同じ値を書く。
 - 版上げ手順: `template/VERSION` を上げる → `cargo build --release`（ddq.exe と ddq-release.exe）→ `ddq-release`。
   ddq-release は自身の版と配る ddq.exe の版をどちらも `template/VERSION` と照合する。
 
@@ -598,7 +599,7 @@ cli/src/
   緩い比較は viewBox の大きさだけを見る（実測: 幅が最大約 15% 広い）。
   保守者の手元（ja-JP）では厳密一致のまま。
 - merman 系: 常時実行。foreignObject を含まないことをアサート。
-- コマンド系: 一時ディレクトリに `init` → `add` → `update --all` を流し、置かれるファイル一覧と `.template-version` を検証。`quarto` の起動はモック（`quarto.rs` を trait 化）か、PATH に `quarto` があるときだけ実施。
+- コマンド系: 一時ディレクトリに `init` → `add` → `update --all` を流し、置かれるファイル一覧と `_extensions/ddq/_extension.yml` の版 を検証。`quarto` の起動はモック（`quarto.rs` を trait 化）か、PATH に `quarto` があるときだけ実施。
 - 手動: `ddq-release` 後に `docs/manual/` の PDF/HTML を目視。`examples/docs/` の全図を旧 PDF と並べて確認（§9 の比較ページ生成をスクリプト化しておく）。
 
 ---
@@ -626,7 +627,7 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 
 | 機能 | 実例のある文書 |
 |---|---|
-| 統一テーブル `.tbl`（採番・`merge-cols`・`widths`・`label=`・自動分割 i／n） | docs / manual |
+| 統一テーブル `.tbl`（採番・`merge-cols`・`tbl-colwidths`・`label=`・自動分割 i／n） | docs / manual |
 | 相互参照 `@tbl-` `@fig-`（HTML 側は postprocess-html.js の振り直し） | docs / manual |
 | IPO 図 `.ipo`（表番号参照・パート分割） | docs / manual |
 | 横向きページ `.landscape` | docs / manual |
@@ -647,7 +648,7 @@ ddq 自体のテスト（§10）とは別に、**移行前後で作成物（PDF 
 
 | 保存物 | 採り方 |
 |---|---|
-| `index.typ` | `_quarto-publish.yml` の `typst:` に `keep-typ: true` を一時的に足して PDF ビルド |
+| `index.typ` | `_quarto.yml` に `keep-typ: true` を一時的に足して PDF ビルド |
 | `design-doc.pdf` | PDF ビルドの成果物 |
 | `_book/`（配布 HTML） | HTML ビルドの成果物（`search.json` 含む） |
 | `diagrams/mmd-*.svg` | ビルド前に**キャッシュを消してから**ビルドし、焼き直されたもの |
@@ -745,7 +746,7 @@ design-doc.lua ──┤                                        … POST /render
 | 届かないとき | プレビュー（HTML・`MERMAID_SVG` 無し）: ソースを枠付き（`.plantuml-fallback`）で表示して render を止めない。発行（typst / `MERMAID_SVG=1`）: エラー停止 |
 | HTTP の手段（Lua） | Windows 同梱の `curl.exe` を `pandoc.pipe` で呼ぶ。`pandoc.mediabag.fetch` は GET のみ・タイムアウト不可（落ちたサーバに章ごとに 21 秒。実測）で不採用。`--connect-timeout 2`、`-H Expect:`（100-continue の 1 秒待ちを避ける）、`-D -`（ヘッダを読む） |
 | 構文エラー | サーバは 200 で「エラー内容を描いた SVG」を返す。`X-PlantUML-Diagram-Error` / `-Line` ヘッダで判定し、その図は書かない。行番号は連結した設定の行数を差し引いて原稿の行に戻す |
-| 共通設定 | `plantuml-config.puml`（機構ファイル 5 本目）。`-config` はサーバに渡せないので、中身を `@start…` の直後に**連結して送る**。連結後のソースとテンプレートの版をハッシュするので、設定を変えるとキャッシュが自動で無効になる（2.4.1 から mermaid も同じ）。サーバはキーに入れない（LAN とローカルを切り替えても描き直さない）既定: `!pragma layout smetana`、`defaultFontName "Yu Gothic"`、`backgroundColor transparent` |
+| 共通設定 | `plantuml-config.puml`（機構ファイル目）。`-config` はサーバに渡せないので、中身を `@start…` の直後に**連結して送る**。連結後のソースとテンプレートの版をハッシュするので、設定を変えるとキャッシュが自動で無効になる（2.4.1 から mermaid も同じ）。サーバはキーに入れない（LAN とローカルを切り替えても描き直さない）既定: `!pragma layout smetana`、`defaultFontName "Yu Gothic"`、`backgroundColor transparent` |
 | 改行 | CRLF を LF に揃えてから連結する（CRLF だと `@startuml\n` に当たらず設定が連結されない。実測） |
 | キャッシュ | `diagrams/puml-<sha1 16 桁>.svg`（+ 送ったソース `.puml`）。git 管理外（`**/diagrams/puml-*`）。SVG 先頭に `<!-- ddq <版> engine=plantuml plantuml=<版> server=<url> fonts=<指紋> -->`（`fonts=` はローカルのサーバのとき。発行時の照合は §5.5） |
 | フォント | SVG の `<text>` は `textLength` で幅が固定され、Typst（resvg）はそれを尊重する（実測）。サーバ側と Typst 側でフォントが違っても箱からはみ出さず、違いは行の高さだけ。`Meiryo UI`（PDF の本文と同じ書体）は Windows のローカルと発行者の Typst が同じ実体を引くための既定 |

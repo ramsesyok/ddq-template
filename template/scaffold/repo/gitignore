@@ -4,21 +4,13 @@
 #
 # 管理対象（＝コミットする）:
 #   - 本文（_quarto.yml / index.qmd / chapters/ / diagrams/）
-#   - 機構ファイル（design-doc.lua / design-doc.css / postprocess-html.js /
-#     mermaid-config.json / plantuml-config.puml / .template-version）… 発行者が ddq init・ddq update で置く
+#   - _extensions/ddq/ … 発行者が ddq init・ddq update で配置する機構
 #   - design-doc.pdf … 発行者が定期的に作る「中間版」。レビューの基準になるので残す
 
 # ==== ビルド生成物 ====
 _book/
 # Quarto の keep-typ 中間ファイル（通常は自動削除）
 index.typ
-
-# ==== 発行者の setup がビルド前に置く PDF 用の機構ファイル ====
-# 実体は発行者が持つ template/ にある。doc リポジトリでは管理しない。
-lib.typ
-typst-template.typ
-typst-show.typ
-_quarto-publish.yml
 
 # ==== ツールの作業/キャッシュディレクトリ ====
 .quarto/

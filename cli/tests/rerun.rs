@@ -36,8 +36,8 @@ fn older_folder(tmp: &Path) -> PathBuf {
     let repo = tmp.join("order-design");
     assert_ok(&ddq(&["init", &repo.to_string_lossy(), "--no-render"]));
     let docs = repo.join("docs");
-    fs::write(docs.join(".template-version"), "0.0.0\n").unwrap();
-    fs::write(docs.join("design-doc.lua"), "-- 古い版の機構\n").unwrap();
+    fs::write(docs.join("_extensions/ddq/_extension.yml"), "version: 0.0.0\n").unwrap();
+    fs::write(docs.join("_extensions/ddq/design-doc.lua"), "-- 古い版の機構\n").unwrap();
     for name in ["mmd-0123456789abcdef.svg", "puml-0123456789abcdef.svg"] {
         fs::write(docs.join("diagrams").join(name), "<svg/>").unwrap();
     }
@@ -45,7 +45,12 @@ fn older_folder(tmp: &Path) -> PathBuf {
 }
 
 fn marker(docs: &Path) -> String {
-    fs::read_to_string(docs.join(".template-version")).unwrap()
+    fs::read_to_string(docs.join("_extensions/ddq/_extension.yml"))
+        .unwrap()
+        .lines()
+        .find_map(|line| line.strip_prefix("version: "))
+        .map(|value| format!("{}\n", value.trim_matches('"')))
+        .unwrap()
 }
 
 fn caches(docs: &Path) -> Vec<String> {
@@ -207,7 +212,7 @@ fn a_mechanism_file_held_open_is_finished_by_the_next_update() {
     let tmp = tempfile::tempdir().unwrap();
     let docs = older_folder(tmp.path());
     let d = docs.to_string_lossy().into_owned();
-    let held = hold(&docs.join("design-doc.lua"));
+    let held = hold(&docs.join("_extensions/ddq/design-doc.lua"));
 
     let out = ddq(&["update", &d]);
     assert_eq!(out.status.code(), Some(1), "{}", text(&out));
@@ -225,7 +230,7 @@ fn a_mechanism_file_held_open_is_finished_by_the_next_update() {
     );
     drop(held);
     assert_eq!(
-        fs::read_to_string(docs.join("design-doc.lua")).unwrap(),
+        fs::read_to_string(docs.join("_extensions/ddq/design-doc.lua")).unwrap(),
         "-- 古い版の機構\n"
     );
 
@@ -290,13 +295,13 @@ fn the_version_marker_is_never_seen_half_written() {
     let tmp = tempfile::tempdir().unwrap();
     let docs = older_folder(tmp.path());
     // std の既定は読み・書き・削除のすべてを共有する（拡張やエディタが読んでいる状態）
-    let mut reader = fs::File::open(docs.join(".template-version")).unwrap();
+    let mut reader = fs::File::open(docs.join("_extensions/ddq/_extension.yml")).unwrap();
     assert_ok(&ddq(&["update", &docs.to_string_lossy()]));
 
     let mut seen = String::new();
     reader.rewind().unwrap();
     reader.read_to_string(&mut seen).unwrap();
-    assert_eq!(seen, "0.0.0\n");
+    assert_eq!(seen, "version: 0.0.0\n");
     drop(reader);
     assert_ne!(marker(&docs), "0.0.0\n");
     assert_no_temporary_files(&docs);

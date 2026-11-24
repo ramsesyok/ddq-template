@@ -6,7 +6,7 @@
 分割した表は @tbl-split である。別の章の IPO 図は @tbl-ipo、図は @fig-box、
 付録の表は @tbl-appendix を参照する。
 
-::: {.tbl caption="列幅を指定した表" label="tbl-basic" widths="15,15,70"}
+::: {.tbl caption="列幅を指定した表" label="tbl-basic" tbl-colwidths="[15,15,70]"}
 | 項目 | 型     | 説明       |
 |------|--------|------------|
 | 氏名 | 文字列 | 利用者の名 |
@@ -70,7 +70,7 @@
 
 ## 列幅だけを指定した素の表と横向きの表
 
-::: {widths="10,90"}
+::: {tbl-colwidths="[10,90]"}
 | 記号 | 説明 |
 |------|------|
 | 素   | .tbl を使わない表 |

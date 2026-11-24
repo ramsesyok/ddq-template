@@ -156,11 +156,11 @@ describe('when の評価', () => {
 
 describe('エクスプローラの右クリック', () => {
     it('執筆フォルダとその配下にだけ発行・ラベル・改訂を出し、ルートにだけ「執筆フォルダを追加」を出す', async () => {
-        for (const rel of ['docs/chapters/01-overview', 'docs/_book/chapters', 'docs/.quarto', 'notes']) mkdir(rel);
+        for (const rel of ['docs/_extensions/ddq', 'docs/chapters/01-overview', 'docs/_book/chapters', 'docs/.quarto', 'notes']) mkdir(rel);
         fs.writeFileSync(path.join(root, 'docs', '_quarto.yml'), '');
-        fs.writeFileSync(path.join(root, 'docs', '.template-version'), '2.4.6\n');
+        fs.writeFileSync(path.join(root, 'docs', '_extensions/ddq/_extension.yml'), 'version: 2.4.6\n');
         fs.writeFileSync(path.join(root, 'docs', 'index.qmd'), '');
-        fake.found = [path.join(root, 'docs', '.template-version')];
+        fake.found = [path.join(root, 'docs', '_quarto.yml')];
         const keys = await contextKeys();
 
         const at = (rel: string, folder = true) => visible('explorer/context', explorer(keys, rel, folder));
@@ -184,9 +184,9 @@ describe('エクスプローラの右クリック', () => {
     });
 
     it('_quarto.yml の無い版ファイルだけのフォルダは執筆フォルダとみなさない', async () => {
-        mkdir('half');
-        fs.writeFileSync(path.join(root, 'half', '.template-version'), '2.4.6\n');
-        fake.found = [path.join(root, 'half', '.template-version')];
+        mkdir('half/_extensions/ddq');
+        fs.writeFileSync(path.join(root, 'half', '_extensions/ddq/_extension.yml'), 'version: 2.4.6\n');
+        fake.found = [path.join(root, 'half', '_extensions/ddq/_extension.yml')];
         const keys = await contextKeys();
         expect(visible('explorer/context', explorer(keys, 'half'))).toEqual([]);
         expect(visible('explorer/context', explorer(keys, ''))).toEqual([]);

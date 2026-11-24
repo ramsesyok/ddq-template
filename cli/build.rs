@@ -15,6 +15,12 @@ fn main() {
     println!("cargo:rustc-env=DDQ_VERSION={}", version.trim());
     println!("cargo:rerun-if-changed={}", version_file.display());
 
+    let extension = fs::read_to_string(manifest_dir.join("../template/_extension.yml"))
+        .expect("template/_extension.yml を読めません");
+    let out = Path::new(&std::env::var_os("OUT_DIR").expect("OUT_DIR がありません")).join("_extension.yml");
+    fs::write(&out, extension.replace("@DDQ_VERSION@", version.trim()))
+        .unwrap_or_else(|e| panic!("{} を書けません: {e}", out.display()));
+
     let lock = fs::read_to_string(manifest_dir.join("Cargo.lock")).unwrap_or_default();
     println!(
         "cargo:rustc-env=DDQ_MERMAN_VERSION={}",

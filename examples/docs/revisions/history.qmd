@@ -1,7 +1,7 @@
 <!-- ddq rev build が生成する。手で編集しない（revisions/rev-*.yml を直す）。 -->
 
 ::: {.content-visible when-format="typst"}
-::: {.tbl widths="14,8,22,8,48"}
+::: {.tbl tbl-colwidths="[14,8,22,8,48]"}
 | 改訂日 | 記号 | 箇所 | 頁 | 修正内容 |
 |---|---|---|---|---|
 | 2026-04-20 | A | @sec-purpose | `#_xref-page("sec-purpose")`{=typst} | 出荷指示までを本システムの範囲に含めることを明記した。 |
@@ -12,7 +12,7 @@
 :::
 
 ::: {.content-visible unless-format="typst"}
-::: {.tbl widths="16,8,26,50"}
+::: {.tbl tbl-colwidths="[16,8,26,50]"}
 | 改訂日 | 記号 | 箇所 | 修正内容 |
 |---|---|---|---|
 | 2026-04-20 | A | @sec-purpose | 出荷指示までを本システムの範囲に含めることを明記した。 |

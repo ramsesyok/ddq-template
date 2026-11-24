@@ -1,78 +1,37 @@
-//! `ddq pdf` — PDF を作る（旧 build-qmd）。
-//!   setup → `quarto render --to typst --profile publish` → 出力先（既定 `_book/`）の PDF を `design-doc.pdf` に取り出す。
-//! typst の設定は _quarto-publish.yml（setup が置く）にあるので `--profile publish` が要る。
-//! mermaid は design-doc.lua がこの exe（DDQ_BIN）を呼んで SVG に焼く。
-//! PlantUML は render の間だけサーバを用意し（plantuml::ensure）、URL を DDQ_PLANTUML_SERVER で渡す。
+//! DDQ の Typst 形式で発行版を作り、今回の成果物を design-doc.pdf として取り出す。
 
 use std::{fs, path::Path};
 
 use anyhow::{Context, Result, bail};
 
-use crate::{commands::setup, mermaid, plantuml, quarto, writing_folder};
+use crate::{commands::setup, mermaid, plantuml, quarto, replace, writing_folder};
 
 pub fn run(dir: &Path) -> Result<()> {
     writing_folder::ensure_encodable(dir)?;
-    setup::run(dir)?;
+    setup::ensure_current(dir)?;
     // 文書中の mermaid を Quarto の前にまとめて描く（フィルタは章ごとにしか束ねられない）
     mermaid::prerender::run(dir);
-    let session = plantuml::ensure(dir)?;
-    quarto::render(dir, &["--to", "typst", "--profile", "publish"], &session.env())?;
+    let server = plantuml::resolved_project_server(dir);
+    let session = plantuml::ensure(dir, server.as_deref())?;
+    let built = quarto::render(dir, "ddq-typst", &session.env())?;
     drop(session);
 
-    // 出力先は次のビルドで作り直されるので、成果物を執筆フォルダ直下に取り出す。
-    // doc リポジトリではこの PDF を「中間版」としてコミットして共有する。
-    // 出力先は _quarto.yml（publish の profile を優先）の output-dir。既定は _book。
-    let built = find_pdf(&quarto::output_dir(dir, Some("publish")))?;
+    let pdfs: Vec<_> = built
+        .iter()
+        .filter(|path| {
+            path.extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("pdf"))
+        })
+        .collect();
+    let [pdf] = pdfs.as_slice() else {
+        bail!("Quarto が生成した PDF を 1 件に特定できません: {pdfs:?}");
+    };
     let dest = dir.join("design-doc.pdf");
-    fs::copy(&built, &dest)
-        .with_context(|| format!("{} を {} に取り出せません", built.display(), dest.display()))?;
+    if *pdf != &dest {
+        let bytes = fs::read(pdf).with_context(|| format!("{} を読めません", pdf.display()))?;
+        replace::replace(&dest, &bytes)
+            .with_context(|| format!("{} を {} に取り出せません", pdf.display(), dest.display()))?;
+    }
     println!("OK -> {}", dest.display());
     Ok(())
-}
-
-fn find_pdf(book: &Path) -> Result<std::path::PathBuf> {
-    let mut pdfs: Vec<_> = fs::read_dir(book)
-        .with_context(|| format!("{} を読めません", book.display()))?
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf")))
-        .collect();
-    pdfs.sort();
-    match pdfs.as_slice() {
-        [one] => Ok(one.clone()),
-        [] => bail!(
-            "{} に PDF がありません（quarto render は成功しましたか）",
-            book.display()
-        ),
-        many => bail!("{} に PDF が複数あります: {:?}", book.display(), many),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn exactly_one_pdf_is_taken_from_the_output_dir() {
-        let tmp = tempfile::tempdir().unwrap();
-        let book = tmp.path();
-        fs::write(book.join("index.html"), "").unwrap();
-
-        // 0 件: render が PDF を作らなかった
-        let err = format!("{:#}", find_pdf(book).unwrap_err());
-        assert!(err.contains("PDF がありません"), "{err}");
-
-        // 1 件: 拡張子の大小は問わない
-        fs::write(book.join("設計書.PDF"), "").unwrap();
-        assert_eq!(find_pdf(book).unwrap(), book.join("設計書.PDF"));
-
-        // 複数: どれを取り出すか決められないので止め、両方の名前を出す
-        fs::write(book.join("old.pdf"), "").unwrap();
-        let err = format!("{:#}", find_pdf(book).unwrap_err());
-        assert!(err.contains("PDF が複数あります"), "{err}");
-        assert!(err.contains("old.pdf") && err.contains("設計書.PDF"), "{err}");
-
-        // 出力先そのものが無い
-        let err = format!("{:#}", find_pdf(&book.join("_book")).unwrap_err());
-        assert!(err.contains("を読めません"), "{err}");
-    }
 }

@@ -3,27 +3,28 @@
 PlantUML 図（@sec-plantuml）はブラウザの中では描けないため、プレビュー・配布 HTML・PDF の
 いずれも **PlantUML サーバ**に HTTP で描かせてベクター SVG を得る。サーバは 2 通りある。
 
-::: {.tbl caption="PlantUML サーバの選び方" label="tbl-puml-server" widths="22,40,38"}
+::: {.tbl caption="PlantUML サーバの選び方" label="tbl-puml-server" tbl-colwidths="[22,40,38]"}
 | サーバ | 用意する人・もの | 向いている場合 |
 |---|---|---|
-| **LAN 内の常設サーバ** | 組織で 1 台立てる（公式の `plantuml-server`、または `java -jar plantuml.jar -picoweb`）。URL を `_quarto.yml` の `plantuml-server:` に書く | 執筆者が多い。**執筆者の端末に Java も `ddq` も入れずに済む** |
+| **LAN 内の常設サーバ** | 組織で 1 台立てる（公式の `plantuml-server`、または `java -jar plantuml.jar -picoweb`）。URL を `_quarto.yml` の `ddq.plantuml-server` に書く | 執筆者が多い。**執筆者の端末に Java も `ddq` も入れずに済む** |
 | **ローカル起動** | 各自が PlantUML の公式リリースから取得した `plantuml.jar` と、端末の Java（8 以上） | 常設サーバが無い。発行者の `ddq pdf` / `ddq html` は自動で上げ下げするので操作は要らない |
 :::
 
 `ddq` はビルドのたびに次の順でサーバを決める。
 
-1. 環境変数 `PLANTUML_SERVER`、または `_quarto.yml` の `plantuml-server:` に書かれたサーバに届くか
+1. 環境変数 `PLANTUML_SERVER`、または `_quarto.yml` の `ddq.plantuml-server` に書かれたサーバに届くか
 2. 起動済みの `ddq plantuml serve`（`http://127.0.0.1:18080`）に届くか
 3. 原稿に ` ```plantuml ` が無ければ何もしない（**PlantUML を使わない文書に Java は要らない**）
 4. Java と `plantuml.jar` を探し、ローカルにサーバを上げる（ビルドが終わったら止める）
 
 ### LAN 内のサーバを使う
 
-`_quarto.yml` の `plantuml-server:` に URL を書き、コミットする。以後、その設計書リポジトリを
+`_quarto.yml` の `ddq.plantuml-server` に URL を書き、コミットする。以後、その設計書リポジトリを
 clone した全員のプレビューと発行がこのサーバを使う。
 
 ```yaml
-plantuml-server: http://plantuml.example.local:8080
+ddq:
+  plantuml-server: http://plantuml.example.local:8080
 ```
 
 個人で別のサーバを試すときは環境変数 `PLANTUML_SERVER` が優先される。
@@ -45,7 +46,7 @@ LAN のサーバがプロキシの内側にあるなら、そのホスト名を�
 違えばその図を描き直す。プレビューではサーバが無くてもキャッシュをそのまま表示する。
 
 ```text
-<!-- ddq 3.1.0 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 fonts=a9d68470 -->
+<!-- ddq 4.0.0 engine=plantuml plantuml=1.2026.8 server=http://127.0.0.1:18080 fonts=a9d68470 -->
 ```
 
 ### ローカルで描く（plantuml.jar と Java の用意）
@@ -95,7 +96,7 @@ set "DDQ_JAVA=C:\Program Files\Eclipse Adoptium\jdk-17\bin\java.exe"
 執筆者がサーバを起動しておく。
 
 ```bat
-cd C:\tools\quarto-template-3.1.0
+cd C:\tools\quarto-template-4.0.0
 .\ddq plantuml serve
 ```
 

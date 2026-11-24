@@ -2,7 +2,7 @@
 
 確認済み（静的）：この拡張の壊れやすさは、ほぼ**`ddq` との契約**と**VSCode の作法**の 2 か所に集まっている。[E-0004](appendix-evidence.qmd#ev-rev-e-0004)、[E-0007](appendix-evidence.qmd#ev-rev-e-0007)
 
-::: {.tbl caption="変更の影響" label="tbl-rev-impact" widths="30,70"}
+::: {.tbl caption="変更の影響" label="tbl-rev-impact" tbl-colwidths="[30,70]"}
 | 直すもの | 一緒に直すもの・確かめること |
 |---|---|
 | `ddq` の JSON（`tag list --json`） | `src/ddq/types.ts`。項目を増やすだけなら拡張は動くが、名前を変えると画面が空になる。`tests/host/tag-list.golden.json` も採り直す |
@@ -27,7 +27,7 @@
 
 確認済み（実行）：実装と検証で実際に踏んだもの。いずれも再発しやすい。[E-0008](appendix-evidence.qmd#ev-rev-e-0008)、[E-0009](appendix-evidence.qmd#ev-rev-e-0009)
 
-::: {.tbl caption="踏んだ落とし穴" label="tbl-rev-pitfalls" widths="30,70"}
+::: {.tbl caption="踏んだ落とし穴" label="tbl-rev-pitfalls" tbl-colwidths="[30,70]"}
 | 事象 | 対処 |
 |---|---|
 | Windows で `.cmd` の `ddq` が `EINVAL` | 統合前は `spawnArgs` が `cmd /c` を通していた（Node の CVE-2024-27980 対応以降の仕様）。統合後は引数を cmd.exe が解釈する危険があるので `.cmd` / `.bat` を起動しない（`unsupportedCommand`）。実拡張ホストの差し替え ddq も rustc で作る exe にした |
@@ -42,7 +42,7 @@
 
 確認済み（実行）：単体テストは 45 件（`vitest`）。うち Webview の描画は jsdom で、**「パネルが真っ白」を拾う**ために入れてある（タブは開くので実拡張ホストでは気付けない）。[E-0008](appendix-evidence.qmd#ev-rev-e-0008)
 
-::: {.tbl caption="テストの分担" label="tbl-rev-tests" widths="34,66"}
+::: {.tbl caption="テストの分担" label="tbl-rev-tests" tbl-colwidths="[34,66]"}
 | テスト | 見るもの |
 |---|---|
 | `src/ddq/run.test.ts` | 実行ファイルの決め方、`.cmd` / `.bat` を起動しないこと、版の取り出し |

@@ -35,7 +35,7 @@ enum Command {
     Add(AddArgs),
     /// 執筆フォルダの機構ファイルをこの exe の版に更新する
     Update(UpdateArgs),
-    /// テンプレートの版を検査し、PDF 側ファイルを執筆フォルダに置く（pdf が内部で呼ぶ）
+    /// 執筆フォルダの DDQ 拡張の版と機構ファイルを検査する
     Setup(FolderArg),
     /// 配布用 HTML を作る（<執筆フォルダ>/_book/。mermaid は SVG に焼く）
     Html(FolderArg),

@@ -8,7 +8,7 @@ Quarto 同梱の Typst（`quarto typst`。Typst を別に入れなくてよい�
 :: 1) 写しを最新にし、PDF 用部品を置く（配置ツールの更新・準備）
 :: 2) 執筆フォルダで中間 .typ を残して render し、ページ画像に出す
 cd <執筆フォルダ>
-quarto render --to typst --profile publish -M keep-typ:true
+quarto render --to ddq-typst -M keep-typ:true
 quarto typst compile index.typ "chk-{n}.png" --format png --font-path "C:/Windows/Fonts" --ppi 70
 ```
 

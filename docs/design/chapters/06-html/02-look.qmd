@@ -1,6 +1,6 @@
 ## 見た目の調整箇所 {#sec-html-look}
 
-::: {.tbl caption="HTML の見た目と触る場所" label="tbl-html-look" widths="40,60"}
+::: {.tbl caption="HTML の見た目と触る場所" label="tbl-html-look" tbl-colwidths="[40,60]"}
 | 変えたいもの | 触る場所 |
 |---|---|
 | 画面全体の幅・左ペインの幅 | `_quarto.yml` の `format.html.grid` |

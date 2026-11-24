@@ -442,7 +442,7 @@ fn math_end(c: &[char], i: usize) -> usize {
             }
         }
     }
-    if !c.get(i + 1).is_some_and(|n| !n.is_whitespace()) {
+    if c.get(i + 1).is_none_or(|n| n.is_whitespace()) {
         return i + 1;
     }
     let mut j = i + 1;
@@ -462,10 +462,10 @@ fn math_end(c: &[char], i: usize) -> usize {
 fn history_qmd(rows: &[Row]) -> String {
     let mut s = String::new();
     s.push_str("<!-- ddq rev build が生成する。手で編集しない（revisions/rev-*.yml を直す）。 -->\n");
-    // 前付け（採番されない章）に置くので caption は付けない（付けると「表 0-1」になる）。
+    // 前付けの改訂履歴は表番号とキャプションを付けずに出す。
     // 改訂日・記号は結合しない: 自動分割で次ページに続いたとき結合セルが空欄になるため。
     s.push_str("\n::: {.content-visible when-format=\"typst\"}\n");
-    s.push_str("::: {.tbl widths=\"14,8,22,8,48\"}\n");
+    s.push_str("::: {.tbl tbl-colwidths=\"[14,8,22,8,48]\"}\n");
     s.push_str("| 改訂日 | 記号 | 箇所 | 頁 | 修正内容 |\n|---|---|---|---|---|\n");
     for r in rows {
         s.push_str(&format!(
@@ -480,7 +480,7 @@ fn history_qmd(rows: &[Row]) -> String {
     s.push_str(":::\n:::\n");
 
     s.push_str("\n::: {.content-visible unless-format=\"typst\"}\n");
-    s.push_str("::: {.tbl widths=\"16,8,26,50\"}\n");
+    s.push_str("::: {.tbl tbl-colwidths=\"[16,8,26,50]\"}\n");
     s.push_str("| 改訂日 | 記号 | 箇所 | 修正内容 |\n|---|---|---|---|\n");
     for r in rows {
         s.push_str(&format!(

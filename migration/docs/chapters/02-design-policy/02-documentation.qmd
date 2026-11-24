@@ -11,7 +11,7 @@
 関数のうち、**処理手順を持たない短いもの**（型変換・文字列正規化・述語判定など）は
 **補助モジュール**とし、IPO 図を作らず一覧表のみで示す。区分の基準を @tbl-doc-kind に示す。
 
-::: {.tbl caption="モジュールの区分" label="tbl-doc-kind" widths="18,42,40"}
+::: {.tbl caption="モジュールの区分" label="tbl-doc-kind" tbl-colwidths="[18,42,40]"}
 | 区分 | 基準 | 記述する内容 |
 |---|---|---|
 | モジュール | 分岐・繰返し・例外処理のいずれかを持つ | 4.3.1〜4.3.5 の5項目（IPO 図を含む） |
@@ -22,7 +22,7 @@
 
 各モジュールのインタフェースは、@tbl-doc-if-example の形式の表で示す。
 
-::: {.tbl .unnumbered caption="インタフェース表の例（M-0301 plan）" widths="10,16,16,44,14"}
+::: {.tbl .unnumbered caption="インタフェース表の例（M-0301 plan）" tbl-colwidths="[10,16,16,44,14]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `text` | `str` | 対象の markdown 全文。空文字可 | 不可（必須） |
@@ -31,7 +31,7 @@
 | 戻り値 | 第3要素 | `list[Change]` | 見出しごとの判定結果 | 空リスト（見出しなし） |
 :::
 
-::: {.tbl caption="インタフェース表の列の意味" label="tbl-doc-if-example" widths="16,84"}
+::: {.tbl caption="インタフェース表の列の意味" label="tbl-doc-if-example" tbl-colwidths="[16,84]"}
 | 列 | 意味 |
 |---|---|
 | 区分 | `引数` 又は `戻り値`。Python には出力引数がないため方向は引数＝IN、戻り値＝OUT に固定される |
@@ -45,7 +45,7 @@
 
 処理（4.3.3）は IPO 図で示す。各欄に書く内容を @tbl-doc-ipo に示す。
 
-::: {.tbl caption="IPO 図の各欄に書く内容" label="tbl-doc-ipo" widths="14,86"}
+::: {.tbl caption="IPO 図の各欄に書く内容" label="tbl-doc-ipo" tbl-colwidths="[14,86]"}
 | 欄 | 書く内容 |
 |---|---|
 | 入力 | 引数、参照する局所テーブル、読み込むファイル、参照するモジュール定数 |
@@ -55,7 +55,7 @@
 
 流れ図の記号は Mermaid の既定に従い、次の意味で用いる。
 
-::: {.tbl caption="流れ図の記号" label="tbl-doc-flow" widths="24,76"}
+::: {.tbl caption="流れ図の記号" label="tbl-doc-flow" tbl-colwidths="[24,76]"}
 | 記号 | 意味 |
 |---|---|
 | 角丸（`([…])`） | 処理の開始・終了 |

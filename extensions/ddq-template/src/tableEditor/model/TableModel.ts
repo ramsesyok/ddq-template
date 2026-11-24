@@ -21,7 +21,7 @@ export type TableCell = {
 
 export type TableColumn = {
   align?: CellAlign;
-  /** `widths` 属性の値（％風でも比率でもよい）。未指定なら undefined＝自動幅。 */
+  /** `tbl-colwidths` 属性の値（列ごとの百分率）。未指定なら undefined＝自動幅。 */
   width?: number;
 };
 
@@ -33,7 +33,7 @@ export type TblAttributes = {
   unnumbered?: boolean;
   /** `.tbl` / `.unnumbered` 以外に付いていたクラス。 */
   extraClasses: string[];
-  /** caption / label / widths / merge-cols 以外の属性。順序を保って書き戻す。 */
+  /** caption / label / tbl-colwidths / merge-cols 以外の属性。順序を保って書き戻す。 */
   extraAttributes: Array<[string, string]>;
 };
 

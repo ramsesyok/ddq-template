@@ -8,7 +8,7 @@ PDF と HTML で図を一致させ、図表番号に載せるためである。�
 
 `ddq` は変換のたびに次の順で描画エンジンを決める。
 
-::: {.tbl caption="mermaid 描画エンジンの選択順" label="tbl-mmd-engine" widths="8,30,62"}
+::: {.tbl caption="mermaid 描画エンジンの選択順" label="tbl-mmd-engine" tbl-colwidths="[8,30,62]"}
 | 順 | エンジン                  | 条件・特徴                                                         |
 |----|---------------------------|--------------------------------------------------------------------|
 | 1  | 環境変数 `EXECUTABLE_BROWSER` のブラウザ | 明示指定。`msedge.exe` / `chrome.exe` のフルパス      |
@@ -31,7 +31,7 @@ PDF と HTML で図を一致させ、図表番号に載せるためである。�
 生成された SVG（`<執筆フォルダ>/diagrams/mmd-*.svg`）の 1 行目に記録される。
 
 ```text
-<!-- ddq 3.1.0 engine=browser mermaid=11.16.1 browser=msedge/153.0.4234.48 fonts=a9d68470 -->
+<!-- ddq 4.0.0 engine=browser mermaid=11.16.1 browser=msedge/153.0.4234.48 fonts=a9d68470 -->
 ```
 
 `engine=merman` なら内蔵レンダラで描かれている。`browser=` は描いたブラウザとその版、

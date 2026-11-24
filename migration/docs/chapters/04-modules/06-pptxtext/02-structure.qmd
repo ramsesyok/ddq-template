@@ -3,7 +3,7 @@
 SP-06 を構成するモジュールを @tbl-sp06-mods に、補助モジュールを @tbl-sp06-sub に、
 相互関連を @fig-sp06-tree に示す。
 
-::: {.tbl caption="SP-06 モジュール一覧" label="tbl-sp06-mods" widths="12,22,44,22"}
+::: {.tbl caption="SP-06 モジュール一覧" label="tbl-sp06-mods" tbl-colwidths="[12,22,44,22]"}
 | ID | 名称 | 機能の概要 | 呼出元 |
 |---|---|---|---|
 | M-0601 | `_iter_shapes` | グループの中まで辿り、すべての図形を返す | `convert` |
@@ -15,7 +15,7 @@ SP-06 を構成するモジュールを @tbl-sp06-mods に、補助モジュー�
 | M-0607 | `main` | 引数を解釈し、全体を制御する | （利用者） |
 :::
 
-::: {.tbl caption="SP-06 補助モジュール一覧" label="tbl-sp06-sub" widths="18,14,32,36"}
+::: {.tbl caption="SP-06 補助モジュール一覧" label="tbl-sp06-sub" tbl-colwidths="[18,14,32,36]"}
 | 名称 | 戻り値 | 機能 | 備考 |
 |---|---|---|---|
 | `_reading_order` | `list` | 図形を上から下、左から右に並べ替える | 縦方向は約 0.2 インチの許容で同じ行とみなす |
@@ -52,7 +52,7 @@ PowerPoint の操作上、実務で数段を超えることはない。
 
 本サブプログラムは python-pptx に依存する。@tbl-sp06-dep に使用する機能を示す。
 
-::: {.tbl caption="python-pptx の使用機能" label="tbl-sp06-dep" widths="34,66"}
+::: {.tbl caption="python-pptx の使用機能" label="tbl-sp06-dep" tbl-colwidths="[34,66]"}
 | 機能 | 用途 |
 |---|---|
 | `Presentation` | ファイルを開く |

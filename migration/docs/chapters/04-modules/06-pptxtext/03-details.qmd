@@ -12,7 +12,7 @@
 for shape in _iter_shapes(shapes): …
 ```
 
-::: {.tbl caption="M-0601 インタフェース" label="tbl-m0601-if" widths="10,14,20,40,16"}
+::: {.tbl caption="M-0601 インタフェース" label="tbl-m0601-if" tbl-colwidths="[10,14,20,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `shapes` | 図形の並び | スライドの図形、又はグループの図形 | 不可（必須） |
@@ -45,7 +45,7 @@ for shape in _iter_shapes(shapes): …
 
 処理条件及び例外条件を @tbl-m0601-exc に示す。
 
-::: {.tbl caption="M-0601 処理条件・例外条件" label="tbl-m0601-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0601 処理条件・例外条件" label="tbl-m0601-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -75,7 +75,7 @@ M-0606 から、スライド1枚につき1回呼び出される。
 lines = _lines_of(shape)
 ```
 
-::: {.tbl caption="M-0602 インタフェース" label="tbl-m0602-if" widths="10,14,20,40,16"}
+::: {.tbl caption="M-0602 インタフェース" label="tbl-m0602-if" tbl-colwidths="[10,14,20,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `shape` | 図形 | 文字枠を持たない図形でもよい | 不可（必須） |
@@ -116,7 +116,7 @@ PowerPoint は箇条書き記号を書式として持つが、本文に記号そ
 
 処理条件及び例外条件を @tbl-m0602-exc に示す。
 
-::: {.tbl caption="M-0602 処理条件・例外条件" label="tbl-m0602-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0602 処理条件・例外条件" label="tbl-m0602-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | 文字枠を持たない図形を渡してもよい |
@@ -147,7 +147,7 @@ M-0606 及び M-0605 から、図形ごとに呼び出される。
 out = _as_markdown(lines, force_list=False)
 ```
 
-::: {.tbl caption="M-0603 インタフェース" label="tbl-m0603-if" widths="10,16,18,40,16"}
+::: {.tbl caption="M-0603 インタフェース" label="tbl-m0603-if" tbl-colwidths="[10,16,18,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `lines` | `list[tuple[str,str]]` | M-0602 の結果 | 不可（必須） |
@@ -198,7 +198,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0603-exc に示す。
 
-::: {.tbl caption="M-0603 処理条件・例外条件" label="tbl-m0603-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0603 処理条件・例外条件" label="tbl-m0603-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -229,7 +229,7 @@ PowerPoint の表を、markdown のパイプ表に変換する。
 out = _table_markdown(table)
 ```
 
-::: {.tbl caption="M-0604 インタフェース" label="tbl-m0604-if" widths="10,14,20,40,16"}
+::: {.tbl caption="M-0604 インタフェース" label="tbl-m0604-if" tbl-colwidths="[10,14,20,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `table` | 表オブジェクト | python-pptx の表 | 不可（必須） |
@@ -270,7 +270,7 @@ markdown のパイプ表は結合を表現できないため、**結合の情報
 
 処理条件及び例外条件を @tbl-m0604-exc に示す。
 
-::: {.tbl caption="M-0604 処理条件・例外条件" label="tbl-m0604-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0604 処理条件・例外条件" label="tbl-m0604-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | なし | － |
@@ -302,7 +302,7 @@ M-0606 から、表を持つ図形ごとに1回呼び出される。
 found = _find_ipo(shapes)
 ```
 
-::: {.tbl caption="M-0605 インタフェース" label="tbl-m0605-if" widths="10,14,20,40,16"}
+::: {.tbl caption="M-0605 インタフェース" label="tbl-m0605-if" tbl-colwidths="[10,14,20,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `shapes` | `list` | 読み順に並べた図形 | 不可（必須） |
@@ -343,7 +343,7 @@ found = _find_ipo(shapes)
 
 処理条件及び例外条件を @tbl-m0605-exc に示す。
 
-::: {.tbl caption="M-0605 処理条件・例外条件" label="tbl-m0605-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0605 処理条件・例外条件" label="tbl-m0605-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | `shapes` が読み順に並んでいること | 呼出元 M-0606 が保証する |
@@ -374,7 +374,7 @@ M-0606 から、スライド1枚につき1回呼び出される。
 text, summary = convert(path, media_dir, image_prefix)
 ```
 
-::: {.tbl caption="M-0606 インタフェース" label="tbl-m0606-if" widths="10,16,18,40,16"}
+::: {.tbl caption="M-0606 インタフェース" label="tbl-m0606-if" tbl-colwidths="[10,16,18,40,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `path` | `Path` | 入力の `.pptx` | 不可（必須） |
@@ -436,7 +436,7 @@ PowerPoint の本文は既定で箇条書きであるためである。
 
 処理条件及び例外条件を @tbl-m0606-exc に示す。
 
-::: {.tbl caption="M-0606 処理条件・例外条件" label="tbl-m0606-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0606 処理条件・例外条件" label="tbl-m0606-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | python-pptx が導入済みであること | 未導入の場合、読み込み時に終了する |
@@ -470,7 +470,7 @@ M-0607 から起動につき1回呼び出される。
 code = main(argv)
 ```
 
-::: {.tbl caption="M-0607 インタフェース" label="tbl-m0607-if" widths="10,14,18,42,16"}
+::: {.tbl caption="M-0607 インタフェース" label="tbl-m0607-if" tbl-colwidths="[10,14,18,42,16]"}
 | 区分 | 名称 | 型 | 内容・値域 | 未設定時 |
 |:---:|---|---|---|---|
 | 引数 | `argv` | `list[str] \| None` | コマンドライン引数 | `None` |
@@ -519,7 +519,7 @@ flowchart TD
 
 処理条件及び例外条件を @tbl-m0607-exc に示す。
 
-::: {.tbl caption="M-0607 処理条件・例外条件" label="tbl-m0607-exc" widths="12,34,54" merge-cols="1"}
+::: {.tbl caption="M-0607 処理条件・例外条件" label="tbl-m0607-exc" tbl-colwidths="[12,34,54]" merge-cols="1"}
 | 区分 | 条件 | 処理内容 |
 |---|---|---|
 | 事前 | python-pptx が導入済みであること | 未導入の場合、メッセージ E-601 を出して終了する |
