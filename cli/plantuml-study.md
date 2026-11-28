@@ -83,7 +83,7 @@ jar : DDQ_PLANTUML_JAR → <ddq.exe と同じフォルダ>/plantuml.jar → PLAN
 java: DDQ_JAVA → JAVA_HOME/bin/java.exe → PATH の java → レジストリ（HKLM\SOFTWARE\JavaSoft）→ 無ければエラー
 ```
 
-- jar は **release フォルダ直下に同梱**する（`ddq release` が `cli/vendor/plantuml-mit-<版>.jar` を
+- jar は **release フォルダ直下に同梱**する（保守者用の `ddq-release` が `cli/vendor/plantuml-mit-<版>.jar` を
   `plantuml.jar` としてコピー）。exe に埋め込む案（`include_bytes!` 12MB → 実行のたび一時展開）は
   起動が重くなるだけなので採らない。
 - 同梱するのは **MIT 版**（`plantuml-mit-*.jar`）。GPL 版を配ると release ZIP に GPL の義務が付く。
@@ -192,8 +192,8 @@ API は同じ系統。レスポンスの **`X-PlantUML-Diagram-Error` ヘッダ*
 | `cli/src/commands/plantuml.rs`（新規）+ `main.rs` | hidden サブコマンド（`mermaid.rs` の写し） | +40 行 | なし |
 | `cli/src/assets.rs` | `MECHANISM` に `plantuml-config.puml` 追加 | 数行 | `update` / `setup` の一致検査が 5 本になる |
 | `cli/src/commands/diagrams.rs` | `.puml` の振り分け | +20 行 | なし |
-| `cli/src/commands/release.rs` | `plantuml.jar`（MIT 版）と LICENSE の同梱、`cli/vendor/` の追加 | +30 行 | release ZIP が +12MB |
-| `cli/build.rs` / `Cargo.toml` | jar を埋め込まないなら変更なし。`cli/vendor/plantuml-mit-*.jar` をリポジトリに置くか、CI で取得するかは要判断（12MB のバイナリをコミットするなら Git LFS か、`ddq release` 時にダウンロード） | 小 | なし |
+| `cli/src/bin/ddq-release/release.rs` | `plantuml.jar`（MIT 版）と LICENSE の同梱、`cli/vendor/` の追加 | +30 行 | release ZIP が +12MB |
+| `cli/build.rs` / `Cargo.toml` | jar を埋め込まないなら変更なし。`cli/vendor/plantuml-mit-*.jar` をリポジトリに置くか、CI で取得するかは要判断（12MB のバイナリをコミットするなら Git LFS か、`ddq-release` 実行時にダウンロード） | 小 | なし |
 | `cli/tests/golden.rs` + `golden/` | PlantUML の golden 追加（PlantUML は同じ jar + 同じフォントなら**決定的**なので厳密比較できる。フォント差は `DDQ_GOLDEN_LOOSE` と同じ扱い） | +100 行 | なし |
 | `cli/tests/e2e.rs` | `examples/docs` に PlantUML 図を 1〜2 枚足し、`puml-*.svg` の数を数える | +20 行 | `MERMAID_FENCES_IN_EXAMPLE` はそのまま |
 | `.github/workflows/ci.yml` | `actions/setup-java` + jar の取得（キャッシュ） | +10 行 | CI 時間 +1 分程度 |
