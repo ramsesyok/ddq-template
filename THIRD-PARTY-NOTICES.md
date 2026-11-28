@@ -1,6 +1,6 @@
 # 第三者のソフトウェアとライセンス（THIRD-PARTY-NOTICES）
 
-<!-- ddq-third-party inputs: cli/Cargo.lock=c798f8ab883cc9776936e165d3f7a9a72d9c8ea4 template/vendor/mermaid.min.js=c39dd4ce5539ac2e1512ce949e8c03df9a5050e8 cli/tools/mermaid-bundle/package-lock.json=6724c79ea658dac210e5ea5f811c30c8cfb508c6 cli/tools/mermaid-bundle/bundled.json=1142d5ce5622d0fc929ddd72d9f36e572c8890dc extensions/ddq-template/package-lock.json=ef30d6b898b4817144b1998b1239e4bd5d76aebc -->
+<!-- ddq-third-party inputs: cli/Cargo.lock=c798f8ab883cc9776936e165d3f7a9a72d9c8ea4 template/vendor/mermaid.min.js=c39dd4ce5539ac2e1512ce949e8c03df9a5050e8 cli/tools/mermaid-bundle/package-lock.json=6724c79ea658dac210e5ea5f811c30c8cfb508c6 cli/tools/mermaid-bundle/bundled.json=1142d5ce5622d0fc929ddd72d9f36e572c8890dc extensions/ddq-template/package-lock.json=43292294b46daccf9d0a28c9ee4353f60c05fc66 -->
 <!-- 生成物。手で直さない（python cli/tools/third_party.py で作り直す） -->
 
 この配布物（quarto-template）の ddq 本体とテンプレートは MIT ライセンスである（同梱の LICENSE）。
