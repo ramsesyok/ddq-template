@@ -127,7 +127,7 @@ python cli/tools/third_party.py
 
 ```bash
 set -euo pipefail
-VER=4.0.0                       # 配る版（template/VERSION と同じ）
+VER=4.0.0-beta1                       # 配る版（template/VERSION と同じ）
 RUN=<実行の番号>                 # 上で選んだ実行
 NOTES=<リリースノートのファイル>
 
